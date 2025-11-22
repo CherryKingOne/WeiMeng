@@ -837,10 +837,6 @@ onMounted(() => {
       </div>
 
       <div class="flex items-center gap-3">
-        <button class="flex items-center gap-2 px-3 py-1.5 bg-gradient-to-r from-brand-green to-emerald-500 text-white rounded-full text-sm font-medium hover:opacity-90 transition shadow-sm">
-          <fa :icon="['fas', 'wand-magic-sparkles']" />
-          AI Copilot
-        </button>
         <div class="h-6 w-px bg-gray-200 dark:bg-[#3A3A3C]"></div>
         <button class="p-2 text-secondary hover:text-primary dark:text-gray-400 dark:hover:text-white transition" @click="toggleTheme">
           <fa :icon="['fas', theme === 'dark' ? 'sun' : 'moon']" />

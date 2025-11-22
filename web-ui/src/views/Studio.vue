@@ -85,9 +85,7 @@ const autoResize = () => {
       </div>
       <div class="flex items-center justify-end space-x-3 w-1/4">
         <button class="text-xs font-medium text-secondary hover:text-brand-green mr-2">EN / 中</button>
-        <button @click="rightPane='assistant'" class="bg-gradient-to-r from-brand-green to-emerald-500 text-white px-3 py-1.5 rounded-full flex items-center text-sm font-medium">
-          <fa :icon="['fas','wand-magic-sparkles']" class="mr-2" /> AI Copilot
-        </button>
+        
         <button class="text-secondary hover:text-brand-green" @click="toggleTheme">
           <fa :icon="['fas', theme==='dark' ? 'sun' : 'moon']" />
         </button>

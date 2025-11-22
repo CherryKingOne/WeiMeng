@@ -234,51 +234,94 @@ const closeSettings = () => {
   showSettings.value = false
 }
 const providers = ref([
-  { id: 'openai', name: 'OpenAI', slug: 'openai', desc: 'OpenAI 提供的模型，例如 GPT‑4、GPT‑4o 等', enabled: true },
-  { id: 'anthropic', name: 'Anthropic', slug: 'anthropic', desc: 'Anthropic 的 Claude 系列模型', enabled: false },
-  { id: 'bedrock', name: 'Amazon Bedrock', slug: 'bedrock', desc: '亚马逊 Bedrock 聚合多家模型供应商', enabled: false },
-  { id: 'azure-openai', name: 'Azure OpenAI', slug: 'azure', desc: 'Azure OpenAI Service，企业级合规与连接能力', enabled: false },
-  { id: 'azure-ai-studio', name: 'Azure AI Studio', slug: 'azureai', desc: 'Azure AI Studio，端到端 AI 应用构建平台', enabled: false },
-  { id: 'cohere', name: 'Cohere', slug: 'cohere', desc: 'Cohere Command、Embed 等模型', enabled: false },
-  { id: 'gemini', name: 'Gemini', slug: 'gemini', desc: '谷歌提供的 Gemini 模型', enabled: false },
-  { id: 'huggingface', name: 'Hugging Face Hub', slug: 'huggingface', desc: '海量开源模型与数据集的托管平台', enabled: false },
-  { id: 'replicate', name: 'Replicate', slug: 'replicate', desc: '通过 API 调用社区模型进行推理', enabled: false },
-  { id: 'deepseek', name: '深度求索', slug: 'deepseek', desc: '深度求索提供的对话与代码模型', enabled: false },
-  { id: 'ollama', name: 'Ollama', slug: 'ollama', desc: '本地部署与运行开源大模型', enabled: false },
-  { id: 'qwen', name: '通义千问', slug: 'qwen', desc: '阿里通义千问系列模型', enabled: false },
-  { id: 'volcengine', name: '火山方舟', slug: 'volcengine', desc: '火山引擎模型与 Doubao 系列', enabled: false },
-  { id: 'xinference', name: 'Xorbits Inference', slug: 'xinference', desc: '面向推理的开源框架', enabled: false },
-  { id: 'openrouter', name: 'OpenRouter', slug: 'openrouter', desc: '统一访问多家模型的路由平台', enabled: false },
-  { id: 'lmstudio', name: 'LM Studio', slug: 'lmstudio', desc: '在本地运行与管理 LLM', enabled: false },
-  { id: 'vllm', name: 'vLLM', slug: 'vllm', desc: '高性能推理与服务框架', enabled: false },
-  { id: 'zhipu', name: '智谱 AI', slug: 'zhipu', desc: '智谱 ChatGLM、GLM 系列', enabled: false },
-  { id: 'jina', name: 'Jina', slug: 'jina', desc: '嵌入与重排等向量服务', enabled: false },
-  { id: 'moonshot', name: '月之暗面', slug: 'moonshot', desc: 'Moonshot 模型与 API', enabled: false },
-  { id: 'hunyuan', name: '腾讯混元', slug: 'hunyuan', desc: '腾讯混元系列模型', enabled: false },
-  { id: 'wenxin', name: '文心一言', slug: 'wenxin', desc: '百度文心系列模型', enabled: false },
-  { id: 'minimax', name: 'Minimax', slug: 'minimax', desc: '对话、语音与多模态模型', enabled: false },
-  { id: 'vertexai', name: 'Vertex AI', slug: 'vertexai', desc: 'Google Cloud 的 AI 平台', enabled: false },
-  { id: 'xai', name: 'xAI', slug: 'xai', desc: 'Grok 等模型与服务', enabled: false },
-  { id: 'localai', name: 'LocalAI', slug: 'localai', desc: '纯本地推理的 API 兼容实现', enabled: false },
-  { id: 'groq', name: 'Groq', slug: 'groq', desc: 'GroqCloud 与超高速推理', enabled: false },
-  { id: 'mistral', name: 'Mistral AI', slug: 'mistral', desc: 'Mistral 系列与 API', enabled: false },
-  { id: 'modelscope', name: '魔搭社区', slug: 'modelscope', desc: '阿里巴巴 ModelScope 模型', enabled: false },
-  { id: 'baichuan', name: '百川智能', slug: 'baichuan', desc: '百川大模型与 API', enabled: false },
-  { id: '01ai', name: '零一万物', slug: '01ai', desc: 'Yi 系列模型', enabled: false },
-  { id: 'qiniu', name: '七牛云', slug: 'qiniu', desc: '七牛云模型与推理服务', enabled: false },
-  { id: 'llamaapi', name: 'Llama API', slug: 'llamaapi', desc: 'Llama 模型 API 平台', enabled: false },
-  { id: 'elevenlabs', name: 'ElevenLabs', slug: 'elevenlabs', desc: '语音 TTS/STT 服务', enabled: false },
-  { id: 'voyage', name: 'Voyage', slug: 'voyage', desc: '高质量嵌入与检索服务', enabled: false },
-  { id: 'sagemaker', name: 'Amazon SageMaker', slug: 'sagemaker', desc: '自部署模型与托管推理', enabled: false },
-  { id: 'togetherai', name: 'Together.AI', slug: 'togetherai', desc: '聚合开源与商用模型', enabled: false },
-  { id: 'ucloud', name: 'UCloud 优刻得', slug: 'ucloud', desc: '一站式模型 API 访问', enabled: false },
-  { id: 'cometapi', name: 'CometAPI', slug: 'cometapi', desc: '多模型 API 聚合', enabled: false },
-  { id: 'longcat', name: 'LongCat', slug: 'longcat', desc: '长上下文模型与服务', enabled: false },
-  { id: 'watsonx', name: 'IBM WatsonX', slug: 'watsonx', desc: 'IBM 企业级 AI 平台', enabled: false },
-  { id: '302ai', name: '302.AI', slug: '302ai', desc: '统一接入与资源平台', enabled: false },
-  { id: 'siliconflow', name: '硅基流动', slug: 'siliconcloud', desc: '提供多种模型与推理服务', enabled: false },
-  { id: 'openai-compatible', name: 'OpenAI-API-compatible', slug: 'openai', desc: '兼容 OpenAI API 的模型供应商，例如 LM Studio', enabled: false }
+  { id: 'openai', name: 'OpenAI', slug: 'openai', desc: 'OpenAI 提供的模型，例如 GPT‑4、GPT‑4o 等', enabled: true, caps: ['LLM','Embedding'], models: [], configured: false },
+  { id: 'anthropic', name: 'Anthropic', slug: 'anthropic', desc: 'Anthropic 的 Claude 系列模型', enabled: false, caps: ['LLM'], models: [], configured: false },
+  { id: 'bedrock', name: 'Amazon Bedrock', slug: 'bedrock', desc: '亚马逊 Bedrock 聚合多家模型供应商', enabled: false, caps: ['LLM'], models: [], configured: false },
+  { id: 'azure-openai', name: 'Azure OpenAI', slug: 'azure', desc: 'Azure OpenAI Service，企业级合规与连接能力', enabled: false, caps: ['LLM'], models: [], configured: false },
+  { id: 'azure-ai-studio', name: 'Azure AI Studio', slug: 'azureai', desc: 'Azure AI Studio，端到端 AI 应用构建平台', enabled: false, caps: ['LLM','Vision'], models: [], configured: false },
+  { id: 'cohere', name: 'Cohere', slug: 'cohere', desc: 'Cohere Command、Embed 等模型', enabled: false, caps: ['LLM','Embedding'], models: [], configured: false },
+  { id: 'gemini', name: 'Gemini', slug: 'gemini', desc: '谷歌提供的 Gemini 模型', enabled: false, caps: ['LLM','Vision'], models: [], configured: false },
+  { id: 'huggingface', name: 'Hugging Face Hub', slug: 'huggingface', desc: '海量开源模型与数据集的托管平台', enabled: false, caps: ['LLM'], models: [], configured: false },
+  { id: 'replicate', name: 'Replicate', slug: 'replicate', desc: '通过 API 调用社区模型进行推理', enabled: false, caps: ['LLM','Image'], models: [], configured: false },
+  { id: 'deepseek', name: '深度求索', slug: 'deepseek', desc: '深度求索提供的对话与代码模型', enabled: false, caps: ['LLM','Code'], models: [], configured: false },
+  { id: 'ollama', name: 'Ollama', slug: 'ollama', desc: '本地部署与运行开源大模型', enabled: false, caps: ['LLM','Local'], models: [], configured: false },
+  { id: 'qwen', name: '通义千问', slug: 'qwen', desc: '阿里通义千问系列模型', enabled: false, caps: ['LLM'], models: [], configured: false },
+  { id: 'volcengine', name: '火山方舟', slug: 'volcengine', desc: '火山引擎模型与 Doubao 系列', enabled: false, caps: ['LLM'], models: [], configured: false },
+  { id: 'xinference', name: 'Xorbits Inference', slug: 'xinference', desc: '面向推理的开源框架', enabled: false, caps: ['LLM'], models: [], configured: false },
+  { id: 'openrouter', name: 'OpenRouter', slug: 'openrouter', desc: '统一访问多家模型的路由平台', enabled: false, caps: ['LLM'], models: [], configured: false },
+  { id: 'lmstudio', name: 'LM Studio', slug: 'lmstudio', desc: '在本地运行与管理 LLM', enabled: false, caps: ['LLM','Local'], models: [], configured: false },
+  { id: 'vllm', name: 'vLLM', slug: 'vllm', desc: '高性能推理与服务框架', enabled: false, caps: ['LLM'], models: [], configured: false },
+  { id: 'zhipu', name: '智谱 AI', slug: 'zhipu', desc: '智谱 ChatGLM、GLM 系列', enabled: false, caps: ['LLM'], models: [], configured: false },
+  { id: 'jina', name: 'Jina', slug: 'jina', desc: '嵌入与重排等向量服务', enabled: false, caps: ['Embedding'], models: [], configured: false },
+  { id: 'moonshot', name: '月之暗面', slug: 'moonshot', desc: 'Moonshot 模型与 API', enabled: false, caps: ['LLM'], models: [], configured: false },
+  { id: 'hunyuan', name: '腾讯混元', slug: 'hunyuan', desc: '腾讯混元系列模型', enabled: false, caps: ['LLM'], models: [], configured: false },
+  { id: 'wenxin', name: '文心一言', slug: 'wenxin', desc: '百度文心系列模型', enabled: false, caps: ['LLM'], models: [], configured: false },
+  { id: 'minimax', name: 'Minimax', slug: 'minimax', desc: '对话、语音与多模态模型', enabled: false, caps: ['LLM','Speech'], models: [], configured: false },
+  { id: 'vertexai', name: 'Vertex AI', slug: 'vertexai', desc: 'Google Cloud 的 AI 平台', enabled: false, caps: ['LLM'], models: [], configured: false },
+  { id: 'xai', name: 'xAI', slug: 'xai', desc: 'Grok 等模型与服务', enabled: false, caps: ['LLM'], models: [], configured: false },
+  { id: 'localai', name: 'LocalAI', slug: 'localai', desc: '纯本地推理的 API 兼容实现', enabled: false, caps: ['LLM','Local'], models: [], configured: false },
+  { id: 'groq', name: 'Groq', slug: 'groq', desc: 'GroqCloud 与超高速推理', enabled: false, caps: ['LLM'], models: [], configured: false },
+  { id: 'mistral', name: 'Mistral AI', slug: 'mistral', desc: 'Mistral 系列与 API', enabled: false, caps: ['LLM'], models: [], configured: false },
+  { id: 'modelscope', name: '魔搭社区', slug: 'modelscope', desc: '阿里巴巴 ModelScope 模型', enabled: false, caps: ['LLM'], models: [], configured: false },
+  { id: 'baichuan', name: '百川智能', slug: 'baichuan', desc: '百川大模型与 API', enabled: false, caps: ['LLM'], models: [], configured: false },
+  { id: '01ai', name: '零一万物', slug: '01ai', desc: 'Yi 系列模型', enabled: false, caps: ['LLM'], models: [], configured: false },
+  { id: 'qiniu', name: '七牛云', slug: 'qiniu', desc: '七牛云模型与推理服务', enabled: false, caps: ['LLM'], models: [], configured: false },
+  { id: 'llamaapi', name: 'Llama API', slug: 'llamaapi', desc: 'Llama 模型 API 平台', enabled: false, caps: ['LLM'], models: [], configured: false },
+  { id: 'elevenlabs', name: 'ElevenLabs', slug: 'elevenlabs', desc: '语音 TTS/STT 服务', enabled: false, caps: ['Speech'], models: [], configured: false },
+  { id: 'voyage', name: 'Voyage', slug: 'voyage', desc: '高质量嵌入与检索服务', enabled: false, caps: ['Embedding'], models: [], configured: false },
+  { id: 'sagemaker', name: 'Amazon SageMaker', slug: 'sagemaker', desc: '自部署模型与托管推理', enabled: false, caps: ['LLM'], models: [], configured: false },
+  { id: 'togetherai', name: 'Together.AI', slug: 'togetherai', desc: '聚合开源与商用模型', enabled: false, caps: ['LLM'], models: [], configured: false },
+  { id: 'ucloud', name: 'UCloud 优刻得', slug: 'ucloud', desc: '一站式模型 API 访问', enabled: false, caps: ['LLM'], models: [], configured: false },
+  { id: 'cometapi', name: 'CometAPI', slug: 'cometapi', desc: '多模型 API 聚合', enabled: false, caps: ['LLM'], models: [], configured: false },
+  { id: 'longcat', name: 'LongCat', slug: 'longcat', desc: '长上下文模型与服务', enabled: false, caps: ['LLM'], models: [], configured: false },
+  { id: 'watsonx', name: 'IBM WatsonX', slug: 'watsonx', desc: 'IBM 企业级 AI 平台', enabled: false, caps: ['LLM'], models: [], configured: false },
+  { id: '302ai', name: '302.AI', slug: '302ai', desc: '统一接入与资源平台', enabled: false, caps: ['LLM'], models: [], configured: false },
+  { id: 'siliconflow', name: '硅基流动', slug: 'siliconcloud', desc: '提供多种模型与推理服务', enabled: false, caps: ['LLM'], models: [], configured: false },
+  { id: 'openai-compatible', name: 'OpenAI-API-compatible', slug: 'openai', desc: '兼容 OpenAI API 的模型供应商，例如 LM Studio', enabled: false, caps: ['LLM','Compatible'], models: [], configured: false }
 ])
+const configureProvider = (p) => { p.configured = true }
+const viewProviderDetail = (p) => {
+  const q = encodeURIComponent((p.name || '') + ' API')
+  const url = 'https://www.google.com/search?q=' + q
+  window.open(url, '_blank')
+}
+const showAddModelModal = ref(false)
+const addModelProvider = ref(null)
+const addModelName = ref('')
+const addModelType = ref('LLM')
+const addModelApiKey = ref('')
+const addModelEndpoint = ref('')
+const addModelError = ref('')
+const openAddModelModal = async (p) => {
+  addModelProvider.value = p
+  addModelName.value = ''
+  addModelType.value = 'LLM'
+  addModelApiKey.value = ''
+  addModelEndpoint.value = ''
+  addModelError.value = ''
+  await nextTick()
+  showAddModelModal.value = true
+}
+const cancelAddModel = () => {
+  showAddModelModal.value = false
+  addModelProvider.value = null
+  addModelName.value = ''
+  addModelType.value = 'LLM'
+  addModelApiKey.value = ''
+  addModelEndpoint.value = ''
+  addModelError.value = ''
+}
+const confirmAddModel = () => {
+  addModelError.value = ''
+  const name = addModelName.value.trim()
+  if (!name) { addModelError.value = '请输入模型名称'; return }
+  if (!addModelType.value) { addModelError.value = '请选择模型类型'; return }
+  if (!addModelProvider.value) { addModelError.value = '未选择供应商'; return }
+  const m = { id: 'm' + Date.now().toString(36), name, type: addModelType.value, apiKey: addModelApiKey.value.trim(), endpoint: addModelEndpoint.value.trim() }
+  addModelProvider.value.models.push(m)
+  addModelProvider.value.configured = true
+  cancelAddModel()
+}
 const uiLanguage = ref('简体中文')
 const clearUiLanguage = () => { uiLanguage.value = '' }
 const languageListOpen = ref(false)
@@ -1133,9 +1176,35 @@ const submitTeamCreate = () => {
               </div>
               <div v-else-if="settingsTab==='providers'" class="space-y-4">
                 <div class="p-4 rounded-xl border bg-white dark:bg-[#1E1E1E] dark:border-[#333333]">
+                  <div class="font-semibold mb-3">模型列表</div>
+                  <div v-if="providers.filter(x=>x.configured).length" class="space-y-3">
+                    <div v-for="p in providers.filter(x=>x.configured)" :key="'ml-'+p.id" class="rounded-xl border border-gray-200 bg-white p-3 flex items-center justify-between dark:bg-[#12161a] dark:border-[#333333]">
+                      <div class="flex items-start gap-3">
+                        <picture>
+                          <source :srcset="`https://unpkg.com/@lobehub/icons-static-png@latest/dark/${p.slug}.png`" media="(prefers-color-scheme: dark)" />
+                          <img :src="`https://unpkg.com/@lobehub/icons-static-png@latest/light/${p.slug}.png`" class="w-10 h-10 object-contain rounded-md" alt="logo" />
+                        </picture>
+                        <div>
+                          <div class="font-semibold text-primary dark:text-white">{{ p.name }}</div>
+                          <div class="mt-1 flex flex-wrap gap-2">
+                            <span v-for="tag in (p.caps || ['LLM'])" :key="p.id+'-'+tag" class="px-2 py-0.5 rounded text-xs bg-gray-100 text-gray-700 dark:bg-[#2C2C2E] dark:text-gray-300">{{ tag }}</span>
+                          </div>
+                          <div v-if="p.models && p.models.length" class="mt-2 flex flex-wrap gap-2">
+                            <span v-for="m in p.models" :key="m.id" class="px-2 py-0.5 rounded text-xs bg-brand-green/10 text-brand-green">{{ m.name }}</span>
+                          </div>
+                        </div>
+                      </div>
+                      <div class="flex items-center gap-2">
+                        <button class="px-3 py-1.5 rounded-md bg-brand-green text-white text-sm" @click="openAddModelModal(p)">添加模型</button>
+                      </div>
+                    </div>
+                  </div>
+                  <div v-else class="text-sm text-secondary">尚未配置模型</div>
+                </div>
+                <div class="p-4 rounded-xl border bg-white dark:bg-[#1E1E1E] dark:border-[#333333]">
                   <div class="font-semibold mb-4">{{ $t('workspace.providers') }}</div>
                   <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div v-for="p in providers" :key="p.id" class="rounded-xl border border-gray-200 bg-white p-4 dark:bg-[#12161a] dark:border-[#333333]">
+                    <div v-for="p in providers" :key="p.id" class="group rounded-xl border border-gray-200 bg-white p-4 dark:bg-[#12161a] dark:border-[#333333]">
                       <div class="flex items-start gap-3">
                         <picture>
                           <source :srcset="`https://unpkg.com/@lobehub/icons-static-png@latest/dark/${p.slug}.png`" media="(prefers-color-scheme: dark)" />
@@ -1145,6 +1214,13 @@ const submitTeamCreate = () => {
                           <div class="font-semibold text-primary dark:text-white">{{ p.name }}</div>
                           <div class="text-sm text-secondary mt-1 dark:text-gray-400">{{ p.desc }}</div>
                         </div>
+                      </div>
+                      <div class="mt-3 flex gap-2 opacity-0 pointer-events-none group-hover:opacity-100 group-hover:pointer-events-auto transition">
+                        <button class="px-4 py-1.5 rounded-md bg-brand-green text-white text-sm font-medium hover:opacity-90" @click="configureProvider(p)">配置</button>
+                        <button class="px-4 py-1.5 rounded-md border border-gray-300 bg-white text-sm text-primary hover:bg-gray-50 dark:bg-[#12161a] dark:text-white dark:border-[#333333] dark:hover:bg-[#1C1C1E]" @click="viewProviderDetail(p)">
+                          详情
+                          <fa :icon="['fas','arrow-up-right-from-square']" class="ml-1" />
+                        </button>
                       </div>
                     </div>
                   </div>
@@ -1241,6 +1317,50 @@ const submitTeamCreate = () => {
                     <button class="px-4 py-2 rounded-lg bg-brand-green text-white hover:bg-brand-green/90" @click="confirmExtractCreate">创建</button>
                   </div>
                 </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </teleport>
+      <teleport to="body">
+        <div v-if="showAddModelModal" class="fixed inset-0 z-50 flex items-center justify-center">
+          <div class="absolute inset-0 bg-black/30 backdrop-blur-md" @click="cancelAddModel"></div>
+          <div class="relative w-full max-w-xl bg-white rounded-2xl shadow-2xl border border-gray-200 overflow-hidden dark:bg-[#2C2C2E] dark:border-[#3A3A3C]">
+            <div class="p-6">
+              <div class="flex items-start justify-between">
+                <div>
+                  <div class="text-xl font-semibold text-primary dark:text-white">添加模型</div>
+                  <div class="mt-1 text-sm text-secondary dark:text-gray-300" v-if="addModelProvider">{{ addModelProvider.name }}</div>
+                </div>
+                <button class="text-secondary hover:text-primary" @click="cancelAddModel"><fa :icon="['fas','xmark']" class="text-xl" /></button>
+              </div>
+              <div class="mt-4 space-y-4">
+                <div>
+                  <label class="block text-sm font-medium text-secondary dark:text-gray-300">模型名称</label>
+                  <input v-model="addModelName" type="text" class="mt-1 w-full bg-light-gray border rounded-lg py-2 px-3 focus:outline-none focus:ring-0 dark:bg-black/30 dark:text-[#E0E0E0]" :class="'border-gray-300 focus:border-brand-green dark:border-[#3A3A3C]'" />
+                </div>
+                <div>
+                  <label class="block text-sm font-medium text-secondary dark:text-gray-300">类型</label>
+                  <select v-model="addModelType" class="mt-1 w-full bg-light-gray border rounded-lg py-2 px-3 focus:outline-none focus:ring-0 dark:bg-black/30 dark:text-[#E0E0E0]" :class="'border-gray-300 focus:border-brand-green dark:border-[#3A3A3C]'">
+                    <option value="LLM">LLM</option>
+                    <option value="Embedding">Embedding</option>
+                    <option value="Vision">Vision</option>
+                    <option value="Speech">Speech</option>
+                  </select>
+                </div>
+                <div>
+                  <label class="block text-sm font-medium text-secondary dark:text-gray-300">API Key</label>
+                  <input v-model="addModelApiKey" type="text" class="mt-1 w-full bg-light-gray border rounded-lg py-2 px-3 focus:outline-none focus:ring-0 dark:bg-black/30 dark:text-[#E0E0E0]" :class="'border-gray-300 focus:border-brand-green dark:border-[#3A3A3C]'" />
+                </div>
+                <div>
+                  <label class="block text-sm font-medium text-secondary dark:text-gray-300">Endpoint</label>
+                  <input v-model="addModelEndpoint" type="text" class="mt-1 w-full bg-light-gray border rounded-lg py-2 px-3 focus:outline-none focus:ring-0 dark:bg-black/30 dark:text-[#E0E0E0]" :class="'border-gray-300 focus:border-brand-green dark:border-[#3A3A3C]'" placeholder="https://api.example.com/v1" />
+                </div>
+                <p v-if="addModelError" class="text-xs text-red-500">{{ addModelError }}</p>
+              </div>
+              <div class="mt-6 flex justify-end gap-3">
+                <button class="px-4 py-2 rounded-lg border border-gray-300 text-secondary hover:bg-gray-100 dark:border-[#3A3A3C] dark:text-gray-300 dark:hover:bg-[#3A3A3C]" @click="cancelAddModel">取消</button>
+                <button class="px-4 py-2 rounded-lg" :class="!addModelName ? 'bg-gray-300 text-gray-500 cursor-not-allowed dark:bg-gray-600 dark:text-gray-300' : 'bg-brand-green text-white hover:bg-brand-green/90'" :disabled="!addModelName" @click="confirmAddModel">确认</button>
               </div>
             </div>
           </div>
