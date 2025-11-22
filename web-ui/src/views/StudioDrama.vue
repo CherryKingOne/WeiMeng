@@ -72,8 +72,12 @@ const storyboards = ref([
 ])
 const storyboardView = ref('detail') // 'compact' | 'detail'
 
-const generateImage = (shot) => {
+const generateImage = (shot, w, h) => {
   shot.generatedImage = true
+  if (w && h) {
+    shot.img = `https://placehold.co/${w}x${h}/2f8f2f/FFF?text=Image+Generated`
+    return
+  }
   if (shot.img) return
   shot.img = 'https://placehold.co/300x200/2f8f2f/FFF?text=Image+Generated'
 }
@@ -88,11 +92,11 @@ const removeShot = (id) => {
 }
 
 const generateAllImages = () => {
-  storyboards.value.forEach(s => generateImage(s))
+  openSizeModalBatch('image')
 }
 
 const generateAllVideos = () => {
-  storyboards.value.forEach(s => generateVideo(s))
+  openSizeModalBatch('video')
 }
 
 const openActionMenuId = ref(null)
@@ -108,6 +112,55 @@ const toggleActionMenu = (id, ev) => {
 }
 const closeActionMenu = () => { openActionMenuId.value = null }
 const getShotById = (id) => storyboards.value.find(s => s.id === id)
+
+const showSizeModal = ref(false)
+const sizeModalMode = ref('single')
+const sizeModalAction = ref('image')
+const sizeModalShotId = ref(null)
+const selectedRatio = ref('1:1')
+const ratioOptions = [
+  { key: '1:1', w: 2048, h: 2048 },
+  { key: '4:3', w: 2304, h: 1728 },
+  { key: '3:4', w: 1728, h: 2304 },
+  { key: '16:9', w: 2560, h: 1440 },
+  { key: '9:16', w: 1440, h: 2560 },
+  { key: '3:2', w: 2496, h: 1664 },
+  { key: '2:3', w: 1664, h: 2496 },
+  { key: '21:9', w: 3024, h: 1296 }
+]
+const sizeInfoVisible = ref(false)
+const openSizeModalForShot = (shot, action) => {
+  sizeModalMode.value = 'single'
+  sizeModalAction.value = action
+  sizeModalShotId.value = shot.id
+  showSizeModal.value = true
+}
+const openSizeModalBatch = (action) => {
+  sizeModalMode.value = 'batch'
+  sizeModalAction.value = action
+  sizeModalShotId.value = null
+  showSizeModal.value = true
+}
+const applySizeSelection = () => {
+  const opt = ratioOptions.find(r => r.key === selectedRatio.value)
+  if (!opt) { showSizeModal.value = false; return }
+  if (sizeModalAction.value === 'image') {
+    if (sizeModalMode.value === 'batch') {
+      storyboards.value.forEach(s => generateImage(s, opt.w, opt.h))
+    } else {
+      const s = getShotById(sizeModalShotId.value)
+      if (s) generateImage(s, opt.w, opt.h)
+    }
+  } else {
+    if (sizeModalMode.value === 'batch') {
+      storyboards.value.forEach(s => generateVideo(s, opt.w, opt.h))
+    } else {
+      const s = getShotById(sizeModalShotId.value)
+      if (s) generateVideo(s, opt.w, opt.h)
+    }
+  }
+  showSizeModal.value = false
+}
 const regenerateImage = (shot) => {
   shot.generatedImage = false
   shot.img = ''
@@ -959,10 +1012,10 @@ onMounted(() => {
               </div>
             </div>
             <div class="flex gap-1">
-              <button @click="generateAllImages" class="px-3 py-1.5 bg-white dark:bg-[#2C2C2E] border border-gray-200 dark:border-[#3A3A3C] rounded-lg text-sm hover:bg-gray-50 dark:hover:bg-[#3A3A3C] transition">
+              <button @click="openSizeModalBatch('image')" class="px-3 py-1.5 bg-white dark:bg-[#2C2C2E] border border-gray-200 dark:border-[#3A3A3C] rounded-lg text-sm hover:bg-gray-50 dark:hover:bg-[#3A3A3C] transition">
                 一键生成图片
               </button>
-              <button @click="generateAllVideos" class="px-3 py-1.5 bg-white dark:bg-[#2C2C2E] border border-gray-200 dark:border-[#3A3A3C] rounded-lg text-sm hover:bg-gray-50 dark:hover:bg-[#3A3A3C] transition">
+              <button @click="openSizeModalBatch('video')" class="px-3 py-1.5 bg-white dark:bg-[#2C2C2E] border border-gray-200 dark:border-[#3A3A3C] rounded-lg text-sm hover:bg-gray-50 dark:hover:bg-[#3A3A3C] transition">
                 一键生成视频
               </button>
               <button class="px-3 py-1.5 bg-white dark:bg-[#2C2C2E] border border-gray-200 dark:border-[#3A3A3C] rounded-lg text-sm hover:bg-gray-50 dark:hover:bg-[#3A3A3C] transition">
@@ -1025,13 +1078,13 @@ onMounted(() => {
                   <td class="px-3 py-1.5">
                     <div class="w-32 h-20 bg-gray-100 dark:bg-[#3A3A3C] rounded flex items-center justify-center overflow-hidden">
                       <img v-if="shot.generatedImage && shot.img" :src="shot.img" class="w-full h-full object-cover" alt="图片预览">
-                      <button v-else @click="generateImage(shot)" class="px-3 py-1 text-xs rounded bg-brand-green text-white hover:bg-brand-green-dark">生成图片</button>
+                      <button v-else @click="openSizeModalForShot(shot, 'image')" class="px-3 py-1 text-xs rounded bg-brand-green text-white hover:bg-brand-green-dark">生成图片</button>
                     </div>
                   </td>
                   <td class="px-3 py-1.5">
                     <div class="w-32 h-20 bg-gray-100 dark:bg-[#3A3A3C] rounded flex items-center justify-center overflow-hidden">
                       <div v-if="shot.generatedVideo" class="text-xs text-secondary dark:text-gray-300">已生成</div>
-                      <button v-else @click="generateVideo(shot)" class="px-3 py-1 text-xs rounded bg-brand-green text-white hover:bg-brand-green-dark">生成视频</button>
+                      <button v-else @click="openSizeModalForShot(shot, 'video')" class="px-3 py-1 text-xs rounded bg-brand-green text-white hover:bg-brand-green-dark">生成视频</button>
                     </div>
                   </td>
                   <td class="px-3 py-1.5 w-44">
@@ -1055,6 +1108,54 @@ onMounted(() => {
                 </div>
               </div>
               <div v-if="openActionMenuId!==null" class="fixed inset-0 z-40" @click="closeActionMenu"></div>
+            </teleport>
+            <teleport to="body">
+              <div v-if="showSizeModal" class="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm" @click="showSizeModal=false">
+                <div class="bg-white dark:bg-[#2C2C2E] rounded-2xl shadow-2xl w-full max-w-md mx-4 overflow-hidden" @click.stop>
+                  <div class="flex items-center justify-between px-6 py-4 border-b border-gray-200 dark:border-[#3A3A3C]">
+                    <h3 class="text-lg font-bold">选择生成尺寸</h3>
+                    <div class="relative">
+                      <button @mouseenter="sizeInfoVisible=true" @mouseleave="sizeInfoVisible=false" class="w-6 h-6 flex items-center justify-center rounded-full border text-secondary dark:text-gray-400 dark:border-[#3A3A3C]">i</button>
+                      <div v-if="sizeInfoVisible" class="absolute right-0 mt-2 w-72 bg-white dark:bg-[#2C2C2E] border border-gray-200 dark:border-[#3A3A3C] rounded shadow text-xs">
+                        <table class="min-w-full">
+                          <thead>
+                            <tr class="bg-blue-50 dark:bg-[#1C1C1E]">
+                              <th class="text-left px-3 py-2 border-b dark:border-[#3A3A3C]">宽高比</th>
+                              <th class="text-left px-3 py-2 border-b dark:border-[#3A3A3C]">宽高像素值</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            <tr v-for="opt in ratioOptions" :key="opt.key" class="border-t dark:border-[#3A3A3C]">
+                              <td class="px-3 py-1.5">{{ opt.key }}</td>
+                              <td class="px-3 py-1.5">
+                                <span class="px-2 py-1 rounded bg-gray-100 dark:bg-[#3A3A3C] text-[11px] font-medium">{{ opt.w }}x{{ opt.h }}</span>
+                              </td>
+                            </tr>
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+                  </div>
+                  <div class="px-6 py-5 space-y-4">
+                    <div class="grid grid-cols-3 gap-3">
+                      <button
+                        v-for="opt in ratioOptions"
+                        :key="opt.key"
+                        @click="selectedRatio = opt.key"
+                        class="px-3 py-2 rounded-lg border text-sm dark:border-[#3A3A3C] hover:bg-gray-50 dark:hover:bg-[#3A3A3C]"
+                        :class="selectedRatio===opt.key ? 'border-brand-green ring-2 ring-brand-green' : ''"
+                      >
+                        <div class="font-medium">{{ opt.key }}</div>
+                        <div class="text-xs text-secondary">{{ opt.w }}x{{ opt.h }}</div>
+                      </button>
+                    </div>
+                  </div>
+                  <div class="flex items-center justify-end gap-3 px-6 py-4 border-t border-gray-200 dark:border-[#3A3A3C]">
+                    <button @click="showSizeModal=false" class="px-3 py-1.5 rounded-lg border bg-white dark:bg-[#2C2C2E] dark:border-[#3A3A3C] text-sm">取消</button>
+                    <button @click="applySizeSelection" class="px-3 py-1.5 rounded-lg bg-brand-green text-white text-sm">确定</button>
+                  </div>
+                </div>
+              </div>
             </teleport>
           </div>
         </div>
