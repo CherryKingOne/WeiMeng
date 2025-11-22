@@ -6,28 +6,10 @@ import { useI18n } from 'vue-i18n'
 const { locale, t } = useI18n()
 const router = useRouter()
 
-// Language mapping: display name -> locale code
+// Language mapping: display name -> locale code (limit to EN/ZH)
 const languageMap = {
   'English (United States)': 'en',
-  '简体中文': 'zh',
-  '繁體中文': 'zh-TW',
-  'Português (Brasil)': 'pt-BR',
-  'Español (España)': 'es-ES',
-  'Français (France)': 'fr-FR',
-  'Deutsch (Deutschland)': 'de-DE',
-  '日本語 (日本)': 'ja-JP',
-  '한국어 (대한민국)': 'ko-KR',
-  'Русский (Россия)': 'ru-RU',
-  'Italiano (Italia)': 'it-IT',
-  'ไทย (ประเทศไทย)': 'th-TH',
-  'Українська (Україна)': 'uk-UA',
-  'Tiếng Việt (Việt Nam)': 'vi-VN',
-  'Română (România)': 'ro-RO',
-  'Polski (Polish)': 'pl-PL',
-  'Hindi (India)': 'hi-IN',
-  'Türkçe': 'tr-TR',
-  'Farsi (Iran)': 'fa-IR',
-  'Slovensko (Slovenija)': 'sl-SI'
+  '简体中文': 'zh'
 }
 
 const theme = ref(typeof localStorage !== 'undefined' ? localStorage.getItem('theme') || 'light' : 'light')
@@ -41,17 +23,30 @@ const applyTheme = () => {
 const projects = ref([
   {
     id: 'p1',
-    name: '电商平台重构',
+    name: '霸道总裁爱上我',
     updated: '2小时前',
-    thumbnail: 'https://images.unsplash.com/photo-1618788372246-79faff0c3742?q=80&w=800&auto=format&fit=crop',
-    teamId: 't1'
+    thumbnail: 'https://images.unsplash.com/photo-1536440136628-849c177e76a1?q=80&w=800&auto=format&fit=crop',
+    teamId: 't1',
+    episodes: 80,
+    status: 'rendering'
   },
   {
     id: 'p2',
-    name: '移动端健康App',
+    name: '重生之我是大明星',
     updated: '昨天',
-    thumbnail: 'https://images.unsplash.com/photo-1581287053822-fd7bf4f4bf3f?q=80&w=800&auto=format&fit=crop',
-    teamId: 't2'
+    thumbnail: 'https://images.unsplash.com/photo-1598899134739-24c46f58b8c0?q=80&w=800&auto=format&fit=crop',
+    teamId: 't2',
+    episodes: 50,
+    status: 'scripting'
+  },
+  {
+    id: 'p3',
+    name: '末日降临',
+    updated: '3天前',
+    thumbnail: 'https://images.unsplash.com/photo-1533488765986-dfa2a9939acd?q=80&w=800&auto=format&fit=crop',
+    teamId: 't1',
+    episodes: 12,
+    status: 'draft'
   }
 ])
 const headerSearch = ref('')
@@ -87,6 +82,9 @@ const sectionTitle = computed(() => {
   if (currentSection.value === 'favorites') return t('workspace.favorites')
   if (currentSection.value === 'recent') return t('workspace.recent')
   if (currentSection.value === 'recycle') return t('workspace.recycle')
+  if (currentSection.value === 'scripts') return t('workspace.scripts')
+  if (currentSection.value === 'characters') return t('workspace.characters')
+  if (currentSection.value === 'assets') return t('workspace.assets')
   if (currentSection.value === 'team') {
     const team = teams.value.find(x => x.id === currentTeamId.value)
     return team ? team.name : t('workspace.team')
@@ -216,6 +214,9 @@ onMounted(() => {
     locale.value = savedLocale
   }
 
+  // Reflect saved locale in UI label
+  uiLanguage.value = (locale.value === 'zh') ? '简体中文' : 'English (United States)'
+
   applyTheme()
   document.addEventListener('click', onDocClick)
 })
@@ -233,17 +234,11 @@ const closeSettings = () => {
   showSettings.value = false
 }
 const uiLanguage = ref('简体中文')
-const timezoneDisplay = ref('-05:00 Eastern Time - New York City, Brooklyn, Queens, Philadelphia')
 const clearUiLanguage = () => { uiLanguage.value = '' }
-const clearTimezone = () => { timezoneDisplay.value = '' }
 const languageListOpen = ref(false)
 const languageOptions = ref([
   'English (United States)',
-  '简体中文',
-  '繁體中文',
-  'Deutsch (Deutschland)',
-  '日本語 (日本)',
-  '한국어 (대한민국)'
+  '简体中文'
 ])
 const toggleLanguageList = () => { languageListOpen.value = !languageListOpen.value }
 const chooseLanguage = (opt) => {
@@ -565,29 +560,45 @@ const submitTeamCreate = () => {
         </router-link>
 
         <nav class="mt-6 space-y-1">
-          <a href="#" @click.prevent="setSection('recent')" :class="['flex items-center px-3 py-2 rounded-md transition-colors', currentSection==='recent' ? 'font-semibold bg-brand-green/10 text-brand-green' : 'text-secondary dark:text-[#E0E0E0] hover:bg-gray-100 dark:hover:bg-[#2C2C2E]']">
-            <fa :icon="['fas','clock']" class="w-6 text-center" />
-            <span class="ml-3 font-medium">{{ $t('workspace.recent') }}</span>
+          <a href="#" @click.prevent="setSection('home')" :class="['flex items-center px-3 py-2 rounded-md transition-colors', currentSection==='home' ? 'font-semibold bg-brand-green/10 text-brand-green' : 'text-secondary dark:text-[#E0E0E0] hover:bg-gray-100 dark:hover:bg-[#2C2C2E]']">
+            <fa :icon="['fas','house']" class="w-6 text-center" />
+            <span class="ml-3 font-medium">{{ $t('workspace.home') }}</span>
           </a>
           <a href="#" @click.prevent="setSection('drafts')" :class="['flex items-center px-3 py-2 rounded-md transition-colors', currentSection==='drafts' ? 'font-semibold bg-brand-green/10 text-brand-green' : 'text-secondary dark:text-[#E0E0E0] hover:bg-gray-100 dark:hover:bg-[#2C2C2E]']">
-            <fa :icon="['fas','file']" class="w-6 text-center" />
-            <span class="ml-3">{{ $t('workspace.my_drafts') }}</span>
+            <fa :icon="['fas','inbox']" class="w-6 text-center" />
+            <span class="ml-3 font-medium">{{ $t('workspace.my_drafts') }}</span>
           </a>
-          <a href="#" class="flex items-center px-3 py-2 text-secondary dark:text-[#E0E0E0] hover:bg-gray-100 dark:hover:bg-[#2C2C2E] rounded-md transition-colors">
-            <fa :icon="['fas','book']" class="w-6 text-center" />
-            <span class="ml-3 font-medium">{{ $t('workspace.community') }}</span>
-          </a>
-          <a href="#" class="flex items-center px-3 py-2 text-secondary dark:text-[#E0E0E0] hover:bg-gray-100 dark:hover:bg-[#2C2C2E] rounded-md transition-colors">
-            <fa :icon="['fas','lightbulb']" class="w-6 text-center" />
-            <span class="ml-3 font-medium">{{ $t('workspace.ai_center') }}</span>
-          </a>
-          <a href="#" @click.prevent="setSection('favorites')" :class="['flex items-center px-3 py-2 rounded-md transition-colors', currentSection==='favorites' ? 'font-semibold bg-brand-green/10 text-brand-green' : 'text-secondary dark:text-[#E0E0E0] hover:bg-gray-100 dark:hover:bg-[#2C2C2E]']">
-            <fa :icon="['fas','star']" class="w-6 text-center" />
-            <span class="ml-3 font-medium">{{ $t('workspace.favorites') }}</span>
+          <a href="#" @click.prevent="setSection('shared')" :class="['flex items-center px-3 py-2 rounded-md transition-colors', currentSection==='shared' ? 'font-semibold bg-brand-green/10 text-brand-green' : 'text-secondary dark:text-[#E0E0E0] hover:bg-gray-100 dark:hover:bg-[#2C2C2E]']">
+            <fa :icon="['fas','share-nodes']" class="w-6 text-center" />
+            <span class="ml-3 font-medium">{{ $t('workspace.shared_with_me') }}</span>
           </a>
         </nav>
 
-        <div class="pt-6">
+        <!-- 分割线 -->
+        <div class="pt-4 pb-2">
+          <div class="border-t border-gray-200 dark:border-[#333333]"></div>
+        </div>
+
+        <div class="pt-2">
+          <a href="#" @click.prevent="setSection('community')" class="flex items-center px-3 py-2 text-secondary dark:text-[#E0E0E0] hover:bg-gray-100 dark:hover:bg-[#2C2C2E] rounded-md transition-colors">
+            <div class="w-6 h-6 flex items-center justify-center">
+              <svg class="w-5 h-5" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <rect x="2" y="2" width="7" height="7" rx="1.5" fill="#FF6B6B"/>
+                <rect x="11" y="2" width="7" height="7" rx="1.5" fill="#4ECDC4"/>
+                <rect x="2" y="11" width="7" height="7" rx="1.5" fill="#FFE66D"/>
+                <rect x="11" y="11" width="7" height="7" rx="1.5" fill="#95E1D3"/>
+              </svg>
+            </div>
+            <span class="ml-3 font-medium">{{ $t('workspace.community_resources') }}</span>
+          </a>
+        </div>
+
+        <!-- 分割线 -->
+        <div class="pt-4 pb-2">
+          <div class="border-t border-gray-200 dark:border-[#333333]"></div>
+        </div>
+
+        <div class="pt-2">
           <h5 class="px-3 text-xs font-semibold uppercase text-gray-400 dark:text-gray-500">{{ $t('workspace.team_space') }}</h5>
           <nav class="mt-2 space-y-1">
             <a v-for="t in teams" :key="t.id" href="#" class="flex items-center px-3 py-2 text-secondary dark:text-[#E0E0E0] hover:bg-gray-100 dark:hover:bg-[#2C2C2E] rounded-md transition-colors" @click.prevent="currentTeamId=t.id; setSection('team')">
@@ -801,14 +812,28 @@ const submitTeamCreate = () => {
         </div>
           <div v-else>
           <div v-if="viewMode==='grid'" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-            <div v-for="p in sectionList" :key="p.id" class="bg-white rounded-lg shadow-sm border border-gray-200 relative dark:bg-[#12161a] dark:border-[#333333]">
+            <div v-for="p in sectionList" :key="p.id" class="bg-white rounded-lg shadow-sm border border-gray-200 relative dark:bg-[#12161a] dark:border-[#333333] group hover:shadow-md transition-all">
               <router-link :to="{ path: '/studio', query: { id: p.id } }">
-                <div class="aspect-video bg-gray-100 rounded-t-lg overflow-hidden">
-                  <img :src="p.thumbnail" class="w-full h-full object-cover" alt="Project thumbnail">
+                <div class="aspect-video bg-gray-100 rounded-t-lg overflow-hidden relative">
+                  <img :src="p.thumbnail" class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" alt="Project thumbnail">
+                  <div class="absolute top-2 left-2 px-2 py-1 bg-black/60 backdrop-blur-sm rounded text-xs text-white font-medium">
+                    {{ p.episodes }} {{ $t('workspace.episodes') }}
+                  </div>
+                  <div class="absolute bottom-2 right-2 px-2 py-1 rounded text-xs font-bold uppercase tracking-wide" 
+                    :class="{
+                      'bg-yellow-100 text-yellow-700': p.status === 'draft',
+                      'bg-blue-100 text-blue-700': p.status === 'scripting',
+                      'bg-purple-100 text-purple-700': p.status === 'rendering',
+                      'bg-green-100 text-green-700': p.status === 'published'
+                    }">
+                    {{ $t('workspace.status.' + (p.status || 'draft')) }}
+                  </div>
                 </div>
                 <div class="p-4">
-                  <h3 class="font-semibold text-primary truncate dark:text-white">{{ p.name }}</h3>
-                  <p class="text-sm text-secondary mt-1 dark:text-gray-400">{{ $t('workspace.modified_at') }}：{{ p.updated || p.time }}</p>
+                  <h3 class="font-semibold text-primary truncate dark:text-white text-lg">{{ p.name }}</h3>
+                  <p class="text-sm text-secondary mt-1 dark:text-gray-400 flex items-center gap-2">
+                    <fa :icon="['fas','clock']" class="text-xs" /> {{ p.updated || p.time }}
+                  </p>
                 </div>
               </router-link>
               <button data-project-menu-button class="absolute top-2 right-2 px-2 py-1 rounded-md bg-transparent text-secondary hover:text-primary dark:text-[#E0E0E0] dark:hover:text-white" @click.stop="toggleMenu(p.id)">
@@ -831,12 +856,22 @@ const submitTeamCreate = () => {
             </div>
           </div>
           <div v-else class="rounded-lg border border-gray-200 bg-white dark:bg-[#12161a] dark:border-[#333333]">
-            <div v-for="p in sectionList" :key="p.id" class="flex items-center justify-between px-4 py-3 border-b last:border-b-0 border-gray-200 dark:border-[#333333]">
-              <router-link :to="{ path: '/studio', query: { id: p.id } }" class="flex items-center gap-3">
-                <div class="w-14 h-8 bg-gray-100 rounded overflow-hidden"><img :src="p.thumbnail" class="w-full h-full object-cover" /></div>
+            <div v-for="p in sectionList" :key="p.id" class="flex items-center justify-between px-4 py-3 border-b last:border-b-0 border-gray-200 dark:border-[#333333] hover:bg-gray-50 dark:hover:bg-[#1E1E1E] transition-colors">
+              <router-link :to="{ path: '/studio', query: { id: p.id } }" class="flex items-center gap-4 flex-1">
+                <div class="w-24 h-14 bg-gray-100 rounded-lg overflow-hidden relative">
+                  <img :src="p.thumbnail" class="w-full h-full object-cover" />
+                  <div class="absolute bottom-1 right-1 px-1.5 py-0.5 bg-black/60 rounded text-[10px] text-white">
+                    {{ p.episodes }} {{ $t('workspace.episodes') }}
+                  </div>
+                </div>
                 <div>
-                  <div class="font-medium text-primary dark:text-white">{{ p.name }}</div>
-                  <div class="text-xs text-secondary">{{ $t('workspace.modified_at') }}：{{ p.updated || p.time }}</div>
+                  <div class="font-medium text-primary dark:text-white text-base">{{ p.name }}</div>
+                  <div class="flex items-center gap-3 mt-1">
+                    <span class="text-xs px-2 py-0.5 rounded-full bg-gray-100 text-gray-600 dark:bg-[#333333] dark:text-gray-300">
+                      {{ $t('workspace.status.' + (p.status || 'draft')) }}
+                    </span>
+                    <span class="text-xs text-secondary">{{ $t('workspace.modified_at') }}：{{ p.updated || p.time }}</span>
+                  </div>
                 </div>
               </router-link>
               <div class="relative">
@@ -1068,13 +1103,7 @@ const submitTeamCreate = () => {
                     </div>
                   </div>
                 </div>
-                <div>
-                  <div class="text-sm font-semibold text-secondary dark:text-gray-300 mb-3">{{ $t('workspace.timezone') }}</div>
-                  <div class="bg-light-gray rounded-lg px-4 py-3 flex justify-between items-center cursor-pointer dark:bg-[#1E1E1E]">
-                    <span class="text-primary dark:text-white font-medium">{{ timezoneDisplay }}</span>
-                    <button class="text-secondary hover:text-primary dark:text-gray-400 dark:hover:text-white" @click="clearTimezone"><fa :icon="['fas','chevron-down']" class="text-sm" /></button>
-                  </div>
-                </div>
+                
               </div>
               </section>
             </div>
@@ -1284,15 +1313,15 @@ const submitTeamCreate = () => {
             <div class="p-6">
               <div class="flex items-center justify-between mb-4">
                 <div>
-                  <span class="text-sm text-secondary">个人空间</span>
-                  <h1 class="text-2xl font-bold text-primary dark:text-white">收藏夹</h1>
+                  <span class="text-sm text-secondary">{{ $t('workspace.personal_space') }}</span>
+                  <h1 class="text-2xl font-bold text-primary dark:text-white">{{ $t('workspace.favorites') }}</h1>
                 </div>
                 <div class="flex items-center gap-2">
                   <div class="flex items-center bg-white p-1 rounded-lg border border-gray-200 dark:bg-[#2C2C2E] dark:border-[#3A3A3C]">
                     <button class="px-3 py-1 text-sm font-semibold text-white bg-brand-green rounded-md"><fa :icon="['fas','table-cells-large']" /></button>
                     <button class="px-3 py-1 text-sm text-secondary hover:text-primary dark:text-gray-300 dark:hover:text-white"><fa :icon="['fas','list']" /></button>
                   </div>
-                  <button class="px-4 py-2 bg-white border border-gray-200 rounded-lg text-sm font-medium hover:bg-gray-50 dark(bg-[#2C2C2E]) dark:border-[#3A3A3C] dark:text-[#E0E0E0] dark:hover:bg-[#3A3A3C]"> 最后修改 <fa :icon="['fas','chevron-down']" class="ml-2 text-xs" /></button>
+                  <button class="px-4 py-2 bg-white border border-gray-200 rounded-lg text-sm font-medium hover:bg-gray-50 dark(bg-[#2C2C2E]) dark:border-[#3A3A3C] dark:text-[#E0E0E0] dark:hover:bg-[#3A3A3C]"> {{ $t('workspace.modified') }} <fa :icon="['fas','chevron-down']" class="ml-2 text-xs" /></button>
                 </div>
               </div>
               <div class="mb-4 flex items-center gap-2">
@@ -1307,16 +1336,16 @@ const submitTeamCreate = () => {
                     </div>
                     <div class="p-4">
                       <h3 class="font-semibold text-primary truncate dark:text-white">{{ p.name }}</h3>
-                      <p class="text-sm text-secondary mt-1 dark:text-gray-400">修改于：{{ p.updated }}</p>
+                      <p class="text-sm text-secondary mt-1 dark:text-gray-400">{{ $t('workspace.modified_at') }}：{{ p.updated }}</p>
                     </div>
                   </router-link>
                 </div>
                 <div v-if="filteredFavorites.length===0" class="col-span-full">
-                  <div class="rounded-lg border border-gray-200 bg-white p-6 text-center text-secondary dark:bg-[#12161a] dark:border-[#333333] dark:text-gray-400">暂无收藏</div>
+                  <div class="rounded-lg border border-gray-200 bg-white p-6 text-center text-secondary dark:bg-[#12161a] dark:border-[#333333] dark:text-gray-400">{{ $t('workspace.no_content') }}</div>
                 </div>
               </div>
               <div class="mt-6 text-right">
-                <button class="px-3 py-1.5 rounded-md border border-gray-300 text-black hover:bg-gray-100 dark:border-[#3A3A3C] dark:text-[#E0E0E0] dark:hover:bg-[#3A3A3C]" @click="closeFavorites">关闭</button>
+                <button class="px-3 py-1.5 rounded-md border border-gray-300 text-black hover:bg-gray-100 dark:border-[#3A3A3C] dark:text-[#E0E0E0] dark:hover:bg-[#3A3A3C]" @click="closeFavorites">{{ $t('workspace.close') }}</button>
               </div>
             </div>
           </div>
@@ -1418,7 +1447,7 @@ const submitTeamCreate = () => {
                       <input v-model="changeForm.code" type="text" inputmode="numeric" maxlength="6" :placeholder="$t('auth.code_placeholder')" class="flex-1 bg-light-gray border border-gray-300 rounded-md py-2.5 px-4 focus:outline-none focus:ring-0 focus:border-brand-green dark:bg-[#1E1E1E] dark:text-[#E0E0E0] dark:border-[#3A3A3C] dark:focus:border-brand-green" :class="{'border-red-500 focus:border-red-500 dark:border-red-500': changeErrors.code}">
                       <button type="button" class="px-4 py-2 rounded-md border border-gray-300 text-black hover:bg-gray-100 disabled:opacity-60 dark:border-[#3A3A3C] dark:text-[#E0E0E0] dark:hover:bg-[#3A3A3C]" :disabled="changeSending || changeSeconds>0" @click="changeSendCode">
                         <span v-if="changeSending">{{ $t('auth.sending') }}</span>
-                        <span v-else-if="changeSeconds>0">{{ changeSeconds }} 秒</span>
+                        <span v-else-if="changeSeconds>0">{{ changeSeconds }} {{ $t('auth.seconds') }}</span>
                         <span v-else>{{ $t('workspace.get_code') }}</span>
                       </button>
                     </div>
@@ -1429,7 +1458,7 @@ const submitTeamCreate = () => {
                       <input v-model="changeForm.code" type="text" inputmode="numeric" maxlength="6" :placeholder="$t('auth.code_placeholder')" class="flex-1 bg-light-gray border border-gray-300 rounded-md py-2.5 px-4 focus:outline-none focus:ring-0 focus:border-brand-green dark:bg-[#1E1E1E] dark:text-[#E0E0E0] dark:border-[#3A3A3C] dark:focus:border-brand-green" :class="{'border-red-500 focus:border-red-500 dark:border-red-500': changeErrors.code}">
                       <button type="button" class="px-4 py-2 rounded-md border border-gray-300 text-black hover:bg-gray-100 disabled:opacity-60 dark:border-[#3A3A3C] dark:text-[#E0E0E0] dark:hover:bg-[#3A3A3C]" :disabled="changeSending || changeSeconds>0" @click="changeSendCode">
                         <span v-if="changeSending">{{ $t('auth.sending') }}</span>
-                        <span v-else-if="changeSeconds>0">{{ changeSeconds }} 秒</span>
+                        <span v-else-if="changeSeconds>0">{{ changeSeconds }} {{ $t('auth.seconds') }}</span>
                         <span v-else>{{ $t('workspace.get_code') }}</span>
                       </button>
                     </div>
@@ -1449,7 +1478,7 @@ const submitTeamCreate = () => {
                       <input v-model="changeForm.code" type="text" inputmode="numeric" maxlength="6" :placeholder="$t('auth.code_placeholder')" class="flex-1 bg-light-gray border border-gray-300 rounded-md py-2.5 px-4 focus:outline-none focus:ring-0 focus:border-brand-green dark:bg-[#1E1E1E] dark:text-[#E0E0E0] dark:border-[#3A3A3C] dark:focus:border-brand-green" :class="newEmailCodeError ? 'border-red-500 focus:border-red-500 dark:border-red-500' : ''">
                       <button type="button" class="px-4 py-2 rounded-md border border-gray-300 text-black hover:bg-gray-100 disabled:opacity-60 dark:border-[#3A3A3C] dark:text-[#E0E0E0] dark:hover:bg-[#3A3A3C]" :disabled="changeSending || changeSeconds>0" @click="changeSendCode">
                         <span v-if="changeSending">{{ $t('auth.sending') }}</span>
-                        <span v-else-if="changeSeconds>0">{{ changeSeconds }} 秒</span>
+                        <span v-else-if="changeSeconds>0">{{ changeSeconds }} {{ $t('auth.seconds') }}</span>
                         <span v-else>{{ $t('workspace.get_code') }}</span>
                       </button>
                     </div>
@@ -1478,8 +1507,8 @@ const submitTeamCreate = () => {
               <a href="https://opensource.org/license/mit" target="_blank" rel="noopener" class="mt-3 inline-block text-brand-green font-medium hover:underline">Open Source License</a>
             </div>
             <div class="border-t border-gray-200 bg-light-gray p-4 flex items-center justify-between dark:bg-[#1E1E1E] dark:border-[#3A3A3C]">
-              <div class="text-sm text-secondary dark:text-gray-400">OneFour {{ latestVersion }} 现已可用。</div>
-              <button class="px-3 py-1.5 rounded-md border border-gray-300 text-black hover:bg-gray-100 dark:border-[#3A3A3C] dark:text-[#E0E0E0] dark:hover:bg-[#3A3A3C]">更新日志</button>
+              <div class="text-sm text-secondary dark:text-gray-400">{{ $t('workspace.update_available', { version: latestVersion }) }}</div>
+              <button class="px-3 py-1.5 rounded-md border border-gray-300 text-black hover:bg-gray-100 dark:border-[#3A3A3C] dark:text-[#E0E0E0] dark:hover:bg-[#3A3A3C]">{{ $t('workspace.changelog') }}</button>
             </div>
           </div>
         </div>

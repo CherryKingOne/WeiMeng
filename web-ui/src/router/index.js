@@ -2,7 +2,7 @@ import { createRouter, createWebHistory } from 'vue-router'
 import Home from '@/views/Home.vue'
 import Login from '@/views/Login.vue'
 import Workspace from '@/views/Workspace.vue'
-import Studio from '@/views/StudioAxure.vue'
+import Studio from '@/views/StudioDrama.vue'
 
 const router = createRouter({
   history: createWebHistory(),
