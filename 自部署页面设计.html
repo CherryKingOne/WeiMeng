@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dify Pricing</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+
+    <!-- Google Fonts (Inter) -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    
+    <style type="text/tailwindcss">
+        body {
+            font-family: 'Inter', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+            background-color: #FFFFFF;
+            color: #1A1A1A;
+        }
+        /* Reusing and extending the color palette */
+        .bg-brand-blue { background-color: #007AFF; }
+        .hover\:bg-brand-blue-dark:hover { background-color: #005ECC; }
+        .text-brand-blue { color: #007AFF; }
+        .border-brand-blue { border-color: #007AFF; }
+        
+        .bg-light-gray { background-color: #F2F2F7; }
+        .border-light-gray { border-color: #E5E5EA; }
+
+        .text-primary { color: #1A1A1A; }
+        .text-secondary { color: #8E8E93; }
+
+        /* Added for the new design */
+        .bg-dark-cta { background-color: #1C1C1E; }
+        .hover\:bg-dark-cta-hover:hover { background-color: #333333; }
+        .bg-plan-card { background-color: #FAFAFB; } /* Subtle background for pricing cards */
+    </style>
+</head>
+<body class="antialiased p-4 sm:p-8">
+
+    <div class="max-w-7xl mx-auto">
+        <!-- Header Section -->
+        <header class="flex justify-between items-start mb-8">
+            <div>
+                <h1 class="text-3xl sm:text-4xl font-bold text-primary flex items-center">
+                    Dify 套餐
+                </h1>
+                <p class="text-secondary mt-2">选择最适合您团队需求的服务。</p>
+            </div>
+            <button class="text-secondary hover:text-primary p-2">
+                <i class="fas fa-times text-2xl"></i>
+            </button>
+        </header>
+
+        <!-- Tabs Navigation -->
+        <nav class="flex border-b border-light-gray mb-10">
+            <a href="#" class="px-3 py-3 text-secondary font-semibold hover:text-primary">
+                <i class="fas fa-cloud w-5 mr-2"></i>
+                云服务
+            </a>
+            <a href="#" class="px-3 py-3 text-brand-blue font-semibold border-b-2 border-brand-blue">
+                <i class="fas fa-server w-5 mr-2"></i>
+                自部署
+            </a>
+        </nav>
+
+        <!-- Pricing Cards Grid -->
+        <main class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+
+            <!-- Plan 1: Community -->
+            <div class="bg-plan-card rounded-2xl p-8 border border-light-gray flex flex-col">
+                <div class="h-16 w-16 flex items-center justify-center mb-6">
+                    <!-- Placeholder for the dotted icon -->
+                    <div class="w-12 h-12 border-2 border-dashed border-gray-300 rounded-md"></div>
+                </div>
+                <h2 class="text-2xl font-bold text-primary">Community</h2>
+                <p class="text-secondary mt-2 min-h-[40px]">适用于开源爱好者、个人开发者以及非商业项目</p>
+                <div class="my-6">
+                    <p class="text-4xl font-extrabold text-primary">免费</p>
+                </div>
+                <a href="#" class="w-full text-center bg-light-gray py-3 rounded-lg font-semibold text-primary hover:bg-gray-200 transition-colors flex justify-between items-center px-4">
+                    <span>开始使用</span>
+                    <i class="fas fa-arrow-right"></i>
+                </a>
+                <div class="mt-8 pt-8 border-t border-light-gray">
+                    <h3 class="font-semibold text-primary mb-4">免费功能:</h3>
+                    <ul class="space-y-3 text-secondary text-sm">
+                        <li class="flex items-start"><i class="fas fa-check text-green-500 w-5 mt-1"></i><span>所有核心功能均可在公共存储下载和发布</span></li>
+                        <li class="flex items-start"><i class="fas fa-check text-green-500 w-5 mt-1"></i><span>单一工作空间</span></li>
+                        <li class="flex items-start"><i class="fas fa-check text-green-500 w-5 mt-1"></i><span>符合 Dify 开源许可证</span></li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- Plan 2: Premium -->
+            <div class="bg-plan-card rounded-2xl p-8 border border-light-gray flex flex-col">
+                <div class="h-16 w-16 flex items-center justify-center mb-6">
+                     <!-- Placeholder for the orange dotted icon -->
+                    <div class="w-12 h-12 border-2 border-dashed border-orange-300 rounded-md"></div>
+                </div>
+                <h2 class="text-2xl font-bold text-primary">Premium</h2>
+                <p class="text-secondary mt-2 min-h-[40px]">适合需要高级支持和增强支持的中型组织和团队</p>
+                <div class="my-6">
+                    <p class="text-4xl font-extrabold text-primary">可扩展</p>
+                    <p class="text-secondary text-sm">基于云市场</p>
+                </div>
+                <a href="#" class="w-full text-center bg-dark-cta py-3 rounded-lg font-semibold text-white hover:bg-dark-cta-hover transition-colors flex justify-between items-center px-4">
+                    <span class="flex items-center"><i class="fab fa-aws mr-2"></i>获得 Premium 经 aws marketplace</span>
+                    <i class="fas fa-arrow-right"></i>
+                </a>
+                <div class="mt-8 pt-8 border-t border-light-gray flex-grow flex flex-col">
+                    <h3 class="font-semibold text-primary mb-4">Community 版的所有功能，加上:</h3>
+                    <ul class="space-y-3 text-secondary text-sm flex-grow">
+                        <li class="flex items-start"><i class="fas fa-check text-green-500 w-5 mt-1"></i><span>多个云提供商进行管理的可能性</span></li>
+                        <li class="flex items-start"><i class="fas fa-check text-green-500 w-5 mt-1"></i><span>单一工作空间</span></li>
+                        <li class="flex items-start"><i class="fas fa-check text-green-500 w-5 mt-1"></i><span>自定义 WebApp 品牌</span></li>
+                        <li class="flex items-start"><i class="fas fa-check text-green-500 w-5 mt-1"></i><span>优先电子邮件 & 聊天支持</span></li>
+                    </ul>
+                    <div class="text-center text-secondary mt-6">
+                        <div class="flex items-center justify-center space-x-4 text-2xl">
+                            <i class="fab fa-microsoft"></i>
+                            <i class="fab fa-aws"></i>
+                            <i class="fab fa-google"></i>
+                        </div>
+                        <p class="text-xs mt-2">即将支持 Microsoft Azure & Google Cloud</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Plan 3: Enterprise -->
+            <div class="bg-plan-card rounded-2xl p-8 border border-light-gray flex flex-col">
+                <div class="h-16 w-16 flex items-center justify-center mb-6">
+                    <!-- Placeholder for the blue dotted icon -->
+                    <div class="w-12 h-12 border-2 border-dashed border-blue-300 rounded-md"></div>
+                </div>
+                <h2 class="text-2xl font-bold text-primary">Enterprise</h2>
+                <p class="text-secondary mt-2 min-h-[40px]">适合需要组织级安全性、合规性、可扩展性、控制和定制解决方案的企业</p>
+                <div class="my-6">
+                    <p class="text-4xl font-extrabold text-primary">定制</p>
+                    <p class="text-secondary text-sm">仅按年计费</p>
+                </div>
+                <a href="#" class="w-full text-center bg-brand-blue py-3 rounded-lg font-semibold text-white hover:bg-brand-blue-dark transition-colors flex justify-between items-center px-4">
+                    <span>联系销售</span>
+                    <i class="fas fa-arrow-right"></i>
+                </a>
+                <div class="mt-8 pt-8 border-t border-light-gray">
+                    <h3 class="font-semibold text-primary mb-4">Premium 版的所有功能，加上:</h3>
+                    <ul class="space-y-3 text-secondary text-sm">
+                        <li class="flex items-start"><i class="fas fa-check text-green-500 w-5 mt-1"></i><span>企业级扩展解决方案</span></li>
+                        <li class="flex items-start"><i class="fas fa-check text-green-500 w-5 mt-1"></i><span>商业许可授权</span></li>
+                        <li class="flex items-start"><i class="fas fa-check text-green-500 w-5 mt-1"></i><span>专属云企级功能</span></li>
+                        <li class="flex items-start"><i class="fas fa-check text-green-500 w-5 mt-1"></i><span>多个工作空间 & 企业级管理</span></li>
+                        <li class="flex items-start"><i class="fas fa-check text-green-500 w-5 mt-1"></i><span>SSO</span></li>
+                        <li class="flex items-start"><i class="fas fa-check text-green-500 w-5 mt-1"></i><span>由 Dify 合作伙伴支持的可协商的 SLAs</span></li>
+                        <li class="flex items-start"><i class="fas fa-check text-green-500 w-5 mt-1"></i><span>更高的安全 & 控制</span></li>
+                        <li class="flex items-start"><i class="fas fa-check text-green-500 w-5 mt-1"></i><span>由 Dify 官方提供的更新 & 维护</span></li>
+                        <li class="flex items-start"><i class="fas fa-check text-green-500 w-5 mt-1"></i><span>专业技术支持</span></li>
+                    </ul>
+                </div>
+            </div>
+
+        </main>
+
+        <!-- Footer Link -->
+        <footer class="text-right mt-8">
+            <a href="#" class="text-brand-blue font-semibold hover:underline">
+                对比套餐 & 功能特性 <i class="fas fa-arrow-right ml-1"></i>
+            </a>
+        </footer>
+    </div>
+
+</body>
+</html>

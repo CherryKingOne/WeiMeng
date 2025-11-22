@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dify Pricing - Cloud Services (Annual)</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+
+    <!-- Google Fonts (Inter) -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    
+    <style type="text/tailwindcss">
+        body {
+            font-family: 'Inter', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+            background-color: #FFFFFF;
+            color: #1A1A1A;
+        }
+        /* Reusing and extending the color palette */
+        .bg-brand-blue { background-color: #007AFF; }
+        .hover\:bg-brand-blue-dark:hover { background-color: #005ECC; }
+        .text-brand-blue { color: #007AFF; }
+        .border-brand-blue { border-color: #007AFF; }
+        
+        .bg-light-gray { background-color: #F2F2F7; }
+        .border-light-gray { border-color: #E5E5EA; }
+
+        .text-primary { color: #1A1A1A; }
+        .text-secondary { color: #8E8E93; }
+
+        .bg-dark-cta { background-color: #1C1C1E; }
+        .hover\:bg-dark-cta-hover:hover { background-color: #333333; }
+
+        /* Custom toggle styles */
+        .toggle-checkbox:checked + .toggle-label {
+            background-color: #007AFF;
+        }
+        .toggle-checkbox:checked + .toggle-label .toggle-dot {
+            transform: translateX(100%);
+        }
+    </style>
+</head>
+<body class="antialiased p-4 sm:p-8">
+
+    <div class="max-w-7xl mx-auto">
+        <!-- Header Section -->
+        <header class="flex justify-between items-start mb-8">
+            <div>
+                <h1 class="text-3xl sm:text-4xl font-bold text-primary flex items-center">
+                    Dify 套餐
+                </h1>
+                <p class="text-secondary mt-2">选择最适合您团队需求的服务。</p>
+            </div>
+            <button class="text-secondary hover:text-primary p-2">
+                <i class="fas fa-times text-2xl"></i>
+            </button>
+        </header>
+
+        <!-- Tabs Navigation -->
+        <div class="flex justify-between items-center border-b border-light-gray mb-10">
+            <nav class="flex">
+                <a href="#" class="px-3 py-3 text-brand-blue font-semibold border-b-2 border-brand-blue">
+                    <i class="fas fa-cloud w-5 mr-2"></i>
+                    云服务
+                </a>
+                <a href="#" class="px-3 py-3 text-secondary font-semibold hover:text-primary">
+                    <i class="fas fa-server w-5 mr-2"></i>
+                    自部署
+                </a>
+            </nav>
+            <div class="flex items-center space-x-3">
+                <label for="annual-billing" class="relative inline-flex items-center cursor-pointer">
+                    <input type="checkbox" id="annual-billing" class="sr-only toggle-checkbox" checked>
+                    <div class="toggle-label w-10 h-5 bg-gray-200 rounded-full transition-colors">
+                        <div class="toggle-dot absolute top-0.5 left-0.5 w-4 h-4 bg-white rounded-full transition-transform"></div>
+                    </div>
+                </label>
+                <span class="text-sm text-primary font-medium">按年计费节省 17%</span>
+            </div>
+        </div>
+
+        <!-- Pricing Cards Grid -->
+        <main class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+
+            <!-- Plan 1: Sandbox -->
+            <div class="rounded-2xl p-8 border border-light-gray flex flex-col">
+                <div class="h-16 w-16 flex items-center justify-center mb-6">
+                    <img src="https://placehold.co/48x48/e5e5ea/e5e5ea" alt="Sandbox Icon"> <!-- Placeholder Icon -->
+                </div>
+                <h2 class="text-2xl font-bold text-primary">Sandbox</h2>
+                <p class="text-secondary mt-2 min-h-[40px]">免费试用核心功能。</p>
+                <div class="my-6">
+                    <p class="text-4xl font-extrabold text-primary">免费</p>
+                </div>
+                <button disabled class="w-full text-center bg-light-gray py-3 rounded-lg font-semibold text-secondary cursor-not-allowed">
+                    当前计划
+                </button>
+                <div class="mt-8 text-primary text-sm space-y-3">
+                    <div class="space-y-1">
+                        <p>200 条消息额度</p>
+                        <p>1 个团队空间</p>
+                        <p>1 名团队成员</p>
+                        <p>5 个应用程序</p>
+                    </div>
+                    <div class="pt-4 space-y-1">
+                        <div class="flex justify-between items-center"><span>50 个知识库文档上传配额</span> <i class="fas fa-info-circle text-gray-400"></i></div>
+                        <div class="flex justify-between items-center"><span>50MB 知识库数据存储空间</span> <i class="fas fa-info-circle text-gray-400"></i></div>
+                        <div class="flex justify-between items-center"><span>10/分钟 知识库请求频率限制</span> <i class="fas fa-info-circle text-gray-400"></i></div>
+                        <div class="flex justify-between items-center"><span>5,000 次/天 API 请求频率限制</span> <i class="fas fa-info-circle text-gray-400"></i></div>
+                        <p>标准文档处理</p>
+                    </div>
+                    <div class="pt-4 space-y-1">
+                        <div class="flex justify-between items-center"><span>10 个标注回复数</span> <i class="fas fa-info-circle text-gray-400"></i></div>
+                        <p>30 天日志历史</p>
+                    </div>
+                    <div class="pt-4">
+                        <p class="text-secondary">支持 OpenAI/Anthropic/Llama2/Azure OpenAI/Hugging Face/Replicate</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Plan 2: Professional -->
+            <div class="rounded-2xl p-8 border border-light-gray flex flex-col">
+                <div class="h-16 w-16 flex items-center justify-center mb-6">
+                     <img src="https://placehold.co/48x48/007aff/007aff" alt="Professional Icon"> <!-- Placeholder Icon -->
+                </div>
+                <h2 class="text-2xl font-bold text-primary flex items-center">
+                    Professional
+                    <span class="ml-2 bg-brand-blue text-white text-xs font-semibold px-2 py-0.5 rounded-full">最受欢迎</span>
+                </h2>
+                <p class="text-secondary mt-2 min-h-[40px]">适合准备构建生产级 AI 应用的独立开发者和小团队。</p>
+                <div class="my-6">
+                    <div class="flex items-baseline space-x-2">
+                        <p class="text-2xl font-normal text-gray-400 line-through">$708</p>
+                        <p class="text-4xl font-extrabold text-primary">$590</p>
+                        <p class="text-base font-normal text-secondary">/每个团队空间/年</p>
+                    </div>
+                </div>
+                <a href="#" class="w-full text-center bg-brand-blue py-3 rounded-lg font-semibold text-white hover:bg-brand-blue-dark transition-colors flex justify-between items-center px-4">
+                    <span>开始构建</span>
+                    <i class="fas fa-arrow-right"></i>
+                </a>
+                 <div class="mt-8 text-primary text-sm space-y-3">
+                    <div class="space-y-1">
+                        <div class="flex justify-between items-center"><span>5,000 条消息额度/月</span> <i class="fas fa-info-circle text-gray-400"></i></div>
+                        <p>1 个团队空间</p>
+                        <p>3 名团队成员</p>
+                        <p>50 个应用程序</p>
+                    </div>
+                    <div class="pt-4 space-y-1">
+                        <div class="flex justify-between items-center"><span>500 个知识库文档上传配额</span> <i class="fas fa-info-circle text-gray-400"></i></div>
+                        <div class="flex justify-between items-center"><span>5GB 知识库数据存储空间</span> <i class="fas fa-info-circle text-gray-400"></i></div>
+                        <div class="flex justify-between items-center"><span>100/分钟 知识库请求频率限制</span> <i class="fas fa-info-circle text-gray-400"></i></div>
+                        <div class="flex justify-between items-center"><span>API 请求频率无限制</span> <i class="fas fa-info-circle text-gray-400"></i></div>
+                        <p>优先文档处理</p>
+                    </div>
+                    <div class="pt-4 space-y-1">
+                        <div class="flex justify-between items-center"><span>2,000 个标注回复数</span> <i class="fas fa-info-circle text-gray-400"></i></div>
+                        <p>无限制日志历史</p>
+                    </div>
+                    <div class="pt-4">
+                        <p class="text-secondary">支持 OpenAI/Anthropic/Llama2/Azure OpenAI/Hugging Face/Replicate</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Plan 3: Team -->
+            <div class="rounded-2xl p-8 border border-light-gray flex flex-col">
+                <div class="h-16 w-16 flex items-center justify-center mb-6">
+                    <img src="https://placehold.co/48x48/1c1c1e/1c1c1e" alt="Team Icon"> <!-- Placeholder Icon -->
+                </div>
+                <h2 class="text-2xl font-bold text-primary">Team</h2>
+                <p class="text-secondary mt-2 min-h-[40px]">适合需要协作和更高吞吐量的中等规模团队。</p>
+                <div class="my-6">
+                     <div class="flex items-baseline space-x-2">
+                        <p class="text-2xl font-normal text-gray-400 line-through">$1908</p>
+                        <p class="text-4xl font-extrabold text-primary">$1590</p>
+                        <p class="text-base font-normal text-secondary">/每个团队空间/年</p>
+                    </div>
+                </div>
+                <a href="#" class="w-full text-center bg-dark-cta py-3 rounded-lg font-semibold text-white hover:bg-dark-cta-hover transition-colors flex justify-between items-center px-4">
+                    <span>立即开始</span>
+                    <i class="fas fa-arrow-right"></i>
+                </a>
+                <div class="mt-8 text-primary text-sm space-y-3">
+                    <div class="space-y-1">
+                        <div class="flex justify-between items-center"><span>10,000 条消息额度/月</span> <i class="fas fa-info-circle text-gray-400"></i></div>
+                        <p>1 个团队空间</p>
+                        <p>50 名团队成员</p>
+                        <p>200 个应用程序</p>
+                    </div>
+                    <div class="pt-4 space-y-1">
+                        <div class="flex justify-between items-center"><span>1,000 个知识库文档上传配额</span> <i class="fas fa-info-circle text-gray-400"></i></div>
+                        <div class="flex justify-between items-center"><span>20GB 知识库数据存储空间</span> <i class="fas fa-info-circle text-gray-400"></i></div>
+                        <div class="flex justify-between items-center"><span>1,000/分钟 知识库请求频率限制</span> <i class="fas fa-info-circle text-gray-400"></i></div>
+                        <div class="flex justify-between items-center"><span>API 请求频率无限制</span> <i class="fas fa-info-circle text-gray-400"></i></div>
+                        <p>最高优先级文档处理</p>
+                    </div>
+                    <div class="pt-4 space-y-1">
+                        <div class="flex justify-between items-center"><span>5,000 个标注回复数</span> <i class="fas fa-info-circle text-gray-400"></i></div>
+                        <p>无限制日志历史</p>
+                    </div>
+                    <div class="pt-4">
+                        <p class="text-secondary">支持 OpenAI/Anthropic/Llama2/Azure OpenAI/Hugging Face/Replicate</p>
+                    </div>
+                </div>
+            </div>
+
+        </main>
+
+        <!-- Footer -->
+        <footer class="flex justify-between items-end mt-8 border-t border-light-gray pt-6">
+            <div class="max-w-xl">
+                 <p class="text-xs text-secondary">所有订阅价格（按月/按年）均不含适用税费（如增值税、销售税）。</p>
+                 <p class="text-xs text-secondary mt-1">如果您所在地区无适用税费要求，结账时将不会显示税费，且在整个订阅周期内都无需支付任何额外费用。</p>
+            </div>
+            <a href="#" class="text-brand-blue font-semibold hover:underline flex-shrink-0 ml-4">
+                对比套餐 & 功能特性 <i class="fas fa-arrow-right ml-1"></i>
+            </a>
+        </footer>
+    </div>
+
+</body>
+</html>

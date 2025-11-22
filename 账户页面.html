@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My Account</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+
+    <!-- Google Fonts (Inter) -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    
+    <style type="text/tailwindcss">
+        body {
+            font-family: 'Inter', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+            background-color: #FFFFFF; /* The page has a clean white background */
+            color: #1A1A1A;
+        }
+        /* Reusing the color palette from the previous design */
+        .bg-brand-blue { background-color: #007AFF; }
+        
+        .bg-light-gray { background-color: #F2F2F7; }
+        .border-light-gray { border-color: #E5E5EA; }
+
+        .text-primary { color: #1A1A1A; }
+        .text-secondary { color: #8E8E93; }
+
+        /* The blue link color for actions */
+        .text-link-blue { color: #007AFF; }
+    </style>
+</head>
+<body class="antialiased">
+
+    <div class="container mx-auto px-4 py-12">
+        <main class="max-w-2xl mx-auto">
+            
+            <h1 class="text-3xl font-bold text-primary mb-8">我的账户</h1>
+
+            <!-- Profile Summary Card -->
+            <div class="bg-light-gray rounded-xl p-6 flex items-center space-x-5 mb-10">
+                <div class="w-16 h-16 bg-brand-blue rounded-full flex items-center justify-center text-white text-3xl font-semibold flex-shrink-0">
+                    胡
+                </div>
+                <div>
+                    <p class="text-xl font-bold text-primary">胡子君</p>
+                    <p class="text-secondary">huzijun@tangdou.com</p>
+                </div>
+            </div>
+
+            <!-- Settings Sections -->
+            <div class="space-y-8">
+                
+                <!-- Username Section -->
+                <div>
+                    <h2 class="text-sm font-semibold text-primary mb-2">用户名</h2>
+                    <div class="bg-light-gray rounded-lg p-4 flex justify-between items-center">
+                        <span class="text-primary">胡子君</span>
+                        <a href="#" class="text-secondary font-medium hover:text-primary transition-colors">编辑</a>
+                    </div>
+                </div>
+
+                <!-- Email Section -->
+                <div>
+                    <h2 class="text-sm font-semibold text-primary mb-2">邮箱</h2>
+                    <div class="bg-light-gray rounded-lg p-4 flex justify-between items-center">
+                        <span class="text-primary">huzijun@tangdou.com</span>
+                        <a href="#" class="text-secondary font-medium hover:text-primary transition-colors">更改</a>
+                    </div>
+                </div>
+
+                <!-- Password Section -->
+                <div>
+                    <div class="flex justify-between items-start pt-4">
+                        <div>
+                            <h2 class="text-sm font-semibold text-primary">密码</h2>
+                            <p class="text-secondary text-sm mt-1">如果您不想使用谷歌即可登录，可以设置永久密码</p>
+                        </div>
+                        <a href="#" class="text-secondary font-medium hover:text-primary transition-colors flex-shrink-0 ml-4">重置密码</a>
+                    </div>
+                    <hr class="border-light-gray mt-6">
+                </div>
+
+                <!-- Account Data Section -->
+                <div>
+                    <h2 class="text-sm font-semibold text-primary">帐号关联数据</h2>
+                    <p class="text-secondary text-sm mt-1 mb-2">您的帐号相关的所有数据。</p>
+                    <a href="#" class="bg-light-gray rounded-lg p-4 flex justify-between items-center hover:bg-gray-200 transition-colors">
+                        <span class="text-primary">显示 38 个应用</span>
+                        <i class="fas fa-chevron-right text-secondary"></i>
+                    </a>
+                </div>
+
+            </div>
+            
+        </main>
+    </div>
+
+</body>
+</html>

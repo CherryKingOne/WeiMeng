@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Settings - Model Providers</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+
+    <!-- Google Fonts (Inter) -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    
+    <style type="text/tailwindcss">
+        body {
+            font-family: 'Inter', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+            background-color: #F8F9FA; /* A light grey background to make the modal pop */
+            color: #1A1A1A;
+        }
+        /* Reusing the established color palette */
+        .bg-brand-blue { background-color: #007AFF; }
+        .hover\:bg-brand-blue-dark:hover { background-color: #005ECC; }
+        .text-brand-blue { color: #007AFF; }
+        
+        .bg-light-gray { background-color: #F2F2F7; }
+        .border-light-gray { border-color: #E5E5EA; }
+
+        .text-primary { color: #1A1A1A; }
+        .text-secondary { color: #8E8E93; }
+
+        /* Custom styles for this page */
+        .tag {
+            @apply bg-light-gray text-secondary text-xs font-medium px-2 py-1 rounded;
+        }
+    </style>
+</head>
+<body class="antialiased p-8">
+
+    <div class="max-w-screen-2xl mx-auto bg-white rounded-2xl shadow-lg flex min-h-[90vh] overflow-hidden">
+        <!-- Left Sidebar -->
+        <aside class="w-64 bg-white border-r border-light-gray p-4 flex-shrink-0">
+            <h2 class="text-xl font-bold text-primary px-4 pt-4 pb-6">设置</h2>
+            <nav class="flex flex-col space-y-1">
+                <a href="#" class="flex items-center px-4 py-2.5 text-primary bg-light-gray rounded-lg font-semibold transition-colors">
+                    <i class="fas fa-sliders-h w-6 text-center"></i>
+                    <span class="ml-3">模型供应商</span>
+                </a>
+                <a href="#" class="flex items-center px-4 py-2.5 text-secondary rounded-lg hover:bg-light-gray hover:text-primary transition-colors">
+                    <i class="fas fa-users w-6 text-center"></i>
+                    <span class="ml-3 font-medium">成员</span>
+                </a>
+                <a href="#" class="flex items-center px-4 py-2.5 text-secondary rounded-lg hover:bg-light-gray hover:text-primary transition-colors">
+                    <i class="fas fa-database w-6 text-center"></i>
+                    <span class="ml-3 font-medium">数据来源</span>
+                </a>
+                <a href="#" class="flex items-center px-4 py-2.5 text-secondary rounded-lg hover:bg-light-gray hover:text-primary transition-colors">
+                    <i class="fas fa-puzzle-piece w-6 text-center"></i>
+                    <span class="ml-3 font-medium">API 扩展</span>
+                </a>
+                <a href="#" class="flex items-center px-4 py-2.5 text-secondary rounded-lg hover:bg-light-gray hover:text-primary transition-colors">
+                    <i class="fas fa-language w-6 text-center"></i>
+                    <span class="ml-3 font-medium">语言</span>
+                </a>
+            </nav>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="flex-1 bg-white overflow-y-auto relative">
+             <button class="absolute top-6 right-6 text-secondary hover:text-primary p-2">
+                <i class="fas fa-times text-xl"></i>
+            </button>
+            <div class="p-10">
+                <div class="flex justify-between items-center mb-6">
+                    <h1 class="text-2xl font-bold text-primary">模型供应商</h1>
+                    <div class="relative">
+                        <input type="search" placeholder="搜索" class="bg-light-gray rounded-lg py-2 pl-4 pr-10 focus:ring-2 focus:ring-brand-blue focus:outline-none text-sm w-64">
+                        <i class="fas fa-search absolute right-4 top-1/2 -translate-y-1/2 text-secondary"></i>
+                    </div>
+                </div>
+
+                <!-- Uninstalled Providers Section -->
+                <section>
+                    <h2 class="text-sm font-semibold text-secondary">模型供应商</h2>
+                    <hr class="border-light-gray my-4">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <!-- Card: 302.AI -->
+                        <div class="bg-white border border-light-gray rounded-xl p-5 flex flex-col space-y-3">
+                            <div class="flex items-center justify-between">
+                                <div class="flex items-center space-x-3">
+                                    <div class="w-10 h-10 flex items-center justify-center rounded-lg bg-[#F3E8FF]">
+                                        <svg class="w-6 h-6" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M22 42a2 2 0 1 0 4 0v-8.17a14.01 14.01 0 0 1-8.11-13.4V14H16a2 2 0 1 1 0-4h16a2 2 0 1 1 0 4h-1.89v6.43c0 5.1-2.73 9.7-6.8 12.19l-1.3-2.26a10.01 10.01 0 0 0 6.1-10.36V14h-1.89V8a2 2 0 1 0-4 0v6H16v6.43a10.01 10.01 0 0 0 5.4 9.12l-1.3 2.26A14.01 14.01 0 0 1 22 20.43V14h-1.89v-2H22v8.43a10.01 10.01 0 0 0 6.1-10.36V8a2 2 0 1 0-4 0v2h-1.89v-2a2 2 0 1 0-4 0v2H16v2h1.89v8.43a14.01 14.01 0 0 1-7.78-12.62 2 2 0 1 1 4 0 10.01 10.01 0 0 0 5.4 9.12l-1.3 2.26A14.01 14.01 0 0 1 10 20.43V8a2 2 0 1 1 4 0v2h1.89V8a2 2 0 1 1 4 0v2H22v2h1.89v2h-1.89v2h1.89v2.43c0 5.1 2.73 9.7 6.8 12.19l1.3-2.26a10.01 10.01 0 0 0-6.1-10.36V14h1.89v-2H22v-2h-1.89v-2H22v-2h-1.89V8a2 2 0 1 0-4 0v2H16V8a2 2 0 1 0-4 0v12.43a14.01 14.01 0 0 1 7.78 12.62 2 2 0 1 1-4 0 10.01 10.01 0 0 0-5.4-9.12l1.3-2.26A14.01 14.01 0 0 1 22 20.43V33.83a14.01 14.01 0 0 1 8.11 13.4V42a2 2 0 1 0 4 0v-8.17c0-5.1-2.73-9.7-6.8-12.19l-1.3 2.26a10.01 10.01 0 0 0 6.1 10.36v7.77Z" fill="#A855F7"/></svg>
+                                    </div>
+                                    <div>
+                                        <p class="font-semibold text-primary">302.AI</p>
+                                        <p class="text-xs text-secondary">302ai</p>
+                                    </div>
+                                </div>
+                                <span class="text-xs text-secondary flex items-center"><i class="fas fa-user-friends mr-1"></i> 243</span>
+                            </div>
+                            <p class="text-sm text-secondary flex-grow">302.AI是一个按用量付费的企业级AI资源平台，提供市场上最新、最全面的AI模型和API，以及多种开箱即用的在线AI应用。</p>
+                        </div>
+                        <!-- Card: MindWord (with actions) -->
+                        <div class="bg-white border border-light-gray rounded-xl p-5 flex flex-col space-y-3">
+                            <div class="flex items-center justify-between">
+                                <div class="flex items-center space-x-3">
+                                    <div class="w-10 h-10 flex items-center justify-center rounded-lg bg-blue-500">
+                                        <svg class="w-6 h-6 text-white" viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg"><path d="M12.38 5.62a1 1 0 0 0-1.09-.21L4 8.12V18a1 1 0 0 0 .62.92l7 3A1 1 0 0 0 12 22a1 1 0 0 0 .38-.08l7-3A1 1 0 0 0 20 18V5.5a1 1 0 0 0-1.38-.92l-5.65 2.42a1 1 0 0 1-1.09-.21L12.38 5.62zM18 6.88v9.9l-5 2.14v-9.9l5-2.14z"/></svg>
+                                    </div>
+                                    <div>
+                                        <p class="font-semibold text-primary">MindWord</p>
+                                        <p class="text-xs text-secondary">higgs-projects</p>
+                                    </div>
+                                </div>
+                                <span class="text-xs text-secondary flex items-center"><i class="fas fa-user-friends mr-1"></i> 4,653</span>
+                            </div>
+                            <p class="text-sm text-secondary flex-grow">在中国运行需要额外配置才能访问Deepseek V2, Qwen, ...</p>
+                            <div class="flex justify-end items-center space-x-3 pt-2">
+                                <a href="#" class="font-medium text-secondary hover:text-primary text-sm">详情 <i class="fas fa-external-link-alt ml-1"></i></a>
+                                <button class="bg-brand-blue text-white font-semibold px-4 py-1.5 rounded-lg text-sm hover:bg-brand-blue-dark">安装</button>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                 <!-- Installed Providers Section -->
+                <section class="mt-10">
+                    <div class="flex justify-between items-center">
+                        <h2 class="text-sm font-semibold text-secondary flex items-center">
+                            <i class="fas fa-chevron-down mr-2"></i>
+                            安装模型供应商
+                        </h2>
+                        <a href="#" class="text-brand-blue font-medium text-sm hover:underline">发现更多就在 Dify 市场 <i class="fas fa-external-link-alt ml-1"></i></a>
+                    </div>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mt-4">
+                        <!-- Card: OpenAI -->
+                        <div class="bg-white border border-light-gray rounded-xl p-5 flex flex-col space-y-3">
+                            <div class="flex items-center justify-between">
+                                <div class="flex items-center space-x-3">
+                                    <div class="w-10 h-10 flex items-center justify-center rounded-lg bg-black">
+                                       <svg class="w-6 h-6 text-white" role="img" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><title>OpenAI</title><path d="M22.2819 12.875C22.2819 12.433 22.4739 12.034 22.7939 11.756C23.1139 11.478 23.5359 11.319 23.9709 11.319C24.4059 11.319 24.8279 11.478 25.1479 11.756C25.4679 12.034 25.6599 12.433 25.6599 12.875C25.6599 13.317 25.4679 13.716 25.1479 13.994C24.8279 14.272 24.4059 14.431 23.9709 14.431C23.5359 14.431 23.1139 14.272 22.7939 13.994C22.4739 13.716 22.2819 13.317 22.2819 12.875ZM19.2319 12.875C19.2319 11.353 19.8039 9.894 20.8159 8.803C21.8279 7.712 23.2039 7.069 24.6399 7.069C26.0759 7.069 27.4519 7.712 28.4639 8.803C29.4759 9.894 30.0479 11.353 30.0479 12.875C30.0479 14.397 29.4759 15.856 28.4639 16.947C27.4519 18.038 26.0759 18.681 24.6399 18.681C23.2039 18.681 21.8279 18.038 20.8159 16.947C19.8039 15.856 19.2319 14.397 19.2319 12.875ZM1.71794 11.319C1.28294 11.319 0.86094 11.478 0.54094 11.756C0.22094 12.034 0.0289396 12.433 0.0289396 12.875C0.0289396 13.317 0.22094 13.716 0.54094 13.994C0.86094 14.272 1.28294 14.431 1.71794 14.431C2.15294 14.431 2.57494 14.272 2.89494 13.994C3.21494 13.716 3.40694 13.317 3.40694 12.875C3.40694 12.433 3.21494 12.034 2.89494 11.756C2.57494 11.478 2.15294 11.319 1.71794 11.319ZM4.76894 12.875C4.76894 14.397 5.34094 15.856 6.35294 16.947C7.36494 18.038 8.74094 18.681 10.1769 18.681C11.6129 18.681 12.9889 18.038 14.0009 16.947C15.0129 15.856 15.5849 14.397 15.5849 12.875C15.5849 11.353 15.0129 9.894 14.0009 8.803C12.9889 7.712 11.6129 7.069 10.1769 7.069C8.74094 7.069 7.36494 7.712 6.35294 8.803C5.34094 9.894 4.76894 11.353 4.76894 12.875Z" fill="white" transform="translate(-2.8, -1.8) scale(1.3)"/></svg>
+                                    </div>
+                                    <div>
+                                        <p class="font-semibold text-primary">OpenAI</p>
+                                        <p class="text-xs text-secondary">langgenius</p>
+                                    </div>
+                                </div>
+                                <span class="text-xs text-secondary flex items-center"><i class="fas fa-user-friends mr-1"></i> 326,577</span>
+                            </div>
+                            <p class="text-sm text-secondary flex-grow">OpenAI 提供的模型, 例如 GPT-3.5-Turbo、GPT-4 和 GPT-5。</p>
+                            <div class="flex items-center space-x-2 pt-2">
+                                <span class="tag">PRODUCTIVITY</span>
+                                <span class="tag">UTILITIES</span>
+                            </div>
+                        </div>
+                        <!-- Card: Anthropic -->
+                        <div class="bg-white border border-light-gray rounded-xl p-5 flex flex-col space-y-3">
+                            <div class="flex items-center justify-between">
+                                <div class="flex items-center space-x-3">
+                                    <div class="w-10 h-10 flex items-center justify-center rounded-lg bg-[#DE6439]">
+                                        <svg class="w-6 h-6 text-white" role="img" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><title>Anthropic</title><path d="M14.208 6.223h3.018V3.204h-3.018v3.019zm0 14.573h3.018v-3.018h-3.018v3.018zM6.777 6.223h3.018V3.204H6.777v3.019zm0 14.573h3.018v-3.018H6.777v3.018zM18.84 10.457v3.018h3.018v-3.018H18.84zM2.14 10.457v3.018h3.018v-3.018H2.14zm11.229 3.018h3.018v-3.018h-3.018v3.018zM18.84 14.99v3.018h3.018v-3.018H18.84zm-5.593-7.55h3.018V4.422h-3.018v3.018zM2.14 14.99v3.018h3.018v-3.018H2.14zm11.229 3.018h3.018v-3.018h-3.018v3.018zm-5.637-6.036h3.018v-3.018H7.732v3.018zm3.844-3.018h3.018V5.938h-3.018V8.956z" fill="white"/></svg>
+                                    </div>
+                                    <div>
+                                        <p class="font-semibold text-primary">Anthropic</p>
+                                        <p class="text-xs text-secondary">langgenius</p>
+                                    </div>
+                                </div>
+                                <span class="text-xs text-secondary flex items-center"><i class="fas fa-user-friends mr-1"></i> 64,680</span>
+                            </div>
+                            <p class="text-sm text-secondary flex-grow">Anthropic 的强大模型。</p>
+                        </div>
+                        <!-- Card: Gemini (needs config) -->
+                        <div class="bg-white border border-light-gray rounded-xl p-5 flex flex-col space-y-3">
+                             <div class="flex items-center justify-between">
+                                <div class="flex items-center space-x-3">
+                                    <div class="w-10 h-10 flex items-center justify-center rounded-lg">
+                                       <svg class="w-8 h-8" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M12.94 4.346c-.15-.26-.33-.5-.54-.706a.5.5 0 0 0-.8-.04l-6.23 7.514a.5.5 0 0 0 .42 1.072h3.42c-.15.26-.33.5-.54.706a.5.5 0 0 0 .38.85h4.25c.15-.26.33-.5.54-.706a.5.5 0 0 0 .41-.644l-1.34-4.82z" fill="#89B5F7"/><path d="M12.93 19.654c-.15.26-.33.5-.54.706a.5.5 0 0 1-.8.04l-6.23-7.514a.5.5 0 0 1 .42-1.072h3.42c-.15-.26-.33-.5-.54-.706a.5.5 0 0 1 .38-.85h4.25c.15.26.33.5.54.706a.5.5 0 0 1 .41.644l-1.34 4.82z" fill="#4285F4"/></svg>
+                                    </div>
+                                    <div>
+                                        <p class="font-semibold text-primary">Gemini</p>
+                                        <p class="text-xs text-secondary">langgenius</p>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="bg-blue-50 text-brand-blue text-sm p-3 rounded-lg flex items-start space-x-2">
+                                <i class="fas fa-info-circle mt-1"></i>
+                                <span>请配置 API 密钥，添加模型。</span>
+                            </div>
+                            <div class="flex items-center space-x-2">
+                                <span class="tag">LLM</span>
+                                <span class="tag">TEXT EMBEDDING</span>
+                            </div>
+                        </div>
+                        <!-- Card: Azure OpenAI -->
+                        <div class="bg-white border border-light-gray rounded-xl p-5 flex flex-col space-y-3">
+                            <div class="flex items-center justify-between">
+                                <div class="flex items-center space-x-3">
+                                    <div class="w-10 h-10 flex items-center justify-center rounded-lg">
+                                        <svg class="w-6 h-6" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M12.45 2.528L5.34 4.364l7.11 14.864 7.223-1.849-7.223-14.85zm-8.23 2.62L.811 6.845l3.41 7.223-3.41-7.223z" fill="#0078D4"/><path d="M12.45 17.227l-3.356 4.364H.81l3.41-7.169 8.23-1.892v9.06z" fill="#0078D4"/></svg>
+                                    </div>
+                                    <div>
+                                        <p class="font-semibold text-primary">Azure OpenAI</p>
+                                        <p class="text-xs text-secondary">langgenius</p>
+                                    </div>
+                                </div>
+                                <span class="text-xs text-secondary flex items-center"><i class="fas fa-user-friends mr-1"></i> 52,895</span>
+                            </div>
+                            <p class="text-sm text-secondary flex-grow">Azure OpenAI Service Model</p>
+                        </div>
+                    </div>
+                </section>
+            </div>
+        </main>
+    </div>
+
+</body>
+</html>

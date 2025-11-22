@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login / Sign Up - OneFour</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+
+    <!-- Google Fonts (Inter) -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    
+    <!-- LESS Compiler (for in-browser compilation) -->
+    <script src="https://cdn.jsdelivr.net/npm/less@4.2.0/dist/less.min.js"></script>
+
+    <style type="text/tailwindcss">
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #FFFFFF;
+            color: #1A1A1A;
+        }
+        /* Defining custom colors based on the design philosophy from the original page */
+        .bg-brand-green { background-color: #00C777; }
+        .text-brand-green { color: #00C777; }
+        .border-brand-green { border-color: #00C777; }
+        .ring-brand-green:focus { --tw-ring-color: #00C777; }
+        .hover\:bg-brand-green-dark:hover { background-color: #00A361; }
+        
+        .bg-dark-cta { background-color: #1C1C1E; }
+        .bg-light-gray { background-color: #F2F2F7; }
+        .text-primary { color: #1A1A1A; }
+        .text-secondary { color: #8E8E93; }
+
+        /* Custom style for the form toggle indicator */
+        .form-toggle-indicator {
+            position: absolute;
+            bottom: -2px;
+            left: 0;
+            height: 3px;
+            background-color: #00C777;
+            transition: transform 0.3s ease-in-out, width 0.3s ease-in-out;
+        }
+    </style>
+    
+    <!-- Custom LESS Styles -->
+    <style type="text/less">
+        .cta-button {
+            transition: all 0.3s ease;
+            &:hover {
+                transform: translateY(-2px);
+                box-shadow: 0 10px 20px rgba(0, 199, 119, 0.2);
+            }
+        }
+    </style>
+</head>
+<body class="antialiased">
+
+    <div class="min-h-screen grid grid-cols-1 lg:grid-cols-5">
+        
+        <!-- Left Column: Branding -->
+        <div class="lg:col-span-2 bg-dark-cta relative flex flex-col justify-center items-center p-12 text-white text-center order-last lg:order-first min-h-[300px] lg:min-h-screen">
+            <!-- Background Image -->
+            <div class="absolute inset-0 bg-cover bg-center opacity-20" style="background-image: url('https://images.unsplash.com/photo-1534723328310-e82dad3ee43f?q=80&w=2400&auto=format&fit=crop');"></div>
+            
+            <div class="relative z-10">
+                <a href="/" class="text-3xl font-bold text-white flex items-center justify-center mb-8">
+                    <i class="fas fa-cubes text-brand-green mr-3"></i>
+                    OneFour
+                </a>
+                <h1 class="text-4xl font-bold leading-tight">即刻连接AI，<br>重塑你的设计流程。</h1>
+                <p class="mt-4 text-gray-300 max-w-sm mx-auto">
+                    Join thousands of designers building prototypes faster and smarter.
+                </p>
+            </div>
+        </div>
+
+        <!-- Right Column: Form Area -->
+        <div class="lg:col-span-3 bg-white flex flex-col justify-center items-center p-6 sm:p-12">
+            <div class="w-full max-w-md">
+                <!-- Logo for mobile view or as header -->
+                <a href="/" class="text-2xl font-bold text-primary flex items-center mb-8 lg:hidden">
+                    <i class="fas fa-cubes text-brand-green mr-2"></i>
+                    OneFour
+                </a>
+
+                <!-- Form Toggle -->
+                <div class="relative flex border-b mb-8">
+                    <button id="login-tab" class="flex-1 pb-3 text-2xl font-bold text-brand-green transition-colors">Log In</button>
+                    <button id="signup-tab" class="flex-1 pb-3 text-2xl font-bold text-secondary transition-colors">Sign Up</button>
+                    <div id="form-toggle-indicator" class="form-toggle-indicator"></div>
+                </div>
+
+                <!-- Social Login -->
+                <div>
+                    <p class="text-center text-sm text-secondary mb-4">使用社交账号快速登录/注册</p>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <a href="#" class="w-full flex items-center justify-center py-3 px-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition">
+                            <img src="https://www.vectorlogo.zone/logos/google/google-icon.svg" alt="Google" class="w-5 h-5 mr-3">
+                            <span class="font-semibold text-primary text-sm">Continue with Google</span>
+                        </a>
+                        <a href="#" class="w-full flex items-center justify-center py-3 px-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition">
+                            <i class="fab fa-github text-xl mr-3"></i>
+                            <span class="font-semibold text-primary text-sm">Continue with GitHub</span>
+                        </a>
+                    </div>
+                </div>
+
+                <!-- Divider -->
+                <div class="flex items-center my-8">
+                    <hr class="flex-grow border-gray-200">
+                    <span class="mx-4 text-sm text-secondary">或使用邮箱</span>
+                    <hr class="flex-grow border-gray-200">
+                </div>
+
+                <!-- Login Form -->
+                <form id="login-form" class="space-y-6">
+                    <div>
+                        <label for="login-email" class="font-medium text-primary block mb-2">邮箱地址</label>
+                        <div class="relative">
+                            <i class="fas fa-envelope absolute left-4 top-1/2 -translate-y-1/2 text-secondary"></i>
+                            <input type="email" id="login-email" placeholder="请输入您的邮箱地址" class="w-full pl-12 pr-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 ring-brand-green focus:border-transparent">
+                        </div>
+                    </div>
+                    <div>
+                        <div class="flex justify-between items-center mb-2">
+                            <label for="login-password" class="font-medium text-primary">密码</label>
+                            <a href="#" class="text-sm text-brand-green hover:underline">忘记密码?</a>
+                        </div>
+                        <div class="relative">
+                            <i class="fas fa-lock absolute left-4 top-1/2 -translate-y-1/2 text-secondary"></i>
+                            <input type="password" id="login-password" placeholder="请输入您的密码" class="w-full pl-12 pr-12 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 ring-brand-green focus:border-transparent">
+                            <button type="button" class="absolute right-4 top-1/2 -translate-y-1/2 text-secondary hover:text-primary" onclick="togglePasswordVisibility('login-password')">
+                                <i class="fas fa-eye"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <button type="submit" class="w-full bg-brand-green text-white font-bold py-4 rounded-lg cta-button hover:bg-brand-green-dark">
+                        登录
+                    </button>
+                    <p class="text-center text-sm text-secondary">
+                        还没有账户? <button type="button" class="font-semibold text-brand-green hover:underline" onclick="showForm('signup')">立即注册</button>
+                    </p>
+                </form>
+
+                <!-- Sign Up Form -->
+                <form id="signup-form" class="space-y-6 hidden">
+                    <div>
+                        <label for="signup-email" class="font-medium text-primary block mb-2">邮箱地址</label>
+                        <div class="relative">
+                            <i class="fas fa-envelope absolute left-4 top-1/2 -translate-y-1/2 text-secondary"></i>
+                            <input type="email" id="signup-email" placeholder="请输入您的邮箱地址" class="w-full pl-12 pr-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 ring-brand-green focus:border-transparent">
+                        </div>
+                    </div>
+                     <div>
+                        <label for="verification-code" class="font-medium text-primary block mb-2">邮箱验证码</label>
+                        <div class="flex space-x-3">
+                            <input type="text" id="verification-code" placeholder="请输入6位验证码" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 ring-brand-green focus:border-transparent">
+                            <button type="button" id="get-code-btn" class="flex-shrink-0 bg-light-gray text-brand-green font-semibold px-4 py-3 rounded-lg hover:bg-gray-200 transition">获取验证码</button>
+                        </div>
+                    </div>
+                    <div>
+                        <label for="signup-password" class="font-medium text-primary block mb-2">创建密码</label>
+                         <div class="relative">
+                            <i class="fas fa-lock absolute left-4 top-1/2 -translate-y-1/2 text-secondary"></i>
+                            <input type="password" id="signup-password" placeholder="至少8位，包含字母和数字" class="w-full pl-12 pr-12 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 ring-brand-green focus:border-transparent">
+                             <button type="button" class="absolute right-4 top-1/2 -translate-y-1/2 text-secondary hover:text-primary" onclick="togglePasswordVisibility('signup-password')">
+                                <i class="fas fa-eye"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="flex items-center">
+                        <input type="checkbox" id="terms" class="h-4 w-4 rounded border-gray-300 text-brand-green focus:ring-brand-green">
+                        <label for="terms" class="ml-2 text-sm text-secondary">我已阅读并同意OneFour的<a href="#" class="text-brand-green hover:underline">服务条款</a>和<a href="#" class="text-brand-green hover:underline">隐私政策</a>。</label>
+                    </div>
+                    <button type="submit" class="w-full bg-brand-green text-white font-bold py-4 rounded-lg cta-button hover:bg-brand-green-dark opacity-50 cursor-not-allowed" disabled>
+                        创建账户
+                    </button>
+                    <p class="text-center text-sm text-secondary">
+                        已有账户? <button type="button" class="font-semibold text-brand-green hover:underline" onclick="showForm('login')">立即登录</button>
+                    </p>
+                </form>
+
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const loginTab = document.getElementById('login-tab');
+        const signupTab = document.getElementById('signup-tab');
+        const loginForm = document.getElementById('login-form');
+        const signupForm = document.getElementById('signup-form');
+        const indicator = document.getElementById('form-toggle-indicator');
+        const termsCheckbox = document.getElementById('terms');
+        const signupButton = signupForm.querySelector('button[type="submit"]');
+        const getCodeBtn = document.getElementById('get-code-btn');
+
+        function updateIndicator(tab) {
+            indicator.style.width = `${tab.offsetWidth}px`;
+            indicator.style.transform = `translateX(${tab.offsetLeft}px)`;
+        }
+
+        function showForm(formName) {
+            if (formName === 'login') {
+                loginTab.classList.remove('text-secondary');
+                loginTab.classList.add('text-brand-green');
+                signupTab.classList.add('text-secondary');
+                signupTab.classList.remove('text-brand-green');
+                
+                loginForm.classList.remove('hidden');
+                signupForm.classList.add('hidden');
+                updateIndicator(loginTab);
+            } else {
+                signupTab.classList.remove('text-secondary');
+                signupTab.classList.add('text-brand-green');
+                loginTab.classList.add('text-secondary');
+                loginTab.classList.remove('text-brand-green');
+
+                signupForm.classList.remove('hidden');
+                loginForm.classList.add('hidden');
+                updateIndicator(signupTab);
+            }
+        }
+
+        loginTab.addEventListener('click', () => showForm('login'));
+        signupTab.addEventListener('click', () => showForm('signup'));
+
+        // Set initial indicator position
+        window.addEventListener('load', () => updateIndicator(loginTab));
+        window.addEventListener('resize', () => {
+            const activeTab = document.querySelector('.text-brand-green[id$="-tab"]');
+            updateIndicator(activeTab);
+        });
+        
+        // Password visibility toggle
+        function togglePasswordVisibility(inputId) {
+            const input = document.getElementById(inputId);
+            const icon = input.nextElementSibling.querySelector('i');
+            if (input.type === 'password') {
+                input.type = 'text';
+                icon.classList.remove('fa-eye');
+                icon.classList.add('fa-eye-slash');
+            } else {
+                input.type = 'password';
+                icon.classList.remove('fa-eye-slash');
+                icon.classList.add('fa-eye');
+            }
+        }
+
+        // Enable signup button only when terms are checked
+        termsCheckbox.addEventListener('change', () => {
+            if (termsCheckbox.checked) {
+                signupButton.disabled = false;
+                signupButton.classList.remove('opacity-50', 'cursor-not-allowed');
+            } else {
+                signupButton.disabled = true;
+                signupButton.classList.add('opacity-50', 'cursor-not-allowed');
+            }
+        });
+        
+        // Verification code button logic
+        getCodeBtn.addEventListener('click', function() {
+            let seconds = 60;
+            getCodeBtn.disabled = true;
+            getCodeBtn.textContent = '发送中...';
+
+            // Simulate API call
+            setTimeout(() => {
+                const interval = setInterval(() => {
+                    seconds--;
+                    if (seconds > 0) {
+                        getCodeBtn.textContent = `${seconds}秒后重新获取`;
+                    } else {
+                        clearInterval(interval);
+                        getCodeBtn.disabled = false;
+                        getCodeBtn.textContent = '获取验证码';
+                    }
+                }, 1000);
+            }, 1000);
+        });
+
+    </script>
+
+</body>
+</html>

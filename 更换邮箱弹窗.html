@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MasterGo - Settings</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+
+    <!-- Google Fonts (Inter) -->
+    <link rel="preconnect" href="https://fonts.googleapis">
+    <link rel="preconnect" href="https://fonts.gstatic" com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    
+    <style type="text/tailwindcss">
+        body {
+            font-family: 'Inter', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+        }
+        /* Dark Mode Color Palette based on MasterGo design */
+        .bg-dark-primary { background-color: #181818; }
+        .bg-dark-secondary { background-color: #202020; }
+        .bg-dark-tertiary { background-color: #2D2D2D; }
+        .bg-dark-modal { background-color: #333333; }
+        .bg-brand-blue-dark { background-color: #3872F6; }
+        .hover\:bg-brand-blue-darker:hover { background-color: #2A61E0; }
+
+        .text-dark-primary { color: #E0E0E0; }
+        .text-dark-secondary { color: #9E9E9E; }
+        .text-dark-tertiary { color: #6F6F6F; }
+
+        .border-dark-line { border-color: #3A3A3A; }
+        .border-dark-strong { border-color: #555555; }
+    </style>
+</head>
+<body class="bg-dark-primary text-dark-primary antialiased">
+
+    <div class="flex h-screen overflow-hidden">
+        <!-- Main Sidebar -->
+        <aside class="w-64 bg-dark-secondary p-4 flex flex-col flex-shrink-0">
+            <div class="flex items-center space-x-2 p-2">
+                <svg class="w-8 h-8" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M16 0L32 9.143V22.857L16 32L0 22.857V9.143L16 0Z" fill="#2667FF"/><path d="M16 11.4284L21.3333 14.2856V20.0003L16 22.857L10.6667 20.0003V14.2856L16 11.4284Z" fill="white"/></svg>
+                <span class="font-bold text-lg">MasterGo</span>
+            </div>
+            <nav class="mt-8 space-y-2 flex-grow">
+                <a href="#" class="flex items-center space-x-3 px-3 py-2 rounded-md text-dark-primary hover:bg-dark-tertiary transition-colors"><i class="fas fa-home w-5"></i><span>主页</span></a>
+                <a href="#" class="flex items-center space-x-3 px-3 py-2 rounded-md text-dark-primary hover:bg-dark-tertiary transition-colors"><i class="fas fa-file-alt w-5"></i><span>草稿箱</span></a>
+                <a href="#" class="flex items-center space-x-3 px-3 py-2 rounded-md text-dark-primary hover:bg-dark-tertiary transition-colors"><i class="fas fa-user-friends w-5"></i><span>分享给我的</span></a>
+                <a href="#" class="flex items-center space-x-3 px-3 py-2 rounded-md text-dark-primary hover:bg-dark-tertiary transition-colors"><i class="fas fa-th-large w-5"></i><span>资源社区</span></a>
+                <div class="pt-6">
+                    <a href="#" class="flex items-center space-x-3 px-3 py-2 rounded-md text-dark-primary hover:bg-dark-tertiary transition-colors">
+                        <i class="fas fa-chevron-down text-xs"></i>
+                        <div class="w-4 h-4 rounded-full bg-blue-500"></div>
+                        <span>cherry的团队</span>
+                    </a>
+                </div>
+            </nav>
+            <button class="flex items-center space-x-3 px-3 py-2 rounded-md text-dark-primary hover:bg-dark-tertiary transition-colors w-full">
+                <i class="fas fa-plus"></i>
+                <span>新建团队</span>
+            </button>
+        </aside>
+
+        <!-- Main Content Area -->
+        <div class="flex-1 flex flex-col">
+            <!-- Header -->
+            <header class="bg-dark-primary border-b border-dark-line px-6 py-3 flex justify-between items-center flex-shrink-0">
+                <div class="relative w-1/3">
+                    <i class="fas fa-search absolute left-4 top-1/2 -translate-y-1/2 text-dark-secondary"></i>
+                    <input type="text" placeholder="搜索" class="w-full bg-dark-tertiary rounded-md py-2 pl-12 pr-4 focus:outline-none focus:ring-2 focus:ring-brand-blue-dark border border-transparent placeholder:text-dark-tertiary">
+                </div>
+                <div class="flex items-center space-x-4">
+                    <div class="bg-gradient-to-r from-indigo-500 to-purple-600 px-4 py-1.5 rounded-md text-sm font-semibold flex items-center space-x-2">
+                        <span>周年大促, 享限时优惠折扣</span>
+                        <a href="#" class="text-xs bg-black/20 px-2 py-0.5 rounded-sm">了解更多 &rarr;</a>
+                    </div>
+                    <button class="text-dark-secondary hover:text-dark-primary"><i class="fas fa-download"></i></button>
+                    <button class="text-dark-secondary hover:text-dark-primary"><i class="far fa-clock"></i></button>
+                    <button class="relative text-dark-secondary hover:text-dark-primary">
+                        <i class="far fa-bell"></i>
+                        <span class="absolute -top-1 -right-1.5 w-4 h-4 bg-red-500 text-white text-xs rounded-full">2</span>
+                    </button>
+                    <div class="w-8 h-8 bg-indigo-500 rounded-full flex items-center justify-center font-bold">C</div>
+                </div>
+            </header>
+
+            <!-- Settings Content -->
+            <main class="flex-1 p-10 overflow-y-auto">
+                <h1 class="text-3xl font-bold mb-6">设置</h1>
+                <nav class="flex items-center space-x-6 border-b border-dark-line mb-8">
+                    <a href="#" class="py-3 font-semibold border-b-2 border-dark-primary text-dark-primary">账户信息</a>
+                    <a href="#" class="py-3 text-dark-secondary hover:text-dark-primary">团队</a>
+                    <a href="#" class="py-3 text-dark-secondary hover:text-dark-primary">认证与成就</a>
+                    <a href="#" class="py-3 text-dark-secondary hover:text-dark-primary">预置组件库</a>
+                    <a href="#" class="py-3 text-dark-secondary hover:text-dark-primary">订单</a>
+                    <a href="#" class="py-3 text-dark-secondary hover:text-dark-primary">通知设置</a>
+                    <a href="#" class="py-3 text-dark-secondary hover:text-dark-primary">安全设置</a>
+                </nav>
+
+                <div class="max-w-4xl mx-auto space-y-6">
+                    <!-- Settings Item -->
+                    <div class="flex justify-between items-center py-4 border-b border-dark-line">
+                        <div>
+                            <h3 class="font-semibold text-dark-primary">用户名 <span class="ml-2 text-xs bg-dark-tertiary px-2 py-1 rounded text-green-400 border border-green-600/50">已实名认证 (186****19)</span></h3>
+                            <p class="text-dark-primary mt-2">cherry</p>
+                        </div>
+                        <button class="text-sm font-medium bg-dark-tertiary border border-dark-strong px-4 py-1.5 rounded-md hover:border-gray-400 transition-colors">编辑用户名</button>
+                    </div>
+                     <!-- Settings Item -->
+                    <div class="flex justify-between items-center py-4 border-b border-dark-line">
+                        <div class="flex items-start space-x-4">
+                            <div class="w-12 h-12 bg-blue-600 rounded-full flex items-center justify-center font-bold text-xl flex-shrink-0">C</div>
+                            <div>
+                                <h3 class="font-semibold text-dark-primary">头像</h3>
+                                <p class="text-dark-secondary text-sm mt-1">支持 2M 以内的 JPG 或 PNG 图片</p>
+                            </div>
+                        </div>
+                        <button class="text-sm font-medium bg-dark-tertiary border border-dark-strong px-4 py-1.5 rounded-md hover:border-gray-400 transition-colors">修改头像</button>
+                    </div>
+                     <!-- Settings Item -->
+                    <div class="flex justify-between items-center py-4 border-b border-dark-line">
+                        <div>
+                            <h3 class="font-semibold text-dark-primary">职业</h3>
+                            <p class="text-dark-primary mt-2">管理者</p>
+                        </div>
+                        <button class="text-sm font-medium bg-dark-tertiary border border-dark-strong px-4 py-1.5 rounded-md hover:border-gray-400 transition-colors">修改职业</button>
+                    </div>
+                    <!-- Settings Item -->
+                    <div class="flex justify-between items-center py-4 border-b border-dark-line">
+                        <div>
+                            <h3 class="font-semibold text-dark-primary">手机号</h3>
+                            <p class="text-dark-primary mt-2">18651243219</p>
+                        </div>
+                        <button class="text-sm font-medium bg-dark-tertiary border border-dark-strong px-4 py-1.5 rounded-md hover:border-gray-400 transition-colors">编辑手机号</button>
+                    </div>
+                    <!-- Settings Item -->
+                    <div class="flex justify-between items-center py-4 border-b border-dark-line">
+                        <div>
+                            <h3 class="font-semibold text-dark-primary">电子邮箱</h3>
+                            <p class="text-dark-secondary text-sm mt-1">绑定邮箱后，可以通过邮箱登录，并接收 MasterGo 精彩活动推荐</p>
+                        </div>
+                        <button class="text-sm font-medium bg-dark-tertiary border border-dark-strong px-4 py-1.5 rounded-md hover:border-gray-400 transition-colors">添加邮箱</button>
+                    </div>
+                     <!-- Settings Item -->
+                    <div class="flex justify-between items-center py-4 border-b border-dark-line">
+                        <div>
+                            <h3 class="font-semibold text-dark-primary">密码</h3>
+                            <p class="text-dark-primary mt-2">******</p>
+                        </div>
+                        <button class="text-sm font-medium bg-dark-tertiary border border-dark-strong px-4 py-1.5 rounded-md hover:border-gray-400 transition-colors">重置密码</button>
+                    </div>
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <!-- Modal for Changing Phone Number -->
+    <div class="fixed inset-0 bg-black/70 flex items-center justify-center z-50 backdrop-blur-sm">
+        <div class="bg-dark-modal rounded-lg p-8 w-full max-w-md shadow-2xl border border-dark-strong">
+            <h2 class="text-xl font-bold mb-6 text-dark-primary">更换手机号</h2>
+            <nav class="flex items-center space-x-6 border-b border-dark-strong mb-6">
+                <a href="#" class="py-2 text-dark-secondary hover:text-dark-primary text-sm transition-colors">邮箱验证</a>
+                <a href="#" class="py-2 text-dark-primary border-b-2 border-brand-blue-dark font-semibold text-sm">手机验证</a>
+                <a href="#" class="py-2 text-dark-secondary hover:text-dark-primary text-sm transition-colors">密码验证</a>
+            </nav>
+            <div class="space-y-4">
+                <p class="text-dark-primary text-center text-lg py-2">18651243219</p>
+                <div class="flex space-x-3">
+                    <input type="text" placeholder="请输入验证码" class="w-full bg-dark-tertiary rounded-md py-2.5 px-4 focus:outline-none focus:ring-2 focus:ring-brand-blue-dark border border-dark-strong text-center text-dark-primary text-lg tracking-[0.3em] placeholder:tracking-normal placeholder:text-dark-tertiary transition-colors">
+                    <button class="text-sm font-medium bg-dark-tertiary border border-dark-strong px-4 py-1.5 rounded-md hover:border-gray-400 flex-shrink-0 transition-colors">获取验证码</button>
+                </div>
+            </div>
+            <div class="flex justify-end space-x-4 mt-8">
+                <button class="text-sm font-medium bg-dark-tertiary border border-dark-strong px-6 py-2 rounded-md hover:border-gray-400 transition-colors">取消</button>
+                <button class="text-sm font-medium bg-brand-blue-dark text-white px-6 py-2 rounded-md hover:bg-brand-blue-darker transition-colors">下一步</button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Floating Help Button -->
+    <button class="fixed bottom-8 right-8 w-12 h-12 bg-white text-gray-800 rounded-full shadow-lg flex items-center justify-center text-2xl font-bold hover:bg-gray-200 transition-colors">
+        ?
+    </button>
+</body>
+</html>

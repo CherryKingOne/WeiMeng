@@ -1,0 +1,413 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OneFour - 组件样式库</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+
+    <!-- Google Fonts (Inter) -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    
+    <style type="text/tailwindcss">
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #FFFFFF;
+            color: #1A1A1A;
+        }
+        
+        /* 定义品牌色彩 */
+        .bg-brand-green { background-color: #00C777; }
+        .text-brand-green { color: #00C777; }
+        .border-brand-green { border-color: #00C777; }
+        
+        .bg-brand-blue { background-color: #007AFF; }
+        .text-brand-blue { color: #007AFF; }
+        
+        .bg-light-gray { background-color: #F2F2F7; }
+        .text-primary { color: #1A1A1A; }
+        .text-secondary { color: #8E8E93; }
+        
+        /* 组件库样式 */
+        .component-category {
+            transition: all 0.2s ease;
+        }
+        
+        .component-item {
+            transition: all 0.2s ease;
+            cursor: grab;
+        }
+        
+        .component-item:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.08);
+        }
+        
+        .component-item:active {
+            cursor: grabbing;
+        }
+        
+        .canvas-area {
+            background-image: 
+                linear-gradient(rgba(0, 199, 119, 0.05) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(0, 199, 119, 0.05) 1px, transparent 1px);
+            background-size: 20px 20px;
+        }
+        
+        .canvas-component {
+            transition: all 0.2s ease;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+        }
+        
+        .canvas-component:hover {
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        }
+        
+        .canvas-component.selected {
+            box-shadow: 0 0 0 2px #007AFF, 0 4px 12px rgba(0, 0, 0, 0.1);
+        }
+    </style>
+</head>
+<body class="antialiased">
+    <div class="container mx-auto px-6 py-8">
+        <div class="flex items-center mb-6">
+            <a href="#" class="text-2xl font-bold text-primary flex items-center">
+                <i class="fas fa-cubes text-brand-green mr-2"></i>
+                OneFour
+            </a>
+            <span class="ml-4 text-secondary">组件样式库</span>
+        </div>
+        
+        <div class="grid grid-cols-1 lg:grid-cols-4 gap-8">
+            <!-- 左侧组件库 -->
+            <div class="lg:col-span-1 bg-light-gray p-4 rounded-xl">
+                <h2 class="text-xl font-bold text-primary mb-4">组件库</h2>
+                
+                <!-- 组件分类 -->
+                <div class="space-y-4">
+                    <!-- 基础组件 -->
+                    <div class="component-category">
+                        <div class="flex items-center justify-between mb-2">
+                            <h3 class="font-semibold text-primary">基础</h3>
+                            <i class="fas fa-chevron-down text-secondary text-sm"></i>
+                        </div>
+                        
+                        <div class="grid grid-cols-2 gap-2">
+                            <!-- 矩形组件 -->
+                            <div class="component-item bg-white p-3 rounded-lg border border-gray-200">
+                                <div class="flex flex-col items-center">
+                                    <div class="w-10 h-10 bg-white border border-gray-300 rounded mb-2"></div>
+                                    <span class="text-xs text-secondary">矩形</span>
+                                </div>
+                            </div>
+                            
+                            <!-- 圆形组件 -->
+                            <div class="component-item bg-white p-3 rounded-lg border border-gray-200">
+                                <div class="flex flex-col items-center">
+                                    <div class="w-10 h-10 bg-white border border-gray-300 rounded-full mb-2"></div>
+                                    <span class="text-xs text-secondary">圆形</span>
+                                </div>
+                            </div>
+                            
+                            <!-- 文本组件 -->
+                            <div class="component-item bg-white p-3 rounded-lg border border-gray-200">
+                                <div class="flex flex-col items-center">
+                                    <div class="w-10 h-6 flex items-center justify-center mb-2">
+                                        <i class="fas fa-font text-gray-500"></i>
+                                    </div>
+                                    <span class="text-xs text-secondary">文本</span>
+                                </div>
+                            </div>
+                            
+                            <!-- 图片组件 -->
+                            <div class="component-item bg-white p-3 rounded-lg border border-gray-200">
+                                <div class="flex flex-col items-center">
+                                    <div class="w-10 h-8 flex items-center justify-center mb-2">
+                                        <i class="fas fa-image text-gray-500"></i>
+                                    </div>
+                                    <span class="text-xs text-secondary">图片</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- 表单组件 -->
+                    <div class="component-category">
+                        <div class="flex items-center justify-between mb-2">
+                            <h3 class="font-semibold text-primary">表单</h3>
+                            <i class="fas fa-chevron-down text-secondary text-sm"></i>
+                        </div>
+                        
+                        <div class="grid grid-cols-2 gap-2">
+                            <!-- 按钮组件 -->
+                            <div class="component-item bg-white p-3 rounded-lg border border-gray-200">
+                                <div class="flex flex-col items-center">
+                                    <div class="w-16 h-8 bg-brand-green rounded flex items-center justify-center mb-2">
+                                        <span class="text-white text-xs">按钮</span>
+                                    </div>
+                                    <span class="text-xs text-secondary">按钮</span>
+                                </div>
+                            </div>
+                            
+                            <!-- 输入框组件 -->
+                            <div class="component-item bg-white p-3 rounded-lg border border-gray-200">
+                                <div class="flex flex-col items-center">
+                                    <div class="w-16 h-8 bg-white border border-gray-300 rounded flex items-center px-2 mb-2">
+                                        <span class="text-gray-400 text-xs">输入文本</span>
+                                    </div>
+                                    <span class="text-xs text-secondary">输入框</span>
+                                </div>
+                            </div>
+                            
+                            <!-- 复选框组件 -->
+                            <div class="component-item bg-white p-3 rounded-lg border border-gray-200">
+                                <div class="flex flex-col items-center">
+                                    <div class="w-4 h-4 border border-gray-400 rounded-sm mb-2"></div>
+                                    <span class="text-xs text-secondary">复选框</span>
+                                </div>
+                            </div>
+                            
+                            <!-- 下拉菜单组件 -->
+                            <div class="component-item bg-white p-3 rounded-lg border border-gray-200">
+                                <div class="flex flex-col items-center">
+                                    <div class="w-16 h-8 bg-white border border-gray-300 rounded flex items-center justify-between px-2 mb-2">
+                                        <span class="text-gray-400 text-xs">选项</span>
+                                        <i class="fas fa-chevron-down text-gray-400 text-xs"></i>
+                                    </div>
+                                    <span class="text-xs text-secondary">下拉菜单</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- 布局组件 -->
+                    <div class="component-category">
+                        <div class="flex items-center justify-between mb-2">
+                            <h3 class="font-semibold text-primary">布局</h3>
+                            <i class="fas fa-chevron-down text-secondary text-sm"></i>
+                        </div>
+                        
+                        <div class="grid grid-cols-2 gap-2">
+                            <!-- 卡片组件 -->
+                            <div class="component-item bg-white p-3 rounded-lg border border-gray-200">
+                                <div class="flex flex-col items-center">
+                                    <div class="w-12 h-12 bg-white border border-gray-300 rounded shadow-sm mb-2"></div>
+                                    <span class="text-xs text-secondary">卡片</span>
+                                </div>
+                            </div>
+                            
+                            <!-- 栅格组件 -->
+                            <div class="component-item bg-white p-3 rounded-lg border border-gray-200">
+                                <div class="flex flex-col items-center">
+                                    <div class="w-12 h-12 grid grid-cols-2 gap-1 mb-2">
+                                        <div class="bg-gray-200 rounded-sm"></div>
+                                        <div class="bg-gray-200 rounded-sm"></div>
+                                        <div class="bg-gray-200 rounded-sm"></div>
+                                        <div class="bg-gray-200 rounded-sm"></div>
+                                    </div>
+                                    <span class="text-xs text-secondary">栅格</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- 导航组件 -->
+                    <div class="component-category">
+                        <div class="flex items-center justify-between mb-2">
+                            <h3 class="font-semibold text-primary">导航</h3>
+                            <i class="fas fa-chevron-down text-secondary text-sm"></i>
+                        </div>
+                        
+                        <div class="grid grid-cols-2 gap-2">
+                            <!-- 导航栏组件 -->
+                            <div class="component-item bg-white p-3 rounded-lg border border-gray-200">
+                                <div class="flex flex-col items-center">
+                                    <div class="w-16 h-6 bg-gray-800 rounded flex items-center justify-between px-2 mb-2">
+                                        <div class="flex space-x-1">
+                                            <div class="w-2 h-2 bg-gray-400 rounded-full"></div>
+                                            <div class="w-2 h-2 bg-gray-400 rounded-full"></div>
+                                            <div class="w-2 h-2 bg-gray-400 rounded-full"></div>
+                                        </div>
+                                        <span class="text-white text-xs">导航</span>
+                                    </div>
+                                    <span class="text-xs text-secondary">导航栏</span>
+                                </div>
+                            </div>
+                            
+                            <!-- 标签页组件 -->
+                            <div class="component-item bg-white p-3 rounded-lg border border-gray-200">
+                                <div class="flex flex-col items-center">
+                                    <div class="w-16 h-6 flex mb-2">
+                                        <div class="flex-1 bg-brand-green text-white text-center text-xs flex items-center justify-center rounded-t">标签1</div>
+                                        <div class="flex-1 bg-gray-200 text-center text-xs flex items-center justify-center rounded-t">标签2</div>
+                                    </div>
+                                    <span class="text-xs text-secondary">标签页</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 右侧画布区域 -->
+            <div class="lg:col-span-3">
+                <div class="bg-white rounded-xl border border-gray-200 overflow-hidden">
+                    <div class="bg-light-gray px-4 py-2 border-b border-gray-200 flex justify-between items-center">
+                        <h2 class="font-semibold text-primary">画布</h2>
+                        <div class="flex items-center space-x-2">
+                            <span class="text-sm text-secondary">100%</span>
+                            <button class="w-6 h-6 flex items-center justify-center text-secondary hover:text-primary">
+                                <i class="fas fa-minus"></i>
+                            </button>
+                            <button class="w-6 h-6 flex items-center justify-center text-secondary hover:text-primary">
+                                <i class="fas fa-plus"></i>
+                            </button>
+                            <button class="w-6 h-6 flex items-center justify-center text-secondary hover:text-primary">
+                                <i class="fas fa-expand"></i>
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div class="canvas-area p-8 min-h-[500px] relative">
+                        <!-- 画布中的组件示例 -->
+                        <div class="canvas-component bg-white rounded-lg border border-gray-300 p-4 absolute top-10 left-10 w-64 selected">
+                            <div class="flex items-center mb-3">
+                                <div class="w-10 h-10 bg-gray-200 rounded-full"></div>
+                                <div class="ml-3">
+                                    <div class="font-medium">用户姓名</div>
+                                    <div class="text-sm text-secondary">用户职位</div>
+                                </div>
+                            </div>
+                            <div class="text-sm text-secondary mb-3">
+                                这是一个用户卡片组件示例，展示了组件在画布中的样式。
+                            </div>
+                            <button class="w-full bg-brand-green text-white py-2 rounded-lg text-sm">
+                                关注
+                            </button>
+                        </div>
+                        
+                        <div class="canvas-component bg-white rounded-lg border border-gray-300 p-4 absolute top-10 right-10 w-48">
+                            <div class="font-medium mb-2">设置</div>
+                            <div class="space-y-2">
+                                <div class="flex items-center justify-between">
+                                    <span class="text-sm">通知</span>
+                                    <div class="w-8 h-4 bg-brand-green rounded-full relative">
+                                        <div class="w-3 h-3 bg-white rounded-full absolute top-0.5 right-0.5"></div>
+                                    </div>
+                                </div>
+                                <div class="flex items-center justify-between">
+                                    <span class="text-sm">隐私</span>
+                                    <div class="w-8 h-4 bg-gray-300 rounded-full relative">
+                                        <div class="w-3 h-3 bg-white rounded-full absolute top-0.5 left-0.5"></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="canvas-component bg-white rounded-lg border border-gray-300 p-4 absolute bottom-10 left-10 w-56">
+                            <div class="font-medium mb-2">登录</div>
+                            <div class="space-y-3">
+                                <input type="text" placeholder="用户名" class="w-full border border-gray-300 rounded px-3 py-2 text-sm">
+                                <input type="password" placeholder="密码" class="w-full border border-gray-300 rounded px-3 py-2 text-sm">
+                                <button class="w-full bg-brand-green text-white py-2 rounded-lg text-sm">
+                                    登录
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- 组件属性面板 -->
+                <div class="mt-6 bg-light-gray p-4 rounded-xl">
+                    <h2 class="text-xl font-bold text-primary mb-4">组件属性</h2>
+                    
+                    <div class="bg-white rounded-lg border border-gray-200 p-4">
+                        <div class="grid grid-cols-2 gap-4">
+                            <div>
+                                <label class="block text-sm font-medium text-secondary mb-1">位置</label>
+                                <div class="flex space-x-2">
+                                    <input type="text" value="100" class="w-16 border border-gray-300 rounded px-2 py-1 text-sm">
+                                    <input type="text" value="50" class="w-16 border border-gray-300 rounded px-2 py-1 text-sm">
+                                </div>
+                            </div>
+                            
+                            <div>
+                                <label class="block text-sm font-medium text-secondary mb-1">尺寸</label>
+                                <div class="flex space-x-2">
+                                    <input type="text" value="200" class="w-16 border border-gray-300 rounded px-2 py-1 text-sm">
+                                    <input type="text" value="120" class="w-16 border border-gray-300 rounded px-2 py-1 text-sm">
+                                </div>
+                            </div>
+                            
+                            <div>
+                                <label class="block text-sm font-medium text-secondary mb-1">填充</label>
+                                <div class="flex items-center">
+                                    <div class="w-6 h-6 bg-white border border-gray-300 rounded mr-2"></div>
+                                    <span class="text-sm">#FFFFFF</span>
+                                </div>
+                            </div>
+                            
+                            <div>
+                                <label class="block text-sm font-medium text-secondary mb-1">描边</label>
+                                <div class="flex items-center">
+                                    <div class="w-6 h-6 bg-gray-300 border border-gray-300 rounded mr-2"></div>
+                                    <span class="text-sm">#D1D5DB</span>
+                                </div>
+                            </div>
+                            
+                            <div class="col-span-2">
+                                <label class="block text-sm font-medium text-secondary mb-1">圆角</label>
+                                <div class="flex items-center">
+                                    <input type="range" min="0" max="24" value="8" class="w-full">
+                                    <span class="ml-2 text-sm">8px</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 简单的组件拖拽交互演示
+        document.addEventListener('DOMContentLoaded', function() {
+            const componentItems = document.querySelectorAll('.component-item');
+            const canvasArea = document.querySelector('.canvas-area');
+            
+            componentItems.forEach(item => {
+                item.addEventListener('click', function() {
+                    // 在实际应用中，这里会创建组件实例并添加到画布
+                    alert('组件 "' + this.querySelector('span').textContent + '" 已添加到画布');
+                });
+            });
+            
+            // 画布中组件选择演示
+            const canvasComponents = document.querySelectorAll('.canvas-component');
+            canvasComponents.forEach(component => {
+                component.addEventListener('click', function(e) {
+                    e.stopPropagation();
+                    // 移除其他组件的选中状态
+                    canvasComponents.forEach(c => c.classList.remove('selected'));
+                    // 添加当前组件的选中状态
+                    this.classList.add('selected');
+                });
+            });
+            
+            // 点击画布空白处取消选中
+            canvasArea.addEventListener('click', function(e) {
+                if (e.target === canvasArea) {
+                    canvasComponents.forEach(c => c.classList.remove('selected'));
+                }
+            });
+        });
+    </script>
+</body>
+</html>
