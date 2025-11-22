@@ -98,10 +98,10 @@ const sendCode = async () => {
       <div class="absolute inset-0 bg-gradient-to-t from-brand-dark/80 to-transparent"></div>
       <div class="relative z-10">
         <router-link to="/" class="text-3xl font-bold text-white flex items-center justify-center mb-8 hover:scale-105 transition-transform">
-          <img src="@/assets/logo.png" alt="WeiMeng Logo" class="w-16 h-16 mr-3 rounded-xl shadow-lg" />
-          WeiMeng
+          <img src="@/assets/logo.png" :alt="t('brand.name') + ' Logo'" class="w-16 h-16 mr-3 rounded-xl shadow-lg" />
+          {{ t('brand.name') }}
         </router-link>
-        <h2 class="mt-6 text-4xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-white to-brand-accent drop-shadow-lg">WeiMeng</h2>
+        <h2 class="mt-6 text-4xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-white to-brand-accent drop-shadow-lg">{{ t('brand.name') }}</h2>
         <p class="mt-4 text-gray-100 max-w-sm mx-auto text-lg font-light tracking-wide">{{ t('hero.desc') }}</p>
       </div>
     </div>
@@ -109,8 +109,8 @@ const sendCode = async () => {
     <div class="lg:col-span-3 bg-white flex flex-col justify-center items-center p-6 sm:p-12">
       <div class="w-full max-w-md">
         <router-link to="/" class="text-2xl font-bold text-primary flex items-center mb-8 lg:hidden">
-          <img src="@/assets/logo.png" alt="WeiMeng Logo" class="w-10 h-10 mr-2 rounded-lg" />
-          WeiMeng
+          <img src="@/assets/logo.png" :alt="t('brand.name') + ' Logo'" class="w-10 h-10 mr-2 rounded-lg" />
+          {{ t('brand.name') }}
         </router-link>
 
         <div class="relative flex border-b mb-8">

@@ -4,6 +4,9 @@ const saved = typeof localStorage !== 'undefined' ? localStorage.getItem('locale
 
 const messages = {
   en: {
+    brand: {
+      name: 'WeiMeng'
+    },
     auth: {
       login: 'Log In',
       signup: 'Sign Up',
@@ -284,12 +287,74 @@ const messages = {
       components: 'Components',
       layers: 'Layers'
     },
+    features: {
+      label: 'Features',
+      title: 'Everything You Need to Create Viral Short Dramas',
+      intro: 'From script to screen, WeiMeng provides AI-powered tools for every step of your drama production workflow.',
+      cards: {
+        search_title: 'AI Script Writing',
+        search_desc: 'Generate compelling scripts with AI assistance. Write, edit, and refine your story with intelligent suggestions.',
+        ai_title: 'Character Consistency',
+        ai_desc: 'Maintain consistent character appearances across all scenes with AI-powered character management.',
+        gov_title: 'Voice & Audio',
+        gov_desc: 'Professional text-to-speech and audio editing tools to bring your characters to life.',
+        collab_title: 'Storyboard Generation',
+        collab_desc: 'Automatically generate storyboards from your script with AI-powered scene visualization.',
+        history_title: 'Video Generation',
+        history_desc: 'Transform storyboards into high-quality video clips with AI video generation technology.',
+        handoff_title: 'Smart Editing',
+        handoff_desc: 'Intuitive timeline editor with AI-assisted cutting, transitions, and effects.'
+      }
+    },
+    enterprise: {
+      label: 'Enterprise',
+      title: 'Built for Professional Teams',
+      intro: 'Scale your drama production with enterprise-grade features and dedicated support.',
+      items: {
+        audit_title: 'Security & Compliance',
+        audit_desc: 'Enterprise-grade security with audit logs, SSO, and compliance certifications.',
+        integ_title: 'Custom Integrations',
+        integ_desc: 'Connect with your existing tools and workflows through our flexible API.',
+        onboard_title: 'Dedicated Support',
+        onboard_desc: 'Get priority support with dedicated account management and onboarding assistance.'
+      },
+      image_alt: 'Enterprise Dashboard',
+      admin_panel_caption: 'Powerful admin controls for team management'
+    },
+    cta: {
+      title: 'Ready to Create Your Next Hit Drama?',
+      desc: 'Join thousands of creators using WeiMeng to produce viral short dramas with AI.',
+      signup: 'Start Creating for Free',
+      learn_more: 'Learn More'
+    },
     footer: {
+      tagline: 'AI-powered drama production platform for creators.',
       product: 'Product',
-      resources: 'Resources'
+      resources: 'Resources',
+      company: 'Company',
+      legal: 'Legal',
+      features: 'Features',
+      integrations: 'Integrations',
+      security: 'Security',
+      pricing: 'Pricing',
+      docs: 'Documentation',
+      api: 'API Reference',
+      guides: 'Guides',
+      blog: 'Blog',
+      about: 'About Us',
+      careers: 'Careers',
+      contact: 'Contact',
+      terms: 'Terms of Service',
+      privacy: 'Privacy Policy',
+      rights: 'All rights reserved.',
+      status: 'Status',
+      changelog: 'Changelog'
     }
   },
   zh: {
+    brand: {
+      name: '唯梦'
+    },
     auth: {
       login: '登录',
       signup: '注册',
@@ -570,9 +635,68 @@ const messages = {
       components: '组件',
       layers: '图层'
     },
+    features: {
+      label: '核心功能',
+      title: '短剧创作全流程 AI 赋能',
+      intro: '从剧本到成片，WeiMeng 为您的短剧制作提供全流程 AI 工具支持。',
+      cards: {
+        search_title: 'AI 剧本创作',
+        search_desc: '借助 AI 辅助生成精彩剧本。智能续写、润色，让创作更高效。',
+        ai_title: '角色一致性',
+        ai_desc: '通过 AI 角色管理，确保所有场景中角色形象保持一致。',
+        gov_title: '语音与音频',
+        gov_desc: '专业的文字转语音和音频编辑工具，为角色注入生命力。',
+        collab_title: '分镜生成',
+        collab_desc: '从剧本自动生成分镜头脚本，AI 驱动的场景可视化。',
+        history_title: '视频生成',
+        history_desc: '将分镜转化为高质量视频片段，AI 视频生成技术加持。',
+        handoff_title: '智能剪辑',
+        handoff_desc: '直观的时间轴编辑器，AI 辅助剪辑、转场和特效。'
+      }
+    },
+    enterprise: {
+      label: '企业版',
+      title: '为专业团队打造',
+      intro: '企业级功能和专属支持，助力您的短剧制作规模化发展。',
+      items: {
+        audit_title: '安全与合规',
+        audit_desc: '企业级安全保障，包含审计日志、SSO 单点登录和合规认证。',
+        integ_title: '定制集成',
+        integ_desc: '通过灵活的 API 接口，与您现有的工具和工作流程无缝对接。',
+        onboard_title: '专属支持',
+        onboard_desc: '优先级支持服务，配备专属客户经理和上线辅导。'
+      },
+      image_alt: '企业控制台',
+      admin_panel_caption: '强大的团队管理控制面板'
+    },
+    cta: {
+      title: '准备好创作下一部爆款短剧了吗？',
+      desc: '加入数千位创作者，使用 WeiMeng AI 制作病毒式传播的短剧作品。',
+      signup: '免费开始创作',
+      learn_more: '了解更多'
+    },
     footer: {
+      tagline: 'AI 驱动的短剧制作平台，为创作者而生。',
       product: '产品',
-      resources: '资源'
+      resources: '资源',
+      company: '公司',
+      legal: '法律',
+      features: '功能特性',
+      integrations: '集成',
+      security: '安全',
+      pricing: '定价',
+      docs: '文档',
+      api: 'API 参考',
+      guides: '使用指南',
+      blog: '博客',
+      about: '关于我们',
+      careers: '加入我们',
+      contact: '联系我们',
+      terms: '服务条款',
+      privacy: '隐私政策',
+      rights: '版权所有。',
+      status: '系统状态',
+      changelog: '更新日志'
     }
   }
 }

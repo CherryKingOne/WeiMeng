@@ -575,8 +575,8 @@ const submitTeamCreate = () => {
     <aside class="w-64 flex-shrink-0 bg-white border-r border-gray-200 flex flex-col dark:bg-[#1E1E1E] dark:border-[#333333]">
       <div class="h-16 flex items-center px-6 border-b border-gray-200 dark:border-[#3A3A3C]">
         <router-link to="/" class="text-2xl font-bold text-primary dark:text-white flex items-center">
-          <img src="@/assets/logo.png" alt="WeiMeng Logo" class="w-10 h-10 mr-2 rounded-lg" />
-          WeiMeng
+          <img src="@/assets/logo.png" :alt="t('brand.name') + ' Logo'" class="w-10 h-10 mr-2 rounded-lg" />
+          {{ t('brand.name') }}
         </router-link>
       </div>
 

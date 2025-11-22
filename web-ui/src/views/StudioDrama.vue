@@ -12,7 +12,7 @@ const tabs = [
   { id: 'script', label: '剧本创作', icon: 'book' },
   { id: 'characters', label: '角色一致性', icon: 'users' },
   { id: 'storyboard', label: '分镜生成', icon: 'clapperboard' },
-  { id: 'video', label: '视频剪辑', icon: 'video' }
+  { id: 'video', label: '视频剪辑', icon: 'video', badge: 'Beta' }
 ]
 
 const scriptContent = ref('[场景] 豪华办公室，白天\n顾北辰：（冷冷地）这份设计稿重做。\n苏晚晚：（坚定地）我会重新来过。\n旁白：两人的眼神交错，空气凝固。\nJohn: You should reconsider.\nMary: I won\'t.')
@@ -167,12 +167,14 @@ const currentPreview = ref(null)
 const playing = ref(false)
 const currentTime = ref(0)
 const timelineItems = ref([])
+const externalMedia = ref([])
 const mediaLibrary = computed(() => {
   const list = []
   storyboards.value.forEach(s => {
     if (s.generatedImage && s.img) list.push({ key: `img-${s.id}`, type: 'image', src: s.img, label: `图片 #${s.id}` })
     if (s.generatedVideo) list.push({ key: `vid-${s.id}`, type: 'video', src: '', label: `视频片段 #${s.id}` })
   })
+  externalMedia.value.forEach(m => list.push(m))
   return list
 })
 const handleDragStart = (item, ev) => {
@@ -197,6 +199,31 @@ const getItemStyle = (it) => {
   const left = trackItems.slice(0, idx).reduce((acc, cur) => acc + cur.duration, 0) * 40 + 4
   const width = it.duration * 40
   return { left: left + 'px', width: width + 'px' }
+}
+
+const mediaIsDragging = ref(false)
+const mediaFileInput = ref(null)
+const triggerMediaFileInput = () => { mediaFileInput.value?.click() }
+const handleMediaFileSelect = (event) => {
+  const files = event.target.files
+  if (files && files.length > 0) Array.from(files).forEach(addMediaFile)
+}
+const handleMediaDragOver = (event) => { event.preventDefault(); mediaIsDragging.value = true; if (event.dataTransfer) event.dataTransfer.dropEffect = 'copy' }
+const handleMediaDragLeave = () => { mediaIsDragging.value = false }
+const handleMediaDrop = (event) => {
+  event.preventDefault(); mediaIsDragging.value = false
+  const files = event.dataTransfer.files
+  if (!files || files.length === 0) return
+  let accepted = 0
+  Array.from(files).forEach(file => {
+    if (file.type && file.type.startsWith('video/')) { addMediaFile(file); accepted++ }
+  })
+  if (accepted === 0) alert('仅支持拖拽视频文件')
+}
+const addMediaFile = (file) => {
+  const url = URL.createObjectURL(file)
+  const type = file.type && file.type.startsWith('image/') ? 'image' : 'video'
+  externalMedia.value.push({ key: `ext-${Date.now()}-${Math.random()}`, type, src: url, label: `${type === 'image' ? '图片' : '视频'} ${file.name}` })
 }
 const regenerateImage = (shot) => {
   shot.generatedImage = false
@@ -828,17 +855,18 @@ onMounted(() => {
       <!-- Sidebar -->
       <aside class="w-52 bg-white dark:bg-[#2C2C2E] border-r border-gray-200 dark:border-[#3A3A3C] flex flex-col shrink-0">
         <nav class="p-2 space-y-1">
-          <button 
-            v-for="tab in tabs" 
+          <button
+            v-for="tab in tabs"
             :key="tab.id"
             @click="activeTab = tab.id"
             class="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors"
-            :class="activeTab === tab.id 
-              ? 'bg-brand-green/10 text-brand-green dark:bg-brand-green/20' 
+            :class="activeTab === tab.id
+              ? 'bg-brand-green/10 text-brand-green dark:bg-brand-green/20'
               : 'text-secondary hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-[#3A3A3C]'"
           >
             <fa :icon="['fas', tab.icon]" class="w-4" />
             {{ tab.label }}
+            <span v-if="tab.badge" class="ml-auto px-1.5 py-0.5 rounded text-[10px] bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400">{{ tab.badge }}</span>
           </button>
         </nav>
       </aside>
@@ -1265,27 +1293,40 @@ onMounted(() => {
 
         <!-- Video View -->
         <div v-else-if="activeTab === 'video'" class="h-full flex gap-4">
-          <aside class="w-64 bg-white dark:bg-[#2C2C2E] border border-gray-200 dark:border-[#3A3A3C] rounded-xl p-3 shrink-0">
-            <div class="flex items-center justify-between mb-2">
+          <aside class="w-64 bg-white dark:bg-[#2C2C2E] border border-gray-200 dark:border-[#3A3A3C] rounded-xl shrink-0 flex flex-col">
+            <div class="flex items-center justify-between p-3 pb-2">
               <h3 class="text-sm font-bold">素材面板</h3>
-              <button class="px-2 py-1 text-xs rounded border bg-white dark:bg-[#2C2C2E] dark:border-[#3A3A3C] hover:bg-gray-50 dark:hover:bg-[#3A3A3C]">导入</button>
+              <button @click="triggerMediaFileInput" class="px-2 py-1 text-xs rounded border bg-white dark:bg-[#2C2C2E] dark:border-[#3A3A3C] hover:bg-gray-50 dark:hover:bg-[#3A3A3C]">导入</button>
             </div>
-            <div class="space-y-2 overflow-y-auto max-h-[50vh]">
+            <input ref="mediaFileInput" type="file" multiple class="hidden" accept="image/*,video/*" @change="handleMediaFileSelect" />
+            <div
+              class="flex-1 p-3 pt-0 overflow-y-auto"
+              @dragenter="handleMediaDragOver"
+              @dragover.prevent="handleMediaDragOver"
+              @dragleave="handleMediaDragLeave"
+              @drop.prevent.stop="handleMediaDrop"
+            >
               <div
-                v-for="m in mediaLibrary"
-                :key="m.key"
-                class="flex items-center gap-2 p-2 rounded border hover:bg-gray-50 dark:hover:bg-[#3A3A3C] cursor-grab"
-                draggable="true"
-                @dragstart="handleDragStart(m, $event)"
-                @click="currentPreview = m"
+                class="space-y-2 min-h-full rounded-lg transition-colors"
+                :class="mediaIsDragging ? 'border-2 border-dashed border-brand-green bg-brand-green/5 dark:bg-brand-green/10 p-2' : ''"
               >
-                <div class="w-12 h-8 bg-gray-100 dark:bg-[#3A3A3C] rounded overflow-hidden flex items-center justify-center">
-                  <img v-if="m.type==='image'" :src="m.src" class="w-full h-full object-cover">
-                  <fa v-else :icon="['fas','film']" class="text-gray-400" />
-                </div>
-                <div class="flex-1">
-                  <div class="text-xs font-medium">{{ m.label }}</div>
-                  <div class="text-[11px] text-secondary dark:text-gray-400">{{ m.type.toUpperCase() }}</div>
+                <div v-if="mediaIsDragging" class="text-[11px] text-brand-green mb-2 text-center">仅支持拖拽视频文件到此处导入</div>
+                <div
+                  v-for="m in mediaLibrary"
+                  :key="m.key"
+                  class="flex items-center gap-2 p-2 rounded border hover:bg-gray-50 dark:hover:bg-[#3A3A3C] cursor-grab"
+                  draggable="true"
+                  @dragstart="handleDragStart(m, $event)"
+                  @click="currentPreview = m"
+                >
+                  <div class="w-12 h-8 bg-gray-100 dark:bg-[#3A3A3C] rounded overflow-hidden flex items-center justify-center">
+                    <img v-if="m.type==='image'" :src="m.src" class="w-full h-full object-cover">
+                    <fa v-else :icon="['fas','film']" class="text-gray-400" />
+                  </div>
+                  <div class="flex-1">
+                    <div class="text-xs font-medium">{{ m.label }}</div>
+                    <div class="text-[11px] text-secondary dark:text-gray-400">{{ m.type.toUpperCase() }}</div>
+                  </div>
                 </div>
               </div>
             </div>

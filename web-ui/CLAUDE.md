@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-Vue 3 + Vite application for OneFour, an AI-assisted Axure prototyping platform. The app features a marketing site with i18n support, workspace for project management, and a studio interface for prototype design.
+Vue 3 + Vite application for OneFour, an AI-assisted drama/video production platform. The app features a marketing site with i18n support, workspace for project management, and a studio interface for script writing, character management, storyboard generation, and video editing.
 
 ## Development Commands
 
@@ -24,15 +24,17 @@ npm run preview
 
 ## Architecture
 
-**Tech Stack**: Vue 3 (Composition API), Vue Router, Vue I18n, Vite, Tailwind CSS, FontAwesome
+**Tech Stack**: Vue 3 (Composition API), Vue Router, Vue I18n, Vite, Tailwind CSS, FontAwesome, JSZip
 
 **Entry Point**: src/main.js initializes the app with i18n, router, and FontAwesome icons
 
-**Routing**: src/router/index.js defines routes:
+**Routing**: src/router/index.js defines routes with authentication guards:
 - `/` - Home (marketing page with header/footer)
 - `/login` - Login page
-- `/workspace` - Workspace view (project management)
-- `/studio` - Studio interface (StudioAxure.vue - prototype editor)
+- `/workspace` - Workspace view (project management, requires auth)
+- `/studio` - Studio interface (StudioDrama.vue - drama production editor, requires auth)
+
+**Authentication**: Routes with `meta: { requiresAuth: true }` check localStorage('loggedIn') and redirect to login if not authenticated
 
 **Layout Logic**: App.vue conditionally shows Header/Footer only on home route using computed properties based on route.name
 
@@ -86,19 +88,83 @@ The workspace is the main project management interface with complex state manage
 - Role menu system using `roleMenuForId` ref to track which member's menu is open
 - Inline editing for admin and member names using window.prompt
 
-## Studio View (src/views/StudioAxure.vue)
+## Studio View (src/views/StudioDrama.vue)
 
-The studio is the prototype editor interface with layer management:
+The studio is a drama production interface with four main tabs for the complete video production workflow:
 
-**Layer System**:
-- `layersOpen` ref tracks expanded/collapsed state for layer groups
-- `locks` ref tracks locked state for individual layers
-- `visible` ref tracks visibility state for layers
-- `layerMenuId` ref tracks which layer's context menu is open
+**Tab System**: `activeTab` ref switches between:
+- `'script'` - Script writing and upload
+- `'characters'` - Character management and consistency
+- `'storyboard'` - Storyboard generation with AI
+- `'video'` - Video editing timeline
 
-**Sidebar Tabs**: `sidebarTab` ref switches between 'components', 'layers', etc.
+**Script Tab** (`activeTab === 'script'`):
+- Three modes via `scriptMode` ref: 'selection', 'upload', 'write'
+- Selection mode: Choose between uploading files or writing scripts
+- Upload mode: Drag-and-drop or click to upload .txt, .md, .doc, .docx, .csv, .xlsx, .pdf (max 10MB)
+  - `uploadedFiles` ref tracks files with processing status and chunk counts
+  - `simulateFileProcessing()` simulates chunking files for processing
+- Write mode: Full-screen script editor with AI continuation dialog
+  - `scriptContent` ref stores the script text
+  - AI dialog (`showAiDialog`) positioned at cursor using DOM measurement
+  - AI states: 'idle', 'generating', 'review' tracked by `aiState` ref
+  - `scriptTextarea` ref for cursor position calculation
 
-**Theme**: Implements its own theme system reading from localStorage and applying 'dark' class to document root
+**Characters Tab** (`activeTab === 'characters'`):
+- Grid display of character cards with avatar, name, role, description
+- `characters` ref array stores character data
+- Character creation modal (`showCharacterModal`) with image upload support
+- Character extraction wizard (`showExtractWizard`) - 7-step process:
+  1. Select script segments or uploaded files
+  2. Select extracted character names
+  3. Edit character appearance/details (age, address, identity, gender, relations, description)
+  4. Review scene environments
+  5. Review dialogue lines
+  6. Choose character art style (2D/live-action)
+  7. Choose scene style (2D/live-action)
+- `extractedRoles` ref for wizard data, `roleDetails` reactive object for character metadata
+- Character image upload with preview (`characterImagePreview`)
+
+**Storyboard Tab** (`activeTab === 'storyboard'`):
+- Two view modes via `storyboardView` ref: 'compact' (grid cards) or 'detail' (table)
+- `storyboards` ref array with shot data: scene, size, shot type, duration, description, dialogue, sound, prompts, generated flags
+- Batch operations: `generateAllImages()`, `generateAllVideos()` open size selection modal
+- Size modal (`showSizeModal`) with aspect ratio options (1:1, 4:3, 3:4, 16:9, 9:16, 3:2, 2:3, 21:9)
+- Action menu (`openActionMenuId`) for per-shot regeneration/deletion using teleported dropdown
+- Export menu with three options: script CSV, images ZIP (using JSZip), videos CSV
+- `ratioOptions` array defines pixel dimensions for each aspect ratio
+
+**Video Tab** (`activeTab === 'video'`):
+- Media library sidebar with drag-and-drop import
+- `mediaLibrary` computed combines generated storyboard assets + `externalMedia` ref
+- Preview window showing selected media (`currentPreview` ref)
+- Timeline with video/audio tracks using drag-and-drop from media library
+- `timelineItems` ref tracks placed clips with track, label, duration
+- `getItemStyle()` calculates clip positioning (40px per second)
+- Drag-and-drop handlers: `handleDragStart()`, `handleTimelineDrop()`, `handleMediaDrop()`
+
+**Modal Architecture**: Uses `<teleport to="body">` for all modals:
+- Character creation modal with image upload
+- Character extraction wizard (multi-step)
+- Size selection modal for image/video generation
+- Action menu dropdown (positioned absolutely)
+
+**Theme System**: `theme` ref ('light'/'dark') with `toggleTheme()` applying 'dark' class to document root
+
+**State Management Patterns**:
+- Menu tracking: `openActionMenuId` for storyboard action menus, `openExportMenu` for export dropdown
+- File upload: `isDragging` for drag state, `fileInput` ref for hidden input trigger
+- Media: `mediaIsDragging` for video tab drag state, `mediaFileInput` ref
+- Wizard state: `extractStep` (1-7), `selectAll` for bulk selection, `roleEditing`/`roleDetailsOpen` reactive objects
+- Style selection: `styleKind`/`sceneStyleKind` ('2d'/'live'), `selectedCharacterStyle`/`selectedSceneStyle`
+
+**Key Patterns**:
+- Cursor-positioned AI dialog using DOM measurement and mirror div technique
+- File processing simulation with intervals and chunk counting
+- CSV export with proper escaping and UTF-8 BOM
+- ZIP export using JSZip for batch image downloads
+- Drag-and-drop with JSON serialization via dataTransfer
+- Computed properties for filtered views: `visibleSegments`, `visibleFiles`, `sceneSegments`, `dialogueSegments`
 
 ## Key Conventions
 
