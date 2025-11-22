@@ -11,7 +11,7 @@ const tabs = [
   { id: 'script', label: '剧本创作', icon: 'book' },
   { id: 'characters', label: '角色一致性', icon: 'users' },
   { id: 'storyboard', label: '分镜生成', icon: 'clapperboard' },
-  { id: 'video', label: '视频生成', icon: 'video' }
+  { id: 'video', label: '视频剪辑', icon: 'video' }
 ]
 
 const scriptContent = ref('[场景] 豪华办公室，白天\n顾北辰：（冷冷地）这份设计稿重做。\n苏晚晚：（坚定地）我会重新来过。\n旁白：两人的眼神交错，空气凝固。\nJohn: You should reconsider.\nMary: I won\'t.')
@@ -96,9 +96,18 @@ const generateAllVideos = () => {
 }
 
 const openActionMenuId = ref(null)
-const toggleActionMenu = (id) => {
-  openActionMenuId.value = openActionMenuId.value === id ? null : id
+const actionMenuPos = ref({ left: 0, top: 0, width: 144 })
+const toggleActionMenu = (id, ev) => {
+  if (openActionMenuId.value === id) { openActionMenuId.value = null; return }
+  const el = ev?.currentTarget
+  if (el) {
+    const r = el.getBoundingClientRect()
+    actionMenuPos.value = { left: r.right - actionMenuPos.value.width, top: r.bottom + window.scrollY, width: actionMenuPos.value.width }
+  }
+  openActionMenuId.value = id
 }
+const closeActionMenu = () => { openActionMenuId.value = null }
+const getShotById = (id) => storyboards.value.find(s => s.id === id)
 const regenerateImage = (shot) => {
   shot.generatedImage = false
   shot.img = ''
@@ -668,7 +677,7 @@ onMounted(() => {
 
     <div class="flex flex-1 overflow-hidden">
       <!-- Sidebar -->
-      <aside class="w-64 bg-white dark:bg-[#2C2C2E] border-r border-gray-200 dark:border-[#3A3A3C] flex flex-col shrink-0">
+      <aside class="w-52 bg-white dark:bg-[#2C2C2E] border-r border-gray-200 dark:border-[#3A3A3C] flex flex-col shrink-0">
         <nav class="p-2 space-y-1">
           <button 
             v-for="tab in tabs" 
@@ -910,7 +919,7 @@ onMounted(() => {
 
         <!-- Characters View -->
         <div v-else-if="activeTab === 'characters'" class="max-w-6xl mx-auto">
-          <div class="flex items-center justify-between mb-6">
+          <div class="flex items-center justify-between mb-3">
             <h2 class="text-xl font-bold">角色管理</h2>
             <div class="flex items-center gap-3">
               <button @click="openExtractWizard" class="px-4 py-2 bg-white dark:bg-[#2C2C2E] text-brand-green border border-brand-green rounded-lg text-sm hover:bg-brand-green/10 transition">
@@ -940,26 +949,26 @@ onMounted(() => {
         </div>
 
         <!-- Storyboard View -->
-        <div v-else-if="activeTab === 'storyboard'" class="max-w-6xl mx-auto">
+        <div v-else-if="activeTab === 'storyboard'" class="mx-auto w-full px-2 lg:px-4">
           <div class="flex items-center justify-between mb-6">
             <div class="flex items-center gap-4">
               <h2 class="text-xl font-bold">分镜预览</h2>
-              <div class="flex items-center gap-2">
+              <div class="flex items-center gap-1">
                 <button @click="storyboardView='compact'" class="px-3 py-1.5 text-sm rounded border bg-white dark:bg-[#2C2C2E] dark:border-[#3A3A3C] text-secondary hover:border-gray-300" :class="storyboardView==='compact' ? 'border-gray-500' : ''">缩写</button>
                 <button @click="storyboardView='detail'" class="px-3 py-1.5 text-sm rounded border bg-white dark:bg-[#2C2C2E] dark:border-[#3A3A3C] text-secondary hover:border-gray-300" :class="storyboardView==='detail' ? 'border-gray-500' : ''">详情</button>
               </div>
             </div>
-            <div class="flex gap-2">
-              <button @click="generateAllImages" class="px-4 py-2 bg-white dark:bg-[#2C2C2E] border border-gray-200 dark:border-[#3A3A3C] rounded-lg text-sm hover:bg-gray-50 dark:hover:bg-[#3A3A3C] transition">
+            <div class="flex gap-1">
+              <button @click="generateAllImages" class="px-3 py-1.5 bg-white dark:bg-[#2C2C2E] border border-gray-200 dark:border-[#3A3A3C] rounded-lg text-sm hover:bg-gray-50 dark:hover:bg-[#3A3A3C] transition">
                 一键生成图片
               </button>
-              <button @click="generateAllVideos" class="px-4 py-2 bg-white dark:bg-[#2C2C2E] border border-gray-200 dark:border-[#3A3A3C] rounded-lg text-sm hover:bg-gray-50 dark:hover:bg-[#3A3A3C] transition">
+              <button @click="generateAllVideos" class="px-3 py-1.5 bg-white dark:bg-[#2C2C2E] border border-gray-200 dark:border-[#3A3A3C] rounded-lg text-sm hover:bg-gray-50 dark:hover:bg-[#3A3A3C] transition">
                 一键生成视频
               </button>
-              <button class="px-4 py-2 bg-white dark:bg-[#2C2C2E] border border-gray-200 dark:border-[#3A3A3C] rounded-lg text-sm hover:bg-gray-50 dark:hover:bg-[#3A3A3C] transition">
+              <button class="px-3 py-1.5 bg-white dark:bg-[#2C2C2E] border border-gray-200 dark:border-[#3A3A3C] rounded-lg text-sm hover:bg-gray-50 dark:hover:bg-[#3A3A3C] transition">
                 重新生成
               </button>
-              <button @click="exportStoryboardTable" class="px-4 py-2 bg-brand-green text-white rounded-lg text-sm hover:bg-brand-green-dark transition">
+              <button @click="exportStoryboardTable" class="px-3 py-1.5 bg-brand-green text-white rounded-lg text-sm hover:bg-brand-green-dark transition">
                 导出分镜表
               </button>
             </div>
@@ -977,70 +986,76 @@ onMounted(() => {
               </div>
             </div>
           </div>
-          <div v-else class="bg-white dark:bg-[#2C2C2E] rounded-xl border border-gray-200 dark:border-[#3A3A3C] overflow-x-auto">
-            <table class="min-w-full text-sm">
+          <div v-else class="bg-white dark:bg-[#2C2C2E] rounded-xl border border-gray-200 dark:border-[#3A3A3C] overflow-x-auto overflow-y-visible">
+            <table class="min-w-[1600px] text-sm">
               <thead>
                 <tr class="text-left bg-gray-50 dark:bg-[#1C1C1E]">
-                  <th class="px-4 py-2 border-b dark:border-[#3A3A3C]">镜号</th>
-                  <th class="px-4 py-2 border-b dark:border-[#3A3A3C]">场景</th>
-                  <th class="px-4 py-2 border-b dark:border-[#3A3A3C]">景别</th>
-                  <th class="px-4 py-2 border-b dark:border-[#3A3A3C]">镜头</th>
-                  <th class="px-4 py-2 border-b dark:border-[#3A3A3C]">时长</th>
-                  <th class="px-4 py-2 border-b dark:border-[#3A3A3C]">画面描述</th>
-                  <th class="px-4 py-2 border-b dark:border-[#3A3A3C]">对白/旁白</th>
-                  <th class="px-4 py-2 border-b dark:border-[#3A3A3C]">音效/音乐</th>
-                  <th class="px-4 py-2 border-b dark:border-[#3A3A3C]">图片提示词</th>
-                  <th class="px-4 py-2 border-b dark:border-[#3A3A3C]">视频提示词</th>
-                  <th class="px-4 py-2 border-b dark:border-[#3A3A3C]">生成图片</th>
-                  <th class="px-4 py-2 border-b dark:border-[#3A3A3C]">生成视频</th>
-                  <th class="px-4 py-2 border-b dark:border-[#3A3A3C]">操作</th>
-                  <th class="px-4 py-2 border-b dark:border-[#3A3A3C]">备注</th>
+                  <th class="px-3 py-1.5 border-b dark:border-[#3A3A3C]">镜号</th>
+                  <th class="px-3 py-1.5 border-b dark:border-[#3A3A3C]">场景</th>
+                  <th class="px-3 py-1.5 border-b dark:border-[#3A3A3C]">景别</th>
+                  <th class="px-3 py-1.5 border-b dark:border-[#3A3A3C]">镜头</th>
+                  <th class="px-3 py-1.5 border-b dark:border-[#3A3A3C]">时长</th>
+                  <th class="px-3 py-1.5 border-b dark:border-[#3A3A3C]">画面描述</th>
+                  <th class="px-3 py-1.5 border-b dark:border-[#3A3A3C]">对白/旁白</th>
+                  <th class="px-3 py-1.5 border-b dark:border-[#3A3A3C]">音效/音乐</th>
+                  <th class="px-3 py-1.5 border-b dark:border-[#3A3A3C]">图片提示词</th>
+                  <th class="px-3 py-1.5 border-b dark:border-[#3A3A3C]">视频提示词</th>
+                  <th class="px-3 py-1.5 border-b dark:border-[#3A3A3C]">生成图片</th>
+                  <th class="px-3 py-1.5 border-b dark:border-[#3A3A3C]">生成视频</th>
+                  <th class="px-3 py-1.5 border-b dark:border-[#3A3A3C] w-44">操作</th>
+                  <th class="px-3 py-1.5 border-b dark:border-[#3A3A3C]">备注</th>
                 </tr>
               </thead>
               <tbody>
                 <tr v-for="shot in storyboards" :key="shot.id" class="border-t dark:border-[#3A3A3C]">
-                  <td class="px-4 py-2">{{ shot.id }}</td>
-                  <td class="px-4 py-2">{{ shot.scene }}</td>
-                  <td class="px-4 py-2">{{ shot.size }}</td>
-                  <td class="px-4 py-2">{{ shot.shot }}</td>
-                  <td class="px-4 py-2">{{ shot.duration }}</td>
-                  <td class="px-4 py-2">{{ shot.desc }}</td>
-                  <td class="px-4 py-2">{{ shot.dialogue }}</td>
-                  <td class="px-4 py-2">{{ shot.sound }}</td>
-                  <td class="px-4 py-2">
-                    <input v-model="shot.imagePrompt" type="text" class="w-full px-2 py-1 border rounded bg-white dark:bg-[#1C1C1E] dark:border-[#3A3A3C]" />
+                  <td class="px-3 py-1.5">{{ shot.id }}</td>
+                  <td class="px-3 py-1.5">{{ shot.scene }}</td>
+                  <td class="px-3 py-1.5">{{ shot.size }}</td>
+                  <td class="px-3 py-1.5">{{ shot.shot }}</td>
+                  <td class="px-3 py-1.5">{{ shot.duration }}</td>
+                  <td class="px-3 py-1.5">{{ shot.desc }}</td>
+                  <td class="px-3 py-1.5">{{ shot.dialogue }}</td>
+                  <td class="px-3 py-1.5">{{ shot.sound }}</td>
+                  <td class="px-3 py-1.5">
+                    <div class="text-sm text-primary dark:text-gray-200 whitespace-pre-wrap">{{ shot.imagePrompt }}</div>
                   </td>
-                  <td class="px-4 py-2">
-                    <input v-model="shot.videoPrompt" type="text" class="w-full px-2 py-1 border rounded bg-white dark:bg-[#1C1C1E] dark:border-[#3A3A3C]" />
+                  <td class="px-3 py-1.5">
+                    <div class="text-sm text-primary dark:text-gray-200 whitespace-pre-wrap">{{ shot.videoPrompt }}</div>
                   </td>
-                  <td class="px-4 py-2">
+                  <td class="px-3 py-1.5">
                     <div class="w-32 h-20 bg-gray-100 dark:bg-[#3A3A3C] rounded flex items-center justify-center overflow-hidden">
                       <img v-if="shot.generatedImage && shot.img" :src="shot.img" class="w-full h-full object-cover" alt="图片预览">
                       <button v-else @click="generateImage(shot)" class="px-3 py-1 text-xs rounded bg-brand-green text-white hover:bg-brand-green-dark">生成图片</button>
                     </div>
                   </td>
-                  <td class="px-4 py-2">
+                  <td class="px-3 py-1.5">
                     <div class="w-32 h-20 bg-gray-100 dark:bg-[#3A3A3C] rounded flex items-center justify-center overflow-hidden">
                       <div v-if="shot.generatedVideo" class="text-xs text-secondary dark:text-gray-300">已生成</div>
                       <button v-else @click="generateVideo(shot)" class="px-3 py-1 text-xs rounded bg-brand-green text-white hover:bg-brand-green-dark">生成视频</button>
                     </div>
                   </td>
-                  <td class="px-4 py-2">
+                  <td class="px-3 py-1.5 w-44">
                     <div class="relative inline-block">
-                      <button @click="toggleActionMenu(shot.id)" class="px-2 py-1 text-xs rounded border bg-white dark:bg-[#2C2C2E] dark:border-[#3A3A3C] hover:bg-gray-50 dark:hover:bg-[#3A3A3C]">
-                        <fa :icon="['fas','chevron-down']" />
+                      <button @click="toggleActionMenu(shot.id, $event)" class="px-2 py-1 text-xs rounded border bg-white dark:bg-[#2C2C2E] dark:border-[#3A3A3C] hover:bg-gray-50 dark:hover:bg-[#3A3A3C]">
+                        重新生成
+                        <fa :icon="['fas','chevron-down']" class="ml-1" />
                       </button>
-                      <div v-if="openActionMenuId===shot.id" class="absolute z-10 mt-1 right-0 w-36 bg-white dark:bg-[#2C2C2E] border border-gray-200 dark:border-[#3A3A3C] rounded shadow">
-                        <button @click="regenerateImage(shot)" class="block w-full text-left px-3 py-2 text-xs hover:bg-gray-50 dark:hover:bg-[#3A3A3C]">重新生成图片</button>
-                        <button @click="regenerateVideo(shot)" class="block w-full text-left px-3 py-2 text-xs hover:bg-gray-50 dark:hover:bg-[#3A3A3C]">重新生成视频</button>
-                        <button @click="removeShot(shot.id)" class="block w-full text-left px-3 py-2 text-xs text-red-600 hover:bg-gray-50 dark:hover:bg-[#3A3A3C]">删除</button>
-                      </div>
                     </div>
                   </td>
-                  <td class="px-4 py-2">{{ shot.notes }}</td>
+                  <td class="px-3 py-1.5">{{ shot.notes }}</td>
                 </tr>
               </tbody>
             </table>
+            <teleport to="body">
+              <div v-if="openActionMenuId!==null" class="fixed z-50" :style="{ left: actionMenuPos.left+'px', top: actionMenuPos.top+'px', width: actionMenuPos.width+'px' }">
+                <div class="bg-white dark:bg-[#2C2C2E] border border-gray-200 dark:border-[#3A3A3C] rounded shadow">
+                  <button @click="regenerateImage(getShotById(openActionMenuId))" class="block w-full text-left px-3 py-2 text-xs hover:bg-gray-50 dark:hover:bg-[#3A3A3C]">重新生成图片</button>
+                  <button @click="regenerateVideo(getShotById(openActionMenuId))" class="block w-full text-left px-3 py-2 text-xs hover:bg-gray-50 dark:hover:bg-[#3A3A3C]">重新生成视频</button>
+                  <button @click="removeShot(openActionMenuId)" class="block w-full text-left px-3 py-2 text-xs text-red-600 hover:bg-gray-50 dark:hover:bg-[#3A3A3C]">删除</button>
+                </div>
+              </div>
+              <div v-if="openActionMenuId!==null" class="fixed inset-0 z-40" @click="closeActionMenu"></div>
+            </teleport>
           </div>
         </div>
 
@@ -1049,7 +1064,7 @@ onMounted(() => {
           <div class="w-24 h-24 bg-gray-100 dark:bg-[#2C2C2E] rounded-full flex items-center justify-center mb-6">
             <fa :icon="['fas', 'film']" class="text-4xl text-gray-300 dark:text-gray-600" />
           </div>
-          <h3 class="text-xl font-bold mb-2">视频生成中</h3>
+          <h3 class="text-xl font-bold mb-2">视频剪辑</h3>
           <p class="text-secondary dark:text-gray-400 max-w-md mb-8">
             AI 正在根据分镜脚本生成视频片段，预计需要 5-10 分钟，请稍候...
           </p>
