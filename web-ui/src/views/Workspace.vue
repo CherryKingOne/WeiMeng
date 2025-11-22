@@ -275,7 +275,9 @@ const providers = ref([
   { id: 'cometapi', name: 'CometAPI', slug: 'cometapi', desc: '多模型 API 聚合', enabled: false },
   { id: 'longcat', name: 'LongCat', slug: 'longcat', desc: '长上下文模型与服务', enabled: false },
   { id: 'watsonx', name: 'IBM WatsonX', slug: 'watsonx', desc: 'IBM 企业级 AI 平台', enabled: false },
-  { id: '302ai', name: '302.AI', slug: '302ai', desc: '统一接入与资源平台', enabled: false }
+  { id: '302ai', name: '302.AI', slug: '302ai', desc: '统一接入与资源平台', enabled: false },
+  { id: 'siliconflow', name: '硅基流动', slug: 'siliconcloud', desc: '提供多种模型与推理服务', enabled: false },
+  { id: 'openai-compatible', name: 'OpenAI-API-compatible', slug: 'openai', desc: '兼容 OpenAI API 的模型供应商，例如 LM Studio', enabled: false }
 ])
 const uiLanguage = ref('简体中文')
 const clearUiLanguage = () => { uiLanguage.value = '' }
@@ -1137,7 +1139,7 @@ const submitTeamCreate = () => {
                       <div class="flex items-start gap-3">
                         <picture>
                           <source :srcset="`https://unpkg.com/@lobehub/icons-static-png@latest/dark/${p.slug}.png`" media="(prefers-color-scheme: dark)" />
-                          <img :src="`https://unpkg.com/@lobehub/icons-static-png@latest/light/${p.slug}.png`" class="w-10 h-10 rounded-md" alt="logo" />
+                          <img :src="`https://unpkg.com/@lobehub/icons-static-png@latest/light/${p.slug}.png`" class="w-10 h-10 object-contain rounded-md" alt="logo" />
                         </picture>
                         <div>
                           <div class="font-semibold text-primary dark:text-white">{{ p.name }}</div>
