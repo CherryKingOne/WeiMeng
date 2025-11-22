@@ -24,7 +24,7 @@ const messages = {
       get_code: 'Get code',
       create_password: 'Create password',
       password_rule: 'At least 8 characters with letters and numbers',
-      agree: 'I agree to OneFour',
+      welcome: 'Welcome to WeiMeng',
       and: 'and',
       create_account: 'Create account',
       have_account: 'Already have an account?',
@@ -42,49 +42,49 @@ const messages = {
       lang_zh: '中文'
     },
     hero: {
-      title: 'Design Axure Prototypes at the Speed of Thought.',
-      desc: 'OneFour blends powerful AI-driven design with the robust control of traditional Axure. Manage, collaborate, and deliver complex prototypes faster than ever before.',
-      get_started: 'Get Started Free',
-      demo: 'Request a Demo'
+      title: 'Create Viral Short Dramas with AI.',
+      desc: 'WeiMeng transforms your ideas into production-ready short dramas. From script generation to consistent character video, all in one platform.',
+      get_started: 'Start Creating',
+      demo: 'Watch Demo'
     },
     features: {
-      label: 'CORE FEATURES',
-      title: 'A Unified Hub for Design Excellence',
-      intro: 'From initial idea to developer handoff, OneFour provides the tools your team needs to build with clarity and consistency.',
+      label: 'AI PRODUCTION SUITE',
+      title: 'From Concept to Screen, Instantly',
+      intro: 'WeiMeng provides a complete toolkit for short drama creators, ensuring consistency and quality at every step.',
       cards: {
-        search_title: 'Global Search & Management',
-        search_desc: 'Instantly find files, projects, components, or authors. A powerful file browser with list/card views puts everything at your fingertips.',
-        ai_title: 'AI-Assisted Prototyping',
-        ai_desc: 'Generate layouts and components with AI, then refine them with the precision of traditional Axure tools. A true hybrid workflow.',
-        gov_title: 'Design System Governance',
-        gov_desc: 'Manage component libraries, versions, and dependencies. Publish updates and track usage across all your projects to ensure consistency.',
-        collab_title: 'Advanced Collaboration',
-        collab_desc: 'Use branching & merging for parallel design exploration. Turn comments into actionable tasks and run structured review sessions.',
-        history_title: 'Version Control & History',
-        history_desc: 'Never lose work with an automatic, detailed version history. Create named versions for key milestones and restore with one click.',
-        handoff_title: 'Seamless Developer Handoff',
-        handoff_desc: 'Generate shareable spec links with measurements, assets, and design tokens. Publish and deliver prototypes with ease.'
+        search_title: 'AI Script Writer',
+        search_desc: 'Generate engaging scripts with plot twists and emotional hooks optimized for short video platforms.',
+        ai_title: 'Consistent Characters',
+        ai_desc: 'Maintain perfect facial consistency for your characters across different scenes and angles.',
+        gov_title: 'Emotional TTS',
+        gov_desc: 'Multi-role voice synthesis with rich emotions, supporting various dialects and languages.',
+        collab_title: 'Smart Storyboard',
+        collab_desc: 'Automatically generate visual storyboards from your script to visualize camera angles and lighting.',
+        history_title: 'One-Click Video',
+        history_desc: 'Turn storyboards into high-quality video clips with consistent style and motion.',
+        handoff_title: 'Auto Editing',
+        handoff_desc: 'Intelligent assembly of clips with background music, sound effects, and subtitles.'
       }
     },
     enterprise: {
-      label: 'ENTERPRISE READY',
-      title: 'Scale with Confidence and Control',
-      intro: 'OneFour is built for organizations that require robust security, governance, and workflow integration.',
-      image_alt: 'Team collaborating on a digital interface',
-      admin_panel_caption: 'Manage projects, teams, and integrations from a single, powerful admin panel.',
+      label: 'PROFESSIONAL STUDIO',
+      title: 'Studio-Grade Production Workflow',
+      intro: 'Built for professional content teams and MCNs to scale up production capacity.',
+      image_alt: 'AI video production interface',
+      admin_panel_caption: 'Manage scripts, assets, and rendering tasks in a unified workspace.',
       items: {
-        audit_title: 'Security & Audit Logs',
-        audit_desc: 'Track every action with detailed audit logs. Enforce data retention policies and control access with granular permissions.',
-        integ_title: 'Powerful Integrations',
-        integ_desc: 'Connect OneFour to your existing tools. Sync tasks with Jira, get notifications in Slack, and push design tokens to GitHub.',
-        onboard_title: 'Standardized Onboarding',
-        onboard_desc: 'Use our governance manuals and onboarding guides to get new team members up to speed quickly and ensure best practices.'
+        audit_title: 'Asset Management',
+        audit_desc: 'Centralized library for characters, props, and locations. Reuse assets across different series.',
+        integ_title: 'Platform Integration',
+        integ_desc: 'Direct publishing to TikTok, YouTube Shorts, and Instagram Reels with trend analysis.',
+        onboard_title: 'Team Collaboration',
+        onboard_desc: 'Real-time collaboration on scripts and video reviews. Streamline the approval process.'
       }
     },
     cta: {
-      title: 'Ready to Revolutionize Your Prototyping Workflow?',
-      desc: 'Join teams who are building better products, faster, with OneFour. Get started for free, no credit card required.',
-      signup: 'Sign Up and Start Building'
+      title: 'Ready to Produce Your Next Hit?',
+      desc: 'Join thousands of creators using WeiMeng to dominate the short drama market.',
+      signup: 'Start Producing for Free'
     },
     footer: {
       product: 'Product',
@@ -97,7 +97,7 @@ const messages = {
       pricing: 'Pricing',
       docs: 'Documentation',
       api: 'API Reference',
-      guides: 'Onboarding Guides',
+      guides: 'Tutorials',
       blog: 'Blog',
       about: 'About Us',
       careers: 'Careers',
@@ -181,7 +181,7 @@ const messages = {
       enter_name_placeholder: 'Please enter name',
       admin_can_manage: 'Can create applications and manage team settings',
       close: 'Close',
-      workspace_name: 'OneFour Workspace',
+      workspace_name: 'WeiMeng Workspace',
       data_sources_desc: 'Configure knowledge base, image library and external data connections.',
       api_extensions_desc: 'Manage Webhooks, plugins and callbacks.',
       theme_system: 'Follow System',
@@ -312,7 +312,7 @@ const messages = {
       duplicate_name: 'Name',
       enter_duplicate_name: 'Please enter name',
       close: 'Close',
-      workspace_name: 'OneFour Workspace',
+      workspace_name: 'WeiMeng Workspace',
       workspace_info: 'Members 8 · Projects 24',
       settings_providers: 'Model Providers',
       settings_data: 'Data Sources',
@@ -366,9 +366,9 @@ const messages = {
       enter_phone: 'Please enter phone number',
       enter_password: 'Please enter account password',
       next_step: 'Next',
-      version_available: 'OneFour {version} is now available.',
+      version_available: 'WeiMeng {version} is now available.',
       changelog: 'Changelog',
-      onefour_plans: 'OneFour Plans',
+      onefour_plans: 'WeiMeng Plans',
       plans_desc: 'Choose the service that best fits your team',
       cloud_service: 'Cloud Service',
       self_hosted: 'Self-Hosted',
@@ -433,7 +433,7 @@ const messages = {
       copy_button: 'Copy'
     },
     studio: {
-      title: 'OneFour Workspace',
+      title: 'WeiMeng Workspace',
       undo: 'Undo',
       redo: 'Redo',
       align: 'Align',
@@ -566,7 +566,7 @@ const messages = {
       get_code: '获取验证码',
       create_password: '创建密码',
       password_rule: '至少8位，包含字母和数字',
-      agree: '我已阅读并同意OneFour的',
+      agree: '我已阅读并同意WeiMeng的',
       and: '和',
       create_account: '创建账户',
       have_account: '已有账户?',
@@ -584,62 +584,62 @@ const messages = {
       lang_zh: '中文'
     },
     hero: {
-      title: '以思维速度设计 Axure 原型。',
-      desc: 'OneFour 将强大的 AI 设计与传统 Axure 的精细控制相结合，协作与交付更高效。',
-      get_started: '免费开始',
-      demo: '申请演示'
+      title: 'AI 驱动的短剧创作引擎',
+      desc: 'WeiMeng 将您的创意瞬间转化为爆款短剧。从剧本生成到角色一致的视频制作，全流程 AI 赋能。',
+      get_started: '开始创作',
+      demo: '观看演示'
     },
     features: {
-      label: '核心特性',
-      title: '统一的卓越设计枢纽',
-      intro: '从灵感到开发交付，OneFour 为你的团队提供清晰一致的构建工具。',
+      label: 'AI 制作套件',
+      title: '从灵感到成片，一气呵成',
+      intro: 'WeiMeng 为短剧创作者提供完整的工具箱，确保每一个镜头的质量与一致性。',
       cards: {
-        search_title: '全局搜索与管理',
-        search_desc: '即时查找文件、项目、组件或作者。强大的文件浏览器支持列表/卡片视图。',
-        ai_title: 'AI 辅助原型设计',
-        ai_desc: '用 AI 生成布局与组件，并以传统 Axure 的精度完成细化。',
-        gov_title: '设计系统治理',
-        gov_desc: '管理组件库、版本与依赖，发布更新并全局追踪使用以确保一致性。',
-        collab_title: '高级协作',
-        collab_desc: '用分支与合并进行并行探索，将评论转为任务并开展结构化评审。',
-        history_title: '版本控制与历史',
-        history_desc: '自动、详细的版本历史不丢失工作，为里程碑创建命名版本并一键恢复。',
-        handoff_title: '无缝开发交接',
-        handoff_desc: '生成可分享的规格链接，含尺寸、资产与设计令牌，轻松发布与交付。'
+        search_title: 'AI 剧本创作',
+        search_desc: '智能生成充满反转和情感钩子的剧本，专为短视频平台优化节奏。',
+        ai_title: '角色一致性',
+        ai_desc: '保持角色在不同场景、不同角度下的面部特征完美一致，告别“换脸”烦恼。',
+        gov_title: '情感语音合成',
+        gov_desc: '支持多角色、多方言的逼真语音合成，精准表达喜怒哀乐。',
+        collab_title: '智能分镜生成',
+        collab_desc: '根据剧本自动生成可视化的分镜图，辅助导演规划运镜与灯光。',
+        history_title: '一键视频生成',
+        history_desc: '将分镜图转化为高质量的动态视频片段，保持风格统一与动作流畅。',
+        handoff_title: '自动剪辑包装',
+        handoff_desc: '智能组合片段，自动添加背景音乐、音效和字幕，一键成片。'
       }
     },
     enterprise: {
-      label: '企业级就绪',
-      title: '在信心与可控中扩展',
-      intro: '为需要强安全、治理与工作流集成的组织打造。',
-      image_alt: '团队在数字界面上协作',
-      admin_panel_caption: '在强大的管理面板中统一管理项目、团队与集成。',
+      label: '专业影棚级',
+      title: '工业化的短剧生产工作流',
+      intro: '专为专业内容团队和 MCN 机构打造，大幅提升产能与变现效率。',
+      image_alt: 'AI 视频制作界面',
+      admin_panel_caption: '在统一的工作区管理剧本、资产和渲染任务。',
       items: {
-        audit_title: '安全与审计日志',
-        audit_desc: '以详细审计日志追踪每个动作，实施留存策略并用细粒度权限管控访问。',
-        integ_title: '强大集成',
-        integ_desc: '连接现有工具，与 Jira 同步任务，Slack 通知，设计令牌推送至 GitHub。',
-        onboard_title: '标准化入职',
-        onboard_desc: '利用治理手册与入职指南让新成员快速上手并确保最佳实践。'
+        audit_title: '数字资产管理',
+        audit_desc: '集中管理角色模型、道具和场景库。在不同剧集中复用高价值资产。',
+        integ_title: '多平台发布',
+        integ_desc: '直连抖音、快手、TikTok 等平台，一键分发并追踪数据表现。',
+        onboard_title: '团队在线协作',
+        onboard_desc: '支持多人实时协作修改剧本、审阅样片，简化团队审批流程。'
       }
     },
     cta: {
-      title: '准备好革新你的原型流程了吗？',
-      desc: '加入正在更快构建更好产品的团队。免费开始，无需信用卡。',
-      signup: '注册并开始构建'
+      title: '准备好打造您的下一部爆款了吗？',
+      desc: '加入数万名创作者的行列，使用 WeiMeng 抢占短剧市场红利。',
+      signup: '免费开始制作'
     },
     footer: {
       product: '产品',
       resources: '资源',
       company: '公司',
       legal: '法律',
-      features: '特性',
+      features: '功能',
       integrations: '集成',
       security: '安全',
       pricing: '定价',
       docs: '文档',
       api: 'API 参考',
-      guides: '上手指南',
+      guides: '教程',
       blog: '博客',
       about: '关于我们',
       careers: '招聘',
@@ -723,7 +723,7 @@ const messages = {
       enter_name_placeholder: '请输入名称',
       admin_can_manage: '能够建立应用程序和管理团队设置',
       close: '关闭',
-      workspace_name: 'OneFour 工作空间',
+      workspace_name: 'WeiMeng 工作空间',
       data_sources_desc: '配置知识库、图像库与外部数据连接。',
       api_extensions_desc: '管理 Webhook、插件和回调。',
       theme_system: '跟随系统',
@@ -1091,7 +1091,7 @@ const messages = {
 }
 
 const s2tMap = {
-  '简':'簡','体':'體','汉':'漢','语':'語','界':'界','面':'面','账':'帳','户':'戶','邮':'郵','验':'驗','请':'請','复':'複','制':'製','删':'刪','队':'隊','团':'團','员':'員','空':'空','间':'間','联':'聯','系':'系','统':'統','数':'數','据':'據','台':'臺','号':'號','网':'網','录':'錄','启':'啟','观':'觀','构':'構','选':'選','单':'單','门':'門','图':'圖','标':'標','类':'類','时':'時','钟':'鐘','历':'曆','开':'開','关':'關','显':'顯','条':'條','页':'頁','击':'擊','达':'達','扩':'擴','产':'產','实':'實','样':'樣','总':'總','业':'業','务':'務','达':'達','将':'將','于':'於','会':'會','发':'發','挥':'揮','书':'書','与':'與','云':'雲','测':'測','试':'試','这':'這','里':'裡','国':'國','际':'際','联':'聯','动':'動','录':'錄','滚':'滾','尽':'盡','仅':'僅','术':'術','构':'構','势':'勢','台':'臺','机制':'機制','间':'間','优':'優','势':'勢'
+  '简': '簡', '体': '體', '汉': '漢', '语': '語', '界': '界', '面': '面', '账': '帳', '户': '戶', '邮': '郵', '验': '驗', '请': '請', '复': '複', '制': '製', '删': '刪', '队': '隊', '团': '團', '员': '員', '空': '空', '间': '間', '联': '聯', '系': '系', '统': '統', '数': '數', '据': '據', '台': '臺', '号': '號', '网': '網', '录': '錄', '启': '啟', '观': '觀', '构': '構', '选': '選', '单': '單', '门': '門', '图': '圖', '标': '標', '类': '類', '时': '時', '钟': '鐘', '历': '曆', '开': '開', '关': '關', '显': '顯', '条': '條', '页': '頁', '击': '擊', '达': '達', '扩': '擴', '产': '產', '实': '實', '样': '樣', '总': '總', '业': '業', '务': '務', '达': '達', '将': '將', '于': '於', '会': '會', '发': '發', '挥': '揮', '书': '書', '与': '與', '云': '雲', '测': '測', '试': '試', '这': '這', '里': '裡', '国': '國', '际': '際', '联': '聯', '动': '動', '录': '錄', '滚': '滾', '尽': '盡', '仅': '僅', '术': '術', '构': '構', '势': '勢', '台': '臺', '机制': '機制', '间': '間', '优': '優', '势': '勢'
 }
 const toTraditional = (s) => typeof s === 'string' ? s.split('').map(c => s2tMap[c] || c).join('') : s
 const deepConvert = (o) => {

@@ -8,11 +8,11 @@ const { t } = useI18n()
     <div class="container mx-auto px-6 py-12">
       <div class="grid grid-cols-2 md:grid-cols-5 gap-8">
         <div class="col-span-2 md:col-span-1">
-          <a href="#" class="text-xl font-bold text-primary flex items-center">
-            <i class="fas fa-cubes text-brand-green mr-2"></i>
-            OneFour
+          <a href="#" class="text-2xl font-bold text-primary flex items-center mb-4">
+            <img src="@/assets/logo.png" alt="WeiMeng Logo" class="w-10 h-10 mr-2 rounded-lg" />
+            WeiMeng
           </a>
-          <p class="mt-2 text-sm text-secondary">&copy; 2024 OneFour, Inc.<br>Design Faster. Together.</p>
+          <p class="mt-2 text-sm text-secondary">&copy; 2024 WeiMeng. All rights reserved.</p>
         </div>
         <div>
           <h5 class="font-semibold text-primary">{{ t('footer.product') }}</h5>

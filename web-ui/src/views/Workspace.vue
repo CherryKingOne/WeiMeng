@@ -288,13 +288,13 @@ const confirmCreate = () => {
   cancelCreate()
 }
 const adminName = ref('王小明')
-const adminEmail = ref('xiaoming@onefour.com')
+const adminEmail = ref('xiaoming@weimeng.com')
 const members = ref([
-  { id: 'm2', name: '李丽', role: 'editor', email: 'lili@onefour.com', lastActive: '2天前' },
-  { id: 'm3', name: '张伟', role: 'viewer', email: 'zhangwei@onefour.com', lastActive: '刚刚' },
-  { id: 'm4', name: '陈强', role: 'collaborator', email: 'chenqiang@onefour.com', lastActive: '5小时前' },
-  { id: 'm5', name: '刘芳', role: 'editor', email: 'liufang@onefour.com', lastActive: '1周前' },
-  { id: 'm6', name: '赵磊', role: 'viewer', email: 'zhaolei@onefour.com', lastActive: '3天前' }
+  { id: 'm2', name: '李丽', role: 'editor', email: 'lili@weimeng.com', lastActive: '2天前' },
+  { id: 'm3', name: '张伟', role: 'viewer', email: 'zhangwei@weimeng.com', lastActive: '刚刚' },
+  { id: 'm4', name: '陈强', role: 'collaborator', email: 'chenqiang@weimeng.com', lastActive: '5小时前' },
+  { id: 'm5', name: '刘芳', role: 'editor', email: 'liufang@weimeng.com', lastActive: '1周前' },
+  { id: 'm6', name: '赵磊', role: 'viewer', email: 'zhaolei@weimeng.com', lastActive: '3天前' },
 ])
 const searchQuery = ref('')
 const filteredMembers = computed(() => {
@@ -354,7 +354,7 @@ const submitAddMember = () => {
   addMemberError.value = ''
   if (!addMemberEmail.value.trim()) { addMemberError.value = t('workspace.email_required'); return }
   members.value.push({ id: 'm'+Date.now(), name: addMemberEmail.value.split('@')[0], role: addMemberRole.value, email: addMemberEmail.value.trim(), lastActive: t('workspace.just_now') })
-  inviteLink.value = (typeof location !== 'undefined' ? location.origin : 'https://onefour.local') + `/invite?team=${encodeURIComponent(currentTeamId.value || 'default')}&email=${encodeURIComponent(addMemberEmail.value.trim())}&t=${Date.now()}`
+  inviteLink.value = (typeof location !== 'undefined' ? location.origin : 'https://weimeng.local') + `/invite?team=${encodeURIComponent(currentTeamId.value || 'default')}&email=${encodeURIComponent(addMemberEmail.value.trim())}&t=${Date.now()}`
   closeAddMember()
   showInviteLink.value = true
 }
@@ -553,8 +553,8 @@ const submitTeamCreate = () => {
     <aside class="w-64 flex-shrink-0 bg-white border-r border-gray-200 flex flex-col dark:bg-[#1E1E1E] dark:border-[#333333]">
       <div class="h-16 flex items-center px-6 border-b border-gray-200 dark:border-[#3A3A3C]">
         <router-link to="/" class="text-2xl font-bold text-primary dark:text-white flex items-center">
-          <fa :icon="['fas','cubes']" class="text-brand-green mr-2" />
-          OneFour
+          <img src="@/assets/logo.png" alt="WeiMeng Logo" class="w-10 h-10 mr-2 rounded-lg" />
+          WeiMeng
         </router-link>
       </div>
 

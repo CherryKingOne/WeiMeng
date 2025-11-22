@@ -93,23 +93,24 @@ const sendCode = async () => {
 
 <template>
   <div class="min-h-screen grid grid-cols-1 lg:grid-cols-5">
-    <div class="lg:col-span-2 bg-dark-cta relative flex flex-col justify-center items-center p-12 text-white text-center order-last lg:order-first min-h-[300px] lg:min-h-screen">
-      <div class="absolute inset-0 bg-cover bg-center opacity-20" style="background-image: url('https://images.unsplash.com/photo-1534723328310-e82dad3ee43f?q=80&w=2400&auto=format&fit=crop');"></div>
+    <div class="lg:col-span-2 bg-gradient-to-br from-brand-dark via-brand-green to-brand-blue relative flex flex-col justify-center items-center p-12 text-white text-center order-last lg:order-first min-h-[300px] lg:min-h-screen overflow-hidden">
+      <div class="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1620641788421-7a1c342ea42e?q=80&w=2400&auto=format&fit=crop')] bg-cover bg-center mix-blend-overlay opacity-30"></div>
+      <div class="absolute inset-0 bg-gradient-to-t from-brand-dark/80 to-transparent"></div>
       <div class="relative z-10">
-        <router-link to="/" class="text-3xl font-bold text-white flex items-center justify-center mb-8">
-          <i class="fas fa-cubes text-brand-green mr-3"></i>
-          OneFour
+        <router-link to="/" class="text-3xl font-bold text-white flex items-center justify-center mb-8 hover:scale-105 transition-transform">
+          <img src="@/assets/logo.png" alt="WeiMeng Logo" class="w-16 h-16 mr-3 rounded-xl shadow-lg" />
+          WeiMeng
         </router-link>
-        <h1 class="text-4xl font-bold leading-tight">{{ t('hero.title') }}</h1>
-        <p class="mt-4 text-gray-300 max-w-sm mx-auto">{{ t('hero.desc') }}</p>
+        <h2 class="mt-6 text-4xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-white to-brand-accent drop-shadow-lg">WeiMeng</h2>
+        <p class="mt-4 text-gray-100 max-w-sm mx-auto text-lg font-light tracking-wide">{{ t('hero.desc') }}</p>
       </div>
     </div>
 
     <div class="lg:col-span-3 bg-white flex flex-col justify-center items-center p-6 sm:p-12">
       <div class="w-full max-w-md">
         <router-link to="/" class="text-2xl font-bold text-primary flex items-center mb-8 lg:hidden">
-          <i class="fas fa-cubes text-brand-green mr-2"></i>
-          OneFour
+          <img src="@/assets/logo.png" alt="WeiMeng Logo" class="w-10 h-10 mr-2 rounded-lg" />
+          WeiMeng
         </router-link>
 
         <div class="relative flex border-b mb-8">
@@ -126,7 +127,7 @@ const sendCode = async () => {
               <span class="font-semibold text-primary text-sm">Google</span>
             </a>
             <a href="#" class="w-full flex items-center justify-center py-3 px-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition">
-              <i class="fab fa-github text-xl mr-3"></i>
+              <i class="fab fa-github text-xl mr-3 text-gray-900"></i>
               <span class="font-semibold text-primary text-sm">GitHub</span>
             </a>
           </div>

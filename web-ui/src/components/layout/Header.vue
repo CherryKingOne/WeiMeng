@@ -11,10 +11,10 @@ const toggleLang = () => {
 <template>
   <header class="sticky top-0 z-50 bg-white/80 backdrop-blur-lg border-b border-gray-200">
     <div class="container mx-auto px-6 py-2 flex justify-between items-center">
-      <a href="#" class="text-xl font-bold text-primary flex items-center">
-        <fa :icon="['fas','cubes']" class="text-brand-green mr-2" />
-        OneFour
-      </a>
+      <span class="text-2xl font-bold text-gray-900 dark:text-white flex items-center">
+        <img src="@/assets/logo.png" alt="WeiMeng Logo" class="w-12 h-12 mr-3 rounded-lg" />
+        WeiMeng
+      </span>
       <nav class="hidden md:flex items-center space-x-8">
         <a href="#features" class="text-secondary hover:text-primary transition">{{ t('header.features') }}</a>
         <a href="#integrations" class="text-secondary hover:text-primary transition">{{ t('header.integrations') }}</a>
