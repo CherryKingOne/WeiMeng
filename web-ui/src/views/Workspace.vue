@@ -233,6 +233,18 @@ const openSettings = async () => {
 const closeSettings = () => {
   showSettings.value = false
 }
+const providers = ref([
+  { id: 'openai', name: 'OpenAI', logo: 'https://unpkg.com/@lobehub/icons-static-svg@latest/icons/openai.svg', desc: 'OpenAI 提供的模型，例如 GPT‑4、GPT‑4o 等', enabled: true },
+  { id: 'anthropic', name: 'Anthropic', logo: 'https://unpkg.com/@lobehub/icons-static-svg@latest/icons/anthropic.svg', desc: 'Anthropic 的 Claude 系列模型', enabled: false },
+  { id: 'bedrock', name: 'Amazon Bedrock', logo: 'https://unpkg.com/@lobehub/icons-static-svg@latest/icons/bedrock.svg', desc: '亚马逊 Bedrock 聚合多家模型供应商', enabled: false },
+  { id: 'azure-openai', name: 'Azure OpenAI', logo: 'https://unpkg.com/@lobehub/icons-static-svg@latest/icons/azure.svg', desc: 'Azure OpenAI Service，企业级合规与连接能力', enabled: false },
+  { id: 'azure-ai-studio', name: 'Azure AI Studio', logo: 'https://unpkg.com/@lobehub/icons-static-svg@latest/icons/azureai.svg', desc: 'Azure AI Studio，端到端 AI 应用构建平台', enabled: false },
+  { id: 'cohere', name: 'Cohere', logo: 'https://unpkg.com/@lobehub/icons-static-svg@latest/icons/cohere.svg', desc: 'Cohere Command、Embed 等模型', enabled: false },
+  { id: 'gemini', name: 'Gemini', logo: 'https://unpkg.com/@lobehub/icons-static-svg@latest/icons/gemini.svg', desc: '谷歌提供的 Gemini 模型', enabled: false },
+  { id: 'huggingface', name: 'Hugging Face Hub', logo: 'https://unpkg.com/@lobehub/icons-static-svg@latest/icons/huggingface.svg', desc: '海量开源模型与数据集的托管平台', enabled: false },
+  { id: 'replicate', name: 'Replicate', logo: 'https://unpkg.com/@lobehub/icons-static-svg@latest/icons/replicate.svg', desc: '通过 API 调用社区模型进行推理', enabled: false },
+  { id: 'deepseek', name: '深度求索', logo: 'https://unpkg.com/@lobehub/icons-static-svg@latest/icons/deepseek.svg', desc: '深度求索提供的对话与代码模型', enabled: false }
+])
 const uiLanguage = ref('简体中文')
 const clearUiLanguage = () => { uiLanguage.value = '' }
 const languageListOpen = ref(false)
@@ -1087,11 +1099,23 @@ const submitTeamCreate = () => {
               </div>
               <div v-else-if="settingsTab==='providers'" class="space-y-4">
                 <div class="p-4 rounded-xl border bg-white dark:bg-[#1E1E1E] dark:border-[#333333]">
-                  <div class="font-semibold mb-2">{{ $t('workspace.providers') }}</div>
-                  <div class="grid grid-cols-3 gap-3 text-sm">
-                    <label class="flex items-center gap-2"><input type="checkbox" class="accent-brand-green" checked> OpenAI</label>
-                    <label class="flex items-center gap-2"><input type="checkbox" class="accent-brand-green"> Anthropic</label>
-                    <label class="flex items-center gap-2"><input type="checkbox" class="accent-brand-green"> 通义千问</label>
+                  <div class="font-semibold mb-4">{{ $t('workspace.providers') }}</div>
+                  <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div v-for="p in providers" :key="p.id" class="rounded-xl border border-gray-200 bg-white p-4 dark:bg-[#12161a] dark:border-[#333333]">
+                      <div class="flex items-start justify-between">
+                        <div class="flex items-start gap-3">
+                          <img :src="p.logo" class="w-10 h-10 rounded-md" alt="logo" />
+                          <div>
+                            <div class="font-semibold text-primary dark:text-white">{{ p.name }}</div>
+                            <div class="text-sm text-secondary mt-1 dark:text-gray-400">{{ p.desc }}</div>
+                          </div>
+                        </div>
+                        <div class="flex items-center gap-2 text-sm text-secondary dark:text-gray-300">
+                          <input type="checkbox" v-model="p.enabled" class="accent-brand-green" :aria-label="'启用 ' + p.name" />
+                          <span>启用</span>
+                        </div>
+                      </div>
+                    </div>
                   </div>
                 </div>
               </div>

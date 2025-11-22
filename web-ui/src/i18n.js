@@ -487,7 +487,7 @@ const messages = {
       // Settings
       settings: '设置',
       settings_workspace: '工作区',
-      providers: '提供商',
+      providers: '模型供应商',
       data_sources: '数据源',
       data_sources_desc: '连接外部数据源',
       api_extensions: 'API 与扩展',
