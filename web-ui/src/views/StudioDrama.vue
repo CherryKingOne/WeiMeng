@@ -333,12 +333,30 @@ const extractStep = ref(1)
 const scriptInput = ref('')
 const extractedRoles = ref([])
 const extractError = ref('')
+const scriptSegments = ref([]) // Parsed script segments with selection state
+const selectAll = ref(true)
 
 const openExtractWizard = () => {
   extractStep.value = 1
   scriptInput.value = ''
   extractedRoles.value = []
   extractError.value = ''
+  selectAll.value = true
+  scriptSegments.value = []
+  
+  // Parse script content into segments
+  const content = scriptContent.value.trim()
+  if (content) {
+    // Split by lines and create segments
+    const lines = content.split('\n').filter(line => line.trim())
+    scriptSegments.value = lines.map((line, index) => ({
+      id: index,
+      text: line.trim(),
+      selected: true
+    }))
+  }
+  
+  // Always show the wizard, even if there's no content
   showExtractWizard.value = true
 }
 
@@ -348,15 +366,21 @@ const closeExtractWizard = () => {
   scriptInput.value = ''
   extractedRoles.value = []
   extractError.value = ''
+  scriptSegments.value = []
+  selectAll.value = true
 }
 
 const extractCandidates = () => {
   extractError.value = ''
-  const txt = (scriptInput.value || '').trim()
-  if (!txt) {
-    extractError.value = '请粘贴剧本文本'
+  
+  // Get selected segments
+  const selectedSegments = scriptSegments.value.filter(s => s.selected)
+  if (selectedSegments.length === 0) {
+    extractError.value = '请至少选择一条剧本内容'
     return
   }
+  
+  const txt = selectedSegments.map(s => s.text).join('\n')
   
   const set = new Set()
   // Match Chinese names: 张三：对话
@@ -380,6 +404,21 @@ const extractCandidates = () => {
   
   extractedRoles.value = list.slice(0, 20).map(n => ({ name: n, selected: true }))
   extractStep.value = 2
+}
+
+const toggleSegmentSelected = (idx) => {
+  const seg = scriptSegments.value[idx]
+  if (!seg) return
+  seg.selected = !seg.selected
+  // Update selectAll state
+  selectAll.value = scriptSegments.value.every(s => s.selected)
+}
+
+const toggleSelectAll = () => {
+  selectAll.value = !selectAll.value
+  scriptSegments.value.forEach(seg => {
+    seg.selected = selectAll.value
+  })
 }
 
 const toggleRoleSelected = (idx) => {
@@ -937,17 +976,56 @@ onMounted(() => {
 
           <!-- Modal Body -->
           <div class="p-6">
-            <!-- Step 1: Input Script -->
+            <!-- Step 1: Select Script Segments -->
             <div v-if="extractStep === 1" class="space-y-4">
-              <div class="text-sm text-gray-600 dark:text-gray-300">
-                粘贴剧本文本，格式：<code class="px-2 py-1 bg-gray-100 dark:bg-[#1C1C1E] rounded">张三：台词内容</code>
+              <!-- Tab-like buttons -->
+              <div class="flex gap-6 border-b border-gray-200 dark:border-[#3A3A3C]">
+                <button class="pb-3 text-sm font-medium text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 transition">
+                  全部
+                </button>
+                <button class="pb-3 text-sm font-medium text-red-500 border-b-2 border-red-500 transition">
+                  剧本文案
+                </button>
               </div>
-              <textarea 
-                v-model="scriptInput"
-                rows="10"
-                placeholder="例如：&#10;顾北辰：这份设计稿重做。&#10;苏晚晚：为什么？我觉得很好。&#10;顾北辰：我说不行就是不行。"
-                class="w-full px-4 py-3 bg-gray-50 dark:bg-[#1C1C1E] border border-gray-300 dark:border-[#3A3A3C] rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-green focus:border-transparent text-gray-900 dark:text-white placeholder-gray-400 resize-none"
-              ></textarea>
+              
+              <!-- Script segments list -->
+              <div v-if="scriptSegments.length > 0" class="space-y-2 max-h-96 overflow-y-auto">
+                <label 
+                  v-for="(seg, idx) in scriptSegments" 
+                  :key="seg.id"
+                  class="flex items-start gap-3 p-3 rounded-lg border-2 cursor-pointer transition-all"
+                  :class="seg.selected 
+                    ? 'border-red-500 bg-red-50/50 dark:bg-red-900/10' 
+                    : 'border-gray-200 dark:border-[#3A3A3C] hover:border-gray-300'"
+                >
+                  <input 
+                    type="checkbox" 
+                    :checked="seg.selected"
+                    @change="toggleSegmentSelected(idx)"
+                    class="mt-0.5 w-4 h-4 text-red-500 rounded border-gray-300 focus:ring-red-500"
+                  />
+                  <span class="flex-1 text-sm text-gray-800 dark:text-gray-200">{{ seg.text }}</span>
+                </label>
+              </div>
+              
+              <div v-else class="text-center py-8 text-gray-400">
+                暂无剧本内容，请先在剧本创作中编写或上传剧本
+              </div>
+              
+              <!-- Select All -->
+              <label 
+                v-if="scriptSegments.length > 0"
+                class="flex items-center gap-2 cursor-pointer"
+              >
+                <input 
+                  type="checkbox" 
+                  :checked="selectAll"
+                  @change="toggleSelectAll"
+                  class="w-4 h-4 text-red-500 rounded border-gray-300 focus:ring-red-500"
+                />
+                <span class="text-sm font-medium text-red-500">全选</span>
+              </label>
+              
               <p v-if="extractError" class="text-sm text-red-500">{{ extractError }}</p>
             </div>
 
