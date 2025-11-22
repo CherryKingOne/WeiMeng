@@ -98,7 +98,7 @@ const sendCode = async () => {
       <div class="absolute inset-0 bg-gradient-to-t from-brand-dark/80 to-transparent"></div>
       <div class="relative z-10">
         <router-link to="/" class="text-3xl font-bold text-white flex items-center justify-center mb-8 hover:scale-105 transition-transform">
-          <img src="@/assets/logo.png" :alt="t('brand.name') + ' Logo'" class="w-16 h-16 mr-3 rounded-xl shadow-lg" />
+          <img src="@/assets/logo.png" :alt="t('brand.name') + ' Logo'" class="w-20 h-20 mr-2 rounded-xl" />
           {{ t('brand.name') }}
         </router-link>
         <h2 class="mt-6 text-4xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-white to-brand-accent drop-shadow-lg">{{ t('brand.name') }}</h2>
