@@ -1,5 +1,6 @@
 <script setup>
 import { ref, onMounted, computed, reactive } from 'vue'
+import JSZip from 'jszip'
 import { useRoute } from 'vue-router'
 
 const route = useRoute()
@@ -161,6 +162,42 @@ const applySizeSelection = () => {
   }
   showSizeModal.value = false
 }
+
+const currentPreview = ref(null)
+const playing = ref(false)
+const currentTime = ref(0)
+const timelineItems = ref([])
+const mediaLibrary = computed(() => {
+  const list = []
+  storyboards.value.forEach(s => {
+    if (s.generatedImage && s.img) list.push({ key: `img-${s.id}`, type: 'image', src: s.img, label: `图片 #${s.id}` })
+    if (s.generatedVideo) list.push({ key: `vid-${s.id}`, type: 'video', src: '', label: `视频片段 #${s.id}` })
+  })
+  return list
+})
+const handleDragStart = (item, ev) => {
+  ev.dataTransfer.setData('text/plain', JSON.stringify(item))
+}
+const handleTimelineDrop = (track, ev) => {
+  const txt = ev.dataTransfer.getData('text/plain')
+  if (!txt) return
+  const data = JSON.parse(txt)
+  const id = Date.now() + Math.random()
+  const duration = 5
+  timelineItems.value.push({ id, track, label: data.label, duration })
+}
+const removeTimelineItem = (id) => {
+  const i = timelineItems.value.findIndex(t => t.id === id)
+  if (i !== -1) timelineItems.value.splice(i, 1)
+}
+const togglePlay = () => { playing.value = !playing.value }
+const getItemStyle = (it) => {
+  const trackItems = timelineItems.value.filter(t => t.track === it.track)
+  const idx = trackItems.findIndex(t => t.id === it.id)
+  const left = trackItems.slice(0, idx).reduce((acc, cur) => acc + cur.duration, 0) * 40 + 4
+  const width = it.duration * 40
+  return { left: left + 'px', width: width + 'px' }
+}
 const regenerateImage = (shot) => {
   shot.generatedImage = false
   shot.img = ''
@@ -203,6 +240,65 @@ const exportStoryboardTable = () => {
   a.click()
   document.body.removeChild(a)
   URL.revokeObjectURL(url)
+}
+
+const openExportMenu = ref(false)
+const toggleExportMenu = () => { openExportMenu.value = !openExportMenu.value }
+const closeExportMenu = () => { openExportMenu.value = false }
+
+const exportStoryboardScript = () => {
+  exportStoryboardTable()
+  closeExportMenu()
+}
+
+const exportStoryboardImages = async () => {
+  const items = storyboards.value.filter(s => !!s.img)
+  if (items.length === 0) { alert('没有可导出的分镜图片'); closeExportMenu(); return }
+  const zip = new JSZip()
+  await Promise.all(items.map(async s => {
+    try {
+      const res = await fetch(s.img)
+      const blob = await res.blob()
+      let ext = 'jpg'
+      if (blob.type === 'image/png') ext = 'png'
+      else if (blob.type === 'image/jpeg') ext = 'jpg'
+      else if (blob.type === 'image/webp') ext = 'webp'
+      else {
+        const m = String(s.img).match(/\.([a-zA-Z0-9]+)(?:\?|$)/)
+        if (m && m[1]) ext = m[1]
+      }
+      const ab = await blob.arrayBuffer()
+      zip.file(`${s.id}.${ext}`, ab)
+    } catch (e) {}
+  }))
+  const content = await zip.generateAsync({ type: 'blob' })
+  const url = URL.createObjectURL(content)
+  const a = document.createElement('a')
+  a.href = url
+  a.download = '分镜图片.zip'
+  document.body.appendChild(a)
+  a.click()
+  document.body.removeChild(a)
+  URL.revokeObjectURL(url)
+  closeExportMenu()
+}
+
+const exportStoryboardVideos = () => {
+  const headers = ['镜号','视频状态']
+  const rows = storyboards.value.map(s => [s.id, s.generatedVideo ? '已生成' : '未生成'])
+  const csv = [headers, ...rows]
+    .map(r => r.map(v => `"${String(v).replace(/"/g, '""')}"`).join(','))
+    .join('\n')
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' })
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = url
+  a.download = '分镜视频.csv'
+  document.body.appendChild(a)
+  a.click()
+  document.body.removeChild(a)
+  URL.revokeObjectURL(url)
+  closeExportMenu()
 }
 
 const theme = ref('light')
@@ -347,7 +443,7 @@ const handleDragLeave = () => {
   isDragging.value = false
 }
 
-const handleDrop = (event) => {
+const handleUploadDrop = (event) => {
   event.preventDefault()
   isDragging.value = false
   
@@ -824,7 +920,7 @@ onMounted(() => {
               @click="triggerFileInput"
               @dragover="handleDragOver"
               @dragleave="handleDragLeave"
-              @drop="handleDrop"
+              @drop="handleUploadDrop"
             >
               <fa :icon="['fas', 'file-import']" class="text-4xl mb-4" :class="isDragging ? 'text-brand-green' : 'text-gray-300 dark:text-gray-600'" />
               <p class="text-lg font-medium text-primary dark:text-white mb-2">
@@ -1021,9 +1117,16 @@ onMounted(() => {
               <button class="px-3 py-1.5 bg-white dark:bg-[#2C2C2E] border border-gray-200 dark:border-[#3A3A3C] rounded-lg text-sm hover:bg-gray-50 dark:hover:bg-[#3A3A3C] transition">
                 重新生成
               </button>
-              <button @click="exportStoryboardTable" class="px-3 py-1.5 bg-brand-green text-white rounded-lg text-sm hover:bg-brand-green-dark transition">
-                导出分镜表
-              </button>
+              <div class="relative inline-block">
+                <button @click="toggleExportMenu" class="px-3 py-1.5 bg-brand-green text-white rounded-lg text-sm hover:bg-brand-green-dark transition">
+                  导出
+                </button>
+                <div v-if="openExportMenu" class="absolute right-0 mt-1 w-44 bg-white dark:bg-[#2C2C2E] border border-gray-200 dark:border-[#3A3A3C] rounded shadow z-50">
+                  <button @click="exportStoryboardScript" class="block w-full text-left px-3 py-2 text-xs hover:bg-gray-50 dark:hover:bg-[#3A3A3C]">分镜头脚本导出</button>
+                  <button @click="exportStoryboardImages" class="block w-full text-left px-3 py-2 text-xs hover:bg-gray-50 dark:hover:bg-[#3A3A3C]">分镜头图片导出</button>
+                  <button @click="exportStoryboardVideos" class="block w-full text-left px-3 py-2 text-xs hover:bg-gray-50 dark:hover:bg-[#3A3A3C]">分镜头视频导出</button>
+                </div>
+              </div>
             </div>
           </div>
           <div v-if="storyboardView==='compact'" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -1161,17 +1264,82 @@ onMounted(() => {
         </div>
 
         <!-- Video View -->
-        <div v-else-if="activeTab === 'video'" class="h-full flex flex-col items-center justify-center text-center">
-          <div class="w-24 h-24 bg-gray-100 dark:bg-[#2C2C2E] rounded-full flex items-center justify-center mb-6">
-            <fa :icon="['fas', 'film']" class="text-4xl text-gray-300 dark:text-gray-600" />
-          </div>
-          <h3 class="text-xl font-bold mb-2">视频剪辑</h3>
-          <p class="text-secondary dark:text-gray-400 max-w-md mb-8">
-            AI 正在根据分镜脚本生成视频片段，预计需要 5-10 分钟，请稍候...
-          </p>
-          <div class="w-64 h-2 bg-gray-200 dark:bg-[#3A3A3C] rounded-full overflow-hidden">
-            <div class="h-full bg-brand-green w-1/3 animate-pulse"></div>
-          </div>
+        <div v-else-if="activeTab === 'video'" class="h-full flex gap-4">
+          <aside class="w-64 bg-white dark:bg-[#2C2C2E] border border-gray-200 dark:border-[#3A3A3C] rounded-xl p-3 shrink-0">
+            <div class="flex items-center justify-between mb-2">
+              <h3 class="text-sm font-bold">素材面板</h3>
+              <button class="px-2 py-1 text-xs rounded border bg-white dark:bg-[#2C2C2E] dark:border-[#3A3A3C] hover:bg-gray-50 dark:hover:bg-[#3A3A3C]">导入</button>
+            </div>
+            <div class="space-y-2 overflow-y-auto max-h-[50vh]">
+              <div
+                v-for="m in mediaLibrary"
+                :key="m.key"
+                class="flex items-center gap-2 p-2 rounded border hover:bg-gray-50 dark:hover:bg-[#3A3A3C] cursor-grab"
+                draggable="true"
+                @dragstart="handleDragStart(m, $event)"
+                @click="currentPreview = m"
+              >
+                <div class="w-12 h-8 bg-gray-100 dark:bg-[#3A3A3C] rounded overflow-hidden flex items-center justify-center">
+                  <img v-if="m.type==='image'" :src="m.src" class="w-full h-full object-cover">
+                  <fa v-else :icon="['fas','film']" class="text-gray-400" />
+                </div>
+                <div class="flex-1">
+                  <div class="text-xs font-medium">{{ m.label }}</div>
+                  <div class="text-[11px] text-secondary dark:text-gray-400">{{ m.type.toUpperCase() }}</div>
+                </div>
+              </div>
+            </div>
+          </aside>
+          <section class="flex-1 flex flex-col gap-4">
+            <div class="bg-white dark:bg-[#2C2C2E] rounded-xl border border-gray-200 dark:border-[#3A3A3C] p-3">
+              <div class="flex items-center justify-between mb-3">
+                <div class="flex items-center gap-2">
+                  <button @click="togglePlay" class="px-2 py-1 text-xs rounded bg-black text-white dark:bg-white dark:text-black">播放</button>
+                  <div class="text-xs text-secondary dark:text-gray-400">时间 {{ currentTime.toFixed(1) }}s</div>
+                </div>
+                <div class="text-sm font-bold">预览窗口</div>
+              </div>
+              <div class="aspect-video bg-gray-100 dark:bg-[#3A3A3C] rounded-lg overflow-hidden flex items-center justify-center">
+                <img v-if="currentPreview && currentPreview.type==='image'" :src="currentPreview.src" class="w-full h-full object-cover">
+                <div v-else class="flex flex-col items-center justify-center text-secondary dark:text-gray-400">
+                  <fa :icon="['fas','film']" class="text-4xl mb-2 text-gray-300 dark:text-gray-600" />
+                  <div class="text-xs">选择素材进行预览</div>
+                </div>
+              </div>
+            </div>
+            <div class="bg-white dark:bg-[#2C2C2E] rounded-xl border border-gray-200 dark:border-[#3A3A3C] p-3">
+              <div class="flex items-center justify-between mb-2">
+                <div class="text-sm font-bold">时间轴</div>
+                <div class="text-xs text-secondary dark:text-gray-400">拖拽素材到轨道</div>
+              </div>
+              <div class="space-y-2 overflow-x-auto">
+                <div class="min-w-[800px]">
+                  <div class="flex items-center gap-2 mb-2">
+                    <div class="w-20 text-[11px] text-secondary">视频轨</div>
+                    <div class="flex-1 h-20 bg-gray-100 dark:bg-[#3A3A3C] rounded relative" @dragover.prevent @drop="handleTimelineDrop('video',$event)">
+                      <div v-for="it in timelineItems.filter(t=>t.track==='video')" :key="it.id" class="absolute top-2 h-16 rounded bg-brand-green/20 border border-brand-green overflow-hidden" :style="getItemStyle(it)">
+                        <div class="flex items-center justify-between px-2 py-1 text-[11px]">
+                          <span class="font-medium">{{ it.label }}</span>
+                          <button @click="removeTimelineItem(it.id)" class="px-1 rounded bg-white dark:bg-[#2C2C2E] border dark:border-[#3A3A3C]">×</button>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                  <div class="flex items-center gap-2">
+                    <div class="w-20 text-[11px] text-secondary">音频轨</div>
+                    <div class="flex-1 h-12 bg-gray-100 dark:bg-[#3A3A3C] rounded relative" @dragover.prevent @drop="handleTimelineDrop('audio',$event)">
+                      <div v-for="it in timelineItems.filter(t=>t.track==='audio')" :key="it.id" class="absolute top-1 h-10 rounded bg-blue-500/20 border border-blue-500 overflow-hidden" :style="getItemStyle(it)">
+                        <div class="flex items-center justify-between px-2 py-1 text-[11px]">
+                          <span class="font-medium">{{ it.label }}</span>
+                          <button @click="removeTimelineItem(it.id)" class="px-1 rounded bg-white dark:bg-[#2C2C2E] border dark:border-[#3A3A3C]">×</button>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </section>
         </div>
       </main>
     </div>
