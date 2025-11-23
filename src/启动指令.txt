@@ -1,0 +1,18 @@
+docker run --name minio \
+  -d \
+  -p 9000:9000 \
+  -p 9001:9001 \
+  -e MINIO_ROOT_USER=weimeng \
+  -e MINIO_ROOT_PASSWORD=weimeng. \
+  --restart=always \
+  minio/minio:RELEASE.2025-06-13T11-33-47Z-cpuv1 \
+  server /data --console-address ":9001"
+
+
+  docker run -id --name=postgresql \
+  -p 5432:5432 \
+  -e POSTGRES_USER=weimeng \
+  -e POSTGRES_PASSWORD=weimeng \
+  -e POSTGRES_DB=weimeng \
+  -e LANG=C.UTF-8 \
+  postgres:17.5

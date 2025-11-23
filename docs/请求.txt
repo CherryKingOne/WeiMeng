@@ -1,0 +1,6 @@
+发送验证码：
+curl -X POST "http://0.0.0.0:7767/api/v1/auth/send-code" \
+  -H "Content-Type: application/json" \
+  -d '{
+        "email": "cherry_050607@163.com"
+      }'
