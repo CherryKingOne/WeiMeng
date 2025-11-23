@@ -191,7 +191,7 @@ const sendCode = async () => {
 
 <template>
   <div class="min-h-screen grid grid-cols-1 lg:grid-cols-5">
-    <div class="lg:col-span-2 bg-gradient-to-br from-brand-dark via-brand-green to-brand-blue relative flex flex-col justify-center items-center p-12 text-white text-center order-last lg:order-first min-h-[300px] lg:min-h-screen overflow-hidden">
+    <div class="lg:col-span-2 bg-gradient-to-br from-brand-dark via-brand-green to-brand-blue relative flex flex-col justify-center items-center p-12 text-white text-center order-last lg:order-first h-[300px] lg:h-screen overflow-hidden">
       <div class="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1620641788421-7a1c342ea42e?q=80&w=2400&auto=format&fit=crop')] bg-cover bg-center mix-blend-overlay opacity-30"></div>
       <div class="absolute inset-0 bg-gradient-to-t from-brand-dark/80 to-transparent"></div>
       <div class="relative z-10">
