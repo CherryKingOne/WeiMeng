@@ -26,3 +26,16 @@ curl -X POST \
   }'
 
 # 剧本库
+获取剧本库列表
+curl -X GET "http://0.0.0.0:7767/api/v1/script/libraries" \
+     -H "Accept: application/json" \
+     -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJjaGVycnlfMDUwNjA3QDE2My5jb20iLCJleHAiOjE3NjQ2MDUxNjl9.rb3Ma1usIyN95BPu-bvFJefVLdqUF5aqNYDeEeIhaXA"
+
+创建剧本库
+curl -X POST "http://0.0.0.0:7767/api/v1/script/libraries" \
+     -H "Content-Type: application/json" \
+     -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJjaGVycnlfMDUwNjA3QDE2My5jb20iLCJleHAiOjE3NjQ2MDUxNjl9.rb3Ma1usIyN95BPu-bvFJefVLdqUF5aqNYDeEeIhaXA" \
+     -d '{
+           "name": "测试",
+           "description": "常用自动化脚本集合"
+         }'
