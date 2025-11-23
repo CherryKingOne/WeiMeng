@@ -1,4 +1,5 @@
-from pydantic_settings import BaseSettings
+from pathlib import Path
+from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class Settings(BaseSettings):
@@ -44,8 +45,12 @@ class Settings(BaseSettings):
     SMTP_PASSWORD: str = ""
     SENDER_EMAIL: str = ""
 
-    class Config:
-        env_file = ".env"
+    # Pydantic v2 settings config; ensure .env is loaded from project src dir
+    model_config = SettingsConfigDict(
+        env_file=str(Path(__file__).resolve().parents[2] / ".env"),
+        env_prefix="",
+        case_sensitive=False,
+    )
 
 
 settings = Settings()

@@ -372,7 +372,7 @@ const messages = {
   },
   zh: {
     brand: {
-      name: '唯梦'
+      name: '维梦'
     },
     auth: {
       login: '登录',

@@ -9,7 +9,7 @@ const { t } = useI18n()
       <div class="grid grid-cols-2 md:grid-cols-6 gap-8 mb-12">
         <div class="col-span-2">
           <a href="/" class="inline-flex items-center mb-6">
-            <img src="@/assets/logo.png" :alt="t('brand.name') + ' Logo'" class="w-10 h-10 mr-3 rounded-lg" />
+            <img src="@/assets/logo.png" :alt="t('brand.name') + ' Logo'" class="w-10 h-10 mr-4 rounded-lg" />
             <span class="text-2xl font-bold text-white">{{ t('brand.name') }}</span>
           </a>
           <p class="text-gray-400 mb-6 max-w-xs">{{ t('footer.tagline') }}</p>

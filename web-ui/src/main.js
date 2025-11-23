@@ -2,7 +2,7 @@ import './assets/base.css'
 import './assets/tailwind.css'
 import './assets/main.css'
 
-import { createApp } from 'vue'
+import { createApp, watch } from 'vue'
 import App from './App.vue'
 import i18n from './i18n'
 import router from './router'
@@ -19,4 +19,19 @@ library.add(
   faGithub
 )
 
-createApp(App).component('fa', FontAwesomeIcon).use(i18n).use(router).mount('#app')
+const app = createApp(App).component('fa', FontAwesomeIcon).use(i18n).use(router)
+app.mount('#app')
+
+const setTitleAndLang = (loc) => {
+  const isZh = String(loc || '').toLowerCase().startsWith('zh')
+  document.title = isZh ? '维梦 CN' : 'WeiMeng'
+  document.documentElement.lang = isZh ? 'zh-CN' : 'en'
+}
+
+setTitleAndLang(i18n.global.locale?.value || i18n.global.locale)
+if (i18n.global?.locale) {
+  const localeRef = i18n.global.locale
+  if (localeRef && typeof localeRef === 'object' && 'value' in localeRef) {
+    watch(localeRef, (loc) => setTitleAndLang(loc))
+  }
+}
