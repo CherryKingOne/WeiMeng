@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-Vue 3 + Vite application for OneFour, an AI-assisted drama/video production platform. The app features a marketing site with i18n support, workspace for project management, and a studio interface for script writing, character management, storyboard generation, and video editing.
+Vue 3 + Vite application for WeiMeng (唯梦), an AI-assisted drama/video production platform. The app features a marketing site with i18n support, workspace for project management, and a studio interface for script writing, character management, storyboard generation, and video editing.
 
 ## Development Commands
 

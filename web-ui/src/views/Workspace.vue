@@ -520,7 +520,7 @@ const latestVersion = ref('1.9.2')
 const openAbout = async () => { userMenuOpen.value = false; await nextTick(); showAbout.value = true }
 const closeAbout = () => { showAbout.value = false }
 const showUpgrade = ref(false)
-const openUpgrade = async () => { await nextTick(); showUpgrade.value = true }
+const openUpgrade = async () => { openToast('正在开发中，目前没有内容'); showUpgrade.value = false }
 const closeUpgrade = () => { showUpgrade.value = false }
 const logout = () => {
   try {
@@ -741,9 +741,8 @@ const submitTeamCreate = () => {
           <fa :icon="['fas','trash']" class="w-6 text-center" />
           <span class="ml-3 font-medium">{{ $t('workspace.recycle') }}</span>
         </a>
-        <div class="mt-4 p-3 bg-brand-green/10 rounded-lg text-center cursor-pointer" @click="openUpgrade">
-          <p class="text-sm font-semibold text-brand-green">{{ $t('workspace.unlock_ai') }}</p>
-          <a href="#" class="text-xs text-brand-green/80 hover:underline" @click.prevent="openUpgrade">{{ $t('workspace.upgrade_pro') }}</a>
+        <div class="mt-4 p-3 bg-brand-green/10 rounded-lg text-center">
+          <p class="text-sm font-semibold text-brand-green">更多AI功能正在开发中...</p>
         </div>
       </div>
     </aside>
@@ -844,8 +843,9 @@ const submitTeamCreate = () => {
                   {{ $t('workspace.logout') }}
                 </button>
               </div>
-            </div>
+
           </div>
+        </div>
         </div>
       </header>
 
@@ -1772,92 +1772,12 @@ const submitTeamCreate = () => {
       <teleport to="body">
         <div v-if="showUpgrade" class="fixed inset-0 z-50 flex items-center justify-center">
           <div class="absolute inset-0 bg-black/30 backdrop-blur-md" @click="closeUpgrade"></div>
-          <div class="relative w-full max-w-7xl h-[90vh] bg-white rounded-2xl shadow-2xl border border-gray-200 overflow-hidden dark:bg-[#2C2C2E] dark:border-[#3A3A3C]">
-            <div class="p-6 h-full overflow-y-auto no-scrollbar">
-              <div class="flex justify-between items-start mb-6">
-                <div>
-                  <h3 class="text-2xl font-bold text-primary dark:text-white">{{ $t('workspace.onefour_plans') }}</h3>
-                  <p class="text-secondary mt-1">{{ $t('workspace.plans_desc') }}</p>
-                </div>
-                <button class="text-secondary hover:text-primary" @click="closeUpgrade"><fa :icon="['fas','xmark']" class="text-xl" /></button>
-              </div>
-              <div class="flex items-center justify-between border-b border-gray-200 mb-6 dark:border-[#333333]">
-                <nav class="flex">
-                  <button class="px-3 py-3 font-semibold" :class="upgradeTab==='cloud' ? 'text-brand-green border-b-2 border-brand-green' : 'text-secondary hover:text-primary'" @click="upgradeTab='cloud'"><fa :icon="['fas','cloud']" class="w-5 mr-2" /> {{ $t('workspace.cloud_service') }}</button>
-                  <button class="px-3 py-3 font-semibold" :class="upgradeTab==='self' ? 'text-brand-green border-b-2 border-brand-green' : 'text-secondary hover:text-primary'" @click="upgradeTab='self'"><fa :icon="['fas','diagram-project']" class="w-5 mr-2" /> {{ $t('workspace.self_hosted') }}</button>
-                </nav>
-                <div v-if="upgradeTab==='cloud'" class="flex items-center gap-3">
-                  <label class="relative inline-flex items-center w-10 h-5 cursor-pointer">
-                    <input type="checkbox" class="sr-only" v-model="annualBilling" />
-                    <span class="w-10 h-5 rounded-full transition-colors" :class="annualBilling ? 'bg-brand-green' : 'bg-gray-200'"></span>
-                    <span class="absolute top-0.5 left-0.5 w-4 h-4 bg-white rounded-full shadow transform transition-transform" :class="annualBilling ? 'translate-x-5' : 'translate-x-0'"></span>
-                  </label>
-                  <span class="text-sm text-primary">{{ $t('workspace.annual_billing') }}</span>
-                </div>
-              </div>
-              <div v-if="upgradeTab==='cloud'" class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                <div class="rounded-2xl p-6 border border-gray-200 flex flex-col dark:border-[#333333]">
-                  <div class="h-12 w-12 mb-4 rounded-md bg-light-gray"></div>
-                  <div class="text-2xl font-bold text-primary dark:text-white">{{ $t('workspace.sandbox') }}</div>
-                  <div class="text-secondary mt-1">{{ $t('workspace.sandbox_desc') }}</div>
-                  <div class="my-4 text-3xl font-extrabold text-primary">{{ $t('workspace.free') }}</div>
-                  <button disabled class="w-full bg-light-gray py-2 rounded-lg font-semibold text-secondary cursor-not-allowed">{{ $t('workspace.current_plan') }}</button>
-                </div>
-                <div class="rounded-2xl p-6 border border-gray-200 flex flex-col dark:border-[#333333]">
-                  <div class="h-12 w-12 mb-4 rounded-md bg-brand-green"></div>
-                  <div class="text-2xl font-bold text-primary dark:text-white flex items-center">{{ $t('workspace.professional') }} <span class="ml-2 px-2 py-0.5 text-xs rounded-full bg-brand-green text-white">{{ $t('workspace.most_popular') }}</span></div>
-                  <div class="text-secondary mt-1">{{ $t('workspace.professional_desc') }}</div>
-                  <div class="my-4" v-if="!annualBilling">
-                    <div class="text-3xl font-extrabold text-primary">$59 <span class="text-base text-secondary font-normal">{{ $t('workspace.per_space_month') }}</span></div>
-                  </div>
-                  <div class="my-4" v-else>
-                    <div class="flex items-baseline space-x-4">
-                      <div class="text-2xl font-normal text-gray-400 line-through">$708</div>
-                      <div class="text-4xl font-extrabold text-primary">$590</div>
-                      <div class="text-base font-normal text-secondary">{{ $t('workspace.per_space_year') }}</div>
-                    </div>
-                  </div>
-                  <button class="w-full bg-brand-green text-white py-2 rounded-lg font-semibold hover:bg-brand-green/90">{{ $t('workspace.start_building') }}</button>
-                </div>
-                <div class="rounded-2xl p-6 border border-gray-200 flex flex-col dark:border-[#333333]">
-                  <div class="h-12 w-12 mb-4 rounded-md bg-[#1C1C1E]"></div>
-                  <div class="text-2xl font-bold text-primary dark:text-white">{{ $t('workspace.team_plan') }}</div>
-                  <div class="text-secondary mt-1">{{ $t('workspace.team_desc') }}</div>
-                  <div class="my-4" v-if="!annualBilling">
-                    <div class="text-3xl font-extrabold text-primary">$159 <span class="text-base text-secondary font-normal">{{ $t('workspace.per_space_month') }}</span></div>
-                  </div>
-                  <div class="my-4" v-else>
-                    <div class="flex items-baseline space-x-4">
-                      <div class="text-2xl font-normal text-gray-400 line-through">$1908</div>
-                      <div class="text-4xl font-extrabold text-primary">$1590</div>
-                      <div class="text-base font-normal text-secondary">{{ $t('workspace.per_space_year') }}</div>
-                    </div>
-                  </div>
-                  <button class="w-full bg-[#1C1C1E] text-white py-2 rounded-lg font-semibold hover:bg-[#333333]">{{ $t('workspace.start_now') }}</button>
-                </div>
-              </div>
-              <div v-else class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                <div class="rounded-2xl p-6 border border-gray-200 flex flex-col dark:border-[#333333]">
-                  <div class="h-12 w-12 mb-4 border-2 border-dashed border-gray-300 rounded-md"></div>
-                  <div class="text-2xl font-bold text-primary dark:text-white">{{ $t('workspace.community') }}</div>
-                  <div class="text-secondary mt-1">{{ $t('workspace.community_desc') }}</div>
-                  <div class="my-4 text-3xl font-extrabold text-primary">{{ $t('workspace.free') }}</div>
-                  <button class="w-full bg-light-gray py-2 rounded-lg font-semibold text-primary hover:bg-gray-200">{{ $t('workspace.start_using') }}</button>
-                </div>
-                <div class="rounded-2xl p-6 border border-gray-200 flex flex-col dark:border-[#333333]">
-                  <div class="h-12 w-12 mb-4 border-2 border-dashed border-orange-300 rounded-md"></div>
-                  <div class="text-2xl font-bold text-primary dark:text-white">{{ $t('workspace.premium') }}</div>
-                  <div class="text-secondary mt-1">{{ $t('workspace.premium_desc') }}</div>
-                  <div class="my-4 text-3xl font-extrabold text-primary">{{ $t('workspace.scalable') }}</div>
-                  <button class="w-full bg-[#1C1C1E] text-white py-2 rounded-lg font-semibold hover:bg-[#333333]">{{ $t('workspace.get_via_marketplace') }}</button>
-                </div>
-                <div class="rounded-2xl p-6 border border-gray-200 flex flex-col dark:border-[#333333]">
-                  <div class="h-12 w-12 mb-4 border-2 border-dashed border-blue-300 rounded-md"></div>
-                  <div class="text-2xl font-bold text-primary dark:text-white">{{ $t('workspace.enterprise') }}</div>
-                  <div class="text-secondary mt-1">{{ $t('workspace.enterprise_desc') }}</div>
-                  <div class="my-4 text-3xl font-extrabold text-primary">{{ $t('workspace.custom') }}</div>
-                  <button class="w-full bg-brand-green text-white py-2 rounded-lg font-semibold hover:bg-brand-green/90">{{ $t('workspace.contact_sales') }}</button>
-                </div>
+          <div class="relative w-full max-w-xl bg-white rounded-2xl shadow-2xl border border-gray-200 overflow-hidden dark:bg-[#2C2C2E] dark:border-[#3A3A3C]">
+            <div class="p-8 text-center">
+              <h3 class="text-2xl font-bold text-primary dark:text-white">功能正在开发中</h3>
+              <p class="text-secondary mt-2">目前没有内容</p>
+              <div class="mt-6 flex justify-center">
+                <button class="px-4 py-2 rounded-md bg-brand-green text-white hover:bg-brand-green/90" @click="closeUpgrade">知道了</button>
               </div>
             </div>
           </div>
