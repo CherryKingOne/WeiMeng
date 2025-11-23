@@ -1,5 +1,5 @@
 <script setup>
-import { ref, onMounted, watch } from 'vue'
+import { ref, onMounted, watch, computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 const route = useRoute()
@@ -18,6 +18,31 @@ const rememberPassword = ref(false)
 const showLoginPassword = ref(false)
 const showSignupPassword = ref(false)
 const agreementShake = ref(false)
+const signupEmail = ref('')
+const API_BASE = import.meta.env.VITE_API_BASE || 'http://localhost:7767'
+const signupCode = ref('')
+const signupPassword = ref('')
+const registering = ref(false)
+const signupError = ref('')
+const toastOpen = ref(false)
+const toastText = ref('')
+const toastType = ref('success')
+let toastTimer = null
+const openToast = (text, type = 'success') => {
+  toastText.value = text
+  toastType.value = type
+  toastOpen.value = true
+  if (toastTimer) clearTimeout(toastTimer)
+  toastTimer = setTimeout(() => { toastOpen.value = false }, 2000)
+}
+
+const tr = (key, fallback) => {
+  const s = t(key)
+  return s && s !== key ? s : fallback
+}
+const createAccountText = computed(() => tr('auth.create_account', 'Create Account'))
+const haveAccountText = computed(() => tr('auth.have_account', 'Already have an account?'))
+const loginNowText = computed(() => tr('auth.login_now', 'Log in now'))
 
 const updateIndicator = () => {
   const el = tab.value === 'login' ? loginTabEl.value : signupTabEl.value
@@ -48,28 +73,88 @@ const togglePassword = (id) => {
   }
 }
 
-const onLoginSubmit = () => {
+const onLoginSubmit = async () => {
   loginError.value = ''
   loginInvalid.value = false
   if (!rememberPassword.value) {
     agreementShake.value = true
-    setTimeout(() => {
-      agreementShake.value = false
-    }, 400)
+    setTimeout(() => { agreementShake.value = false }, 400)
     return
   }
   const email = loginEmail.value.trim()
   const password = loginPassword.value
   const valid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) && password.trim().length > 0
-  if (valid) {
+  if (!valid) {
+    loginError.value = t('auth.invalid')
+    loginInvalid.value = true
+    return
+  }
+  try {
+    const res = await fetch(`${API_BASE}/api/v1/auth/login`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, password })
+    })
+    if (!res.ok) {
+      let msg = t('auth.invalid')
+      try { const data = await res.json(); msg = data?.detail || msg } catch {}
+      loginError.value = msg
+      loginInvalid.value = true
+      openToast(msg, 'error')
+      return
+    }
+    const data = await res.json()
     try {
       localStorage.setItem('loggedIn', 'true')
       localStorage.setItem('userEmail', email)
+      if (data?.access_token) localStorage.setItem('accessToken', data.access_token)
+      if (data?.user_id) localStorage.setItem('userId', data.user_id)
     } catch {}
+    openToast('登录成功', 'success')
     router.push('/workspace')
-  } else {
+  } catch (e) {
     loginError.value = t('auth.invalid')
     loginInvalid.value = true
+    openToast(t('auth.invalid'), 'error')
+  }
+}
+
+const onSignupSubmit = async () => {
+  signupError.value = ''
+  if (!terms.value || registering.value) return
+  const email = signupEmail.value.trim()
+  const codeStr = signupCode.value.trim()
+  const password = signupPassword.value
+  const emailValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)
+  const codeValid = /^\d{6}$/.test(codeStr)
+  const passValid = password && password.length >= 8
+  if (!emailValid) { signupError.value = '请输入有效邮箱'; return }
+  if (!codeValid) { signupError.value = '请输入 6 位验证码'; return }
+  if (!passValid) { signupError.value = '密码至少 8 个字符'; return }
+  registering.value = true
+  try {
+    const res = await fetch(`${API_BASE}/api/v1/auth/register`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, password, code: codeStr })
+    })
+    if (!res.ok) {
+      let msg = '注册失败'
+      try {
+        const data = await res.json()
+        msg = data?.detail || msg
+      } catch {}
+      signupError.value = msg
+      return
+    }
+    await res.json().catch(() => null)
+    openToast('注册成功，请登录', 'success')
+    switchTab('login')
+    loginEmail.value = email
+  } catch (e) {
+    signupError.value = '注册失败'
+  } finally {
+    registering.value = false
   }
 }
 
@@ -77,17 +162,30 @@ const terms = ref(false)
 const sending = ref(false)
 const resendSeconds = ref(0)
 const sendCode = async () => {
-  if (sending.value) return
+  if (sending.value || resendSeconds.value > 0) return
+  const email = signupEmail.value.trim()
+  const valid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)
+  if (!valid) return
   sending.value = true
-  await new Promise(r => setTimeout(r, 1000))
-  resendSeconds.value = 60
-  const timer = setInterval(() => {
-    resendSeconds.value--
-    if (resendSeconds.value <= 0) {
-      clearInterval(timer)
-      sending.value = false
-    }
-  }, 1000)
+  try {
+    const res = await fetch(`${API_BASE}/api/v1/auth/send-code`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email })
+    })
+    if (!res.ok) throw new Error('Request failed')
+    resendSeconds.value = 60
+    sending.value = false
+    const timer = setInterval(() => {
+      resendSeconds.value--
+      if (resendSeconds.value <= 0) {
+        clearInterval(timer)
+      }
+    }, 1000)
+  } catch (e) {
+    sending.value = false
+    alert('发送验证码失败')
+  }
 }
 </script>
 
@@ -106,7 +204,12 @@ const sendCode = async () => {
       </div>
     </div>
 
-    <div class="lg:col-span-3 bg-white flex flex-col justify-center items-center p-6 sm:p-12">
+    <div class="lg:col-span-3 bg-white relative flex flex-col justify-center items-center p-6 sm:p-12">
+      <div v-if="toastOpen" class="absolute top-4 right-6 pointer-events-auto flex items-center gap-3 px-4 py-2 rounded-xl shadow-lg"
+           :class="toastType==='success' ? 'bg-brand-green text-white' : 'bg-red-500 text-white'">
+        <fa :icon="['fas', toastType==='success' ? 'check' : 'xmark']" class="text-white" />
+        <span class="text-sm font-semibold">{{ toastText }}</span>
+      </div>
       <div class="w-full max-w-md">
         <router-link to="/" class="text-2xl font-bold text-primary flex items-center mb-8 lg:hidden">
           <img src="@/assets/logo.png" :alt="t('brand.name') + ' Logo'" class="w-10 h-10 mr-2 rounded-lg" />
@@ -192,18 +295,18 @@ const sendCode = async () => {
           </p>
         </form>
 
-        <form v-else class="space-y-6">
+        <form v-else class="space-y-6" @submit.prevent="onSignupSubmit">
           <div>
             <label for="signup-email" class="font-medium text-primary block mb-2">{{ t('auth.email_label') }}</label>
             <div class="relative">
               <fa :icon="['fas','envelope']" class="absolute left-4 top-1/2 -translate-y-1/2 text-secondary" />
-              <input type="email" id="signup-email" :placeholder="t('auth.email_placeholder')" class="w-full pl-12 pr-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 ring-brand-green focus:border-transparent">
+              <input v-model="signupEmail" type="email" id="signup-email" :placeholder="t('auth.email_placeholder')" class="w-full pl-12 pr-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 ring-brand-green focus:border-transparent">
             </div>
           </div>
           <div>
             <label for="verification-code" class="font-medium text-primary block mb-2">{{ t('auth.code') }}</label>
             <div class="flex space-x-3">
-              <input type="text" id="verification-code" :placeholder="t('auth.code_placeholder')" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 ring-brand-green focus:border-transparent">
+              <input v-model="signupCode" type="text" id="verification-code" :placeholder="t('auth.code_placeholder')" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 ring-brand-green focus:border-transparent">
               <button type="button" class="flex-shrink-0 bg-light-gray text-brand-green font-semibold px-4 py-3 rounded-lg hover:bg-gray-200 transition" :disabled="sending || resendSeconds>0" @click="sendCode">{{ sending ? t('auth.sending') : (resendSeconds>0 ? `${resendSeconds}`+t('auth.seconds') : t('auth.get_code')) }}</button>
             </div>
           </div>
@@ -211,7 +314,7 @@ const sendCode = async () => {
             <label for="signup-password" class="font-medium text-primary block mb-2">{{ t('auth.create_password') }}</label>
             <div class="relative">
               <fa :icon="['fas','lock']" class="absolute left-4 top-1/2 -translate-y-1/2 text-secondary" />
-              <input :type="showSignupPassword ? 'text' : 'password'" id="signup-password" :placeholder="t('auth.password_rule')" class="w-full pl-12 pr-12 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 ring-brand-green focus:border-transparent">
+              <input v-model="signupPassword" :type="showSignupPassword ? 'text' : 'password'" id="signup-password" :placeholder="t('auth.password_rule')" class="w-full pl-12 pr-12 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 ring-brand-green focus:border-transparent">
               <button type="button" class="absolute right-4 top-1/2 -translate-y-1/2 text-secondary hover:text-primary" @click="togglePassword('signup-password')"><fa :icon="['fas', showSignupPassword ? 'eye-slash' : 'eye']" /></button>
             </div>
           </div>
@@ -219,14 +322,15 @@ const sendCode = async () => {
             <input type="checkbox" id="terms" v-model="terms" class="h-4 w-4 rounded border-gray-300 text-brand-green focus:ring-brand-green">
             <label for="terms" class="ml-2 text-sm text-secondary">{{ t('auth.agree') }} <a href="#" class="text-brand-green hover:underline">{{ t('footer.terms') }}</a> {{ t('auth.and') }} <a href="#" class="text-brand-green hover:underline">{{ t('footer.privacy') }}</a></label>
           </div>
-          <button type="submit" class="w-full bg-brand-green text-white font-bold py-4 rounded-lg hover:bg-brand-green-dark" :class="!terms ? 'opacity-50 cursor-not-allowed' : ''" :disabled="!terms">{{ t('auth.create_account') }}</button>
+          <p v-if="signupError" class="text-red-500 text-sm text-center">{{ signupError }}</p>
+          <button type="submit" class="w-full bg-brand-green text-white font-bold py-4 rounded-lg hover:bg-brand-green-dark" :class="(!terms || registering) ? 'opacity-50 cursor-not-allowed' : ''" :disabled="!terms || registering">{{ createAccountText }}</button>
           <p class="text-center text-sm text-secondary">
-            {{ t('auth.have_account') }} <button type="button" class="font-semibold text-brand-green hover:underline" @click="switchTab('login')">{{ t('auth.login_now') }}</button>
+            {{ haveAccountText }} <button type="button" class="font-semibold text-brand-green hover:underline" @click="switchTab('login')">{{ loginNowText }}</button>
           </p>
         </form>
-      </div>
-    </div>
   </div>
+</div>
+</div>
 </template>
 
 <style scoped>

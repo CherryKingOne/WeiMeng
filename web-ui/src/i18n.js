@@ -22,13 +22,17 @@ const messages = {
       and: 'and',
       no_account: "Don't have an account?",
       signup_now: 'Sign up now',
+      have_account: 'Already have an account?',
+      login_now: 'Log in now',
       code: 'Verification Code',
       code_placeholder: 'Enter 6-digit code',
       get_code: 'Get Code',
       create_password: 'Create Password',
+      create_account: 'Create Account',
       password_rule: 'At least 8 characters',
       sending: 'Sending...',
-      seconds: 's'
+      seconds: 's',
+      invalid: 'Invalid email or password'
     },
     header: {
       features: 'Features',
@@ -385,13 +389,17 @@ const messages = {
       and: '和',
       no_account: '还没有账号？',
       signup_now: '立即注册',
+      have_account: '已经有账号？',
+      login_now: '立即登录',
       code: '验证码',
       code_placeholder: '请输入 6 位验证码',
       get_code: '获取验证码',
       create_password: '创建密码',
+      create_account: '创建账号',
       password_rule: '至少 8 个字符',
       sending: '发送中...',
-      seconds: '秒'
+      seconds: '秒',
+      invalid: '邮箱或密码不正确'
     },
     header: {
       features: '特性',
