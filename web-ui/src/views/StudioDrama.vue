@@ -830,6 +830,109 @@ const loadExistingFiles = async () => {
   }
 }
 
+// File preview functionality
+const showFilePreview = ref(false)
+const previewFileData = ref(null)
+const previewFileContent = ref('')
+const previewFileLoading = ref(false)
+const previewFileError = ref('')
+
+const openFilePreview = async (fileData) => {
+  if (!fileData.fileId) return
+
+  previewFileData.value = fileData
+  showFilePreview.value = true
+  previewFileLoading.value = true
+  previewFileError.value = ''
+  previewFileContent.value = ''
+
+  try {
+    const token = typeof localStorage !== 'undefined' ? localStorage.getItem('accessToken') : ''
+    const res = await fetch(`${API_BASE}/api/v1/script/files/${fileData.fileId}/content`, {
+      headers: {
+        'Accept': 'application/json',
+        ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+      }
+    })
+
+    if (!res.ok) {
+      if (res.status === 401) {
+        router.push('/login')
+        return
+      }
+      previewFileError.value = '加载文件内容失败'
+      previewFileLoading.value = false
+      return
+    }
+
+    // API returns plain text content directly, not JSON
+    const content = await res.text()
+    previewFileContent.value = content
+    previewFileLoading.value = false
+  } catch (error) {
+    console.error('Error loading file content:', error)
+    previewFileError.value = '加载文件内容失败'
+    previewFileLoading.value = false
+  }
+}
+
+const closeFilePreview = () => {
+  showFilePreview.value = false
+  previewFileData.value = null
+  previewFileContent.value = ''
+  previewFileError.value = ''
+}
+
+const downloadFile = async (fileData) => {
+  if (!fileData.fileUrl) {
+    showToastMessage('文件下载链接不可用', 'error')
+    return
+  }
+
+  try {
+    const token = typeof localStorage !== 'undefined' ? localStorage.getItem('accessToken') : ''
+    const res = await fetch(fileData.fileUrl, {
+      headers: {
+        ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+      }
+    })
+
+    if (!res.ok) {
+      showToastMessage('文件下载失败', 'error')
+      return
+    }
+
+    const blob = await res.blob()
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = fileData.fileName || 'download'
+    document.body.appendChild(a)
+    a.click()
+    document.body.removeChild(a)
+    URL.revokeObjectURL(url)
+    showToastMessage('文件下载成功', 'success')
+  } catch (error) {
+    console.error('Error downloading file:', error)
+    showToastMessage('文件下载失败', 'error')
+  }
+}
+
+const copyFileContent = async () => {
+  if (!previewFileContent.value) {
+    showToastMessage('没有可复制的内容', 'error')
+    return
+  }
+
+  try {
+    await navigator.clipboard.writeText(previewFileContent.value)
+    showToastMessage('内容已复制到剪贴板', 'success')
+  } catch (error) {
+    console.error('Error copying content:', error)
+    showToastMessage('复制失败', 'error')
+  }
+}
+
 // Character creation modal
 const showCharacterModal = ref(false)
 const newCharacter = ref({
@@ -1551,12 +1654,12 @@ watch(activeTab, (newTab) => {
                 :key="index"
                 class="flex items-center gap-4 px-6 py-4 hover:bg-gray-50 dark:hover:bg-[#3A3A3C]/30 transition-colors cursor-pointer"
                 :class="fileData.selected ? 'bg-brand-green/5' : ''"
-                @click="toggleFileSelection(index)"
+                @click="openFilePreview(fileData)"
               >
                 <!-- Checkbox -->
                 <div class="flex-shrink-0" @click.stop>
-                  <input 
-                    type="checkbox" 
+                  <input
+                    type="checkbox"
                     v-model="fileData.selected"
                     @change="fileListSelectAll = uploadedFiles.every(f => f.selected)"
                     class="w-4 h-4 rounded border-gray-300 text-brand-green focus:ring-brand-green"
@@ -1590,6 +1693,7 @@ watch(activeTab, (newTab) => {
                 <div class="flex items-center gap-2">
                   <button
                     v-if="fileData.progress === 'completed'"
+                    @click.stop="openFilePreview(fileData)"
                     class="p-2 text-gray-400 hover:text-brand-green hover:bg-brand-green/10 rounded-lg transition"
                     title="预览"
                   >
@@ -1597,6 +1701,7 @@ watch(activeTab, (newTab) => {
                   </button>
                   <button
                     v-if="fileData.progress === 'completed'"
+                    @click.stop="downloadFile(fileData)"
                     class="p-2 text-gray-400 hover:text-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg transition"
                     title="下载"
                   >
@@ -2562,6 +2667,90 @@ watch(activeTab, (newTab) => {
           <span class="font-medium">{{ toastMessage }}</span>
         </div>
       </transition>
+    </teleport>
+
+    <!-- File Preview Modal -->
+    <teleport to="body">
+      <div
+        v-if="showFilePreview"
+        class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm"
+        @click="closeFilePreview"
+      >
+        <div
+          class="bg-white dark:bg-[#2C2C2E] rounded-2xl shadow-2xl w-full max-w-5xl mx-4 h-[90vh] flex flex-col overflow-hidden"
+          @click.stop
+        >
+          <!-- Modal Header -->
+          <div class="flex items-center justify-between px-6 py-4 border-b border-gray-200 dark:border-[#3A3A3C] flex-shrink-0">
+            <div class="flex items-center gap-3 flex-1 min-w-0">
+              <button
+                @click="closeFilePreview"
+                class="p-2 hover:bg-gray-100 dark:hover:bg-[#3A3A3C] rounded-lg transition"
+              >
+                <fa :icon="['fas', 'arrow-left']" class="text-gray-500 dark:text-gray-400" />
+              </button>
+              <div class="flex-1 min-w-0">
+                <h3 class="text-lg font-bold text-gray-900 dark:text-white truncate">
+                  {{ previewFileData?.file?.name || '文件预览' }}
+                </h3>
+                <p class="text-xs text-gray-500 dark:text-gray-400">
+                  {{ previewFileData?.fileType || '' }}
+                </p>
+              </div>
+            </div>
+            <div class="flex items-center gap-2">
+              <button
+                @click="copyFileContent"
+                class="px-3 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-[#3A3A3C] rounded-lg transition flex items-center gap-2"
+                title="复制内容"
+              >
+                <fa :icon="['fas', 'copy']" />
+                复制
+              </button>
+              <button
+                @click="downloadFile(previewFileData)"
+                class="px-3 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-[#3A3A3C] rounded-lg transition flex items-center gap-2"
+              >
+                <fa :icon="['fas', 'download']" />
+                下载
+              </button>
+              <button
+                @click="closeFilePreview"
+                class="p-2 hover:bg-gray-100 dark:hover:bg-[#3A3A3C] rounded-lg transition"
+              >
+                <fa :icon="['fas', 'xmark']" class="text-gray-500 dark:text-gray-400" />
+              </button>
+            </div>
+          </div>
+
+          <!-- Modal Body -->
+          <div class="flex-1 overflow-hidden p-6">
+            <!-- Loading State -->
+            <div v-if="previewFileLoading" class="h-full flex items-center justify-center">
+              <div class="text-center">
+                <div class="w-12 h-12 border-4 border-brand-green border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+                <p class="text-sm text-gray-500 dark:text-gray-400">加载中...</p>
+              </div>
+            </div>
+
+            <!-- Error State -->
+            <div v-else-if="previewFileError" class="h-full flex items-center justify-center">
+              <div class="text-center">
+                <div class="w-16 h-16 rounded-full bg-red-100 dark:bg-red-900/30 flex items-center justify-center mx-auto mb-4">
+                  <fa :icon="['fas', 'triangle-exclamation']" class="text-2xl text-red-600 dark:text-red-500" />
+                </div>
+                <p class="text-sm text-gray-900 dark:text-white font-medium mb-2">{{ previewFileError }}</p>
+                <p class="text-xs text-gray-500 dark:text-gray-400">请稍后重试</p>
+              </div>
+            </div>
+
+            <!-- Content Display -->
+            <div v-else class="h-full overflow-auto bg-gray-50 dark:bg-[#1C1C1E] rounded-lg p-6">
+              <pre class="text-sm text-gray-800 dark:text-gray-200 whitespace-pre-wrap font-mono leading-relaxed">{{ previewFileContent }}</pre>
+            </div>
+          </div>
+        </div>
+      </div>
     </teleport>
   </div>
 </template>
