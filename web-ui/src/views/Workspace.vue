@@ -142,14 +142,48 @@ const showDuplicate = ref(false)
 const duplicateName = ref('')
 const duplicateError = ref('')
 const duplicateSrcId = ref('')
+const showDeleteConfirm = ref(false)
+const deleteTargetId = ref('')
+const deleteTargetName = ref('')
 const openDuplicate = async (id) => { const src = projects.value.find(p => p.id === id); if (!src) return; duplicateSrcId.value = id; duplicateName.value = (src.name || '') + t('workspace.copy'); duplicateError.value = ''; openMenuId.value = null; await nextTick(); showDuplicate.value = true }
 const cancelDuplicate = () => { showDuplicate.value = false; duplicateName.value = ''; duplicateError.value = ''; duplicateSrcId.value = '' }
 const confirmDuplicate = () => { duplicateError.value = ''; const name = (duplicateName.value || '').trim(); if (!name) { duplicateError.value = t('workspace.enter_name'); return } const src = projects.value.find(p => p.id === duplicateSrcId.value); const newId = 'p' + Date.now().toString(36) + Math.random().toString(36).slice(2,6); projects.value.unshift({ id: newId, name, updated: t('workspace.just_now'), thumbnail: src?.thumbnail }); cancelDuplicate() }
-const deleteProject = (id) => {
-  const ok = window.confirm(t('workspace.confirm_delete'))
-  if (!ok) return
-  projects.value = projects.value.filter(p => p.id !== id)
+const deleteProject = async (id) => {
+  const project = projects.value.find(p => p.id === id)
+  if (!project) return
+  deleteTargetId.value = id
+  deleteTargetName.value = project.name
   openMenuId.value = null
+  await nextTick()
+  showDeleteConfirm.value = true
+}
+const cancelDelete = () => {
+  showDeleteConfirm.value = false
+  deleteTargetId.value = ''
+  deleteTargetName.value = ''
+}
+const confirmDelete = async () => {
+  const id = deleteTargetId.value
+  if (!id) return
+  try {
+    const token = typeof localStorage !== 'undefined' ? localStorage.getItem('accessToken') : ''
+    const res = await fetch(`${API_BASE}/api/v1/script/libraries/${id}`, {
+      method: 'DELETE',
+      headers: {
+        'Accept': 'application/json',
+        ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+      }
+    })
+    if (!res.ok) {
+      if (res.status === 401) { router.push('/login'); return }
+      alert(t('workspace.delete_failed'))
+      return
+    }
+    projects.value = projects.value.filter(p => p.id !== id)
+    cancelDelete()
+  } catch {
+    alert(t('workspace.delete_failed'))
+  }
 }
 const manageProject = (id) => {
   openMenuId.value = null
@@ -941,33 +975,42 @@ const loadLibraries = async () => {
           <div v-else>
           <div v-if="viewMode==='grid'" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
             <div v-for="p in sectionList" :key="p.id" class="bg-white rounded-lg shadow-sm border border-gray-200 relative dark:bg-[#12161a] dark:border-[#333333] group hover:shadow-md transition-all">
-              <router-link :to="{ path: '/studio', query: { id: p.id } }">
-                <div class="aspect-video bg-gray-100 rounded-t-lg overflow-hidden relative">
-                  <img :src="p.thumbnail" class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" alt="Project thumbnail">
-                  <div v-if="p.episodes!=null" class="absolute top-2 left-2 px-2 py-1 bg-black/60 backdrop-blur-sm rounded text-xs text-white font-medium">
-                    {{ p.episodes }} {{ $t('workspace.episodes') }}
+              <router-link :to="{ path: '/studio', query: { id: p.id } }" class="block p-6">
+                <!-- 用户头像 -->
+                <div class="flex items-start justify-between mb-16">
+                  <div class="w-12 h-12 rounded-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center">
+                    <fa :icon="['fas','user']" class="text-gray-400 dark:text-gray-500 text-xl" />
                   </div>
-                  <div class="absolute bottom-2 right-2 px-2 py-1 rounded text-xs font-bold uppercase tracking-wide" 
+                  <div v-if="p.status" class="px-2 py-1 rounded text-xs font-medium"
                     :class="{
                       'bg-yellow-100 text-yellow-700': p.status === 'draft',
                       'bg-blue-100 text-blue-700': p.status === 'scripting',
                       'bg-purple-100 text-purple-700': p.status === 'rendering',
                       'bg-green-100 text-green-700': p.status === 'published'
                     }">
-                    <span v-if="p.status">{{ $t('workspace.status.' + p.status) }}</span>
+                    {{ $t('workspace.status.' + p.status) }}
+                  </div>
                 </div>
-                </div>
-                <div class="p-4">
-                  <h3 class="font-semibold text-primary truncate dark:text-white text-lg">{{ p.name }}</h3>
-                  <p class="text-sm text-secondary mt-1 dark:text-gray-400 flex items-center gap-2">
-                    <fa :icon="['fas','clock']" class="text-xs" /> {{ p.updated || p.time }}
-                  </p>
+
+                <!-- 文件名 -->
+                <h3 class="font-semibold text-primary dark:text-white text-lg mb-8 break-words">{{ p.name }}</h3>
+
+                <!-- 底部信息 -->
+                <div class="space-y-2 text-sm text-secondary dark:text-gray-400">
+                  <div class="flex items-center gap-2">
+                    <fa :icon="['fas','file']" class="text-xs" />
+                    <span>0 文档</span>
+                  </div>
+                  <div class="flex items-center gap-2">
+                    <fa :icon="['fas','clock']" class="text-xs" />
+                    <span>{{ p.updated || p.time }}</span>
+                  </div>
                 </div>
               </router-link>
-              <button data-project-menu-button class="absolute top-2 right-2 px-2 py-1 rounded-md bg-transparent text-secondary hover:text-primary dark:text-[#E0E0E0] dark:hover:text-white" @click.stop="toggleMenu(p.id)">
+              <button data-project-menu-button class="absolute top-4 right-4 px-2 py-1 rounded-md bg-transparent text-secondary hover:text-primary dark:text-[#E0E0E0] dark:hover:text-white" @click.stop="toggleMenu(p.id)">
                 <span class="inline-block align-middle text-xl leading-none">…</span>
               </button>
-              <div v-if="openMenuId===p.id" data-project-menu class="absolute top-10 right-2 z-20 w-40 rounded-xl border border-gray-200 bg-white shadow-xl dark:bg-[#2C2C2E] dark:border-[#3A3A3C]">
+              <div v-if="openMenuId===p.id" data-project-menu class="absolute top-12 right-4 z-20 w-40 rounded-xl border border-gray-200 bg-white shadow-xl dark:bg-[#2C2C2E] dark:border-[#3A3A3C]">
                 <button class="w-full text-left px-3 py-2 text-sm hover:bg-gray-100 dark:hover:bg-[#3A3A3C] dark:text-[#E0E0E0]" @click.stop="renameProject(p.id)">{{ $t('workspace.rename') }}</button>
                 <button class="w-full text-left px-3 py-2 text-sm hover:bg-gray-100 dark:hover:bg-[#3A3A3C] dark:text-[#E0E0E0]" @click.stop="shareProject(p.id)">{{ $t('workspace.share') }}</button>
                 <button class="w-full text-left px-3 py-2 text-sm hover:bg-gray-100 dark:hover:bg-[#3A3A3C] dark:text-[#E0E0E0]" @click.stop="openDuplicate(p.id)">{{ $t('workspace.duplicate') }}</button>
@@ -1058,6 +1101,28 @@ const loadLibraries = async () => {
             <div class="mt-6 flex justify-end gap-3">
               <button class="px-4 py-2 rounded-lg border border-gray-300 text-secondary hover:bg-gray-100 dark:border-[#3A3A3C] dark:text-gray-300 dark:hover:bg-[#3A3A3C]" @click="cancelDuplicate">{{ $t('workspace.cancel') }}</button>
               <button class="px-4 py-2 rounded-lg bg-brand-green text-white hover:bg-brand-green/90" @click="confirmDuplicate">{{ $t('workspace.create') }}</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- 删除确认弹窗 -->
+        <div v-if="showDeleteConfirm" class="fixed inset-0 z-30 flex items-center justify-center">
+          <div class="absolute inset-0 bg-black/40" @click="cancelDelete"></div>
+          <div class="relative w-full max-w-md bg-white rounded-xl shadow-2xl border border-gray-200 p-6 dark:bg-[#2C2C2E] dark:border-[#3A3A3C]">
+            <div class="flex items-start gap-4">
+              <div class="flex-shrink-0 w-12 h-12 rounded-full bg-red-100 dark:bg-red-900/30 flex items-center justify-center">
+                <fa :icon="['fas','triangle-exclamation']" class="text-red-600 dark:text-red-400 text-xl" />
+              </div>
+              <div class="flex-1">
+                <h3 class="text-lg font-semibold text-primary dark:text-white">{{ $t('workspace.confirm_delete') }}</h3>
+                <p class="mt-2 text-sm text-secondary dark:text-gray-400">
+                  {{ $t('workspace.delete_warning') }} <span class="font-semibold text-primary dark:text-white">"{{ deleteTargetName }}"</span>{{ $t('workspace.delete_warning_suffix') }}
+                </p>
+              </div>
+            </div>
+            <div class="mt-6 flex justify-end gap-3">
+              <button class="px-4 py-2 rounded-lg border border-gray-300 text-secondary hover:bg-gray-100 dark:border-[#3A3A3C] dark:text-gray-300 dark:hover:bg-[#3A3A3C]" @click="cancelDelete">{{ $t('workspace.cancel') }}</button>
+              <button class="px-4 py-2 rounded-lg bg-red-600 text-white hover:bg-red-700 dark:bg-red-600 dark:hover:bg-red-700" @click="confirmDelete">{{ $t('workspace.delete') }}</button>
             </div>
           </div>
         </div>

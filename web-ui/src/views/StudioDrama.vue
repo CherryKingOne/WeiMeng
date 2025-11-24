@@ -1,10 +1,12 @@
 <script setup>
 import { ref, onMounted, computed, reactive } from 'vue'
 import JSZip from 'jszip'
-import { useRoute } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 
 const route = useRoute()
+const router = useRouter()
 const projectId = route.query.id
+const API_BASE = import.meta.env.VITE_API_BASE || 'http://localhost:7767'
 
 const activeTab = ref('script')
 const scriptMode = ref('selection') // 'selection', 'write', 'upload'
@@ -328,6 +330,16 @@ const exportStoryboardVideos = () => {
   closeExportMenu()
 }
 
+// Delete confirmation modal
+const showDeleteFileConfirm = ref(false)
+const deleteFileIndex = ref(-1)
+const deleteFileName = ref('')
+
+// Toast notification
+const showToast = ref(false)
+const toastMessage = ref('')
+const toastType = ref('success') // 'success' or 'error'
+
 const theme = ref('light')
 const toggleTheme = () => {
   theme.value = theme.value === 'light' ? 'dark' : 'light'
@@ -481,63 +493,231 @@ const handleUploadDrop = (event) => {
   }
 }
 
-const processFile = (file) => {
+const processFile = async (file) => {
   // Check if file already exists
   const exists = uploadedFiles.value.some(f => f.file.name === file.name && f.file.size === file.size)
   if (exists) {
     alert('文件已存在')
     return
   }
-  
+
   // Check file size (10MB max)
   const maxSize = 10 * 1024 * 1024
   if (file.size > maxSize) {
     alert('文件大小超过 10MB 限制')
     return
   }
-  
+
   // Check file type
   const validExtensions = ['.txt', '.md', '.doc', '.docx', '.csv', '.xlsx', '.pdf']
   const fileName = file.name.toLowerCase()
   const isValid = validExtensions.some(ext => fileName.endsWith(ext))
-  
+
   if (!isValid) {
     alert('不支持的文件格式')
     return
   }
-  
+
   // Add file to the list with initial metadata
-  const fileData = {
+  const fileData = reactive({
     file: file,
-    chunks: 0, // Initially 0, will be calculated during processing
-    progress: 'processing', // 'processing', 'completed', 'error'
-    processedChunks: 0
-  }
+    chunks: 0,
+    progress: 'uploading', // 'uploading', 'completed', 'error'
+    processedChunks: 0,
+    uploadProgress: 0
+  })
   uploadedFiles.value.push(fileData)
-  
-  // Simulate file processing
-  simulateFileProcessing(fileData)
+
+  // Upload file to backend
+  await uploadFileToBackend(fileData)
+}
+
+const showToastMessage = (message, type = 'success') => {
+  toastMessage.value = message
+  toastType.value = type
+  showToast.value = true
+  setTimeout(() => {
+    showToast.value = false
+  }, 3000)
 }
 
 const removeFile = (index) => {
-  uploadedFiles.value.splice(index, 1)
+  const fileData = uploadedFiles.value[index]
+
+  // If it's an existing file from backend, show confirmation modal
+  if (fileData.isExisting && fileData.fileId) {
+    deleteFileIndex.value = index
+    deleteFileName.value = fileData.fileName
+    showDeleteFileConfirm.value = true
+  } else {
+    // For files that are still uploading or failed, just remove from list
+    uploadedFiles.value.splice(index, 1)
+  }
 }
 
-const simulateFileProcessing = (fileData) => {
-  // Calculate chunks when processing starts
-  const totalChunks = Math.ceil(fileData.file.size / (1024 * 100)) // 100KB per chunk
-  let processed = 0
-  
-  const interval = setInterval(() => {
-    processed++
-    fileData.processedChunks = processed
-    
-    if (processed >= totalChunks) {
-      fileData.progress = 'completed'
-      fileData.chunks = totalChunks // Only set chunks count when completed
-      clearInterval(interval)
+const cancelDeleteFile = () => {
+  showDeleteFileConfirm.value = false
+  deleteFileIndex.value = -1
+  deleteFileName.value = ''
+}
+
+const confirmDeleteFile = async () => {
+  const index = deleteFileIndex.value
+  if (index === -1) return
+
+  const fileData = uploadedFiles.value[index]
+
+  try {
+    const token = typeof localStorage !== 'undefined' ? localStorage.getItem('accessToken') : ''
+    const res = await fetch(`${API_BASE}/api/v1/script/files/${fileData.fileId}`, {
+      method: 'DELETE',
+      headers: {
+        'Accept': 'application/json',
+        ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+      }
+    })
+
+    if (!res.ok) {
+      if (res.status === 401) {
+        router.push('/login')
+        return
+      }
+      showToastMessage('删除文件失败', 'error')
+      cancelDeleteFile()
+      return
     }
-  }, 500) // Process one chunk every 500ms
+
+    // Remove from list after successful deletion
+    uploadedFiles.value.splice(index, 1)
+    showToastMessage('文件删除成功', 'success')
+    cancelDeleteFile()
+  } catch (error) {
+    console.error('Error deleting file:', error)
+    showToastMessage('删除文件失败', 'error')
+    cancelDeleteFile()
+  }
+}
+
+const uploadFileToBackend = async (fileData) => {
+  if (!projectId) {
+    alert('未找到剧本库 ID')
+    fileData.progress = 'error'
+    return
+  }
+
+  try {
+    const token = typeof localStorage !== 'undefined' ? localStorage.getItem('accessToken') : ''
+    const formData = new FormData()
+    formData.append('file', fileData.file)
+
+    const xhr = new XMLHttpRequest()
+
+    // Track upload progress
+    xhr.upload.addEventListener('progress', (e) => {
+      if (e.lengthComputable) {
+        const percentComplete = Math.round((e.loaded / e.total) * 100)
+        fileData.uploadProgress = percentComplete
+      }
+    })
+
+    // Handle completion
+    xhr.addEventListener('load', () => {
+      if (xhr.status === 200 || xhr.status === 201) {
+        fileData.progress = 'completed'
+        fileData.uploadProgress = 100
+        try {
+          const response = JSON.parse(xhr.responseText)
+          // Store file ID if returned by backend
+          if (response.id) {
+            fileData.fileId = response.id
+          }
+          if (response.file_name) {
+            fileData.fileName = response.file_name
+          }
+        } catch (e) {
+          console.error('Failed to parse response:', e)
+        }
+      } else if (xhr.status === 401) {
+        fileData.progress = 'error'
+        router.push('/login')
+      } else {
+        fileData.progress = 'error'
+        alert('文件上传失败')
+      }
+    })
+
+    // Handle errors
+    xhr.addEventListener('error', () => {
+      fileData.progress = 'error'
+      alert('文件上传失败')
+    })
+
+    // Send request
+    xhr.open('POST', `${API_BASE}/api/v1/script/libraries/${projectId}/files`)
+    if (token) {
+      xhr.setRequestHeader('Authorization', `Bearer ${token}`)
+    }
+    xhr.send(formData)
+  } catch (error) {
+    console.error('Upload error:', error)
+    fileData.progress = 'error'
+    alert('文件上传失败')
+  }
+}
+
+const loadExistingFiles = async () => {
+  if (!projectId) return
+
+  try {
+    const token = typeof localStorage !== 'undefined' ? localStorage.getItem('accessToken') : ''
+    const res = await fetch(`${API_BASE}/api/v1/script/libraries/${projectId}/files`, {
+      headers: {
+        'Accept': 'application/json',
+        ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+      }
+    })
+
+    if (!res.ok) {
+      if (res.status === 401) {
+        router.push('/login')
+        return
+      }
+      console.error('Failed to load files')
+      return
+    }
+
+    // Get response as text first to preserve large integers
+    const text = await res.text()
+    // Replace large integer IDs with quoted strings to preserve precision
+    const fixedText = text.replace(/"id":(\d{15,})/g, '"id":"$1"')
+    const files = JSON.parse(fixedText)
+
+    // Convert backend files to the same format as uploaded files
+    if (Array.isArray(files)) {
+      files.forEach(backendFile => {
+        // Calculate file size from URL if available
+        let fileSize = 0
+        // Since backend doesn't provide file_size, we'll fetch it or show as unknown
+
+        const fileData = reactive({
+          fileId: backendFile.id, // Already a string after regex replacement
+          fileName: backendFile.filename, // Backend uses 'filename' not 'file_name'
+          fileUrl: backendFile.file_url,
+          fileType: backendFile.file_type,
+          file: {
+            name: backendFile.filename,
+            size: fileSize // Will be 0 if not available
+          },
+          progress: 'completed',
+          uploadProgress: 100,
+          isExisting: true // Mark as existing file from backend
+        })
+        uploadedFiles.value.push(fileData)
+      })
+    }
+  } catch (error) {
+    console.error('Error loading files:', error)
+  }
 }
 
 // Character creation modal
@@ -815,7 +995,8 @@ const confirmExtractCreate = () => {
 
 
 onMounted(() => {
-  // Initialize theme based on system or storage if needed
+  // Load existing files from backend
+  loadExistingFiles()
 })
 </script>
 
@@ -955,39 +1136,41 @@ onMounted(() => {
             
             <!-- Uploaded Files List (Horizontal Cards) -->
             <div v-if="uploadedFiles.length > 0" class="space-y-3">
-              <div 
-                v-for="(fileData, index) in uploadedFiles" 
+              <div
+                v-for="(fileData, index) in uploadedFiles"
                 :key="index"
-                class="flex items-center justify-between px-6 py-4 bg-white dark:bg-[#2C2C2E] rounded-xl border-2 border-red-500 shadow-sm"
+                class="flex items-center gap-4 px-6 py-4 bg-white dark:bg-[#2C2C2E] rounded-xl border-2 shadow-sm"
+                :class="fileData.progress === 'completed' ? 'border-brand-green' : fileData.progress === 'error' ? 'border-red-500' : 'border-blue-500'"
               >
-                <!-- File Name -->
+                <!-- File Icon -->
+                <div class="flex-shrink-0">
+                  <fa :icon="['fas', 'file']" class="text-2xl"
+                    :class="fileData.progress === 'completed' ? 'text-brand-green' : fileData.progress === 'error' ? 'text-red-500' : 'text-blue-500'" />
+                </div>
+
+                <!-- File Info -->
                 <div class="flex-1 min-w-0">
-                  <p class="text-sm font-medium text-gray-900 dark:text-white truncate">{{ fileData.file.name }}</p>
-                </div>
-
-                <!-- Text Chunks -->
-                <div class="mx-4 px-4 py-1.5 bg-gray-100 dark:bg-[#3A3A3C] rounded-full border border-gray-300 dark:border-[#48484A]">
-                  <p class="text-xs font-medium text-gray-700 dark:text-gray-300">文本分割数: {{ fileData.chunks }}</p>
-                </div>
-
-                <!-- Processing Status -->
-                <div 
-                  class="mx-4 px-6 py-1.5 rounded-full border-2"
-                  :class="fileData.progress === 'completed' 
-                    ? 'bg-brand-green/10 border-brand-green text-brand-green' 
-                    : 'bg-blue-50 dark:bg-blue-900/20 border-blue-500 text-blue-600 dark:text-blue-400'"
-                >
-                  <p class="text-xs font-medium">
-                    {{ fileData.progress === 'completed' ? '处理完成' : `处理中 ${fileData.processedChunks}/${fileData.chunks}` }}
-                  </p>
+                  <p class="text-sm font-medium text-gray-900 dark:text-white truncate mb-1">{{ fileData.file.name }}</p>
+                  <div class="flex items-center gap-2">
+                    <p class="text-xs text-gray-500 dark:text-gray-400">{{ (fileData.file.size / 1024).toFixed(2) }} KB</p>
+                    <span class="text-gray-300 dark:text-gray-600">•</span>
+                    <p class="text-xs"
+                      :class="fileData.progress === 'completed' ? 'text-brand-green' : fileData.progress === 'error' ? 'text-red-500' : 'text-blue-500'">
+                      {{ fileData.progress === 'completed' ? '上传完成' : fileData.progress === 'error' ? '上传失败' : `上传中 ${fileData.uploadProgress}%` }}
+                    </p>
+                  </div>
+                  <!-- Progress Bar -->
+                  <div v-if="fileData.progress === 'uploading'" class="mt-2 w-full bg-gray-200 dark:bg-gray-700 rounded-full h-1.5">
+                    <div class="bg-blue-500 h-1.5 rounded-full transition-all duration-300" :style="{ width: fileData.uploadProgress + '%' }"></div>
+                  </div>
                 </div>
 
                 <!-- Delete Button -->
-                <button 
-                  @click="removeFile(index)" 
-                  class="ml-4 px-4 py-1.5 rounded-full border-2 border-yellow-500 text-yellow-600 dark:text-yellow-500 hover:bg-yellow-50 dark:hover:bg-yellow-900/20 transition-colors"
+                <button
+                  @click="removeFile(index)"
+                  class="flex-shrink-0 px-4 py-2 rounded-lg border border-gray-300 dark:border-[#3A3A3C] text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-[#3A3A3C] transition-colors"
                 >
-                  <span class="text-xs font-medium">删除</span>
+                  <fa :icon="['fas', 'trash']" class="text-sm" />
                 </button>
               </div>
             </div>
@@ -1780,6 +1963,41 @@ onMounted(() => {
         </div>
       </div>
     </teleport>
+
+    <!-- Delete File Confirmation Modal -->
+    <teleport to="body">
+      <div v-if="showDeleteFileConfirm" class="fixed inset-0 z-50 flex items-center justify-center">
+        <div class="absolute inset-0 bg-black/40" @click="cancelDeleteFile"></div>
+        <div class="relative w-full max-w-md bg-white rounded-xl shadow-2xl border border-gray-200 p-6 dark:bg-[#2C2C2E] dark:border-[#3A3A3C]">
+          <div class="flex items-start gap-4">
+            <div class="flex-shrink-0 w-12 h-12 rounded-full bg-red-100 dark:bg-red-900/30 flex items-center justify-center">
+              <fa :icon="['fas','triangle-exclamation']" class="text-red-600 dark:text-red-400 text-xl" />
+            </div>
+            <div class="flex-1">
+              <h3 class="text-lg font-semibold text-primary dark:text-white">删除文件</h3>
+              <p class="mt-2 text-sm text-secondary dark:text-gray-400">
+                确定要删除文件 <span class="font-semibold text-primary dark:text-white">"{{ deleteFileName }}"</span> 吗？此操作无法撤销。
+              </p>
+            </div>
+          </div>
+          <div class="mt-6 flex justify-end gap-3">
+            <button class="px-4 py-2 rounded-lg border border-gray-300 text-secondary hover:bg-gray-100 dark:border-[#3A3A3C] dark:text-gray-300 dark:hover:bg-[#3A3A3C]" @click="cancelDeleteFile">取消</button>
+            <button class="px-4 py-2 rounded-lg bg-red-600 text-white hover:bg-red-700 dark:bg-red-600 dark:hover:bg-red-700" @click="confirmDeleteFile">删除</button>
+          </div>
+        </div>
+      </div>
+    </teleport>
+
+    <!-- Toast Notification -->
+    <teleport to="body">
+      <transition name="toast">
+        <div v-if="showToast" class="fixed top-4 right-4 z-50 flex items-center gap-3 px-4 py-3 rounded-lg shadow-lg"
+          :class="toastType === 'success' ? 'bg-green-500 text-white' : 'bg-red-500 text-white'">
+          <fa :icon="['fas', toastType === 'success' ? 'check-circle' : 'triangle-exclamation']" class="text-xl" />
+          <span class="font-medium">{{ toastMessage }}</span>
+        </div>
+      </transition>
+    </teleport>
   </div>
 </template>
 
@@ -1797,5 +2015,19 @@ textarea::-webkit-scrollbar-thumb {
 }
 textarea::-webkit-scrollbar-thumb:hover {
   background-color: rgba(156, 163, 175, 0.8);
+}
+
+/* Toast animation */
+.toast-enter-active,
+.toast-leave-active {
+  transition: all 0.3s ease;
+}
+.toast-enter-from {
+  opacity: 0;
+  transform: translateX(100px);
+}
+.toast-leave-to {
+  opacity: 0;
+  transform: translateX(100px);
 }
 </style>
