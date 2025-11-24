@@ -1,4 +1,5 @@
 from fastapi import APIRouter, Depends, UploadFile, File, HTTPException
+from fastapi.responses import Response
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from sqlalchemy.orm import selectinload
@@ -205,10 +206,10 @@ async def delete_file(
         select(ScriptFile).where(ScriptFile.id == file_id)
     )
     file_obj = result.scalars().first()
-    
+
     if not file_obj:
         raise HTTPException(status_code=404, detail="File not found")
-    
+
     # Check library ownership
     result = await db.execute(
         select(ScriptLibrary).where(
@@ -217,15 +218,71 @@ async def delete_file(
         )
     )
     lib = result.scalars().first()
-    
+
     if not lib:
         raise HTTPException(status_code=403, detail="Access denied")
-    
+
     # Delete from MinIO
     minio_client.delete_file(file_obj.minio_object_key)
-    
+
     # Delete from database
     await db.delete(file_obj)
     await db.commit()
-    
+
     return {"msg": "File deleted"}
+
+
+@router.get("/files/{file_id}/content")
+async def get_file_content(
+    file_id: int,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """Get file content from MinIO"""
+    # Get file and check ownership through library
+    result = await db.execute(
+        select(ScriptFile).where(ScriptFile.id == file_id)
+    )
+    file_obj = result.scalars().first()
+
+    if not file_obj:
+        raise HTTPException(status_code=404, detail="File not found")
+
+    # Check library ownership
+    result = await db.execute(
+        select(ScriptLibrary).where(
+            ScriptLibrary.id == file_obj.library_id,
+            ScriptLibrary.user_id == current_user.id
+        )
+    )
+    lib = result.scalars().first()
+
+    if not lib:
+        raise HTTPException(status_code=403, detail="Access denied")
+
+    # Get file content from MinIO
+    try:
+        content = minio_client.get_file_content(file_obj.minio_object_key)
+
+        # Determine content type based on file type
+        if file_obj.file_type == "image":
+            # Try to determine image content type from filename
+            import os
+            _, ext = os.path.splitext(file_obj.filename.lower())
+            content_type_map = {
+                ".png": "image/png",
+                ".jpg": "image/jpeg",
+                ".jpeg": "image/jpeg",
+                ".gif": "image/gif",
+                ".bmp": "image/bmp",
+                ".webp": "image/webp",
+                ".svg": "image/svg+xml"
+            }
+            content_type = content_type_map.get(ext, "image/jpeg")
+        else:
+            # For text files, try to return as text
+            content_type = "text/plain; charset=utf-8"
+
+        return Response(content=content, media_type=content_type)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to retrieve file content: {str(e)}")

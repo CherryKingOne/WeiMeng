@@ -65,7 +65,7 @@ curl -X 'POST' \
 
 查看指定的剧本库中的文件列表
 curl -X 'GET' \
-  'http://0.0.0.0:7767/api/v1/script/libraries/2389173433979722/files' \
+  'http://0.0.0.0:7767/api/v1/script/libraries/5901335392758722/files' \
   -H 'accept: application/json' \
   -H 'Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJjaGVycnlfMDUwNjA3QDE2My5jb20iLCJleHAiOjE3NjY1NjA5MDZ9.LpVZZyHLemOQDXrMWDcjxsAqo7Qas_JK7QdcFi7pIAE'
 
@@ -75,3 +75,13 @@ curl -X 'DELETE' \
   'http://0.0.0.0:7767/api/v1/script/files/668473395945514491' \
   -H 'accept: application/json' \
   -H 'Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJjaGVycnlfMDUwNjA3QDE2My5jb20iLCJleHAiOjE3NjY1NjA5MDZ9.LpVZZyHLemOQDXrMWDcjxsAqo7Qas_JK7QdcFi7pIAE'
+
+
+查看指定文件中的内容
+curl -X GET "http://0.0.0.0:7767/api/v1/script/files/102134671425109052/content" \
+  -H "Accept: application/json" \
+  -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJjaGVycnlfMDUwNjA3QDE2My5jb20iLCJleHAiOjE3NjY1NjA5MDZ9.LpVZZyHLemOQDXrMWDcjxsAqo7Qas_JK7QdcFi7pIAE"
+
+
+
+

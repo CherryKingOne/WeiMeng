@@ -73,6 +73,18 @@ class MinioService:
             print(f"MinIO presigned URL error: {e}")
             return ""
 
+    def get_file_content(self, object_name: str) -> bytes:
+        """Get file content from MinIO"""
+        try:
+            response = self.client.get_object(self.bucket, object_name)
+            content = response.read()
+            response.close()
+            response.release_conn()
+            return content
+        except Exception as e:
+            print(f"MinIO get file content error: {e}")
+            raise e
+
 
 # Global instance
 minio_client = MinioService()
