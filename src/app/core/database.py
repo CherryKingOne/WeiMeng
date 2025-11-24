@@ -1,5 +1,6 @@
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine, async_sessionmaker
 from sqlalchemy.orm import declarative_base
+from sqlalchemy import text
 from app.core.config import settings
 
 # Create async engine
@@ -37,6 +38,15 @@ async def init_db():
     async with engine.begin() as conn:
         # Import all models here to ensure they are registered
         from app.models import user, script, verification_code
-        
+        # Attempt lightweight in-place migrations for BIGINT columns
+        try:
+            await conn.execute(text("ALTER TABLE script_libraries ALTER COLUMN id TYPE BIGINT"))
+        except Exception:
+            pass
+        try:
+            await conn.execute(text("ALTER TABLE script_files ALTER COLUMN library_id TYPE BIGINT"))
+        except Exception:
+            pass
+
         # Create all tables
         await conn.run_sync(Base.metadata.create_all)

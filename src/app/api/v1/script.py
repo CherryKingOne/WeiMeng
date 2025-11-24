@@ -1,6 +1,7 @@
 from fastapi import APIRouter, Depends, UploadFile, File, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
+from sqlalchemy.orm import selectinload
 from typing import List
 
 from app.api.deps import get_current_user
@@ -9,6 +10,7 @@ from app.models.user import User
 from app.models.script import ScriptLibrary, ScriptFile
 from app.schemas.script import LibraryCreate, LibraryResponse, FileResponse, LibraryWithFiles
 from app.services.minio_service import minio_client
+from app.utils.id_generator import generate_numeric_uuid16
 
 router = APIRouter()
 
@@ -25,7 +27,15 @@ async def create_library(
     # Define Minio folder path: user_id/library_name/
     folder_path = f"{current_user.id}/{library.name}/"
     
+    # Generate unique 16-digit numeric ID for the library
+    new_id = int(generate_numeric_uuid16())
+    # Ensure uniqueness (extremely low collision chance, but check once)
+    existing = await db.execute(select(ScriptLibrary).where(ScriptLibrary.id == new_id))
+    if existing.scalars().first() is not None:
+        new_id = int(generate_numeric_uuid16())
+
     new_lib = ScriptLibrary(
+        id=new_id,
         user_id=current_user.id,
         name=library.name,
         description=library.description,
@@ -58,7 +68,9 @@ async def get_library(
 ):
     """Get library details with files"""
     result = await db.execute(
-        select(ScriptLibrary).where(
+        select(ScriptLibrary)
+        .options(selectinload(ScriptLibrary.files))
+        .where(
             ScriptLibrary.id == lib_id,
             ScriptLibrary.user_id == current_user.id
         )

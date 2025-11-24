@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, ForeignKey, Text, DateTime
+from sqlalchemy import Column, Integer, String, ForeignKey, Text, DateTime, BigInteger
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 from app.core.database import Base
@@ -8,7 +8,7 @@ class ScriptLibrary(Base):
     """剧本库（对应 Minio 中的一个文件夹概念）"""
     __tablename__ = "script_libraries"
 
-    id = Column(Integer, primary_key=True, index=True)
+    id = Column(BigInteger, primary_key=True, index=True)
     user_id = Column(String, ForeignKey("users.id"), nullable=False)
     name = Column(String, nullable=False)  # 剧本库名称
     description = Column(String, nullable=True)
@@ -23,7 +23,7 @@ class ScriptFile(Base):
     __tablename__ = "script_files"
 
     id = Column(Integer, primary_key=True, index=True)
-    library_id = Column(Integer, ForeignKey("script_libraries.id"), nullable=False)
+    library_id = Column(BigInteger, ForeignKey("script_libraries.id"), nullable=False)
     filename = Column(String, nullable=False)
     file_url = Column(String, nullable=True)  # Minio 访问链接
     minio_object_key = Column(String, nullable=False)  # Minio 中的完整 Key

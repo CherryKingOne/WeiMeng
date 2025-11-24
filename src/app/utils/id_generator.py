@@ -8,3 +8,12 @@ def generate_user_id() -> str:
     """
     digits = "".join(random.choices(string.digits, k=9))
     return f"wm{digits}"
+
+def generate_numeric_uuid16() -> str:
+    """
+    Generate a 16-digit numeric UUID-like ID
+    Ensures the first digit is non-zero to keep 16 digits when cast to int
+    """
+    first = random.choice("123456789")
+    rest = "".join(random.choices(string.digits, k=15))
+    return first + rest

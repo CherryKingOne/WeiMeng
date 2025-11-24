@@ -29,13 +29,49 @@ curl -X POST \
 获取剧本库列表
 curl -X GET "http://0.0.0.0:7767/api/v1/script/libraries" \
      -H "Accept: application/json" \
-     -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJjaGVycnlfMDUwNjA3QDE2My5jb20iLCJleHAiOjE3NjQ2MDUxNjl9.rb3Ma1usIyN95BPu-bvFJefVLdqUF5aqNYDeEeIhaXA"
+     -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJjaGVycnlfMDUwNjA3QDE2My5jb20iLCJleHAiOjE3NjY1NjA5MDZ9.LpVZZyHLemOQDXrMWDcjxsAqo7Qas_JK7QdcFi7pIAE"
 
 创建剧本库
+
 curl -X POST "http://0.0.0.0:7767/api/v1/script/libraries" \
      -H "Content-Type: application/json" \
-     -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJjaGVycnlfMDUwNjA3QDE2My5jb20iLCJleHAiOjE3NjQ2MDUxNjl9.rb3Ma1usIyN95BPu-bvFJefVLdqUF5aqNYDeEeIhaXA" \
+     -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJjaGVycnlfMDUwNjA3QDE2My5jb20iLCJleHAiOjE3NjY1NjA5MDZ9.LpVZZyHLemOQDXrMWDcjxsAqo7Qas_JK7QdcFi7pIAE" \
      -d '{
-           "name": "测试",
+           "name": "test",
            "description": "常用自动化脚本集合"
          }'
+
+查询指定的剧本库
+curl -X 'GET' \
+  'http://localhost:7767/api/v1/script/libraries/2389173433979722' \
+  -H 'accept: application/json' \
+  -H 'Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJjaGVycnlfMDUwNjA3QDE2My5jb20iLCJleHAiOjE3NjY1NjA5MDZ9.LpVZZyHLemOQDXrMWDcjxsAqo7Qas_JK7QdcFi7pIAE'
+
+删除指定的剧本库
+curl -X 'DELETE' \
+  'http://0.0.0.0:7767/api/v1/script/libraries/1660909769684711' \
+  -H 'accept: application/json' \
+  -H 'Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJjaGVycnlfMDUwNjA3QDE2My5jb20iLCJleHAiOjE3NjY1NjA5MDZ9.LpVZZyHLemOQDXrMWDcjxsAqo7Qas_JK7QdcFi7pIAE'
+
+
+上传文件至指定剧本库
+curl -X 'POST' \
+  'http://0.0.0.0:7767/api/v1/script/libraries/456/files' \
+  -H 'accept: application/json' \
+  -H 'Authorization: Bearer your-token-here' \
+  -H 'Content-Type: multipart/form-data' \
+  -F 'file=@./test.py'
+
+
+查看指定的剧本库中的文件列表
+curl -X 'GET' \
+  'http://0.0.0.0:7767/api/v1/script/libraries/2256661102244901/files' \
+  -H 'accept: application/json' \
+  -H 'Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJjaGVycnlfMDUwNjA3QDE2My5jb20iLCJleHAiOjE3NjY1NjA5MDZ9.LpVZZyHLemOQDXrMWDcjxsAqo7Qas_JK7QdcFi7pIAE'
+
+
+删除指定的剧本库中的文件
+curl -X 'DELETE' \
+  'http://0.0.0.0:7767/api/v1/script/files/1' \
+  -H 'accept: application/json' \
+  -H 'Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJjaGVycnlfMDUwNjA3QDE2My5jb20iLCJleHAiOjE3NjY1NjA5MDZ9.LpVZZyHLemOQDXrMWDcjxsAqo7Qas_JK7QdcFi7pIAE'
