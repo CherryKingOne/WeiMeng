@@ -1,5 +1,5 @@
 <script setup>
-import { ref, onMounted, computed, reactive } from 'vue'
+import { ref, onMounted, computed, reactive, watch } from 'vue'
 import JSZip from 'jszip'
 import { useRoute, useRouter } from 'vue-router'
 
@@ -7,6 +7,72 @@ const route = useRoute()
 const router = useRouter()
 const projectId = route.query.id
 const API_BASE = import.meta.env.VITE_API_BASE || 'http://localhost:7767'
+
+// Library info
+const libraryInfo = ref({
+  name: '加载中...',
+  description: '',
+  created_at: '',
+  updated_at: ''
+})
+
+const loadLibraryInfo = async () => {
+  if (!projectId) return
+
+  try {
+    const token = typeof localStorage !== 'undefined' ? localStorage.getItem('accessToken') : ''
+    const res = await fetch(`${API_BASE}/api/v1/script/libraries/${projectId}`, {
+      headers: {
+        'Accept': 'application/json',
+        ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+      }
+    })
+
+    if (!res.ok) {
+      if (res.status === 401) {
+        router.push('/login')
+        return
+      }
+      console.error('Failed to load library info')
+      libraryInfo.value.name = '未知剧本库'
+      return
+    }
+
+    const data = await res.json()
+    libraryInfo.value = {
+      name: data.name || '未命名剧本库',
+      description: data.description || '',
+      created_at: data.created_at || '',
+      updated_at: data.updated_at || ''
+    }
+  } catch (error) {
+    console.error('Error loading library info:', error)
+    libraryInfo.value.name = '加载失败'
+  }
+}
+
+const formatLastSaved = computed(() => {
+  if (!libraryInfo.value.updated_at) return '未知'
+  try {
+    const date = new Date(libraryInfo.value.updated_at)
+    const now = new Date()
+    const diffMs = now - date
+    const diffMins = Math.floor(diffMs / 60000)
+    
+    if (diffMins < 1) return '刚刚'
+    if (diffMins < 60) return `${diffMins}分钟前`
+    
+    const diffHours = Math.floor(diffMins / 60)
+    if (diffHours < 24) return `${diffHours}小时前`
+    
+    const diffDays = Math.floor(diffHours / 24)
+    if (diffDays < 7) return `${diffDays}天前`
+    
+    return date.toLocaleDateString('zh-CN')
+  } catch (e) {
+    return '未知'
+  }
+})
 
 const activeTab = ref('script')
 const scriptMode = ref('selection') // 'selection', 'write', 'upload'
@@ -461,6 +527,17 @@ const rejectGeneration = () => {
 const fileInput = ref(null)
 const isDragging = ref(false)
 const uploadedFiles = ref([])
+const showUploadModal = ref(false)
+const uploadModalDragging = ref(false)
+
+const openUploadModal = () => {
+  showUploadModal.value = true
+}
+
+const closeUploadModal = () => {
+  showUploadModal.value = false
+  uploadModalDragging.value = false
+}
 
 const triggerFileInput = () => {
   fileInput.value?.click()
@@ -490,6 +567,33 @@ const handleUploadDrop = (event) => {
   const files = event.dataTransfer.files
   if (files && files.length > 0) {
     // Process all dropped files
+    Array.from(files).forEach(file => processFile(file))
+  }
+}
+
+// Upload modal drag handlers
+const handleModalDragOver = (event) => {
+  event.preventDefault()
+  uploadModalDragging.value = true
+  if (event.dataTransfer) event.dataTransfer.dropEffect = 'copy'
+}
+
+const handleModalDragLeave = (event) => {
+  // Only set to false if leaving the modal container itself
+  const rect = event.currentTarget.getBoundingClientRect()
+  const x = event.clientX
+  const y = event.clientY
+  if (x <= rect.left || x >= rect.right || y <= rect.top || y >= rect.bottom) {
+    uploadModalDragging.value = false
+  }
+}
+
+const handleModalDrop = (event) => {
+  event.preventDefault()
+  uploadModalDragging.value = false
+  
+  const files = event.dataTransfer.files
+  if (files && files.length > 0) {
     Array.from(files).forEach(file => processFile(file))
   }
 }
@@ -693,6 +797,9 @@ const loadExistingFiles = async () => {
     // Replace large integer IDs with quoted strings to preserve precision
     const fixedText = text.replace(/"id":(\d{15,})/g, '"id":"$1"')
     const files = JSON.parse(fixedText)
+
+    // Clear existing files and reload
+    uploadedFiles.value = []
 
     // Convert backend files to the same format as uploaded files
     if (Array.isArray(files)) {
@@ -1063,8 +1170,17 @@ const confirmExtractCreate = () => {
 
 
 onMounted(() => {
+  // Load library info
+  loadLibraryInfo()
   // Load existing files from backend
   loadExistingFiles()
+})
+
+// Watch for tab changes to reload files when switching to files tab
+watch(activeTab, (newTab) => {
+  if (newTab === 'files') {
+    loadExistingFiles()
+  }
 })
 </script>
 
@@ -1078,10 +1194,10 @@ onMounted(() => {
         </router-link>
         <div class="flex flex-col">
           <h1 class="text-sm font-bold flex items-center gap-2">
-            霸道总裁爱上我
+            {{ libraryInfo.name }}
             <span class="px-1.5 py-0.5 rounded text-[10px] bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-500">剧本创作中</span>
           </h1>
-          <span class="text-xs text-secondary dark:text-gray-500">上次保存: 10分钟前</span>
+          <span class="text-xs text-secondary dark:text-gray-500">上次保存: {{ formatLastSaved }}</span>
         </div>
       </div>
 
@@ -1384,7 +1500,7 @@ onMounted(() => {
           <div class="flex items-center justify-between mb-6">
             <h2 class="text-xl font-bold">剧本文件管理</h2>
             <button 
-              @click="triggerFileInput"
+              @click="openUploadModal"
               class="px-4 py-2 bg-brand-green text-white rounded-lg text-sm hover:bg-brand-green-dark transition flex items-center gap-2"
             >
               <fa :icon="['fas', 'plus']" />
@@ -1508,7 +1624,7 @@ onMounted(() => {
               上传剧本文件以便管理和使用。支持 TXT、MD、Word、PDF 等格式。
             </p>
             <button 
-              @click="triggerFileInput"
+              @click="openUploadModal"
               class="px-6 py-3 bg-brand-green text-white rounded-lg font-medium hover:bg-brand-green-dark transition flex items-center gap-2"
             >
               <fa :icon="['fas', 'upload']" />
@@ -1972,66 +2088,66 @@ onMounted(() => {
 
           <!-- Modal Body -->
           <div class="p-6">
-            <!-- Step 1: Select Script Segments -->
+            <!-- Step 1: Select Script Files -->
             <div v-if="extractStep === 1" class="space-y-4">
-              <!-- Tab-like buttons -->
-              <div class="flex gap-6 border-b border-gray-200 dark:border-[#3A3A3C]">
-                <span class="pb-3 text-sm font-medium text-gray-500 dark:text-gray-400">全部</span>
-                <span class="pb-3 text-sm font-medium text-gray-500 dark:text-gray-400">剧本</span>
-              </div>
+              <h3 class="text-base font-semibold text-gray-900 dark:text-white mb-4">选择要提炼的剧本文件</h3>
 
-              <div :class="visibleFiles.length>0 ? 'grid grid-cols-1 md:grid-cols-2 gap-6' : 'grid grid-cols-1 gap-6'">
-                <!-- Files column -->
-                <div v-if="visibleFiles.length > 0">
-                  <div v-if="visibleFiles.length > 0" class="space-y-2 max-h-96 overflow-y-auto">
-                    <div v-for="it in visibleFiles" :key="it.idx" class="flex items-center justify-between p-3 rounded-lg border bg-white dark:bg-[#2C2C2E] dark:border-[#3A3A3C]">
-                      <div class="flex items-center gap-3 min-w-0">
-                        <fa :icon="['fas','file']" class="text-secondary" />
-                        <span class="text-sm font-medium text-gray-800 dark:text-gray-200 truncate">{{ it.file.file.name }}</span>
-                      </div>
-                      <div class="text-xs text-secondary">{{ it.file.progress==='completed' ? '已处理' : '处理中' }}</div>
+              <!-- Files List -->
+              <div v-if="uploadedFiles.length > 0" class="space-y-2 max-h-96 overflow-y-auto">
+                <label 
+                  v-for="(fileData, index) in uploadedFiles" 
+                  :key="index"
+                  class="flex items-start gap-3 p-4 rounded-lg border-2 cursor-pointer transition-all"
+                  :class="fileData.selected 
+                    ? 'border-brand-green bg-brand-green/5 dark:bg-brand-green/10' 
+                    : 'border-gray-200 dark:border-[#3A3A3C] hover:border-gray-300'"
+                >
+                  <input 
+                    type="checkbox" 
+                    v-model="fileData.selected"
+                    class="mt-0.5 w-4 h-4 text-brand-green rounded border-gray-300 focus:ring-brand-green"
+                  />
+                  <div class="flex-1 min-w-0">
+                    <div class="flex items-center gap-2 mb-1">
+                      <fa :icon="['fas', 'file']" class="text-brand-green" />
+                      <span class="text-sm font-medium text-gray-900 dark:text-white truncate">
+                        {{ fileData.file.name }}
+                      </span>
+                    </div>
+                    <div class="flex items-center gap-2 text-xs text-gray-500 dark:text-gray-400">
+                      <span>{{ (fileData.file.size / 1024).toFixed(2) }} KB</span>
+                      <span>•</span>
+                      <span :class="fileData.progress === 'completed' ? 'text-green-600 dark:text-green-400' : 'text-gray-500'">
+                        {{ fileData.progress === 'completed' ? '已上传' : '处理中' }}
+                      </span>
                     </div>
                   </div>
-                </div>
-
-                <!-- Script segments column -->
-                <div>
-                  <div v-if="visibleSegments.length > 0" class="space-y-2 max-h-96 overflow-y-auto">
-                    <label 
-                      v-for="item in visibleSegments" 
-                      :key="item.seg.id"
-                      class="flex items-start gap-3 p-3 rounded-lg border-2 cursor-pointer transition-all"
-                    :class="item.seg.selected 
-                      ? 'border-gray-400 bg-gray-50 dark:bg-gray-800/20' 
-                      : 'border-gray-200 dark:border-[#3A3A3C] hover:border-gray-300'"
-                    >
-                      <input 
-                        type="checkbox" 
-                        :checked="item.seg.selected"
-                        @change="toggleSegmentSelected(item.idx)"
-                      class="mt-0.5 w-4 h-4 text-gray-600 rounded border-gray-300 focus:ring-gray-600"
-                      />
-                      <span class="flex-1 text-sm text-gray-800 dark:text-gray-200">{{ item.seg.text }}</span>
-                    </label>
-                  </div>
-                  <div v-else class="text-center py-8 text-gray-400">暂无剧本内容，请先在剧本创作中编写或上传剧本</div>
-
-                  <!-- Select All -->
-                  <label 
-                    v-if="visibleSegments.length > 0"
-                    class="flex items-center gap-2 cursor-pointer"
-                  >
-                    <input 
-                      type="checkbox" 
-                      :checked="selectAll"
-                      @change="toggleSelectAll"
-                    class="w-4 h-4 text-gray-600 rounded border-gray-300 focus:ring-gray-600"
-                    />
-                    <span class="text-sm font-medium text-gray-600">全选</span>
-                  </label>
-                </div>
+                </label>
               </div>
-              
+
+              <!-- Empty State -->
+              <div v-else class="text-center py-12">
+                <div class="w-16 h-16 rounded-full bg-gray-100 dark:bg-[#3A3A3C] flex items-center justify-center mx-auto mb-4">
+                  <fa :icon="['fas', 'folder-open']" class="text-2xl text-gray-400 dark:text-gray-500" />
+                </div>
+                <p class="text-sm text-gray-500 dark:text-gray-400 mb-4">暂无剧本文件</p>
+                <p class="text-xs text-gray-400 dark:text-gray-500">请先在"剧本文件管理"中上传文件</p>
+              </div>
+
+              <!-- Select All -->
+              <label 
+                v-if="uploadedFiles.length > 0"
+                class="flex items-center gap-2 cursor-pointer pt-2"
+              >
+                <input 
+                  type="checkbox" 
+                  :checked="fileListSelectAll"
+                  @change="toggleFileSelectAll"
+                  class="w-4 h-4 text-brand-green rounded border-gray-300 focus:ring-brand-green"
+                />
+                <span class="text-sm font-medium text-gray-600 dark:text-gray-400">全选</span>
+              </label>
+
               <p v-if="extractError" class="text-sm text-red-500">{{ extractError }}</p>
             </div>
 
@@ -2186,7 +2302,7 @@ onMounted(() => {
                 @click="extractCandidates"
                 class="px-4 py-2 text-sm font-medium text-white bg-brand-green hover:bg-brand-green/90 rounded-lg transition"
               >
-                提炼角色
+                下一步
               </button>
               <button 
                 v-else-if="extractStep >= 2 && extractStep < 7"
@@ -2260,6 +2376,119 @@ onMounted(() => {
               class="px-4 py-2 rounded-lg bg-red-600 text-white hover:bg-red-700 transition font-medium"
             >
               确认删除
+            </button>
+          </div>
+        </div>
+      </div>
+    </teleport>
+
+    <!-- Upload Modal -->
+    <teleport to="body">
+      <div 
+        v-if="showUploadModal"
+        class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm"
+        @click="closeUploadModal"
+      >
+        <div 
+          class="bg-white dark:bg-[#2C2C2E] rounded-2xl shadow-2xl w-full max-w-2xl mx-4 overflow-hidden"
+          @click.stop
+        >
+          <!-- Modal Header -->
+          <div class="flex items-center justify-between px-6 py-4 border-b border-gray-200 dark:border-[#3A3A3C]">
+            <h3 class="text-lg font-bold text-gray-900 dark:text-white">上传文件</h3>
+            <button 
+              @click="closeUploadModal"
+              class="p-2 hover:bg-gray-100 dark:hover:bg-[#3A3A3C] rounded-lg transition"
+            >
+              <fa :icon="['fas', 'xmark']" class="text-gray-500 dark:text-gray-400" />
+            </button>
+          </div>
+
+          <!-- Modal Body -->
+          <div class="p-6">
+            <!-- Hidden file input -->
+            <input 
+              ref="fileInput"
+              type="file" 
+              multiple
+              class="hidden" 
+              accept=".txt,.md,.doc,.docx,.csv,.xlsx,.pdf"
+              @change="handleFileSelect"
+            >
+
+            <!-- Upload Area -->
+            <div 
+              class="border-2 border-dashed rounded-xl p-12 flex flex-col items-center justify-center text-center transition-all cursor-pointer"
+              :class="uploadModalDragging 
+                ? 'border-brand-green bg-brand-green/5 dark:bg-brand-green/10' 
+                : 'border-gray-300 dark:border-[#3A3A3C] hover:bg-gray-50 dark:hover:bg-[#3A3A3C]/30'"
+              @click="triggerFileInput"
+              @dragover="handleModalDragOver"
+              @dragleave="handleModalDragLeave"
+              @drop="handleModalDrop"
+            >
+              <div class="w-16 h-16 rounded-full bg-brand-green/10 flex items-center justify-center mb-4">
+                <fa :icon="['fas', uploadModalDragging ? 'file-import' : 'cloud-arrow-up']" 
+                  class="text-3xl text-brand-green" />
+              </div>
+              <p class="text-lg font-medium text-gray-900 dark:text-white mb-2">
+                {{ uploadModalDragging ? '释放以上传文件' : '点击或拖拽文件到此处' }}
+              </p>
+              <p class="text-sm text-gray-500 dark:text-gray-400 mb-4">
+                支持批量上传，可同时选择多个文件
+              </p>
+              <p class="text-xs text-gray-400 dark:text-gray-500">
+                支持格式：TXT, MD, Word, PDF, CSV, Excel (最大 10MB/文件)
+              </p>
+            </div>
+
+            <!-- Uploaded Files Preview (in modal) -->
+            <div v-if="uploadedFiles.length > 0" class="mt-6">
+              <div class="flex items-center justify-between mb-3">
+                <h4 class="text-sm font-semibold text-gray-700 dark:text-gray-300">
+                  已选择 {{ uploadedFiles.length }} 个文件
+                </h4>
+                <button 
+                  @click="uploadedFiles = []"
+                  class="text-xs text-gray-500 hover:text-red-500 transition"
+                >
+                  清空列表
+                </button>
+              </div>
+              <div class="max-h-48 overflow-y-auto space-y-2">
+                <div 
+                  v-for="(fileData, index) in uploadedFiles.slice(0, 10)"
+                  :key="index"
+                  class="flex items-center gap-3 p-3 bg-gray-50 dark:bg-[#3A3A3C] rounded-lg"
+                >
+                  <fa :icon="['fas', 'file']" class="text-brand-green" />
+                  <div class="flex-1 min-w-0">
+                    <p class="text-sm font-medium text-gray-900 dark:text-white truncate">
+                      {{ fileData.file.name }}
+                    </p>
+                    <p class="text-xs text-gray-500 dark:text-gray-400">
+                      {{ (fileData.file.size / 1024).toFixed(2) }} KB
+                    </p>
+                  </div>
+                  <span class="text-xs px-2 py-1 rounded-full"
+                    :class="fileData.progress === 'completed' ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' : fileData.progress === 'error' ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400' : 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400'">
+                    {{ fileData.progress === 'completed' ? '完成' : fileData.progress === 'error' ? '失败' : fileData.uploadProgress + '%' }}
+                  </span>
+                </div>
+                <p v-if="uploadedFiles.length > 10" class="text-xs text-center text-gray-500 dark:text-gray-400 pt-2">
+                  还有 {{ uploadedFiles.length - 10 }} 个文件...
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <!-- Modal Footer -->
+          <div class="flex items-center justify-end gap-3 px-6 py-4 bg-gray-50 dark:bg-[#1C1C1E] border-t border-gray-200 dark:border-[#3A3A3C]">
+            <button 
+              @click="closeUploadModal"
+              class="px-4 py-2 rounded-lg border border-gray-300 dark:border-[#3A3A3C] text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-[#3A3A3C] transition font-medium"
+            >
+              关闭
             </button>
           </div>
         </div>
