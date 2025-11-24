@@ -402,6 +402,98 @@ const showDeleteFileConfirm = ref(false)
 const deleteFileIndex = ref(-1)
 const deleteFileName = ref('')
 
+const openFileSettings = (fileData) => {
+  currentSettingsFile.value = fileData
+  // Initialize form with defaults or existing values
+  settingsForm.description = fileData.description || ''
+  settingsForm.permissions = fileData.permissions || 'private'
+  settingsForm.parser = fileData.parser || 'DeepDoc'
+  settingsForm.embeddingModel = fileData.embeddingModel || 'gpt-5'
+  settingsForm.chunkingMethod = fileData.chunkingMethod || 'novel_en'
+  settingsForm.chunkSize = fileData.chunkSize || 128
+  settingsForm.separator = fileData.separator || '\\n\\n'
+  settingsForm.pageRanking = fileData.pageRanking || 0
+  settingsForm.keywordExtraction = fileData.keywordExtraction || 0
+  settingsForm.questionExtraction = fileData.questionExtraction || 0
+  settingsForm.tableToHtml = fileData.tableToHtml || false
+  
+  showSettingsModal.value = true
+}
+
+// Settings Modal
+const showSettingsModal = ref(false)
+const currentSettingsFile = ref(null)
+const settingsForm = reactive({
+  description: '',
+  permissions: 'private',
+  parser: 'DeepDoc',
+  embeddingModel: 'gpt-5',
+  chunkingMethod: 'novel_en',
+  chunkSize: 128,
+  separator: '\\n\\n',
+  pageRanking: 0,
+  keywordExtraction: 0,
+  questionExtraction: 0,
+  tableToHtml: false
+})
+
+const closeSettingsModal = () => {
+  showSettingsModal.value = false
+  currentSettingsFile.value = null
+}
+
+const saveSettings = () => {
+  if (currentSettingsFile.value) {
+    console.log('Saving settings for:', currentSettingsFile.value.fileName)
+    console.log('Form Data:', JSON.parse(JSON.stringify(settingsForm)))
+    
+    // Update local data
+    Object.assign(currentSettingsFile.value, settingsForm)
+    
+    showToastMessage('设置已保存', 'success')
+    closeSettingsModal()
+  }
+}
+
+const chunkingMethodDetails = {
+  novel_en: {
+    label: 'Novel',
+    formats: 'TXT、MD',
+    description: '按照小说文本的分块方式进行分段：',
+    steps: [
+      '根据小说结构（章节、段落、对白）划分文本片段。'
+    ],
+    question: '请解释一下什么是"Novel"分块方法？',
+    answer: 'Novel分块方法面向小说类文本，依据章节、段落与对白等结构进行分段，使每个块尽量语义完整，便于后续检索与生成。'
+  },
+  txt: {
+    label: 'txt',
+    formats: 'TXT',
+    description: '此方法适用于纯文本文件：',
+    steps: [
+      '按行或固定字符数分割文本。',
+      '保持简单的文本结构。'
+    ],
+    question: 'txt分块方法如何工作？',
+    answer: 'txt分块方法主要针对纯文本文件，按照预设的规则进行简单的分割...'
+  },
+  markdown: {
+    label: 'markdown',
+    formats: 'MD, MARKDOWN',
+    description: '此方法适用于Markdown格式文件：',
+    steps: [
+      '识别Markdown标题和结构。',
+      '按章节进行智能分块。'
+    ],
+    question: 'Markdown分块有什么优势？',
+    answer: 'Markdown分块能够保留文档的层级结构，确保每个块包含完整的上下文信息...'
+  }
+}
+
+const currentChunkingDetail = computed(() => {
+  return chunkingMethodDetails[settingsForm.chunkingMethod] || chunkingMethodDetails['novel_en']
+})
+
 // Toast notification
 const showToast = ref(false)
 const toastMessage = ref('')
@@ -1708,6 +1800,14 @@ watch(activeTab, (newTab) => {
                     <fa :icon="['fas', 'download']" />
                   </button>
                   <button
+                    v-if="fileData.progress === 'completed'"
+                    @click.stop="openFileSettings(fileData)"
+                    class="p-2 text-gray-400 hover:text-gray-500 hover:bg-gray-50 dark:hover:bg-gray-700/50 rounded-lg transition"
+                    title="设置"
+                  >
+                    <fa :icon="['fas', 'gear']" />
+                  </button>
+                  <button
                     @click.stop="removeFile(index)"
                     class="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition"
                     title="删除"
@@ -2210,6 +2310,7 @@ watch(activeTab, (newTab) => {
                   <input 
                     type="checkbox" 
                     v-model="fileData.selected"
+                    @change="fileListSelectAll = uploadedFiles.every(f => f.selected)"
                     class="mt-0.5 w-4 h-4 text-brand-green rounded border-gray-300 focus:ring-brand-green"
                   />
                   <div class="flex-1 min-w-0">
@@ -2748,6 +2849,138 @@ watch(activeTab, (newTab) => {
             <div v-else class="h-full overflow-auto bg-gray-50 dark:bg-[#1C1C1E] rounded-lg p-6">
               <pre class="text-sm text-gray-800 dark:text-gray-200 whitespace-pre-wrap font-mono leading-relaxed">{{ previewFileContent }}</pre>
             </div>
+          </div>
+        </div>
+      </div>
+    </teleport>
+
+    <!-- Settings Modal -->
+    <teleport to="body">
+      <div v-if="showSettingsModal" class="fixed inset-0 z-[60] flex items-center justify-center p-4 sm:p-6">
+        <!-- Backdrop -->
+        <div class="absolute inset-0 bg-black/50 backdrop-blur-sm transition-opacity" @click="closeSettingsModal"></div>
+
+        <!-- Modal Content -->
+        <div class="relative w-full max-w-6xl bg-white dark:bg-[#1C1C1E] rounded-xl shadow-2xl flex flex-col max-h-[90vh] overflow-hidden transform transition-all">
+          <!-- Header -->
+          <div class="flex items-center justify-between p-4 border-b border-gray-100 dark:border-gray-800">
+            <div>
+              <h3 class="text-lg font-semibold text-gray-900 dark:text-white">配置</h3>
+              <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">在这里更新您的知识库详细信息，尤其是切片方法。</p>
+            </div>
+            <button @click="closeSettingsModal" class="p-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition">
+              <fa :icon="['fas', 'xmark']" />
+            </button>
+          </div>
+
+          <!-- Body -->
+          <div class="flex-1 overflow-hidden flex flex-col md:flex-row">
+            <!-- Left Column: Configuration -->
+            <div class="w-full md:w-1/2 p-6 overflow-y-auto border-r border-gray-100 dark:border-gray-800">
+              <div class="space-y-6">
+                <!-- File Name -->
+                <div>
+                  <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    <span class="text-red-500 mr-1">*</span>文件名
+                  </label>
+                  <div class="w-full px-3 py-2 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-gray-900 dark:text-white text-sm">
+                    {{ currentSettingsFile?.fileName }}
+                  </div>
+                </div>
+
+                <!-- Advanced Settings Box -->
+                <div class="bg-gray-50 dark:bg-gray-800/50 rounded-xl p-4 border border-gray-200 dark:border-gray-700 space-y-5">
+
+                  <!-- Embedding Model -->
+                  <div>
+                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                      <span class="text-red-500 mr-1">*</span>LLM <fa :icon="['fas', 'circle-info']" class="ml-1 text-gray-400 text-xs" />
+                    </label>
+                    <div class="relative">
+                      <div class="absolute inset-y-0 left-3 flex items-center pointer-events-none">
+                        <fa :icon="['fas', 'cubes']" class="text-brand-green" />
+                      </div>
+                      <select v-model="settingsForm.embeddingModel" class="w-full pl-10 pr-3 py-2 bg-white dark:bg-[#2C2C2E] border border-gray-200 dark:border-gray-700 rounded-lg text-gray-900 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-brand-green/50">
+                        <option value="gpt-5">gpt-5</option>
+                        <option value="gpt-4">gpt-4</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  <!-- Chunking Method -->
+                  <div>
+                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                      <span class="text-red-500 mr-1">*</span>切片方法 <fa :icon="['fas', 'circle-info']" class="ml-1 text-gray-400 text-xs" />
+                    </label>
+                      <select v-model="settingsForm.chunkingMethod" class="w-full px-3 py-2 bg-white dark:bg-[#2C2C2E] border border-gray-200 dark:border-gray-700 rounded-lg text-gray-900 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-brand-green/50">
+                        <option value="novel_en">Novel</option>
+                        <option value="txt">txt</option>
+                        <option value="markdown">markdown</option>
+                      </select>
+                  </div>
+
+                  <!-- Separator -->
+                  <div>
+                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                      <span class="text-red-500 mr-1">*</span>文本分段标识符 <fa :icon="['fas', 'circle-info']" class="ml-1 text-gray-400 text-xs" />
+                    </label>
+                    <input type="text" v-model="settingsForm.separator" class="w-full px-3 py-2 bg-white dark:bg-[#2C2C2E] border border-gray-200 dark:border-gray-700 rounded-lg text-gray-900 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-brand-green/50">
+                  </div>
+                </div>
+
+                
+              </div>
+            </div>
+
+            <!-- Right Column: Info & Preview -->
+            <div class="w-full md:w-1/2 p-6 bg-gray-50/50 dark:bg-gray-800/20 overflow-y-auto">
+              <div class="sticky top-0">
+                <h4 class="text-base font-semibold text-gray-900 dark:text-white mb-4">"{{ currentChunkingDetail.label }}" 分块方法说明</h4>
+                <p class="text-sm text-gray-600 dark:text-gray-400 mb-4 leading-relaxed">
+                  支持的文件格式为 <strong>{{ currentChunkingDetail.formats }}</strong>。
+                </p>
+                <p class="text-sm text-gray-600 dark:text-gray-400 mb-2">{{ currentChunkingDetail.description }}</p>
+                <ul class="list-disc list-inside text-sm text-gray-600 dark:text-gray-400 mb-6 space-y-1">
+                  <li v-for="(step, index) in currentChunkingDetail.steps" :key="index">{{ step }}</li>
+                </ul>
+
+                <h4 class="text-base font-semibold text-gray-900 dark:text-white mb-4">"{{ currentChunkingDetail.label }}" 示例</h4>
+                <p class="text-sm text-gray-600 dark:text-gray-400 mb-4">提出以下屏幕截图以促进理解。</p>
+                
+                <!-- Example Images Placeholder -->
+                <div class="grid grid-cols-2 gap-4 mb-8">
+                  <div>
+                    <div class="aspect-video rounded-lg overflow-hidden">
+                      <img src="@/assets/meta.png" alt="原图" class="w-full h-full object-cover" />
+                    </div>
+                    <div class="mt-2 text-xs text-gray-500 dark:text-gray-400 text-center">原图</div>
+                  </div>
+                  <div>
+                    <div class="aspect-video rounded-lg overflow-hidden">
+                      <img src="@/assets/Novel.png" alt="实际读取方式" class="w-full h-full object-cover" />
+                    </div>
+                    <div class="mt-2 text-xs text-gray-500 dark:text-gray-400 text-center">实际读取方式</div>
+                  </div>
+                </div>
+
+              </div>
+            </div>
+          </div>
+
+          <!-- Footer -->
+          <div class="flex items-center justify-end gap-3 p-4 border-t border-gray-100 dark:border-gray-800 bg-white dark:bg-[#1C1C1E]">
+            <button
+              @click="closeSettingsModal"
+              class="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition"
+            >
+              取消
+            </button>
+            <button
+              @click="saveSettings"
+              class="px-4 py-2 text-sm font-medium text-white bg-brand-green hover:bg-brand-green-hover rounded-lg shadow-sm shadow-brand-green/20 transition"
+            >
+              保存设置
+            </button>
           </div>
         </div>
       </div>
