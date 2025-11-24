@@ -186,7 +186,7 @@ const messages = {
       // Modals
       new_design: 'New Script Library',
       duplicate_project: 'Duplicate Project',
-      create_new_project: 'Create New Project',
+      create_new_project: 'Create New Script Library',
       create_team: 'Create Team',
       create_team_modal: 'Create Team',
       team_name: 'Team Name',
@@ -553,7 +553,7 @@ const messages = {
       // Modals
       new_design: '新建剧本库',
       duplicate_project: '复制项目',
-      create_new_project: '创建新项目',
+      create_new_project: '新建剧本库',
       create_team: '创建团队',
       create_team_modal: '创建团队',
       team_name: '团队名称',

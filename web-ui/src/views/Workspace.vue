@@ -20,35 +20,8 @@ const applyTheme = () => {
   if (useDark) root.classList.add('dark')
   else root.classList.remove('dark')
 }
-const projects = ref([
-  {
-    id: 'p1',
-    name: '霸道总裁爱上我',
-    updated: '2小时前',
-    thumbnail: 'https://images.unsplash.com/photo-1536440136628-849c177e76a1?q=80&w=800&auto=format&fit=crop',
-    teamId: 't1',
-    episodes: 80,
-    status: 'rendering'
-  },
-  {
-    id: 'p2',
-    name: '重生之我是大明星',
-    updated: '昨天',
-    thumbnail: 'https://images.unsplash.com/photo-1598899134739-24c46f58b8c0?q=80&w=800&auto=format&fit=crop',
-    teamId: 't2',
-    episodes: 50,
-    status: 'scripting'
-  },
-  {
-    id: 'p3',
-    name: '末日降临',
-    updated: '3天前',
-    thumbnail: 'https://images.unsplash.com/photo-1533488765986-dfa2a9939acd?q=80&w=800&auto=format&fit=crop',
-    teamId: 't1',
-    episodes: 12,
-    status: 'draft'
-  }
-])
+const API_BASE = import.meta.env.VITE_API_BASE || 'http://localhost:7767'
+const projects = ref([])
 const headerSearch = ref('')
 const filteredProjects = computed(() => {
   const q = headerSearch.value.trim().toLowerCase()
@@ -217,6 +190,7 @@ onMounted(() => {
 
   applyTheme()
   document.addEventListener('click', onDocClick)
+  loadLibraries()
 })
 onBeforeUnmount(() => {
   document.removeEventListener('click', onDocClick)
@@ -351,19 +325,34 @@ const cancelCreate = () => {
   createDesc.value = ''
   nameError.value = ''
 }
-const confirmCreate = () => {
+const confirmCreate = async () => {
   nameError.value = createName.value.trim() ? '' : t('workspace.field_required')
   const name = createName.value.trim()
   if (!name) return
-  const id = 'p' + Date.now().toString(36)
-  projects.value.unshift({
-    id,
-    name,
-    updated: t('workspace.just_now'),
-    thumbnail: 'https://images.unsplash.com/photo-1520975916090-3105956dac38?q=80&w=800&auto=format&fit=crop',
-    desc: createDesc.value.trim()
-  })
-  cancelCreate()
+  try {
+    const token = typeof localStorage !== 'undefined' ? localStorage.getItem('accessToken') : ''
+    const res = await fetch(`${API_BASE}/api/v1/script/libraries`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+      },
+      body: JSON.stringify({ name, description: createDesc.value.trim() })
+    })
+    if (!res.ok) {
+      if (res.status === 401) { router.push('/login'); return }
+      return
+    }
+    const lib = await res.json()
+    projects.value.unshift({
+      id: String(lib.id),
+      name: lib.name,
+      updated: new Date(lib.created_at).toLocaleString(),
+      thumbnail: 'https://images.unsplash.com/photo-1520975916090-3105956dac38?q=80&w=800&auto=format&fit=crop',
+      desc: lib.description || ''
+    })
+    cancelCreate()
+  } catch {}
 }
 const adminName = ref('王小明')
 const adminEmail = ref('xiaoming@weimeng.com')
@@ -651,6 +640,31 @@ const submitTeamCreate = () => {
   alert(t('workspace.team_created'))
   closeTeamCreate()
 }
+
+const loadLibraries = async () => {
+  try {
+    const token = typeof localStorage !== 'undefined' ? localStorage.getItem('accessToken') : ''
+    const res = await fetch(`${API_BASE}/api/v1/script/libraries`, {
+      headers: {
+        'Accept': 'application/json',
+        ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+      }
+    })
+    if (!res.ok) {
+      if (res.status === 401) { try { localStorage.setItem('loggedIn','false') } catch {} ; router.push('/login'); return }
+      return
+    }
+    const data = await res.json()
+    const mapped = (Array.isArray(data) ? data : []).map(lib => ({
+      id: String(lib.id),
+      name: lib.name,
+      updated: new Date(lib.created_at).toLocaleString(),
+      thumbnail: 'https://images.unsplash.com/photo-1520975916090-3105956dac38?q=80&w=800&auto=format&fit=crop',
+      desc: lib.description || ''
+    }))
+    projects.value = mapped
+  } catch {}
+}
 </script>
 
 <template>
@@ -930,7 +944,7 @@ const submitTeamCreate = () => {
               <router-link :to="{ path: '/studio', query: { id: p.id } }">
                 <div class="aspect-video bg-gray-100 rounded-t-lg overflow-hidden relative">
                   <img :src="p.thumbnail" class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" alt="Project thumbnail">
-                  <div class="absolute top-2 left-2 px-2 py-1 bg-black/60 backdrop-blur-sm rounded text-xs text-white font-medium">
+                  <div v-if="p.episodes!=null" class="absolute top-2 left-2 px-2 py-1 bg-black/60 backdrop-blur-sm rounded text-xs text-white font-medium">
                     {{ p.episodes }} {{ $t('workspace.episodes') }}
                   </div>
                   <div class="absolute bottom-2 right-2 px-2 py-1 rounded text-xs font-bold uppercase tracking-wide" 
@@ -940,8 +954,8 @@ const submitTeamCreate = () => {
                       'bg-purple-100 text-purple-700': p.status === 'rendering',
                       'bg-green-100 text-green-700': p.status === 'published'
                     }">
-                    {{ $t('workspace.status.' + (p.status || 'draft')) }}
-                  </div>
+                    <span v-if="p.status">{{ $t('workspace.status.' + p.status) }}</span>
+                </div>
                 </div>
                 <div class="p-4">
                   <h3 class="font-semibold text-primary truncate dark:text-white text-lg">{{ p.name }}</h3>
@@ -974,7 +988,7 @@ const submitTeamCreate = () => {
               <router-link :to="{ path: '/studio', query: { id: p.id } }" class="flex items-center gap-4 flex-1">
                 <div class="w-24 h-14 bg-gray-100 rounded-lg overflow-hidden relative">
                   <img :src="p.thumbnail" class="w-full h-full object-cover" />
-                  <div class="absolute bottom-1 right-1 px-1.5 py-0.5 bg-black/60 rounded text-[10px] text-white">
+                  <div v-if="p.episodes!=null" class="absolute bottom-1 right-1 px-1.5 py-0.5 bg-black/60 rounded text-[10px] text-white">
                     {{ p.episodes }} {{ $t('workspace.episodes') }}
                   </div>
                 </div>
@@ -982,8 +996,8 @@ const submitTeamCreate = () => {
                   <div class="font-medium text-primary dark:text-white text-base">{{ p.name }}</div>
                   <div class="flex items-center gap-3 mt-1">
                     <span class="text-xs px-2 py-0.5 rounded-full bg-gray-100 text-gray-600 dark:bg-[#333333] dark:text-gray-300">
-                      {{ $t('workspace.status.' + (p.status || 'draft')) }}
-                    </span>
+                      <span v-if="p.status">{{ $t('workspace.status.' + p.status) }}</span>
+                  </span>
                     <span class="text-xs text-secondary">{{ $t('workspace.modified_at') }}：{{ p.updated || p.time }}</span>
                   </div>
                 </div>
@@ -1011,11 +1025,14 @@ const submitTeamCreate = () => {
             <h3 class="text-xl font-semibold text-primary dark:text-white">{{ $t('workspace.new_design') }}</h3>
             <div class="mt-4 space-y-4">
               <div>
-                <label class="block text-sm font-medium text-secondary dark:text-gray-300">{{ $t('workspace.design_name') }}</label>
+                <label class="block text-sm font-medium text-secondary dark:text-gray-300">
+                  {{ $t('workspace.design_name') }}
+                  <span class="text-red-500 ml-0.5">*</span>
+                </label>
                 <input v-model="createName" type="text" class="mt-1 w-full bg-light-gray border rounded-lg py-2 px-3 focus:outline-none focus:ring-0 dark:bg-black/30 dark:text-[#E0E0E0]" :class="nameError ? 'border-red-500 focus:border-red-500 dark:border-red-500' : 'border-gray-300 focus:border-brand-green dark:border-[#3A3A3C]'" :placeholder="$t('workspace.enter_design_name')" required>
                 <p v-if="nameError" class="mt-1 text-xs text-red-500">{{ nameError }}</p>
               </div>
-              
+
               <div>
                 <label class="block text-sm font-medium text-secondary dark:text-gray-300">{{ $t('workspace.description') }}</label>
                 <textarea v-model="createDesc" rows="3" class="mt-1 w-full bg-light-gray border border-gray-300 rounded-lg py-2 px-3 focus:outline-none focus:ring-0 focus:border-brand-green dark:bg-black/30 dark:text-[#E0E0E0] dark:border-[#3A3A3C]" :placeholder="$t('workspace.optional')"></textarea>
