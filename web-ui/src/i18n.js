@@ -53,7 +53,7 @@ const messages = {
     workspace: {
       // Navigation
       home: 'Home',
-      new_project: 'Create New Project',
+      new_project: 'Create New Script Library',
       my_drafts: 'My Drafts',
       shared_with_me: 'Shared with Me',
       community_resources: 'Community Resources',
@@ -172,19 +172,19 @@ const messages = {
       // Forms
       field_required: 'This field is required',
       enter_name: 'Please enter a name',
-      enter_name_placeholder: 'Enter project name',
+      enter_name_placeholder: 'Enter script library name',
       name_label: 'Name',
       description: 'Description',
       description_optional: 'Description (Optional)',
       optional: 'Optional',
-      design_name: 'Project Name',
-      enter_design_name: 'Enter project name',
+      design_name: 'Script Library Name',
+      enter_design_name: 'Enter script library name',
       permission_settings: 'Permission Settings',
       private: 'Private',
       public: 'Public',
 
       // Modals
-      new_design: 'New Project',
+      new_design: 'New Script Library',
       duplicate_project: 'Duplicate Project',
       create_new_project: 'Create New Project',
       create_team: 'Create Team',
@@ -420,7 +420,7 @@ const messages = {
     workspace: {
       // Navigation
       home: '主页',
-      new_project: '创建新项目',
+      new_project: '新建剧本库',
       my_drafts: '我的草稿',
       shared_with_me: '分享给我的',
       community_resources: '资源社区',
@@ -539,19 +539,19 @@ const messages = {
       // Forms
       field_required: '此项为必填',
       enter_name: '请输入名称',
-      enter_name_placeholder: '请输入项目名称',
+      enter_name_placeholder: '请输入剧本库名称',
       name_label: '名称',
       description: '描述',
       description_optional: '描述（可选）',
       optional: '可选',
-      design_name: '项目名称',
-      enter_design_name: '请输入项目名称',
+      design_name: '剧本库名称',
+      enter_design_name: '请输入剧本库名称',
       permission_settings: '权限设置',
       private: '私有',
       public: '公开',
 
       // Modals
-      new_design: '新建项目',
+      new_design: '新建剧本库',
       duplicate_project: '复制项目',
       create_new_project: '创建新项目',
       create_team: '创建团队',

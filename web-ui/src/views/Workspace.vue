@@ -127,11 +127,9 @@ const sectionList = computed(() => {
 const viewMode = ref('grid')
 const showCreateModal = ref(false)
 const createName = ref('')
-const createPerm = ref('private')
 const createDesc = ref('')
 const nameError = ref('')
-const permError = ref('')
-const isValid = computed(() => createName.value.trim().length > 0 && !!createPerm.value)
+const isValid = computed(() => createName.value.trim().length > 0)
 const openMenuId = ref(null)
 const toggleTheme = () => {
   theme.value = theme.value === 'dark' ? 'light' : 'dark'
@@ -351,22 +349,18 @@ const cancelCreate = () => {
   showCreateModal.value = false
   createName.value = ''
   createDesc.value = ''
-  createPerm.value = 'private'
   nameError.value = ''
-  permError.value = ''
 }
 const confirmCreate = () => {
   nameError.value = createName.value.trim() ? '' : t('workspace.field_required')
-  permError.value = createPerm.value ? '' : t('workspace.field_required')
   const name = createName.value.trim()
-  if (!name || !createPerm.value) return
+  if (!name) return
   const id = 'p' + Date.now().toString(36)
   projects.value.unshift({
     id,
     name,
     updated: t('workspace.just_now'),
     thumbnail: 'https://images.unsplash.com/photo-1520975916090-3105956dac38?q=80&w=800&auto=format&fit=crop',
-    perm: createPerm.value,
     desc: createDesc.value.trim()
   })
   cancelCreate()
@@ -1021,15 +1015,7 @@ const submitTeamCreate = () => {
                 <input v-model="createName" type="text" class="mt-1 w-full bg-light-gray border rounded-lg py-2 px-3 focus:outline-none focus:ring-0 dark:bg-black/30 dark:text-[#E0E0E0]" :class="nameError ? 'border-red-500 focus:border-red-500 dark:border-red-500' : 'border-gray-300 focus:border-brand-green dark:border-[#3A3A3C]'" :placeholder="$t('workspace.enter_design_name')" required>
                 <p v-if="nameError" class="mt-1 text-xs text-red-500">{{ nameError }}</p>
               </div>
-              <div>
-                <label class="block text-sm font-medium text-secondary dark:text-gray-300">{{ $t('workspace.permission_settings') }}</label>
-                <div class="mt-2 flex items-center gap-4 border rounded-lg px-3 py-2" :class="permError ? 'border-red-500 dark:border-red-500' : 'border-transparent dark:border-transparent'">
-                  <label class="flex items-center gap-2 text-secondary dark:text-gray-300"><input type="radio" value="private" v-model="createPerm" class="accent-brand-green" required> {{ $t('workspace.private') }}</label>
-                  <label class="flex items-center gap-2 text-secondary dark:text-gray-300"><input type="radio" value="public" v-model="createPerm" class="accent-brand-green" required> {{ $t('workspace.public') }}</label>
-                  <label class="flex items-center gap-2 text-secondary dark:text-gray-300"><input type="radio" value="team" v-model="createPerm" class="accent-brand-green" required> {{ $t('workspace.team') }}</label>
-                </div>
-                <p v-if="permError" class="mt-1 text-xs text-red-500">{{ permError }}</p>
-              </div>
+              
               <div>
                 <label class="block text-sm font-medium text-secondary dark:text-gray-300">{{ $t('workspace.description') }}</label>
                 <textarea v-model="createDesc" rows="3" class="mt-1 w-full bg-light-gray border border-gray-300 rounded-lg py-2 px-3 focus:outline-none focus:ring-0 focus:border-brand-green dark:bg-black/30 dark:text-[#E0E0E0] dark:border-[#3A3A3C]" :placeholder="$t('workspace.optional')"></textarea>
