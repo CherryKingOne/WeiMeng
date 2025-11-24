@@ -135,8 +135,15 @@ async def upload_file_to_library(
 
     # 2. Upload to MinIO
     file_content = await file.read()
-    object_key = f"{lib.minio_folder_path}{file.filename}"
-    file_url = minio_client.upload_file(file_content, object_key, file.content_type or "application/octet-stream")
+    filename_lower = file.filename.lower()
+    content_type = file.content_type or "application/octet-stream"
+    image_exts = {".png", ".jpg", ".jpeg", ".gif", ".bmp", ".webp", ".svg"}
+    import os
+    _, ext = os.path.splitext(filename_lower)
+    is_image = content_type.startswith("image/") or ext in image_exts
+    subfolder = "images" if is_image else "text"
+    object_key = f"{lib.minio_folder_path}{subfolder}/{file.filename}"
+    file_url = minio_client.upload_file(file_content, object_key, content_type)
 
     # 3. Save to database
     new_file_id = int(generate_numeric_uuid18())
@@ -148,7 +155,8 @@ async def upload_file_to_library(
         library_id=lib.id,
         filename=file.filename,
         file_url=file_url,
-        minio_object_key=object_key
+        minio_object_key=object_key,
+        file_type="image" if is_image else "text"
     )
     db.add(new_file)
     await db.commit()
