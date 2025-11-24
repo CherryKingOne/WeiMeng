@@ -17,3 +17,8 @@ def generate_numeric_uuid16() -> str:
     first = random.choice("123456789")
     rest = "".join(random.choices(string.digits, k=15))
     return first + rest
+
+def generate_numeric_uuid18() -> str:
+    first = random.choice("123456789")
+    rest = "".join(random.choices(string.digits, k=17))
+    return first + rest

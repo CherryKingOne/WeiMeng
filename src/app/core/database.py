@@ -47,6 +47,10 @@ async def init_db():
             await conn.execute(text("ALTER TABLE script_files ALTER COLUMN library_id TYPE BIGINT"))
         except Exception:
             pass
+        try:
+            await conn.execute(text("ALTER TABLE script_files ALTER COLUMN id TYPE BIGINT"))
+        except Exception:
+            pass
 
         # Create all tables
         await conn.run_sync(Base.metadata.create_all)

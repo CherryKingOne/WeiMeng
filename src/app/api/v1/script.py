@@ -10,7 +10,7 @@ from app.models.user import User
 from app.models.script import ScriptLibrary, ScriptFile
 from app.schemas.script import LibraryCreate, LibraryResponse, FileResponse, LibraryWithFiles
 from app.services.minio_service import minio_client
-from app.utils.id_generator import generate_numeric_uuid16
+from app.utils.id_generator import generate_numeric_uuid16, generate_numeric_uuid18
 
 router = APIRouter()
 
@@ -139,7 +139,12 @@ async def upload_file_to_library(
     file_url = minio_client.upload_file(file_content, object_key, file.content_type or "application/octet-stream")
 
     # 3. Save to database
+    new_file_id = int(generate_numeric_uuid18())
+    existing_file = await db.execute(select(ScriptFile).where(ScriptFile.id == new_file_id))
+    if existing_file.scalars().first() is not None:
+        new_file_id = int(generate_numeric_uuid18())
     new_file = ScriptFile(
+        id=new_file_id,
         library_id=lib.id,
         filename=file.filename,
         file_url=file_url,

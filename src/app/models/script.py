@@ -22,7 +22,7 @@ class ScriptFile(Base):
     """剧本库中的具体文件"""
     __tablename__ = "script_files"
 
-    id = Column(Integer, primary_key=True, index=True)
+    id = Column(BigInteger, primary_key=True, index=True)
     library_id = Column(BigInteger, ForeignKey("script_libraries.id"), nullable=False)
     filename = Column(String, nullable=False)
     file_url = Column(String, nullable=True)  # Minio 访问链接
