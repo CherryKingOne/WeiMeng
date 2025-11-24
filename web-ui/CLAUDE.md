@@ -102,8 +102,13 @@ The studio is a drama production interface with four main tabs for the complete 
 - Three modes via `scriptMode` ref: 'selection', 'upload', 'write'
 - Selection mode: Choose between uploading files or writing scripts
 - Upload mode: Drag-and-drop or click to upload .txt, .md, .doc, .docx, .csv, .xlsx, .pdf (max 10MB)
-  - `uploadedFiles` ref tracks files with processing status and chunk counts
-  - `simulateFileProcessing()` simulates chunking files for processing
+  - `uploadedFiles` ref tracks files with `selected` state, upload progress, and completion status
+  - Files automatically upload to backend via `uploadFileToBackend()` using XMLHttpRequest for progress tracking
+  - `loadExistingFiles()` fetches files from backend on mount, using regex to preserve large integer IDs
+  - File selection system with checkboxes: `fileListSelectAll` ref and `toggleFileSelection()` function
+  - Batch delete functionality: `batchDeleteFiles()` deletes multiple selected files via API
+  - Custom delete confirmation modal (`showDeleteFileConfirm`) instead of browser confirm
+  - Toast notifications (`showToast`, `toastMessage`, `toastType`) for success/error feedback
 - Write mode: Full-screen script editor with AI continuation dialog
   - `scriptContent` ref stores the script text
   - AI dialog (`showAiDialog`) positioned at cursor using DOM measurement
@@ -166,6 +171,30 @@ The studio is a drama production interface with four main tabs for the complete 
 - Drag-and-drop with JSON serialization via dataTransfer
 - Computed properties for filtered views: `visibleSegments`, `visibleFiles`, `sceneSegments`, `dialogueSegments`
 
+## Backend API Integration
+
+**Base URL**: Configured via `API_BASE` constant: `import.meta.env.VITE_API_BASE || 'http://localhost:7767'`
+
+**Authentication**: All API requests include `Authorization: Bearer ${token}` header from localStorage('accessToken')
+
+**Key API Endpoints**:
+- `GET /api/v1/script/libraries` - List script libraries
+- `POST /api/v1/script/libraries` - Create script library
+- `DELETE /api/v1/script/libraries/{id}` - Delete script library
+- `GET /api/v1/script/libraries/{id}/files` - List files in library
+- `POST /api/v1/script/libraries/{id}/files` - Upload file (multipart/form-data)
+- `DELETE /api/v1/script/files/{fileId}` - Delete file
+
+**Large Integer Handling**: Backend returns IDs as large integers (15+ digits) that exceed JavaScript's `Number.MAX_SAFE_INTEGER`. To preserve precision:
+- Use regex replacement before JSON parsing: `text.replace(/"id":(\d{15,})/g, '"id":"$1"')`
+- Always store IDs as strings in frontend state
+- Example in `loadExistingFiles()` and `loadLibraries()` functions
+
+**Error Handling Pattern**:
+- 401 responses trigger redirect to `/login` via `router.push('/login')`
+- Use custom modals instead of `window.confirm()` or `window.alert()`
+- Show toast notifications for success/error feedback
+
 ## Key Conventions
 
 - Use Composition API with `<script setup>`
@@ -177,3 +206,5 @@ The studio is a drama production interface with four main tabs for the complete 
 - Form validation pattern: separate error ref for each field, clear on submit, set on validation failure
 - Use `nextTick()` before showing modals to ensure DOM updates complete
 - Cleanup timers in component lifecycle (use onBeforeUnmount to clear intervals/timeouts)
+- Use `reactive()` for objects that need deep reactivity (e.g., file upload progress tracking)
+- Avoid browser default dialogs: use custom modals with `<teleport to="body">` instead

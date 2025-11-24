@@ -12,6 +12,7 @@ const activeTab = ref('script')
 const scriptMode = ref('selection') // 'selection', 'write', 'upload'
 const tabs = [
   { id: 'script', label: '剧本创作', icon: 'book' },
+  { id: 'files', label: '剧本文件管理', icon: 'folder' },
   { id: 'characters', label: '角色一致性', icon: 'users' },
   { id: 'storyboard', label: '分镜生成', icon: 'clapperboard' },
   { id: 'video', label: '视频剪辑', icon: 'video', badge: 'Beta' }
@@ -524,7 +525,8 @@ const processFile = async (file) => {
     chunks: 0,
     progress: 'uploading', // 'uploading', 'completed', 'error'
     processedChunks: 0,
-    uploadProgress: 0
+    uploadProgress: 0,
+    selected: false // Add selected state
   })
   uploadedFiles.value.push(fileData)
 
@@ -710,7 +712,8 @@ const loadExistingFiles = async () => {
           },
           progress: 'completed',
           uploadProgress: 100,
-          isExisting: true // Mark as existing file from backend
+          isExisting: true, // Mark as existing file from backend
+          selected: false // Add selected state
         })
         uploadedFiles.value.push(fileData)
       })
@@ -819,6 +822,71 @@ const scriptSegments = ref([]) // Parsed script segments with selection state
 const selectAll = ref(true)
 const visibleSegments = computed(() => scriptSegments.value.map((seg, idx) => ({ seg, idx })))
 const visibleFiles = computed(() => uploadedFiles.value.map((file, idx) => ({ file, idx })))
+const fileListSelectAll = ref(false)
+
+const toggleFileSelectAll = () => {
+  fileListSelectAll.value = !fileListSelectAll.value
+  uploadedFiles.value.forEach(f => f.selected = fileListSelectAll.value)
+}
+
+const toggleFileSelection = (index) => {
+  const file = uploadedFiles.value[index]
+  if (file) {
+    file.selected = !file.selected
+    fileListSelectAll.value = uploadedFiles.value.every(f => f.selected)
+  }
+}
+
+// Batch delete confirmation modal
+const showBatchDeleteConfirm = ref(false)
+const batchDeleteCount = ref(0)
+
+const openBatchDeleteConfirm = () => {
+  const selectedCount = uploadedFiles.value.filter(f => f.selected).length
+  if (selectedCount === 0) return
+  batchDeleteCount.value = selectedCount
+  showBatchDeleteConfirm.value = true
+}
+
+const cancelBatchDelete = () => {
+  showBatchDeleteConfirm.value = false
+  batchDeleteCount.value = 0
+}
+
+const batchDeleteFiles = async () => {
+  const selectedIndices = uploadedFiles.value
+    .map((f, i) => f.selected ? i : -1)
+    .filter(i => i !== -1)
+    .sort((a, b) => b - a) // Sort descending to remove from end
+
+  if (selectedIndices.length === 0) return
+
+  for (const index of selectedIndices) {
+    // reusing removeFile logic but bypassing confirmation for batch
+    // Note: This is a simplified batch delete. Ideally, we should have a batch API.
+    // For now, we'll just call the delete API sequentially or remove from list.
+    // Since removeFile has UI interaction (modal), we should refactor or just call the API directly here.
+    
+    const fileData = uploadedFiles.value[index]
+    if (fileData.isExisting && fileData.fileId) {
+       try {
+        const token = typeof localStorage !== 'undefined' ? localStorage.getItem('accessToken') : ''
+        await fetch(`${API_BASE}/api/v1/script/files/${fileData.fileId}`, {
+          method: 'DELETE',
+          headers: {
+            'Accept': 'application/json',
+            ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+          }
+        })
+       } catch (e) {
+         console.error('Failed to delete file', fileData.fileName)
+       }
+    }
+    uploadedFiles.value.splice(index, 1)
+  }
+  fileListSelectAll.value = false
+  showToastMessage('批量删除完成', 'success')
+}
 const roleAppearance = reactive({})
 const roleEditing = reactive({})
 const roleDetailsOpen = reactive({})
@@ -1134,44 +1202,82 @@ onMounted(() => {
               <p class="text-sm text-secondary dark:text-gray-400">支持 .txt, .md, .doc, .docx, .csv, .xlsx, .pdf (最大 10MB)</p>
             </div>
             
-            <!-- Uploaded Files List (Horizontal Cards) -->
-            <div v-if="uploadedFiles.length > 0" class="space-y-3">
-              <div
-                v-for="(fileData, index) in uploadedFiles"
-                :key="index"
-                class="flex items-center gap-4 px-6 py-4 bg-white dark:bg-[#2C2C2E] rounded-xl border-2 shadow-sm"
-                :class="fileData.progress === 'completed' ? 'border-brand-green' : fileData.progress === 'error' ? 'border-red-500' : 'border-blue-500'"
-              >
-                <!-- File Icon -->
-                <div class="flex-shrink-0">
-                  <fa :icon="['fas', 'file']" class="text-2xl"
-                    :class="fileData.progress === 'completed' ? 'text-brand-green' : fileData.progress === 'error' ? 'text-red-500' : 'text-blue-500'" />
+            <!-- Uploaded Files List -->
+            <div v-if="uploadedFiles.length > 0" class="bg-white dark:bg-[#2C2C2E] rounded-xl border border-gray-200 dark:border-[#3A3A3C] overflow-hidden">
+              <!-- Header Row -->
+              <div class="flex items-center gap-4 px-6 py-3 bg-gray-50 dark:bg-[#3A3A3C]/50 border-b border-gray-200 dark:border-[#3A3A3C]">
+                <div class="flex items-center gap-3">
+                  <input 
+                    type="checkbox" 
+                    :checked="fileListSelectAll"
+                    @change="toggleFileSelectAll"
+                    class="w-4 h-4 rounded border-gray-300 text-brand-green focus:ring-brand-green"
+                  >
+                  <span class="text-sm font-medium text-gray-700 dark:text-gray-300">文件列表</span>
                 </div>
-
-                <!-- File Info -->
-                <div class="flex-1 min-w-0">
-                  <p class="text-sm font-medium text-gray-900 dark:text-white truncate mb-1">{{ fileData.file.name }}</p>
-                  <div class="flex items-center gap-2">
-                    <p class="text-xs text-gray-500 dark:text-gray-400">{{ (fileData.file.size / 1024).toFixed(2) }} KB</p>
-                    <span class="text-gray-300 dark:text-gray-600">•</span>
-                    <p class="text-xs"
-                      :class="fileData.progress === 'completed' ? 'text-brand-green' : fileData.progress === 'error' ? 'text-red-500' : 'text-blue-500'">
-                      {{ fileData.progress === 'completed' ? '上传完成' : fileData.progress === 'error' ? '上传失败' : `上传中 ${fileData.uploadProgress}%` }}
-                    </p>
-                  </div>
-                  <!-- Progress Bar -->
-                  <div v-if="fileData.progress === 'uploading'" class="mt-2 w-full bg-gray-200 dark:bg-gray-700 rounded-full h-1.5">
-                    <div class="bg-blue-500 h-1.5 rounded-full transition-all duration-300" :style="{ width: fileData.uploadProgress + '%' }"></div>
-                  </div>
+                <div class="ml-auto flex items-center gap-2" v-if="uploadedFiles.some(f => f.selected)">
+                  <button 
+                    @click="openBatchDeleteConfirm"
+                    class="text-xs text-red-500 hover:text-red-600 font-medium px-2 py-1 rounded hover:bg-red-50 dark:hover:bg-red-900/20 transition"
+                  >
+                    批量删除
+                  </button>
                 </div>
+              </div>
 
-                <!-- Delete Button -->
-                <button
-                  @click="removeFile(index)"
-                  class="flex-shrink-0 px-4 py-2 rounded-lg border border-gray-300 dark:border-[#3A3A3C] text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-[#3A3A3C] transition-colors"
+              <!-- File List -->
+              <div class="p-4 space-y-3">
+                <div
+                  v-for="(fileData, index) in uploadedFiles"
+                  :key="index"
+                  class="flex items-center gap-4 px-6 py-4 bg-white dark:bg-[#2C2C2E] rounded-xl border-2 shadow-sm transition-all"
+                  :class="[
+                    fileData.selected ? 'border-brand-green bg-brand-green/5' : 'border-gray-100 dark:border-[#3A3A3C]',
+                    fileData.progress === 'completed' ? '' : fileData.progress === 'error' ? 'border-red-500' : 'border-blue-500'
+                  ]"
+                  @click="toggleFileSelection(index)"
                 >
-                  <fa :icon="['fas', 'trash']" class="text-sm" />
-                </button>
+                  <!-- Checkbox -->
+                  <div class="flex-shrink-0" @click.stop>
+                    <input 
+                      type="checkbox" 
+                      v-model="fileData.selected"
+                      @change="fileListSelectAll = uploadedFiles.every(f => f.selected)"
+                      class="w-4 h-4 rounded border-gray-300 text-brand-green focus:ring-brand-green"
+                    >
+                  </div>
+
+                  <!-- File Icon -->
+                  <div class="flex-shrink-0">
+                    <fa :icon="['fas', 'file']" class="text-2xl"
+                      :class="fileData.progress === 'completed' ? 'text-brand-green' : fileData.progress === 'error' ? 'text-red-500' : 'text-blue-500'" />
+                  </div>
+
+                  <!-- File Info -->
+                  <div class="flex-1 min-w-0">
+                    <p class="text-sm font-medium text-gray-900 dark:text-white truncate mb-1">{{ fileData.file.name }}</p>
+                    <div class="flex items-center gap-2">
+                      <p class="text-xs text-gray-500 dark:text-gray-400">{{ (fileData.file.size / 1024).toFixed(2) }} KB</p>
+                      <span class="text-gray-300 dark:text-gray-600">•</span>
+                      <p class="text-xs"
+                        :class="fileData.progress === 'completed' ? 'text-brand-green' : fileData.progress === 'error' ? 'text-red-500' : 'text-blue-500'">
+                        {{ fileData.progress === 'completed' ? '上传完成' : fileData.progress === 'error' ? '上传失败' : `上传中 ${fileData.uploadProgress}%` }}
+                      </p>
+                    </div>
+                    <!-- Progress Bar -->
+                    <div v-if="fileData.progress === 'uploading'" class="mt-2 w-full bg-gray-200 dark:bg-gray-700 rounded-full h-1.5">
+                      <div class="bg-blue-500 h-1.5 rounded-full transition-all duration-300" :style="{ width: fileData.uploadProgress + '%' }"></div>
+                    </div>
+                  </div>
+
+                  <!-- Delete Button -->
+                  <button
+                    @click.stop="removeFile(index)"
+                    class="flex-shrink-0 px-4 py-2 rounded-lg border border-gray-300 dark:border-[#3A3A3C] text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-[#3A3A3C] transition-colors"
+                  >
+                    <fa :icon="['fas', 'trash']" class="text-sm" />
+                  </button>
+                </div>
               </div>
             </div>
           </div>
@@ -1270,6 +1376,144 @@ onMounted(() => {
                 </div>
               </div>
             </div>
+          </div>
+        </div>
+
+        <!-- Files View (Script File Management) -->
+        <div v-else-if="activeTab === 'files'" class="max-w-6xl mx-auto">
+          <div class="flex items-center justify-between mb-6">
+            <h2 class="text-xl font-bold">剧本文件管理</h2>
+            <button 
+              @click="triggerFileInput"
+              class="px-4 py-2 bg-brand-green text-white rounded-lg text-sm hover:bg-brand-green-dark transition flex items-center gap-2"
+            >
+              <fa :icon="['fas', 'plus']" />
+              上传文件
+            </button>
+          </div>
+
+          <!-- Hidden file input -->
+          <input 
+            ref="fileInput"
+            type="file" 
+            multiple
+            class="hidden" 
+            accept=".txt,.md,.doc,.docx,.csv,.xlsx,.pdf"
+            @change="handleFileSelect"
+          >
+
+          <!-- Files List -->
+          <div v-if="uploadedFiles.length > 0" class="bg-white dark:bg-[#2C2C2E] rounded-xl border border-gray-200 dark:border-[#3A3A3C] overflow-hidden">
+            <!-- Header Row -->
+            <div class="flex items-center gap-4 px-6 py-3 bg-gray-50 dark:bg-[#3A3A3C]/50 border-b border-gray-200 dark:border-[#3A3A3C]">
+              <div class="flex items-center gap-3">
+                <input 
+                  type="checkbox" 
+                  :checked="fileListSelectAll"
+                  @change="toggleFileSelectAll"
+                  class="w-4 h-4 rounded border-gray-300 text-brand-green focus:ring-brand-green"
+                >
+                <span class="text-sm font-medium text-gray-700 dark:text-gray-300">全部文件</span>
+              </div>
+              <div class="ml-auto flex items-center gap-2">
+                <span class="text-xs text-gray-500 dark:text-gray-400">共 {{ uploadedFiles.length }} 个文件</span>
+                <button 
+                  v-if="uploadedFiles.some(f => f.selected)"
+                  @click="openBatchDeleteConfirm"
+                  class="text-xs text-red-500 hover:text-red-600 font-medium px-3 py-1.5 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20 transition"
+                >
+                  <fa :icon="['fas', 'trash']" class="mr-1" />
+                  批量删除
+                </button>
+              </div>
+            </div>
+
+            <!-- File List -->
+            <div class="divide-y divide-gray-100 dark:divide-[#3A3A3C]">
+              <div
+                v-for="(fileData, index) in uploadedFiles"
+                :key="index"
+                class="flex items-center gap-4 px-6 py-4 hover:bg-gray-50 dark:hover:bg-[#3A3A3C]/30 transition-colors cursor-pointer"
+                :class="fileData.selected ? 'bg-brand-green/5' : ''"
+                @click="toggleFileSelection(index)"
+              >
+                <!-- Checkbox -->
+                <div class="flex-shrink-0" @click.stop>
+                  <input 
+                    type="checkbox" 
+                    v-model="fileData.selected"
+                    @change="fileListSelectAll = uploadedFiles.every(f => f.selected)"
+                    class="w-4 h-4 rounded border-gray-300 text-brand-green focus:ring-brand-green"
+                  >
+                </div>
+
+                <!-- File Icon -->
+                <div class="flex-shrink-0">
+                  <div class="w-10 h-10 rounded-lg bg-brand-green/10 flex items-center justify-center">
+                    <fa :icon="['fas', 'file']" class="text-lg text-brand-green" />
+                  </div>
+                </div>
+
+                <!-- File Info -->
+                <div class="flex-1 min-w-0">
+                  <p class="text-sm font-medium text-gray-900 dark:text-white truncate">
+                    {{ fileData.file.name }}
+                  </p>
+                  <div class="flex items-center gap-3 mt-1">
+                    <span class="text-xs text-gray-500 dark:text-gray-400">
+                      {{ (fileData.file.size / 1024).toFixed(2) }} KB
+                    </span>
+                    <span class="text-xs px-2 py-0.5 rounded-full"
+                      :class="fileData.progress === 'completed' ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' : fileData.progress === 'error' ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400' : 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400'">
+                      {{ fileData.progress === 'completed' ? '已上传' : fileData.progress === 'error' ? '上传失败' : '上传中' }}
+                    </span>
+                  </div>
+                </div>
+
+                <!-- Actions -->
+                <div class="flex items-center gap-2">
+                  <button
+                    v-if="fileData.progress === 'completed'"
+                    class="p-2 text-gray-400 hover:text-brand-green hover:bg-brand-green/10 rounded-lg transition"
+                    title="预览"
+                  >
+                    <fa :icon="['fas', 'eye']" />
+                  </button>
+                  <button
+                    v-if="fileData.progress === 'completed'"
+                    class="p-2 text-gray-400 hover:text-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg transition"
+                    title="下载"
+                  >
+                    <fa :icon="['fas', 'download']" />
+                  </button>
+                  <button
+                    @click.stop="removeFile(index)"
+                    class="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition"
+                    title="删除"
+                  >
+                    <fa :icon="['fas', 'trash']" />
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Empty State -->
+          <div v-else class="flex flex-col items-center justify-center py-16 px-4">
+            <div class="w-24 h-24 rounded-full bg-gray-100 dark:bg-[#3A3A3C] flex items-center justify-center mb-6">
+              <fa :icon="['fas', 'folder-open']" class="text-4xl text-gray-400 dark:text-gray-500" />
+            </div>
+            <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-2">暂无文件</h3>
+            <p class="text-sm text-gray-500 dark:text-gray-400 mb-6 text-center max-w-md">
+              上传剧本文件以便管理和使用。支持 TXT、MD、Word、PDF 等格式。
+            </p>
+            <button 
+              @click="triggerFileInput"
+              class="px-6 py-3 bg-brand-green text-white rounded-lg font-medium hover:bg-brand-green-dark transition flex items-center gap-2"
+            >
+              <fa :icon="['fas', 'upload']" />
+              上传第一个文件
+            </button>
           </div>
         </div>
 
@@ -1966,23 +2210,115 @@ onMounted(() => {
 
     <!-- Delete File Confirmation Modal -->
     <teleport to="body">
-      <div v-if="showDeleteFileConfirm" class="fixed inset-0 z-50 flex items-center justify-center">
-        <div class="absolute inset-0 bg-black/40" @click="cancelDeleteFile"></div>
-        <div class="relative w-full max-w-md bg-white rounded-xl shadow-2xl border border-gray-200 p-6 dark:bg-[#2C2C2E] dark:border-[#3A3A3C]">
-          <div class="flex items-start gap-4">
-            <div class="flex-shrink-0 w-12 h-12 rounded-full bg-red-100 dark:bg-red-900/30 flex items-center justify-center">
-              <fa :icon="['fas','triangle-exclamation']" class="text-red-600 dark:text-red-400 text-xl" />
-            </div>
-            <div class="flex-1">
-              <h3 class="text-lg font-semibold text-primary dark:text-white">删除文件</h3>
-              <p class="mt-2 text-sm text-secondary dark:text-gray-400">
-                确定要删除文件 <span class="font-semibold text-primary dark:text-white">"{{ deleteFileName }}"</span> 吗？此操作无法撤销。
-              </p>
+      <div 
+        v-if="showDeleteFileConfirm" 
+        class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm"
+        @click="cancelDeleteFile"
+      >
+        <div 
+          class="bg-white dark:bg-[#2C2C2E] rounded-2xl shadow-2xl w-full max-w-md mx-4 overflow-hidden"
+          @click.stop
+        >
+          <!-- Modal Header -->
+          <div class="flex items-center justify-between px-6 py-4 border-b border-gray-200 dark:border-[#3A3A3C]">
+            <h3 class="text-lg font-bold text-gray-900 dark:text-white">确认删除文件</h3>
+            <button 
+              @click="cancelDeleteFile"
+              class="p-2 hover:bg-gray-100 dark:hover:bg-[#3A3A3C] rounded-lg transition"
+            >
+              <fa :icon="['fas', 'xmark']" class="text-gray-500 dark:text-gray-400" />
+            </button>
+          </div>
+
+          <!-- Modal Body -->
+          <div class="p-6">
+            <div class="flex items-start gap-4">
+              <div class="flex-shrink-0 w-12 h-12 rounded-full bg-red-100 dark:bg-red-900/30 flex items-center justify-center">
+                <fa :icon="['fas', 'triangle-exclamation']" class="text-xl text-red-600 dark:text-red-500" />
+              </div>
+              <div class="flex-1">
+                <p class="text-gray-900 dark:text-white font-medium mb-2">
+                  确定要删除文件 "{{ deleteFileName }}" 吗?
+                </p>
+                <p class="text-sm text-gray-500 dark:text-gray-400">
+                  此操作无法撤销，文件将被永久删除。
+                </p>
+              </div>
             </div>
           </div>
-          <div class="mt-6 flex justify-end gap-3">
-            <button class="px-4 py-2 rounded-lg border border-gray-300 text-secondary hover:bg-gray-100 dark:border-[#3A3A3C] dark:text-gray-300 dark:hover:bg-[#3A3A3C]" @click="cancelDeleteFile">取消</button>
-            <button class="px-4 py-2 rounded-lg bg-red-600 text-white hover:bg-red-700 dark:bg-red-600 dark:hover:bg-red-700" @click="confirmDeleteFile">删除</button>
+
+          <!-- Modal Footer -->
+          <div class="flex items-center justify-end gap-3 px-6 py-4 bg-gray-50 dark:bg-[#1C1C1E] border-t border-gray-200 dark:border-[#3A3A3C]">
+            <button 
+              @click="cancelDeleteFile"
+              class="px-4 py-2 rounded-lg border border-gray-300 dark:border-[#3A3A3C] text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-[#3A3A3C] transition font-medium"
+            >
+              取消
+            </button>
+            <button 
+              @click="confirmDeleteFile"
+              class="px-4 py-2 rounded-lg bg-red-600 text-white hover:bg-red-700 transition font-medium"
+            >
+              确认删除
+            </button>
+          </div>
+        </div>
+      </div>
+    </teleport>
+
+    <!-- Batch Delete Confirmation Modal -->
+    <teleport to="body">
+      <div 
+        v-if="showBatchDeleteConfirm"
+        class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm"
+        @click="cancelBatchDelete"
+      >
+        <div 
+          class="bg-white dark:bg-[#2C2C2E] rounded-2xl shadow-2xl w-full max-w-md mx-4 overflow-hidden"
+          @click.stop
+        >
+          <!-- Modal Header -->
+          <div class="flex items-center justify-between px-6 py-4 border-b border-gray-200 dark:border-[#3A3A3C]">
+            <h3 class="text-lg font-bold text-gray-900 dark:text-white">确认批量删除</h3>
+            <button 
+              @click="cancelBatchDelete"
+              class="p-2 hover:bg-gray-100 dark:hover:bg-[#3A3A3C] rounded-lg transition"
+            >
+              <fa :icon="['fas', 'xmark']" class="text-gray-500 dark:text-gray-400" />
+            </button>
+          </div>
+
+          <!-- Modal Body -->
+          <div class="p-6">
+            <div class="flex items-start gap-4">
+              <div class="flex-shrink-0 w-12 h-12 rounded-full bg-red-100 dark:bg-red-900/30 flex items-center justify-center">
+                <fa :icon="['fas', 'triangle-exclamation']" class="text-xl text-red-600 dark:text-red-500" />
+              </div>
+              <div class="flex-1">
+                <p class="text-gray-900 dark:text-white font-medium mb-2">
+                  确定要删除选中的 {{ batchDeleteCount }} 个文件吗?
+                </p>
+                <p class="text-sm text-gray-500 dark:text-gray-400">
+                  此操作无法撤销，文件将被永久删除。
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <!-- Modal Footer -->
+          <div class="flex items-center justify-end gap-3 px-6 py-4 bg-gray-50 dark:bg-[#1C1C1E] border-t border-gray-200 dark:border-[#3A3A3C]">
+            <button 
+              @click="cancelBatchDelete"
+              class="px-4 py-2 rounded-lg border border-gray-300 dark:border-[#3A3A3C] text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-[#3A3A3C] transition font-medium"
+            >
+              取消
+            </button>
+            <button 
+              @click="batchDeleteFiles(); cancelBatchDelete()"
+              class="px-4 py-2 rounded-lg bg-red-600 text-white hover:bg-red-700 transition font-medium"
+            >
+              确认删除
+            </button>
           </div>
         </div>
       </div>
