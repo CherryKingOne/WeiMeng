@@ -238,7 +238,72 @@ const currentPreview = ref(null)
 const playing = ref(false)
 const currentTime = ref(0)
 const timelineItems = ref([])
-const externalMedia = ref([])
+const externalMedia = ref([
+  { 
+    key: 'demo-video-1', 
+    type: 'video', 
+    src: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4',
+    shortUrl: 'https://s.weimeng.ai/v/abc123',
+    label: '示例视频 - 大兔子.mp4',
+    uuid: 'f47ac10b-58cc-4372-a567-0e02b2c3d479',
+    sceneTags: ['户外', '森林', '动物', '阳光', '草地', '蓝天'],
+    videoText: '在一个阳光明媚的早晨,大兔子从树洞里走出来,伸了个懒腰。森林里的鸟儿在欢快地歌唱,蝴蝶在花丛中飞舞。大兔子看到了三只小动物在欺负一只小蝴蝶,他决定教训一下这些坏家伙。经过一番追逐和较量,大兔子成功地保护了小蝴蝶,森林又恢复了往日的宁静。',
+    summary: '这是一部关于正义与勇气的短片动画。讲述了善良的大兔子如何保护弱小动物,对抗森林中的欺凌者的故事。画面色彩鲜艳,充满童趣,适合作为儿童教育或温馨场景的素材。',
+    duration: '9:56',
+    resolution: '1920x1080',
+    aspectRatio: '16:9',
+    frameRate: '30fps',
+    size: '5.3 MB'
+  },
+  { 
+    key: 'demo-video-2', 
+    type: 'video', 
+    src: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ElephantsDream.mp4',
+    shortUrl: 'https://s.weimeng.ai/v/def456',
+    label: '示例视频 - 大象之梦.mp4',
+    uuid: '550e8400-e29b-41d4-a716-446655440000',
+    sceneTags: ['科幻', '机械', '未来', '工业', '抽象', '黑暗'],
+    videoText: '在一个充满机械装置的神秘空间里,两个角色在探索着这个奇异的世界。巨大的齿轮在转动,管道纵横交错,整个场景充满了超现实主义的色彩。他们穿梭在这个机械迷宫中,寻找着出口,也在寻找着真相。',
+    summary: '这是一部实验性的3D动画短片,展现了一个充满想象力的机械世界。画面风格独特,充满工业感和未来感,适合作为科幻、悬疑或实验性项目的视觉素材。',
+    duration: '10:53',
+    resolution: '1280x720',
+    aspectRatio: '16:9',
+    frameRate: '24fps',
+    size: '6.8 MB'
+  },
+  { 
+    key: 'demo-video-3', 
+    type: 'video', 
+    src: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4',
+    shortUrl: 'https://s.weimeng.ai/v/ghi789',
+    label: '宣传片素材.mp4',
+    uuid: '6ba7b810-9dad-11d1-80b4-00c04fd430c8',
+    sceneTags: ['宣传', '产品', '现代', '科技', '专业'],
+    videoText: '介绍最新的科技产品,展示其卓越的性能和创新的设计。产品在各种场景下的应用,彰显其强大的功能和便捷的使用体验。',
+    summary: '这是一段专业的产品宣传视频,画面简洁大气,节奏明快。适合用于商业广告、产品展示或企业宣传片的制作。',
+    duration: '0:15',
+    resolution: '1920x1080',
+    aspectRatio: '16:9',
+    frameRate: '60fps',
+    size: '2.1 MB'
+  },
+  { 
+    key: 'demo-video-4', 
+    type: 'video', 
+    src: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/Sintel.mp4',
+    shortUrl: 'https://s.weimeng.ai/v/jkl012',
+    label: '短片 - Sintel.mp4',
+    uuid: '7c9e6679-7425-40de-944b-e07fc1f90ae7',
+    sceneTags: ['奇幻', '冒险', '龙', '战斗', '史诗', '情感'],
+    videoText: '一位勇敢的女战士在寻找她失散的龙伙伴。她穿越险峻的山脉,对抗强大的敌人,经历了无数的艰难险阻。在最后的战斗中,她发现了一个令人震惊的真相,关于她的龙伙伴的命运。',
+    summary: '这是一部史诗级的奇幻冒险动画短片,讲述了友谊、勇气和牺牲的故事。画面精美,情节感人,音乐震撼,适合作为高质量的叙事性视频素材。',
+    duration: '14:48',
+    resolution: '1920x1080',
+    aspectRatio: '16:9',
+    frameRate: '24fps',
+    size: '8.7 MB'
+  }
+])
 const mediaLibrary = computed(() => {
   const list = []
   storyboards.value.forEach(s => {
@@ -296,6 +361,34 @@ const addMediaFile = (file) => {
   const type = file.type && file.type.startsWith('image/') ? 'image' : 'video'
   externalMedia.value.push({ key: `ext-${Date.now()}-${Math.random()}`, type, src: url, label: `${type === 'image' ? '图片' : '视频'} ${file.name}` })
 }
+// Video Preview Modal
+const showVideoPreview = ref(false)
+const currentVideoPreview = ref(null)
+const videoPreviewTab = ref('structure')
+
+const openVideoPreview = (media) => {
+  currentVideoPreview.value = media
+  showVideoPreview.value = true
+}
+
+const closeVideoPreview = () => {
+  showVideoPreview.value = false
+  currentVideoPreview.value = null
+  videoPreviewTab.value = 'structure'
+}
+
+const exportVideoJson = () => {
+  if (!currentVideoPreview.value) return
+  const json = JSON.stringify(currentVideoPreview.value, null, 2)
+  const blob = new Blob([json], { type: 'application/json' })
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = url
+  a.download = `${currentVideoPreview.value.label || 'video'}.json`
+  a.click()
+  URL.revokeObjectURL(url)
+}
+
 const regenerateImage = (shot) => {
   shot.generatedImage = false
   shot.img = ''
@@ -1863,7 +1956,7 @@ watch(activeTab, (newTab) => {
               <div class="aspect-video bg-gray-100 dark:bg-[#3A3A3C] relative group">
                 <video :src="media.src" class="w-full h-full object-cover"></video>
                 <div class="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition flex items-center justify-center gap-2">
-                  <button class="p-3 bg-white rounded-full text-gray-800 hover:scale-110 transition">
+                  <button @click="openVideoPreview(media)" class="p-3 bg-white rounded-full text-gray-800 hover:scale-110 transition">
                     <fa :icon="['fas', 'play']" />
                   </button>
                 </div>
@@ -3106,6 +3199,167 @@ watch(activeTab, (newTab) => {
             >
               保存设置
             </button>
+          </div>
+        </div>
+      </div>
+    </teleport>
+
+    <!-- Video Preview Modal -->
+    <teleport to="body">
+      <div 
+        v-if="showVideoPreview && currentVideoPreview"
+        class="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4"
+        @click="closeVideoPreview"
+      >
+        <div 
+          class="bg-white dark:bg-[#2C2C2E] rounded-2xl shadow-2xl w-full max-w-6xl mx-4 overflow-hidden flex flex-col max-h-[90vh]"
+          @click.stop
+        >
+          <!-- Modal Header -->
+          <div class="flex items-center justify-between px-6 py-4 border-b border-gray-200 dark:border-[#3A3A3C]">
+            <h3 class="text-lg font-bold text-gray-900 dark:text-white">视频预览</h3>
+            <button 
+              @click="closeVideoPreview"
+              class="p-2 hover:bg-gray-100 dark:hover:bg-[#3A3A3C] rounded-lg transition"
+            >
+              <fa :icon="['fas', 'xmark']" class="text-gray-500 dark:text-gray-400" />
+            </button>
+          </div>
+
+          <!-- Modal Body -->
+          <div class="flex-1 overflow-hidden flex">
+            <!-- Left: Video Player -->
+            <div class="flex-1 bg-black flex items-center justify-center p-6">
+              <video 
+                :src="currentVideoPreview.src" 
+                controls 
+                autoplay
+                class="w-full h-full max-h-[70vh] rounded-lg"
+              ></video>
+            </div>
+
+            <!-- Right: Info Panel -->
+            <div class="w-96 border-l border-gray-200 dark:border-[#3A3A3C] flex flex-col">
+              <!-- Tabs -->
+              <div class="flex items-center gap-2 px-4 py-3 border-b border-gray-200 dark:border-[#3A3A3C]">
+                <button 
+                  @click="videoPreviewTab = 'structure'"
+                  class="px-3 py-1.5 text-sm rounded-lg transition"
+                  :class="videoPreviewTab === 'structure' ? 'bg-brand-green text-white' : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-[#3A3A3C]'"
+                >
+                  结构化列表
+                </button>
+                <button 
+                  @click="videoPreviewTab = 'json'"
+                  class="px-3 py-1.5 text-sm rounded-lg transition"
+                  :class="videoPreviewTab === 'json' ? 'bg-brand-green text-white' : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-[#3A3A3C]'"
+                >
+                  json预览
+                </button>
+                <button 
+                  @click="exportVideoJson"
+                  class="ml-auto px-3 py-1.5 text-sm rounded-lg border border-brand-green text-brand-green hover:bg-brand-green hover:text-white transition"
+                >
+                  导出
+                </button>
+              </div>
+
+              <!-- Tab Content -->
+              <div class="flex-1 overflow-y-auto p-4">
+                <!-- Structure Tab -->
+                <div v-if="videoPreviewTab === 'structure'" class="space-y-3">
+                  <!-- Row 1: Video Name -->
+                  <div class="bg-gray-50 dark:bg-[#3A3A3C] rounded-lg p-3">
+                    <div class="text-xs text-gray-500 dark:text-gray-400 mb-1">视频名称</div>
+                    <div class="text-sm font-medium text-gray-900 dark:text-white">{{ currentVideoPreview.label }}</div>
+                  </div>
+                  
+                  <!-- Row 2: Scene Tags -->
+                  <div class="bg-gray-50 dark:bg-[#3A3A3C] rounded-lg p-3">
+                    <div class="text-xs text-gray-500 dark:text-gray-400 mb-2">画面和场景关键词</div>
+                    <div class="flex flex-wrap gap-1.5">
+                      <span 
+                        v-for="(tag, index) in currentVideoPreview.sceneTags || []" 
+                        :key="index"
+                        class="px-2 py-1 text-xs rounded-md bg-brand-green/10 text-brand-green dark:bg-brand-green/20 dark:text-brand-green-light"
+                      >
+                        {{ tag }}
+                      </span>
+                    </div>
+                  </div>
+                  
+                  <!-- Row 3: Video Text (Audio Transcription) -->
+                  <div class="bg-gray-50 dark:bg-[#3A3A3C] rounded-lg p-3">
+                    <div class="text-xs text-gray-500 dark:text-gray-400 mb-1">音频转文本</div>
+                    <div class="text-sm text-gray-700 dark:text-gray-300 leading-relaxed">
+                      {{ currentVideoPreview.videoText || '暂无音频文本' }}
+                    </div>
+                  </div>
+                  
+                  <!-- Row 4: Summary -->
+                  <div class="bg-gray-50 dark:bg-[#3A3A3C] rounded-lg p-3">
+                    <div class="text-xs text-gray-500 dark:text-gray-400 mb-1">视频总结描述</div>
+                    <div class="text-sm text-gray-700 dark:text-gray-300 leading-relaxed">
+                      {{ currentVideoPreview.summary || '暂无描述' }}
+                    </div>
+                  </div>
+                  
+                  <!-- Row 5: Metadata -->
+                  <div class="bg-gray-50 dark:bg-[#3A3A3C] rounded-lg p-3">
+                    <div class="text-xs text-gray-500 dark:text-gray-400 mb-2">元数据</div>
+                    <div class="space-y-2">
+                      <div class="grid grid-cols-2 gap-2 text-xs">
+                        <div>
+                          <span class="text-gray-500 dark:text-gray-400">时长:</span>
+                          <span class="ml-1 text-gray-900 dark:text-white font-medium">{{ currentVideoPreview.duration || '未知' }}</span>
+                        </div>
+                        <div>
+                          <span class="text-gray-500 dark:text-gray-400">分辨率:</span>
+                          <span class="ml-1 text-gray-900 dark:text-white font-medium">{{ currentVideoPreview.resolution || '未知' }}</span>
+                        </div>
+                        <div>
+                          <span class="text-gray-500 dark:text-gray-400">比例:</span>
+                          <span class="ml-1 text-gray-900 dark:text-white font-medium">{{ currentVideoPreview.aspectRatio || '未知' }}</span>
+                        </div>
+                        <div>
+                          <span class="text-gray-500 dark:text-gray-400">帧率:</span>
+                          <span class="ml-1 text-gray-900 dark:text-white font-medium">{{ currentVideoPreview.frameRate || '未知' }}</span>
+                        </div>
+                        <div>
+                          <span class="text-gray-500 dark:text-gray-400">类型:</span>
+                          <span class="ml-1 text-gray-900 dark:text-white font-medium">{{ currentVideoPreview.type.toUpperCase() }}</span>
+                        </div>
+                        <div>
+                          <span class="text-gray-500 dark:text-gray-400">大小:</span>
+                          <span class="ml-1 text-gray-900 dark:text-white font-medium">{{ currentVideoPreview.size || '未知' }}</span>
+                        </div>
+                      </div>
+                      <div class="pt-2 border-t border-gray-200 dark:border-[#48484A]">
+                        <div class="text-xs mb-1">
+                          <span class="text-gray-500 dark:text-gray-400">文件名:</span>
+                          <span class="ml-1 text-gray-900 dark:text-white font-mono text-[11px]">{{ currentVideoPreview.label }}</span>
+                        </div>
+                        <div class="text-xs mb-1">
+                          <span class="text-gray-500 dark:text-gray-400">UUID:</span>
+                          <span class="ml-1 text-gray-900 dark:text-white font-mono text-[11px]">{{ currentVideoPreview.uuid || '未知' }}</span>
+                        </div>
+                        <div class="text-xs">
+                          <span class="text-gray-500 dark:text-gray-400">短链:</span>
+                          <a :href="currentVideoPreview.shortUrl" target="_blank" class="ml-1 text-brand-green hover:underline font-mono text-[11px]">
+                            {{ currentVideoPreview.shortUrl || currentVideoPreview.src }}
+                          </a>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- JSON Tab -->
+                <div v-else-if="videoPreviewTab === 'json'" class="bg-gray-900 rounded-lg p-4 overflow-x-auto">
+                  <pre class="text-xs text-green-400 font-mono">{{ JSON.stringify(currentVideoPreview, null, 2) }}</pre>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </div>
