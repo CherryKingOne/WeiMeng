@@ -391,6 +391,27 @@ const confirmDeleteVideo = async () => {
 // Video Upload Modal
 const showVideoUploadModal = ref(false)
 const videoUploadFiles = ref([])
+
+// AI Configuration Menu
+const showAIConfigMenu = ref(false)
+const aiConfig = ref({
+  model: 'gpt-4',
+  temperature: { enabled: false, value: 0 },
+  topP: { enabled: false, value: 1 },
+  presencePenalty: { enabled: false, value: 0 },
+  frequencyPenalty: { enabled: false, value: 0 },
+  maxTokens: { enabled: false, value: 512 },
+  seed: { enabled: false, value: 0 },
+  responseFormat: { enabled: false, value: 'text' }
+})
+
+const toggleAIConfigMenu = () => {
+  showAIConfigMenu.value = !showAIConfigMenu.value
+}
+
+const closeAIConfigMenu = () => {
+  showAIConfigMenu.value = false
+}
 const videoUploadInput = ref(null)
 const videoUploadDragging = ref(false)
 
@@ -1838,6 +1859,282 @@ watch(activeTab, (newTab) => {
       </div>
 
       <div class="flex items-center gap-3">
+        <!-- AI Model Selector -->
+        <div class="relative">
+          <div 
+            @click.stop="toggleAIConfigMenu"
+            class="flex items-center gap-2 px-3 py-1.5 bg-white dark:bg-[#2C2C2E] border border-gray-200 dark:border-[#3A3A3C] rounded-lg shadow-sm cursor-pointer hover:bg-gray-50 dark:hover:bg-[#3A3A3C]/80 transition group"
+            :class="showAIConfigMenu ? 'ring-2 ring-brand-green/20 border-brand-green' : ''"
+          >
+            <fa :icon="['fas', 'wand-magic-sparkles']" class="text-purple-500" />
+            <span class="text-sm font-medium text-gray-700 dark:text-gray-200">GPT-4</span>
+            <span class="px-1.5 py-0.5 text-[10px] font-bold bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400 rounded ml-1">CHAT</span>
+            <fa :icon="['fas', 'sliders']" class="text-gray-400 group-hover:text-purple-500 transition ml-1 text-xs" />
+          </div>
+
+          <!-- AI Config Menu Popover -->
+          <div 
+            v-if="showAIConfigMenu"
+            class="absolute top-full right-0 mt-2 w-80 bg-white dark:bg-[#2C2C2E] rounded-xl shadow-xl border border-gray-200 dark:border-[#3A3A3C] z-50 overflow-hidden"
+            @click.stop
+          >
+            <!-- Model Selection -->
+            <div class="p-4 border-b border-gray-100 dark:border-[#3A3A3C]">
+              <h4 class="text-xs font-bold text-gray-500 dark:text-gray-400 mb-2">模型</h4>
+              <div class="flex items-center justify-between p-2 bg-gray-50 dark:bg-[#1C1C1E] rounded-lg border border-gray-200 dark:border-[#3A3A3C]">
+                <div class="flex items-center gap-2">
+                  <div class="w-6 h-6 rounded bg-purple-100 dark:bg-purple-900/30 flex items-center justify-center">
+                    <fa :icon="['fas', 'robot']" class="text-purple-500 text-xs" />
+                  </div>
+                  <span class="text-sm font-medium text-gray-900 dark:text-white">gpt-4</span>
+                  <span class="text-[10px] px-1 py-0.5 bg-gray-200 dark:bg-gray-700 rounded text-gray-500 dark:text-gray-400">CHAT</span>
+                </div>
+                <fa :icon="['fas', 'chevron-down']" class="text-gray-400 text-xs" />
+              </div>
+            </div>
+
+            <!-- Parameters -->
+            <div class="p-4 space-y-4 max-h-[60vh] overflow-y-auto">
+              <div class="flex items-center justify-between mb-2">
+                <h4 class="text-sm font-bold text-gray-900 dark:text-white">参数</h4>
+                <button class="text-xs text-gray-500 hover:text-brand-green flex items-center gap-1 border border-gray-200 dark:border-[#3A3A3C] px-2 py-1 rounded">
+                  加载预设 <fa :icon="['fas', 'chevron-down']" />
+                </button>
+              </div>
+
+              <!-- Temperature -->
+              <div class="space-y-2">
+                <div class="flex items-center justify-between">
+                  <div class="flex items-center gap-2">
+                    <div 
+                      @click="aiConfig.temperature.enabled = !aiConfig.temperature.enabled"
+                      class="w-8 h-4 rounded-full relative cursor-pointer transition-colors"
+                      :class="aiConfig.temperature.enabled ? 'bg-brand-green' : 'bg-gray-200 dark:bg-gray-700'"
+                    >
+                      <div 
+                        class="absolute top-0.5 left-0.5 w-3 h-3 bg-white rounded-full transition-transform shadow-sm"
+                        :class="aiConfig.temperature.enabled ? 'translate-x-4' : ''"
+                      ></div>
+                    </div>
+                    <span class="text-sm text-gray-700 dark:text-gray-300">温度</span>
+                    <fa :icon="['fas', 'circle-info']" class="text-gray-300 text-xs cursor-help" title="控制随机性" />
+                  </div>
+                  <input 
+                    type="number" 
+                    v-model.number="aiConfig.temperature.value" 
+                    class="w-16 px-2 py-1 text-xs border border-gray-200 dark:border-[#3A3A3C] rounded bg-gray-50 dark:bg-[#1C1C1E] text-right"
+                    :disabled="!aiConfig.temperature.enabled"
+                  />
+                </div>
+                <input 
+                  type="range" 
+                  min="0" 
+                  max="2" 
+                  step="0.1" 
+                  v-model.number="aiConfig.temperature.value"
+                  class="w-full h-1 bg-gray-200 dark:bg-gray-700 rounded-lg appearance-none cursor-pointer accent-brand-green"
+                  :disabled="!aiConfig.temperature.enabled"
+                  :class="!aiConfig.temperature.enabled ? 'opacity-50' : ''"
+                />
+              </div>
+
+              <!-- Top P -->
+              <div class="space-y-2">
+                <div class="flex items-center justify-between">
+                  <div class="flex items-center gap-2">
+                    <div 
+                      @click="aiConfig.topP.enabled = !aiConfig.topP.enabled"
+                      class="w-8 h-4 rounded-full relative cursor-pointer transition-colors"
+                      :class="aiConfig.topP.enabled ? 'bg-brand-green' : 'bg-gray-200 dark:bg-gray-700'"
+                    >
+                      <div 
+                        class="absolute top-0.5 left-0.5 w-3 h-3 bg-white rounded-full transition-transform shadow-sm"
+                        :class="aiConfig.topP.enabled ? 'translate-x-4' : ''"
+                      ></div>
+                    </div>
+                    <span class="text-sm text-gray-700 dark:text-gray-300">Top P</span>
+                    <fa :icon="['fas', 'circle-info']" class="text-gray-300 text-xs cursor-help" title="核采样" />
+                  </div>
+                  <input 
+                    type="number" 
+                    v-model.number="aiConfig.topP.value" 
+                    class="w-16 px-2 py-1 text-xs border border-gray-200 dark:border-[#3A3A3C] rounded bg-gray-50 dark:bg-[#1C1C1E] text-right"
+                    :disabled="!aiConfig.topP.enabled"
+                  />
+                </div>
+                <input 
+                  type="range" 
+                  min="0" 
+                  max="1" 
+                  step="0.01" 
+                  v-model.number="aiConfig.topP.value"
+                  class="w-full h-1 bg-gray-200 dark:bg-gray-700 rounded-lg appearance-none cursor-pointer accent-brand-green"
+                  :disabled="!aiConfig.topP.enabled"
+                  :class="!aiConfig.topP.enabled ? 'opacity-50' : ''"
+                />
+              </div>
+
+              <!-- Presence Penalty -->
+              <div class="space-y-2">
+                <div class="flex items-center justify-between">
+                  <div class="flex items-center gap-2">
+                    <div 
+                      @click="aiConfig.presencePenalty.enabled = !aiConfig.presencePenalty.enabled"
+                      class="w-8 h-4 rounded-full relative cursor-pointer transition-colors"
+                      :class="aiConfig.presencePenalty.enabled ? 'bg-brand-green' : 'bg-gray-200 dark:bg-gray-700'"
+                    >
+                      <div 
+                        class="absolute top-0.5 left-0.5 w-3 h-3 bg-white rounded-full transition-transform shadow-sm"
+                        :class="aiConfig.presencePenalty.enabled ? 'translate-x-4' : ''"
+                      ></div>
+                    </div>
+                    <span class="text-sm text-gray-700 dark:text-gray-300">存在惩罚</span>
+                    <fa :icon="['fas', 'circle-info']" class="text-gray-300 text-xs cursor-help" />
+                  </div>
+                  <input 
+                    type="number" 
+                    v-model.number="aiConfig.presencePenalty.value" 
+                    class="w-16 px-2 py-1 text-xs border border-gray-200 dark:border-[#3A3A3C] rounded bg-gray-50 dark:bg-[#1C1C1E] text-right"
+                    :disabled="!aiConfig.presencePenalty.enabled"
+                  />
+                </div>
+                <input 
+                  type="range" 
+                  min="-2" 
+                  max="2" 
+                  step="0.1" 
+                  v-model.number="aiConfig.presencePenalty.value"
+                  class="w-full h-1 bg-gray-200 dark:bg-gray-700 rounded-lg appearance-none cursor-pointer accent-brand-green"
+                  :disabled="!aiConfig.presencePenalty.enabled"
+                  :class="!aiConfig.presencePenalty.enabled ? 'opacity-50' : ''"
+                />
+              </div>
+
+              <!-- Frequency Penalty -->
+              <div class="space-y-2">
+                <div class="flex items-center justify-between">
+                  <div class="flex items-center gap-2">
+                    <div 
+                      @click="aiConfig.frequencyPenalty.enabled = !aiConfig.frequencyPenalty.enabled"
+                      class="w-8 h-4 rounded-full relative cursor-pointer transition-colors"
+                      :class="aiConfig.frequencyPenalty.enabled ? 'bg-brand-green' : 'bg-gray-200 dark:bg-gray-700'"
+                    >
+                      <div 
+                        class="absolute top-0.5 left-0.5 w-3 h-3 bg-white rounded-full transition-transform shadow-sm"
+                        :class="aiConfig.frequencyPenalty.enabled ? 'translate-x-4' : ''"
+                      ></div>
+                    </div>
+                    <span class="text-sm text-gray-700 dark:text-gray-300">频率惩罚</span>
+                    <fa :icon="['fas', 'circle-info']" class="text-gray-300 text-xs cursor-help" />
+                  </div>
+                  <input 
+                    type="number" 
+                    v-model.number="aiConfig.frequencyPenalty.value" 
+                    class="w-16 px-2 py-1 text-xs border border-gray-200 dark:border-[#3A3A3C] rounded bg-gray-50 dark:bg-[#1C1C1E] text-right"
+                    :disabled="!aiConfig.frequencyPenalty.enabled"
+                  />
+                </div>
+                <input 
+                  type="range" 
+                  min="-2" 
+                  max="2" 
+                  step="0.1" 
+                  v-model.number="aiConfig.frequencyPenalty.value"
+                  class="w-full h-1 bg-gray-200 dark:bg-gray-700 rounded-lg appearance-none cursor-pointer accent-brand-green"
+                  :disabled="!aiConfig.frequencyPenalty.enabled"
+                  :class="!aiConfig.frequencyPenalty.enabled ? 'opacity-50' : ''"
+                />
+              </div>
+
+              <!-- Max Tokens -->
+              <div class="space-y-2">
+                <div class="flex items-center justify-between">
+                  <div class="flex items-center gap-2">
+                    <div 
+                      @click="aiConfig.maxTokens.enabled = !aiConfig.maxTokens.enabled"
+                      class="w-8 h-4 rounded-full relative cursor-pointer transition-colors"
+                      :class="aiConfig.maxTokens.enabled ? 'bg-brand-green' : 'bg-gray-200 dark:bg-gray-700'"
+                    >
+                      <div 
+                        class="absolute top-0.5 left-0.5 w-3 h-3 bg-white rounded-full transition-transform shadow-sm"
+                        :class="aiConfig.maxTokens.enabled ? 'translate-x-4' : ''"
+                      ></div>
+                    </div>
+                    <span class="text-sm text-gray-700 dark:text-gray-300">最大标记</span>
+                    <fa :icon="['fas', 'circle-info']" class="text-gray-300 text-xs cursor-help" />
+                  </div>
+                  <input 
+                    type="number" 
+                    v-model.number="aiConfig.maxTokens.value" 
+                    class="w-16 px-2 py-1 text-xs border border-gray-200 dark:border-[#3A3A3C] rounded bg-gray-50 dark:bg-[#1C1C1E] text-right"
+                    :disabled="!aiConfig.maxTokens.enabled"
+                  />
+                </div>
+                <input 
+                  type="range" 
+                  min="1" 
+                  max="4096" 
+                  step="1" 
+                  v-model.number="aiConfig.maxTokens.value"
+                  class="w-full h-1 bg-gray-200 dark:bg-gray-700 rounded-lg appearance-none cursor-pointer accent-brand-green"
+                  :disabled="!aiConfig.maxTokens.enabled"
+                  :class="!aiConfig.maxTokens.enabled ? 'opacity-50' : ''"
+                />
+              </div>
+
+              <!-- Seed -->
+              <div class="flex items-center justify-between">
+                <div class="flex items-center gap-2">
+                  <div 
+                    @click="aiConfig.seed.enabled = !aiConfig.seed.enabled"
+                    class="w-8 h-4 rounded-full relative cursor-pointer transition-colors"
+                    :class="aiConfig.seed.enabled ? 'bg-brand-green' : 'bg-gray-200 dark:bg-gray-700'"
+                  >
+                    <div 
+                      class="absolute top-0.5 left-0.5 w-3 h-3 bg-white rounded-full transition-transform shadow-sm"
+                      :class="aiConfig.seed.enabled ? 'translate-x-4' : ''"
+                    ></div>
+                  </div>
+                  <span class="text-sm text-gray-700 dark:text-gray-300">种子</span>
+                  <fa :icon="['fas', 'circle-info']" class="text-gray-300 text-xs cursor-help" />
+                </div>
+                <input 
+                  type="number" 
+                  v-model.number="aiConfig.seed.value" 
+                  class="w-24 px-2 py-1 text-xs border border-gray-200 dark:border-[#3A3A3C] rounded bg-gray-50 dark:bg-[#1C1C1E] text-right"
+                  :disabled="!aiConfig.seed.enabled"
+                />
+              </div>
+
+              <!-- Response Format -->
+              <div class="flex items-center justify-between">
+                <div class="flex items-center gap-2">
+                  <div 
+                    @click="aiConfig.responseFormat.enabled = !aiConfig.responseFormat.enabled"
+                    class="w-8 h-4 rounded-full relative cursor-pointer transition-colors"
+                    :class="aiConfig.responseFormat.enabled ? 'bg-brand-green' : 'bg-gray-200 dark:bg-gray-700'"
+                  >
+                    <div 
+                      class="absolute top-0.5 left-0.5 w-3 h-3 bg-white rounded-full transition-transform shadow-sm"
+                      :class="aiConfig.responseFormat.enabled ? 'translate-x-4' : ''"
+                    ></div>
+                  </div>
+                  <span class="text-sm text-gray-700 dark:text-gray-300">回复格式</span>
+                  <fa :icon="['fas', 'circle-info']" class="text-gray-300 text-xs cursor-help" />
+                </div>
+                <select 
+                  v-model="aiConfig.responseFormat.value"
+                  class="w-24 px-2 py-1 text-xs border border-gray-200 dark:border-[#3A3A3C] rounded bg-gray-50 dark:bg-[#1C1C1E]"
+                  :disabled="!aiConfig.responseFormat.enabled"
+                >
+                  <option value="text">请选择</option>
+                  <option value="json">JSON</option>
+                </select>
+              </div>
+            </div>
+          </div>
+        </div>
+
         <div class="h-6 w-px bg-gray-200 dark:bg-[#3A3A3C]"></div>
         <button class="p-2 text-secondary hover:text-primary dark:text-gray-400 dark:hover:text-white transition" @click="toggleTheme">
           <fa :icon="['fas', theme === 'dark' ? 'sun' : 'moon']" />
