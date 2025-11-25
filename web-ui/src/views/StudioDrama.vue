@@ -405,12 +405,82 @@ const aiConfig = ref({
   responseFormat: { enabled: false, value: 'text' }
 })
 
+const showPresetMenu = ref(false)
+const presets = {
+  creative: {
+    label: '创意',
+    icon: 'pen-nib',
+    color: 'text-purple-500',
+    config: {
+      temperature: 0.8,
+      topP: 0.9,
+      presencePenalty: 0.1,
+      frequencyPenalty: 0.1
+    }
+  },
+  balanced: {
+    label: '平衡',
+    icon: 'scale-balanced',
+    color: 'text-blue-500',
+    config: {
+      temperature: 0.5,
+      topP: 0.8,
+      presencePenalty: 0,
+      frequencyPenalty: 0
+    }
+  },
+  precise: {
+    label: '精确',
+    icon: 'bullseye',
+    color: 'text-teal-500',
+    config: {
+      temperature: 0.2,
+      topP: 0.5,
+      presencePenalty: 0,
+      frequencyPenalty: 0
+    }
+  }
+}
+
+const togglePresetMenu = () => {
+  showPresetMenu.value = !showPresetMenu.value
+}
+
+const applyPreset = (key) => {
+  const preset = presets[key]
+  if (!preset) return
+
+  aiConfig.value.temperature.enabled = true
+  aiConfig.value.temperature.value = preset.config.temperature
+  
+  aiConfig.value.topP.enabled = true
+  aiConfig.value.topP.value = preset.config.topP
+  
+  aiConfig.value.presencePenalty.enabled = true
+  aiConfig.value.presencePenalty.value = preset.config.presencePenalty
+  
+  aiConfig.value.frequencyPenalty.enabled = true
+  aiConfig.value.frequencyPenalty.value = preset.config.frequencyPenalty
+
+  showPresetMenu.value = false
+}
+
 const toggleAIConfigMenu = () => {
   showAIConfigMenu.value = !showAIConfigMenu.value
 }
 
 const closeAIConfigMenu = () => {
   showAIConfigMenu.value = false
+}
+
+const getSliderStyle = (value, min, max, enabled) => {
+  const percentage = ((value - min) / (max - min)) * 100
+  const color = enabled ? '#4285F4' : '#d1d5db' // brand-green or gray-300
+  const trackColor = document.documentElement.classList.contains('dark') ? '#374151' : '#e5e7eb' // gray-700 or gray-200
+  
+  return {
+    background: `linear-gradient(to right, ${color} 0%, ${color} ${percentage}%, ${trackColor} ${percentage}%, ${trackColor} 100%)`
+  }
 }
 const videoUploadInput = ref(null)
 const videoUploadDragging = ref(false)
@@ -1895,11 +1965,30 @@ watch(activeTab, (newTab) => {
 
             <!-- Parameters -->
             <div class="p-4 space-y-4 max-h-[60vh] overflow-y-auto">
-              <div class="flex items-center justify-between mb-2">
+              <div class="flex items-center justify-between mb-2 relative">
                 <h4 class="text-sm font-bold text-gray-900 dark:text-white">参数</h4>
-                <button class="text-xs text-gray-500 hover:text-brand-green flex items-center gap-1 border border-gray-200 dark:border-[#3A3A3C] px-2 py-1 rounded">
-                  加载预设 <fa :icon="['fas', 'chevron-down']" />
+                <button 
+                  @click.stop="togglePresetMenu"
+                  class="text-xs text-gray-500 hover:text-brand-green flex items-center gap-1 border border-gray-200 dark:border-[#3A3A3C] px-2 py-1 rounded transition-colors"
+                >
+                  加载预设 <fa :icon="['fas', 'chevron-down']" class="transition-transform duration-200" :class="showPresetMenu ? 'rotate-180' : ''" />
                 </button>
+
+                <!-- Preset Menu -->
+                <div 
+                  v-if="showPresetMenu"
+                  class="absolute top-full right-0 mt-1 w-32 bg-white dark:bg-[#2C2C2E] rounded-lg shadow-xl border border-gray-200 dark:border-[#3A3A3C] z-10 overflow-hidden py-1"
+                >
+                  <button
+                    v-for="(preset, key) in presets"
+                    :key="key"
+                    @click="applyPreset(key)"
+                    class="w-full px-3 py-2 text-left flex items-center gap-2 hover:bg-gray-50 dark:hover:bg-[#3A3A3C] transition-colors"
+                  >
+                    <fa :icon="['fas', preset.icon]" :class="preset.color" class="text-xs w-4" />
+                    <span class="text-sm text-gray-700 dark:text-gray-200">{{ preset.label }}</span>
+                  </button>
+                </div>
               </div>
 
               <!-- Temperature -->
@@ -1929,12 +2018,13 @@ watch(activeTab, (newTab) => {
                 <input 
                   type="range" 
                   min="0" 
-                  max="2" 
+                  max="1" 
                   step="0.1" 
                   v-model.number="aiConfig.temperature.value"
-                  class="w-full h-1 bg-gray-200 dark:bg-gray-700 rounded-lg appearance-none cursor-pointer [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-3 [&::-webkit-slider-thumb]:h-3 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:shadow-sm [&::-webkit-slider-thumb]:transition-colors"
+                  class="w-full h-1 rounded-lg appearance-none cursor-pointer [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-3 [&::-webkit-slider-thumb]:h-3 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:shadow-sm [&::-webkit-slider-thumb]:transition-colors"
                   :disabled="!aiConfig.temperature.enabled"
                   :class="aiConfig.temperature.enabled ? '[&::-webkit-slider-thumb]:bg-brand-green' : '[&::-webkit-slider-thumb]:bg-gray-300 opacity-50'"
+                  :style="getSliderStyle(aiConfig.temperature.value, 0, 1, aiConfig.temperature.enabled)"
                 />
               </div>
 
@@ -1968,9 +2058,10 @@ watch(activeTab, (newTab) => {
                   max="1" 
                   step="0.01" 
                   v-model.number="aiConfig.topP.value"
-                  class="w-full h-1 bg-gray-200 dark:bg-gray-700 rounded-lg appearance-none cursor-pointer [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-3 [&::-webkit-slider-thumb]:h-3 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:shadow-sm [&::-webkit-slider-thumb]:transition-colors"
+                  class="w-full h-1 rounded-lg appearance-none cursor-pointer [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-3 [&::-webkit-slider-thumb]:h-3 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:shadow-sm [&::-webkit-slider-thumb]:transition-colors"
                   :disabled="!aiConfig.topP.enabled"
                   :class="aiConfig.topP.enabled ? '[&::-webkit-slider-thumb]:bg-brand-green' : '[&::-webkit-slider-thumb]:bg-gray-300 opacity-50'"
+                  :style="getSliderStyle(aiConfig.topP.value, 0, 1, aiConfig.topP.enabled)"
                 />
               </div>
 
@@ -2000,13 +2091,14 @@ watch(activeTab, (newTab) => {
                 </div>
                 <input 
                   type="range" 
-                  min="-2" 
-                  max="2" 
+                  min="0" 
+                  max="1" 
                   step="0.1" 
                   v-model.number="aiConfig.presencePenalty.value"
-                  class="w-full h-1 bg-gray-200 dark:bg-gray-700 rounded-lg appearance-none cursor-pointer [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-3 [&::-webkit-slider-thumb]:h-3 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:shadow-sm [&::-webkit-slider-thumb]:transition-colors"
+                  class="w-full h-1 rounded-lg appearance-none cursor-pointer [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-3 [&::-webkit-slider-thumb]:h-3 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:shadow-sm [&::-webkit-slider-thumb]:transition-colors"
                   :disabled="!aiConfig.presencePenalty.enabled"
                   :class="aiConfig.presencePenalty.enabled ? '[&::-webkit-slider-thumb]:bg-brand-green' : '[&::-webkit-slider-thumb]:bg-gray-300 opacity-50'"
+                  :style="getSliderStyle(aiConfig.presencePenalty.value, 0, 1, aiConfig.presencePenalty.enabled)"
                 />
               </div>
 
@@ -2036,13 +2128,14 @@ watch(activeTab, (newTab) => {
                 </div>
                 <input 
                   type="range" 
-                  min="-2" 
-                  max="2" 
+                  min="0" 
+                  max="1" 
                   step="0.1" 
                   v-model.number="aiConfig.frequencyPenalty.value"
-                  class="w-full h-1 bg-gray-200 dark:bg-gray-700 rounded-lg appearance-none cursor-pointer [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-3 [&::-webkit-slider-thumb]:h-3 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:shadow-sm [&::-webkit-slider-thumb]:transition-colors"
+                  class="w-full h-1 rounded-lg appearance-none cursor-pointer [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-3 [&::-webkit-slider-thumb]:h-3 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:shadow-sm [&::-webkit-slider-thumb]:transition-colors"
                   :disabled="!aiConfig.frequencyPenalty.enabled"
                   :class="aiConfig.frequencyPenalty.enabled ? '[&::-webkit-slider-thumb]:bg-brand-green' : '[&::-webkit-slider-thumb]:bg-gray-300 opacity-50'"
+                  :style="getSliderStyle(aiConfig.frequencyPenalty.value, 0, 1, aiConfig.frequencyPenalty.enabled)"
                 />
               </div>
 
@@ -2076,9 +2169,10 @@ watch(activeTab, (newTab) => {
                   max="4096" 
                   step="1" 
                   v-model.number="aiConfig.maxTokens.value"
-                  class="w-full h-1 bg-gray-200 dark:bg-gray-700 rounded-lg appearance-none cursor-pointer [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-3 [&::-webkit-slider-thumb]:h-3 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:shadow-sm [&::-webkit-slider-thumb]:transition-colors"
+                  class="w-full h-1 rounded-lg appearance-none cursor-pointer [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-3 [&::-webkit-slider-thumb]:h-3 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:shadow-sm [&::-webkit-slider-thumb]:transition-colors"
                   :disabled="!aiConfig.maxTokens.enabled"
                   :class="aiConfig.maxTokens.enabled ? '[&::-webkit-slider-thumb]:bg-brand-green' : '[&::-webkit-slider-thumb]:bg-gray-300 opacity-50'"
+                  :style="getSliderStyle(aiConfig.maxTokens.value, 1, 4096, aiConfig.maxTokens.enabled)"
                 />
               </div>
 
