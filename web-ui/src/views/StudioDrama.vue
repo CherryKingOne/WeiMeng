@@ -1,5 +1,5 @@
 <script setup>
-import { ref, onMounted, computed, reactive, watch } from 'vue'
+import { ref, onMounted, onBeforeUnmount, computed, reactive, watch } from 'vue'
 import JSZip from 'jszip'
 import { useRoute, useRouter } from 'vue-router'
 
@@ -495,6 +495,49 @@ const toggleAIConfigMenu = () => {
 
 const closeAIConfigMenu = () => {
   showAIConfigMenu.value = false
+}
+
+// Model Selection Menu
+const showModelMenu = ref(false)
+const modelSearchQuery = ref('')
+
+const availableModels = [
+  { id: 'chatgpt-4o-latest', name: 'chatgpt-4o-latest', provider: 'OpenAI', icon: 'robot', color: 'text-blue-500' },
+  { id: 'gpt-4o', name: 'gpt-4o', provider: 'OpenAI', icon: 'robot', color: 'text-blue-500' },
+  { id: 'gpt-4o-mini', name: 'gpt-4o-mini', provider: 'OpenAI', icon: 'robot', color: 'text-blue-500' },
+  { id: 'gpt-4o-mini-2024-07-18', name: 'gpt-4o-mini-2024-07-18', provider: 'OpenAI', icon: 'robot', color: 'text-blue-500' },
+  { id: 'gpt-4', name: 'gpt-4', provider: 'OpenAI', icon: 'robot', color: 'text-purple-500' },
+  { id: 'gpt-3.5-turbo', name: 'gpt-3.5-turbo', provider: 'OpenAI', icon: 'robot', color: 'text-green-500' },
+  { id: 'gpt-3.5-turbo-0125', name: 'gpt-3.5-turbo-0125', provider: 'OpenAI', icon: 'robot', color: 'text-green-500' },
+  { id: 'gpt-3.5-turbo-1106', name: 'gpt-3.5-turbo-1106', provider: 'OpenAI', icon: 'robot', color: 'text-green-500' },
+  { id: 'gpt-3.5-turbo-16k', name: 'gpt-3.5-turbo-16k', provider: 'OpenAI', icon: 'robot', color: 'text-green-500' },
+  { id: 'gpt-3.5-turbo-instruct', name: 'gpt-3.5-turbo-instruct', provider: 'OpenAI', icon: 'robot', color: 'text-green-500' }
+]
+
+const filteredModels = computed(() => {
+  if (!modelSearchQuery.value) return availableModels
+  const query = modelSearchQuery.value.toLowerCase()
+  return availableModels.filter(model =>
+    model.name.toLowerCase().includes(query) ||
+    model.provider.toLowerCase().includes(query)
+  )
+})
+
+const currentModel = computed(() => {
+  return availableModels.find(m => m.id === aiConfig.value.model) || availableModels[4]
+})
+
+const toggleModelMenu = () => {
+  showModelMenu.value = !showModelMenu.value
+  if (showModelMenu.value) {
+    modelSearchQuery.value = ''
+  }
+}
+
+const selectModel = (modelId) => {
+  aiConfig.value.model = modelId
+  showModelMenu.value = false
+  modelSearchQuery.value = ''
 }
 
 const getSliderStyle = (value, min, max, enabled) => {
@@ -1921,10 +1964,29 @@ const confirmExtractCreate = () => {
 }
 
 
+// Global click handler to close AI config menu and all submenus
+const handleGlobalClick = (event) => {
+  // Check if click is outside the AI config menu
+  const aiConfigMenu = event.target.closest('.ai-config-menu-container')
+  if (!aiConfigMenu && showAIConfigMenu.value) {
+    showAIConfigMenu.value = false
+    showModelMenu.value = false
+    showPresetMenu.value = false
+  }
+}
+
 onMounted(() => {
   loadLibraryInfo()
   loadExistingFiles()
   loadMediaFiles()  // Load existing video files from backend
+
+  // Add global click listener
+  document.addEventListener('click', handleGlobalClick)
+})
+
+onBeforeUnmount(() => {
+  // Remove global click listener
+  document.removeEventListener('click', handleGlobalClick)
 })
 
 // Watch for tab changes to reload files when switching to files tab
@@ -1967,23 +2029,82 @@ watch(activeTab, (newTab) => {
           </div>
 
           <!-- AI Config Menu Popover -->
-          <div 
+          <div
             v-if="showAIConfigMenu"
-            class="absolute top-full right-0 mt-2 w-80 bg-white dark:bg-[#2C2C2E] rounded-xl shadow-xl border border-gray-200 dark:border-[#3A3A3C] z-50 overflow-hidden"
+            class="ai-config-menu-container absolute top-full right-0 mt-2 w-80 bg-white dark:bg-[#2C2C2E] rounded-xl shadow-xl border border-gray-200 dark:border-[#3A3A3C] z-50 overflow-hidden"
             @click.stop
           >
             <!-- Model Selection -->
-            <div class="p-4 border-b border-gray-100 dark:border-[#3A3A3C]">
+            <div class="p-4 border-b border-gray-100 dark:border-[#3A3A3C] relative">
               <h4 class="text-xs font-bold text-gray-500 dark:text-gray-400 mb-2">模型</h4>
-              <div class="flex items-center justify-between p-2 bg-gray-50 dark:bg-[#1C1C1E] rounded-lg border border-gray-200 dark:border-[#3A3A3C]">
+              <div
+                @click.stop="toggleModelMenu"
+                class="flex items-center justify-between p-2 bg-gray-50 dark:bg-[#1C1C1E] rounded-lg border border-gray-200 dark:border-[#3A3A3C] cursor-pointer hover:bg-gray-100 dark:hover:bg-[#2C2C2E] transition-colors"
+              >
                 <div class="flex items-center gap-2">
-                  <div class="w-6 h-6 rounded bg-purple-100 dark:bg-purple-900/30 flex items-center justify-center">
-                    <fa :icon="['fas', 'robot']" class="text-purple-500 text-xs" />
+                  <div class="w-6 h-6 rounded flex items-center justify-center"
+                    :class="currentModel.color === 'text-purple-500' ? 'bg-purple-100 dark:bg-purple-900/30' :
+                            currentModel.color === 'text-blue-500' ? 'bg-blue-100 dark:bg-blue-900/30' :
+                            'bg-green-100 dark:bg-green-900/30'"
+                  >
+                    <fa :icon="['fas', currentModel.icon]" :class="currentModel.color" class="text-xs" />
                   </div>
-                  <span class="text-sm font-medium text-gray-900 dark:text-white">gpt-4</span>
+                  <span class="text-sm font-medium text-gray-900 dark:text-white">{{ currentModel.name }}</span>
                   <span class="text-[10px] px-1 py-0.5 bg-gray-200 dark:bg-gray-700 rounded text-gray-500 dark:text-gray-400">CHAT</span>
                 </div>
-                <fa :icon="['fas', 'chevron-down']" class="text-gray-400 text-xs" />
+                <fa :icon="['fas', 'chevron-down']" class="text-gray-400 text-xs transition-transform" :class="showModelMenu ? 'rotate-180' : ''" />
+              </div>
+
+              <!-- Model Selection Dropdown -->
+              <div
+                v-if="showModelMenu"
+                class="absolute top-full left-0 right-0 mt-1 bg-white dark:bg-[#2C2C2E] rounded-lg shadow-xl border border-gray-200 dark:border-[#3A3A3C] z-50 max-h-96 overflow-hidden"
+                @click.stop
+              >
+                <!-- Search Input -->
+                <div class="p-3 border-b border-gray-100 dark:border-[#3A3A3C]">
+                  <div class="relative">
+                    <fa :icon="['fas', 'search']" class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-xs" />
+                    <input
+                      v-model="modelSearchQuery"
+                      type="text"
+                      placeholder="搜索模型"
+                      class="w-full pl-8 pr-3 py-2 text-sm bg-gray-50 dark:bg-[#1C1C1E] border border-gray-200 dark:border-[#3A3A3C] rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-green/20 focus:border-brand-green"
+                    />
+                  </div>
+                </div>
+
+                <!-- Model List -->
+                <div class="max-h-64 overflow-y-auto">
+                  <div class="p-2">
+                    <div class="text-xs font-bold text-gray-500 dark:text-gray-400 px-2 py-1">OpenAI</div>
+                    <button
+                      v-for="model in filteredModels"
+                      :key="model.id"
+                      @click="selectModel(model.id)"
+                      class="w-full flex items-center gap-2 px-2 py-2 rounded-lg hover:bg-gray-50 dark:hover:bg-[#3A3A3C] transition-colors text-left"
+                      :class="aiConfig.model === model.id ? 'bg-gray-50 dark:bg-[#3A3A3C]' : ''"
+                    >
+                      <div class="w-6 h-6 rounded flex items-center justify-center flex-shrink-0"
+                        :class="model.color === 'text-purple-500' ? 'bg-purple-100 dark:bg-purple-900/30' :
+                                model.color === 'text-blue-500' ? 'bg-blue-100 dark:bg-blue-900/30' :
+                                'bg-green-100 dark:bg-green-900/30'"
+                      >
+                        <fa :icon="['fas', model.icon]" :class="model.color" class="text-xs" />
+                      </div>
+                      <span class="text-sm text-gray-700 dark:text-gray-200 flex-1">{{ model.name }}</span>
+                      <fa v-if="aiConfig.model === model.id" :icon="['fas', 'check']" class="text-brand-green text-sm" />
+                    </button>
+                  </div>
+                </div>
+
+                <!-- Model Settings Link -->
+                <div class="p-3 border-t border-gray-100 dark:border-[#3A3A3C]">
+                  <button class="text-xs text-brand-green hover:text-brand-green/80 flex items-center gap-1 transition-colors">
+                    模型设置
+                    <fa :icon="['fas', 'arrow-right']" class="text-[10px]" />
+                  </button>
+                </div>
               </div>
             </div>
 
