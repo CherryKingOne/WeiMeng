@@ -100,9 +100,11 @@ const sectionList = computed(() => {
 const viewMode = ref('grid')
 const showCreateModal = ref(false)
 const createName = ref('')
+const createType = ref('')
 const createDesc = ref('')
 const nameError = ref('')
-const isValid = computed(() => createName.value.trim().length > 0)
+const typeError = ref('')
+const isValid = computed(() => createName.value.trim().length > 0 && createType.value !== '')
 const openMenuId = ref(null)
 const toggleTheme = () => {
   theme.value = theme.value === 'dark' ? 'light' : 'dark'
@@ -356,13 +358,17 @@ const openCreateModal = () => {
 const cancelCreate = () => {
   showCreateModal.value = false
   createName.value = ''
+  createType.value = ''
   createDesc.value = ''
   nameError.value = ''
+  typeError.value = ''
 }
 const confirmCreate = async () => {
   nameError.value = createName.value.trim() ? '' : t('workspace.field_required')
+  typeError.value = createType.value ? '' : t('workspace.field_required')
   const name = createName.value.trim()
-  if (!name) return
+  const type = createType.value
+  if (!name || !type) return
   try {
     const token = typeof localStorage !== 'undefined' ? localStorage.getItem('accessToken') : ''
     const res = await fetch(`${API_BASE}/api/v1/script/libraries`, {
@@ -371,7 +377,7 @@ const confirmCreate = async () => {
         'Content-Type': 'application/json',
         ...(token ? { 'Authorization': `Bearer ${token}` } : {})
       },
-      body: JSON.stringify({ name, description: createDesc.value.trim() })
+      body: JSON.stringify({ name, type, description: createDesc.value.trim() })
     })
     if (!res.ok) {
       if (res.status === 401) { router.push('/login'); return }
@@ -1062,7 +1068,7 @@ const loadLibraries = async () => {
           </div>
         </div>
 
-        <div v-if="showCreateModal" class="fixed inset-0 z-30 flex items-center justify-center">
+        <div v-if="showCreateModal" class="fixed inset-0 z-50 flex items-center justify-center">
           <div class="absolute inset-0 bg-black/40"></div>
           <div class="relative w-full max-w-lg bg-white rounded-xl shadow-2xl border border-gray-200 p-6 dark:bg-[#2C2C2E] dark:border-[#3A3A3C]">
             <h3 class="text-xl font-semibold text-primary dark:text-white">{{ $t('workspace.new_design') }}</h3>
@@ -1074,6 +1080,22 @@ const loadLibraries = async () => {
                 </label>
                 <input v-model="createName" type="text" class="mt-1 w-full bg-light-gray border rounded-lg py-2 px-3 focus:outline-none focus:ring-0 dark:bg-black/30 dark:text-[#E0E0E0]" :class="nameError ? 'border-red-500 focus:border-red-500 dark:border-red-500' : 'border-gray-300 focus:border-brand-green dark:border-[#3A3A3C]'" :placeholder="$t('workspace.enter_design_name')" required>
                 <p v-if="nameError" class="mt-1 text-xs text-red-500">{{ nameError }}</p>
+              </div>
+
+              <div>
+                <label class="block text-sm font-medium text-secondary dark:text-gray-300">
+                  类型选择
+                  <span class="text-red-500 ml-0.5">*</span>
+                </label>
+                <div class="mt-1 grid grid-cols-2 gap-3">
+                  <button type="button" @click="createType = 'novel'" class="px-4 py-2 rounded-lg border text-sm font-medium transition-all" :class="createType === 'novel' ? 'border-brand-green bg-brand-green/10 text-brand-green' : 'border-gray-300 text-secondary hover:border-brand-green dark:border-[#3A3A3C] dark:text-gray-300'">
+                    小说剧本
+                  </button>
+                  <button type="button" @click="createType = 'ad'" class="px-4 py-2 rounded-lg border text-sm font-medium transition-all" :class="createType === 'ad' ? 'border-brand-green bg-brand-green/10 text-brand-green' : 'border-gray-300 text-secondary hover:border-brand-green dark:border-[#3A3A3C] dark:text-gray-300'">
+                    广告创作
+                  </button>
+                </div>
+                <p v-if="typeError" class="mt-1 text-xs text-red-500">{{ typeError }}</p>
               </div>
 
               <div>
