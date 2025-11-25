@@ -1932,9 +1932,9 @@ watch(activeTab, (newTab) => {
                   max="2" 
                   step="0.1" 
                   v-model.number="aiConfig.temperature.value"
-                  class="w-full h-1 bg-gray-200 dark:bg-gray-700 rounded-lg appearance-none cursor-pointer accent-brand-green"
+                  class="w-full h-1 bg-gray-200 dark:bg-gray-700 rounded-lg appearance-none cursor-pointer [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-3 [&::-webkit-slider-thumb]:h-3 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:shadow-sm [&::-webkit-slider-thumb]:transition-colors"
                   :disabled="!aiConfig.temperature.enabled"
-                  :class="!aiConfig.temperature.enabled ? 'opacity-50' : ''"
+                  :class="aiConfig.temperature.enabled ? '[&::-webkit-slider-thumb]:bg-brand-green' : '[&::-webkit-slider-thumb]:bg-gray-300 opacity-50'"
                 />
               </div>
 
@@ -1968,9 +1968,9 @@ watch(activeTab, (newTab) => {
                   max="1" 
                   step="0.01" 
                   v-model.number="aiConfig.topP.value"
-                  class="w-full h-1 bg-gray-200 dark:bg-gray-700 rounded-lg appearance-none cursor-pointer accent-brand-green"
+                  class="w-full h-1 bg-gray-200 dark:bg-gray-700 rounded-lg appearance-none cursor-pointer [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-3 [&::-webkit-slider-thumb]:h-3 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:shadow-sm [&::-webkit-slider-thumb]:transition-colors"
                   :disabled="!aiConfig.topP.enabled"
-                  :class="!aiConfig.topP.enabled ? 'opacity-50' : ''"
+                  :class="aiConfig.topP.enabled ? '[&::-webkit-slider-thumb]:bg-brand-green' : '[&::-webkit-slider-thumb]:bg-gray-300 opacity-50'"
                 />
               </div>
 
@@ -2004,9 +2004,9 @@ watch(activeTab, (newTab) => {
                   max="2" 
                   step="0.1" 
                   v-model.number="aiConfig.presencePenalty.value"
-                  class="w-full h-1 bg-gray-200 dark:bg-gray-700 rounded-lg appearance-none cursor-pointer accent-brand-green"
+                  class="w-full h-1 bg-gray-200 dark:bg-gray-700 rounded-lg appearance-none cursor-pointer [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-3 [&::-webkit-slider-thumb]:h-3 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:shadow-sm [&::-webkit-slider-thumb]:transition-colors"
                   :disabled="!aiConfig.presencePenalty.enabled"
-                  :class="!aiConfig.presencePenalty.enabled ? 'opacity-50' : ''"
+                  :class="aiConfig.presencePenalty.enabled ? '[&::-webkit-slider-thumb]:bg-brand-green' : '[&::-webkit-slider-thumb]:bg-gray-300 opacity-50'"
                 />
               </div>
 
@@ -2040,9 +2040,9 @@ watch(activeTab, (newTab) => {
                   max="2" 
                   step="0.1" 
                   v-model.number="aiConfig.frequencyPenalty.value"
-                  class="w-full h-1 bg-gray-200 dark:bg-gray-700 rounded-lg appearance-none cursor-pointer accent-brand-green"
+                  class="w-full h-1 bg-gray-200 dark:bg-gray-700 rounded-lg appearance-none cursor-pointer [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-3 [&::-webkit-slider-thumb]:h-3 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:shadow-sm [&::-webkit-slider-thumb]:transition-colors"
                   :disabled="!aiConfig.frequencyPenalty.enabled"
-                  :class="!aiConfig.frequencyPenalty.enabled ? 'opacity-50' : ''"
+                  :class="aiConfig.frequencyPenalty.enabled ? '[&::-webkit-slider-thumb]:bg-brand-green' : '[&::-webkit-slider-thumb]:bg-gray-300 opacity-50'"
                 />
               </div>
 
@@ -2076,9 +2076,9 @@ watch(activeTab, (newTab) => {
                   max="4096" 
                   step="1" 
                   v-model.number="aiConfig.maxTokens.value"
-                  class="w-full h-1 bg-gray-200 dark:bg-gray-700 rounded-lg appearance-none cursor-pointer accent-brand-green"
+                  class="w-full h-1 bg-gray-200 dark:bg-gray-700 rounded-lg appearance-none cursor-pointer [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-3 [&::-webkit-slider-thumb]:h-3 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:shadow-sm [&::-webkit-slider-thumb]:transition-colors"
                   :disabled="!aiConfig.maxTokens.enabled"
-                  :class="!aiConfig.maxTokens.enabled ? 'opacity-50' : ''"
+                  :class="aiConfig.maxTokens.enabled ? '[&::-webkit-slider-thumb]:bg-brand-green' : '[&::-webkit-slider-thumb]:bg-gray-300 opacity-50'"
                 />
               </div>
 
