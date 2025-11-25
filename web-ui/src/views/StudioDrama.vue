@@ -406,6 +406,7 @@ const aiConfig = ref({
 })
 
 const showPresetMenu = ref(false)
+const currentPreset = ref('custom') // 当前选中的预设，默认为自定义
 const presets = {
   creative: {
     label: '创意',
@@ -424,9 +425,9 @@ const presets = {
     color: 'text-blue-500',
     config: {
       temperature: 0.5,
-      topP: 0.8,
-      presencePenalty: 0,
-      frequencyPenalty: 0
+      topP: 0.85,
+      presencePenalty: 0.2,
+      frequencyPenalty: 0.3
     }
   },
   precise: {
@@ -435,10 +436,15 @@ const presets = {
     color: 'text-teal-500',
     config: {
       temperature: 0.2,
-      topP: 0.5,
-      presencePenalty: 0,
-      frequencyPenalty: 0
+      topP: 0.75,
+      presencePenalty: 0.5,
+      frequencyPenalty: 0.5
     }
+  },
+  custom: {
+    label: '自定义',
+    icon: 'sliders',
+    color: 'text-gray-500'
   }
 }
 
@@ -450,19 +456,37 @@ const applyPreset = (key) => {
   const preset = presets[key]
   if (!preset) return
 
-  aiConfig.value.temperature.enabled = true
-  aiConfig.value.temperature.value = preset.config.temperature
-  
-  aiConfig.value.topP.enabled = true
-  aiConfig.value.topP.value = preset.config.topP
-  
-  aiConfig.value.presencePenalty.enabled = true
-  aiConfig.value.presencePenalty.value = preset.config.presencePenalty
-  
-  aiConfig.value.frequencyPenalty.enabled = true
-  aiConfig.value.frequencyPenalty.value = preset.config.frequencyPenalty
+  // 如果是自定义预设，只更新当前预设状态，不修改配置
+  if (key === 'custom') {
+    currentPreset.value = key
+    showPresetMenu.value = false
+    return
+  }
 
+  // 应用预设配置
+  if (preset.config) {
+    aiConfig.value.temperature.enabled = true
+    aiConfig.value.temperature.value = preset.config.temperature
+
+    aiConfig.value.topP.enabled = true
+    aiConfig.value.topP.value = preset.config.topP
+
+    aiConfig.value.presencePenalty.enabled = true
+    aiConfig.value.presencePenalty.value = preset.config.presencePenalty
+
+    aiConfig.value.frequencyPenalty.enabled = true
+    aiConfig.value.frequencyPenalty.value = preset.config.frequencyPenalty
+  }
+
+  currentPreset.value = key
   showPresetMenu.value = false
+}
+
+// 当用户修改配置时，自动切换到自定义预设
+const onConfigChange = () => {
+  if (currentPreset.value !== 'custom') {
+    currentPreset.value = 'custom'
+  }
 }
 
 const toggleAIConfigMenu = () => {
@@ -1967,11 +1991,14 @@ watch(activeTab, (newTab) => {
             <div class="p-4 space-y-4 max-h-[60vh] overflow-y-auto">
               <div class="flex items-center justify-between mb-2 relative">
                 <h4 class="text-sm font-bold text-gray-900 dark:text-white">参数</h4>
-                <button 
+                <button
                   @click.stop="togglePresetMenu"
-                  class="text-xs text-gray-500 hover:text-brand-green flex items-center gap-1 border border-gray-200 dark:border-[#3A3A3C] px-2 py-1 rounded transition-colors"
+                  class="text-xs hover:text-brand-green flex items-center gap-1.5 border border-gray-200 dark:border-[#3A3A3C] px-2 py-1 rounded transition-colors"
+                  :class="presets[currentPreset]?.color || 'text-gray-500'"
                 >
-                  加载预设 <fa :icon="['fas', 'chevron-down']" class="transition-transform duration-200" :class="showPresetMenu ? 'rotate-180' : ''" />
+                  <fa :icon="['fas', presets[currentPreset]?.icon || 'sliders']" class="text-xs" />
+                  {{ presets[currentPreset]?.label || '自定义' }}
+                  <fa :icon="['fas', 'chevron-down']" class="transition-transform duration-200 text-xs" :class="showPresetMenu ? 'rotate-180' : ''" />
                 </button>
 
                 <!-- Preset Menu -->
@@ -1995,12 +2022,12 @@ watch(activeTab, (newTab) => {
               <div class="space-y-2">
                 <div class="flex items-center justify-between">
                   <div class="flex items-center gap-2">
-                    <div 
-                      @click="aiConfig.temperature.enabled = !aiConfig.temperature.enabled"
+                    <div
+                      @click="aiConfig.temperature.enabled = !aiConfig.temperature.enabled; onConfigChange()"
                       class="w-8 h-4 rounded-full relative cursor-pointer transition-colors"
                       :class="aiConfig.temperature.enabled ? 'bg-brand-green' : 'bg-gray-200 dark:bg-gray-700'"
                     >
-                      <div 
+                      <div
                         class="absolute top-0.5 left-0.5 w-3 h-3 bg-white rounded-full transition-transform shadow-sm"
                         :class="aiConfig.temperature.enabled ? 'translate-x-4' : ''"
                       ></div>
@@ -2008,19 +2035,21 @@ watch(activeTab, (newTab) => {
                     <span class="text-sm text-gray-700 dark:text-gray-300">温度</span>
                     <fa :icon="['fas', 'circle-info']" class="text-gray-300 text-xs cursor-help" title="控制随机性" />
                   </div>
-                  <input 
-                    type="number" 
-                    v-model.number="aiConfig.temperature.value" 
+                  <input
+                    type="number"
+                    v-model.number="aiConfig.temperature.value"
+                    @input="onConfigChange"
                     class="w-16 px-2 py-1 text-xs border border-gray-200 dark:border-[#3A3A3C] rounded bg-gray-50 dark:bg-[#1C1C1E] text-right"
                     :disabled="!aiConfig.temperature.enabled"
                   />
                 </div>
-                <input 
-                  type="range" 
-                  min="0" 
-                  max="1" 
-                  step="0.1" 
+                <input
+                  type="range"
+                  min="0"
+                  max="1"
+                  step="0.1"
                   v-model.number="aiConfig.temperature.value"
+                  @input="onConfigChange"
                   class="w-full h-1 rounded-lg appearance-none cursor-pointer [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-3 [&::-webkit-slider-thumb]:h-3 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:shadow-sm [&::-webkit-slider-thumb]:transition-colors"
                   :disabled="!aiConfig.temperature.enabled"
                   :class="aiConfig.temperature.enabled ? '[&::-webkit-slider-thumb]:bg-brand-green' : '[&::-webkit-slider-thumb]:bg-gray-300 opacity-50'"
@@ -2032,12 +2061,12 @@ watch(activeTab, (newTab) => {
               <div class="space-y-2">
                 <div class="flex items-center justify-between">
                   <div class="flex items-center gap-2">
-                    <div 
-                      @click="aiConfig.topP.enabled = !aiConfig.topP.enabled"
+                    <div
+                      @click="aiConfig.topP.enabled = !aiConfig.topP.enabled; onConfigChange()"
                       class="w-8 h-4 rounded-full relative cursor-pointer transition-colors"
                       :class="aiConfig.topP.enabled ? 'bg-brand-green' : 'bg-gray-200 dark:bg-gray-700'"
                     >
-                      <div 
+                      <div
                         class="absolute top-0.5 left-0.5 w-3 h-3 bg-white rounded-full transition-transform shadow-sm"
                         :class="aiConfig.topP.enabled ? 'translate-x-4' : ''"
                       ></div>
@@ -2045,19 +2074,21 @@ watch(activeTab, (newTab) => {
                     <span class="text-sm text-gray-700 dark:text-gray-300">Top P</span>
                     <fa :icon="['fas', 'circle-info']" class="text-gray-300 text-xs cursor-help" title="核采样" />
                   </div>
-                  <input 
-                    type="number" 
-                    v-model.number="aiConfig.topP.value" 
+                  <input
+                    type="number"
+                    v-model.number="aiConfig.topP.value"
+                    @input="onConfigChange"
                     class="w-16 px-2 py-1 text-xs border border-gray-200 dark:border-[#3A3A3C] rounded bg-gray-50 dark:bg-[#1C1C1E] text-right"
                     :disabled="!aiConfig.topP.enabled"
                   />
                 </div>
-                <input 
-                  type="range" 
-                  min="0" 
-                  max="1" 
-                  step="0.01" 
+                <input
+                  type="range"
+                  min="0"
+                  max="1"
+                  step="0.01"
                   v-model.number="aiConfig.topP.value"
+                  @input="onConfigChange"
                   class="w-full h-1 rounded-lg appearance-none cursor-pointer [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-3 [&::-webkit-slider-thumb]:h-3 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:shadow-sm [&::-webkit-slider-thumb]:transition-colors"
                   :disabled="!aiConfig.topP.enabled"
                   :class="aiConfig.topP.enabled ? '[&::-webkit-slider-thumb]:bg-brand-green' : '[&::-webkit-slider-thumb]:bg-gray-300 opacity-50'"
@@ -2069,12 +2100,12 @@ watch(activeTab, (newTab) => {
               <div class="space-y-2">
                 <div class="flex items-center justify-between">
                   <div class="flex items-center gap-2">
-                    <div 
-                      @click="aiConfig.presencePenalty.enabled = !aiConfig.presencePenalty.enabled"
+                    <div
+                      @click="aiConfig.presencePenalty.enabled = !aiConfig.presencePenalty.enabled; onConfigChange()"
                       class="w-8 h-4 rounded-full relative cursor-pointer transition-colors"
                       :class="aiConfig.presencePenalty.enabled ? 'bg-brand-green' : 'bg-gray-200 dark:bg-gray-700'"
                     >
-                      <div 
+                      <div
                         class="absolute top-0.5 left-0.5 w-3 h-3 bg-white rounded-full transition-transform shadow-sm"
                         :class="aiConfig.presencePenalty.enabled ? 'translate-x-4' : ''"
                       ></div>
@@ -2082,19 +2113,21 @@ watch(activeTab, (newTab) => {
                     <span class="text-sm text-gray-700 dark:text-gray-300">存在惩罚</span>
                     <fa :icon="['fas', 'circle-info']" class="text-gray-300 text-xs cursor-help" />
                   </div>
-                  <input 
-                    type="number" 
-                    v-model.number="aiConfig.presencePenalty.value" 
+                  <input
+                    type="number"
+                    v-model.number="aiConfig.presencePenalty.value"
+                    @input="onConfigChange"
                     class="w-16 px-2 py-1 text-xs border border-gray-200 dark:border-[#3A3A3C] rounded bg-gray-50 dark:bg-[#1C1C1E] text-right"
                     :disabled="!aiConfig.presencePenalty.enabled"
                   />
                 </div>
-                <input 
-                  type="range" 
-                  min="0" 
-                  max="1" 
-                  step="0.1" 
+                <input
+                  type="range"
+                  min="0"
+                  max="1"
+                  step="0.1"
                   v-model.number="aiConfig.presencePenalty.value"
+                  @input="onConfigChange"
                   class="w-full h-1 rounded-lg appearance-none cursor-pointer [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-3 [&::-webkit-slider-thumb]:h-3 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:shadow-sm [&::-webkit-slider-thumb]:transition-colors"
                   :disabled="!aiConfig.presencePenalty.enabled"
                   :class="aiConfig.presencePenalty.enabled ? '[&::-webkit-slider-thumb]:bg-brand-green' : '[&::-webkit-slider-thumb]:bg-gray-300 opacity-50'"
@@ -2106,12 +2139,12 @@ watch(activeTab, (newTab) => {
               <div class="space-y-2">
                 <div class="flex items-center justify-between">
                   <div class="flex items-center gap-2">
-                    <div 
-                      @click="aiConfig.frequencyPenalty.enabled = !aiConfig.frequencyPenalty.enabled"
+                    <div
+                      @click="aiConfig.frequencyPenalty.enabled = !aiConfig.frequencyPenalty.enabled; onConfigChange()"
                       class="w-8 h-4 rounded-full relative cursor-pointer transition-colors"
                       :class="aiConfig.frequencyPenalty.enabled ? 'bg-brand-green' : 'bg-gray-200 dark:bg-gray-700'"
                     >
-                      <div 
+                      <div
                         class="absolute top-0.5 left-0.5 w-3 h-3 bg-white rounded-full transition-transform shadow-sm"
                         :class="aiConfig.frequencyPenalty.enabled ? 'translate-x-4' : ''"
                       ></div>
@@ -2119,19 +2152,21 @@ watch(activeTab, (newTab) => {
                     <span class="text-sm text-gray-700 dark:text-gray-300">频率惩罚</span>
                     <fa :icon="['fas', 'circle-info']" class="text-gray-300 text-xs cursor-help" />
                   </div>
-                  <input 
-                    type="number" 
-                    v-model.number="aiConfig.frequencyPenalty.value" 
+                  <input
+                    type="number"
+                    v-model.number="aiConfig.frequencyPenalty.value"
+                    @input="onConfigChange"
                     class="w-16 px-2 py-1 text-xs border border-gray-200 dark:border-[#3A3A3C] rounded bg-gray-50 dark:bg-[#1C1C1E] text-right"
                     :disabled="!aiConfig.frequencyPenalty.enabled"
                   />
                 </div>
-                <input 
-                  type="range" 
-                  min="0" 
-                  max="1" 
-                  step="0.1" 
+                <input
+                  type="range"
+                  min="0"
+                  max="1"
+                  step="0.1"
                   v-model.number="aiConfig.frequencyPenalty.value"
+                  @input="onConfigChange"
                   class="w-full h-1 rounded-lg appearance-none cursor-pointer [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-3 [&::-webkit-slider-thumb]:h-3 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:shadow-sm [&::-webkit-slider-thumb]:transition-colors"
                   :disabled="!aiConfig.frequencyPenalty.enabled"
                   :class="aiConfig.frequencyPenalty.enabled ? '[&::-webkit-slider-thumb]:bg-brand-green' : '[&::-webkit-slider-thumb]:bg-gray-300 opacity-50'"
@@ -2143,12 +2178,12 @@ watch(activeTab, (newTab) => {
               <div class="space-y-2">
                 <div class="flex items-center justify-between">
                   <div class="flex items-center gap-2">
-                    <div 
-                      @click="aiConfig.maxTokens.enabled = !aiConfig.maxTokens.enabled"
+                    <div
+                      @click="aiConfig.maxTokens.enabled = !aiConfig.maxTokens.enabled; onConfigChange()"
                       class="w-8 h-4 rounded-full relative cursor-pointer transition-colors"
                       :class="aiConfig.maxTokens.enabled ? 'bg-brand-green' : 'bg-gray-200 dark:bg-gray-700'"
                     >
-                      <div 
+                      <div
                         class="absolute top-0.5 left-0.5 w-3 h-3 bg-white rounded-full transition-transform shadow-sm"
                         :class="aiConfig.maxTokens.enabled ? 'translate-x-4' : ''"
                       ></div>
@@ -2156,19 +2191,21 @@ watch(activeTab, (newTab) => {
                     <span class="text-sm text-gray-700 dark:text-gray-300">最大标记</span>
                     <fa :icon="['fas', 'circle-info']" class="text-gray-300 text-xs cursor-help" />
                   </div>
-                  <input 
-                    type="number" 
-                    v-model.number="aiConfig.maxTokens.value" 
+                  <input
+                    type="number"
+                    v-model.number="aiConfig.maxTokens.value"
+                    @input="onConfigChange"
                     class="w-16 px-2 py-1 text-xs border border-gray-200 dark:border-[#3A3A3C] rounded bg-gray-50 dark:bg-[#1C1C1E] text-right"
                     :disabled="!aiConfig.maxTokens.enabled"
                   />
                 </div>
-                <input 
-                  type="range" 
-                  min="1" 
-                  max="4096" 
-                  step="1" 
+                <input
+                  type="range"
+                  min="1"
+                  max="4096"
+                  step="1"
                   v-model.number="aiConfig.maxTokens.value"
+                  @input="onConfigChange"
                   class="w-full h-1 rounded-lg appearance-none cursor-pointer [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-3 [&::-webkit-slider-thumb]:h-3 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:shadow-sm [&::-webkit-slider-thumb]:transition-colors"
                   :disabled="!aiConfig.maxTokens.enabled"
                   :class="aiConfig.maxTokens.enabled ? '[&::-webkit-slider-thumb]:bg-brand-green' : '[&::-webkit-slider-thumb]:bg-gray-300 opacity-50'"
@@ -2179,12 +2216,12 @@ watch(activeTab, (newTab) => {
               <!-- Seed -->
               <div class="flex items-center justify-between">
                 <div class="flex items-center gap-2">
-                  <div 
-                    @click="aiConfig.seed.enabled = !aiConfig.seed.enabled"
+                  <div
+                    @click="aiConfig.seed.enabled = !aiConfig.seed.enabled; onConfigChange()"
                     class="w-8 h-4 rounded-full relative cursor-pointer transition-colors"
                     :class="aiConfig.seed.enabled ? 'bg-brand-green' : 'bg-gray-200 dark:bg-gray-700'"
                   >
-                    <div 
+                    <div
                       class="absolute top-0.5 left-0.5 w-3 h-3 bg-white rounded-full transition-transform shadow-sm"
                       :class="aiConfig.seed.enabled ? 'translate-x-4' : ''"
                     ></div>
@@ -2192,9 +2229,10 @@ watch(activeTab, (newTab) => {
                   <span class="text-sm text-gray-700 dark:text-gray-300">种子</span>
                   <fa :icon="['fas', 'circle-info']" class="text-gray-300 text-xs cursor-help" />
                 </div>
-                <input 
-                  type="number" 
-                  v-model.number="aiConfig.seed.value" 
+                <input
+                  type="number"
+                  v-model.number="aiConfig.seed.value"
+                  @input="onConfigChange"
                   class="w-24 px-2 py-1 text-xs border border-gray-200 dark:border-[#3A3A3C] rounded bg-gray-50 dark:bg-[#1C1C1E] text-right"
                   :disabled="!aiConfig.seed.enabled"
                 />
@@ -2203,12 +2241,12 @@ watch(activeTab, (newTab) => {
               <!-- Response Format -->
               <div class="flex items-center justify-between">
                 <div class="flex items-center gap-2">
-                  <div 
-                    @click="aiConfig.responseFormat.enabled = !aiConfig.responseFormat.enabled"
+                  <div
+                    @click="aiConfig.responseFormat.enabled = !aiConfig.responseFormat.enabled; onConfigChange()"
                     class="w-8 h-4 rounded-full relative cursor-pointer transition-colors"
                     :class="aiConfig.responseFormat.enabled ? 'bg-brand-green' : 'bg-gray-200 dark:bg-gray-700'"
                   >
-                    <div 
+                    <div
                       class="absolute top-0.5 left-0.5 w-3 h-3 bg-white rounded-full transition-transform shadow-sm"
                       :class="aiConfig.responseFormat.enabled ? 'translate-x-4' : ''"
                     ></div>
@@ -2216,13 +2254,14 @@ watch(activeTab, (newTab) => {
                   <span class="text-sm text-gray-700 dark:text-gray-300">回复格式</span>
                   <fa :icon="['fas', 'circle-info']" class="text-gray-300 text-xs cursor-help" />
                 </div>
-                <select 
+                <select
                   v-model="aiConfig.responseFormat.value"
+                  @change="onConfigChange"
                   class="w-24 px-2 py-1 text-xs border border-gray-200 dark:border-[#3A3A3C] rounded bg-gray-50 dark:bg-[#1C1C1E]"
                   :disabled="!aiConfig.responseFormat.enabled"
                 >
-                  <option value="text">请选择</option>
-                  <option value="json">JSON</option>
+                  <option value="text">text</option>
+                  <option value="json_object">json_object</option>
                 </select>
               </div>
             </div>
