@@ -79,9 +79,11 @@ const scriptMode = ref('selection') // 'selection', 'write', 'upload'
 const tabs = [
   { id: 'script', label: '剧本创作', icon: 'book' },
   { id: 'files', label: '剧本文件管理', icon: 'folder' },
+  { id: 'videoAssets', label: '视频素材管理', icon: 'film' },
+  { id: 'audioAssets', label: '音频素材管理', icon: 'music' },
   { id: 'characters', label: '角色一致性', icon: 'users' },
   { id: 'storyboard', label: '分镜生成', icon: 'clapperboard' },
-  { id: 'video', label: '视频剪辑', icon: 'video', badge: 'Beta' }
+  { id: 'video', label: '视频剪辑', icon: 'scissors', badge: 'Beta' }
 ]
 
 const scriptContent = ref('[场景] 豪华办公室，白天\n顾北辰：（冷冷地）这份设计稿重做。\n苏晚晚：（坚定地）我会重新来过。\n旁白：两人的眼神交错，空气凝固。\nJohn: You should reconsider.\nMary: I won\'t.')
@@ -1834,6 +1836,129 @@ watch(activeTab, (newTab) => {
             >
               <fa :icon="['fas', 'upload']" />
               上传第一个文件
+            </button>
+          </div>
+        </div>
+
+        <!-- Video Assets View -->
+        <div v-else-if="activeTab === 'videoAssets'" class="max-w-6xl mx-auto">
+          <div class="flex items-center justify-between mb-6">
+            <h2 class="text-xl font-bold">视频素材管理</h2>
+            <button
+              @click="triggerMediaFileInput"
+              class="px-4 py-2 bg-brand-green text-white rounded-lg text-sm hover:bg-brand-green-dark transition flex items-center gap-2"
+            >
+              <fa :icon="['fas', 'plus']" />
+              上传视频
+            </button>
+          </div>
+
+          <!-- Video Assets Grid -->
+          <div v-if="externalMedia.filter(m => m.type === 'video').length > 0" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div
+              v-for="media in externalMedia.filter(m => m.type === 'video')"
+              :key="media.key"
+              class="bg-white dark:bg-[#2C2C2E] rounded-xl border border-gray-200 dark:border-[#3A3A3C] overflow-hidden hover:shadow-md transition"
+            >
+              <div class="aspect-video bg-gray-100 dark:bg-[#3A3A3C] relative group">
+                <video :src="media.src" class="w-full h-full object-cover"></video>
+                <div class="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition flex items-center justify-center gap-2">
+                  <button class="p-3 bg-white rounded-full text-gray-800 hover:scale-110 transition">
+                    <fa :icon="['fas', 'play']" />
+                  </button>
+                </div>
+              </div>
+              <div class="p-4">
+                <p class="text-sm font-medium text-gray-900 dark:text-white truncate mb-2">{{ media.label }}</p>
+                <div class="flex items-center gap-2">
+                  <button class="flex-1 px-3 py-1.5 text-xs border border-gray-200 dark:border-[#3A3A3C] rounded-lg hover:bg-gray-50 dark:hover:bg-[#3A3A3C] transition">
+                    <fa :icon="['fas', 'download']" class="mr-1" /> 下载
+                  </button>
+                  <button class="flex-1 px-3 py-1.5 text-xs border border-red-200 text-red-500 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20 transition">
+                    <fa :icon="['fas', 'trash']" class="mr-1" /> 删除
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Empty State -->
+          <div v-else class="flex flex-col items-center justify-center py-16 px-4">
+            <div class="w-24 h-24 rounded-full bg-gray-100 dark:bg-[#3A3A3C] flex items-center justify-center mb-6">
+              <fa :icon="['fas', 'file-video']" class="text-4xl text-gray-400 dark:text-gray-500" />
+            </div>
+            <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-2">暂无视频素材</h3>
+            <p class="text-sm text-gray-500 dark:text-gray-400 mb-6 text-center max-w-md">
+              上传视频素材以便在剪辑中使用。支持 MP4、MOV、AVI 等格式。
+            </p>
+            <button
+              @click="triggerMediaFileInput"
+              class="px-6 py-3 bg-brand-green text-white rounded-lg font-medium hover:bg-brand-green-dark transition flex items-center gap-2"
+            >
+              <fa :icon="['fas', 'upload']" />
+              上传第一个视频
+            </button>
+          </div>
+        </div>
+
+        <!-- Audio Assets View -->
+        <div v-else-if="activeTab === 'audioAssets'" class="max-w-6xl mx-auto">
+          <div class="flex items-center justify-between mb-6">
+            <h2 class="text-xl font-bold">音频素材管理</h2>
+            <button
+              class="px-4 py-2 bg-brand-green text-white rounded-lg text-sm hover:bg-brand-green-dark transition flex items-center gap-2"
+            >
+              <fa :icon="['fas', 'plus']" />
+              上传音频
+            </button>
+          </div>
+
+          <!-- Audio Assets List -->
+          <div class="bg-white dark:bg-[#2C2C2E] rounded-xl border border-gray-200 dark:border-[#3A3A3C] overflow-hidden">
+            <div class="divide-y divide-gray-100 dark:divide-[#3A3A3C]">
+              <!-- Sample Audio Items -->
+              <div class="flex items-center gap-4 px-6 py-4 hover:bg-gray-50 dark:hover:bg-[#3A3A3C]/30 transition-colors">
+                <div class="flex-shrink-0">
+                  <div class="w-12 h-12 rounded-lg bg-purple-100 dark:bg-purple-900/30 flex items-center justify-center">
+                    <fa :icon="['fas', 'music']" class="text-xl text-purple-600 dark:text-purple-400" />
+                  </div>
+                </div>
+                <div class="flex-1 min-w-0">
+                  <p class="text-sm font-medium text-gray-900 dark:text-white truncate">背景音乐.mp3</p>
+                  <div class="flex items-center gap-3 mt-1">
+                    <span class="text-xs text-gray-500 dark:text-gray-400">2.5 MB</span>
+                    <span class="text-xs text-gray-500 dark:text-gray-400">• 3:24</span>
+                  </div>
+                </div>
+                <div class="flex items-center gap-2">
+                  <button class="p-2 text-gray-400 hover:text-brand-green hover:bg-brand-green/10 rounded-lg transition" title="播放">
+                    <fa :icon="['fas', 'play']" />
+                  </button>
+                  <button class="p-2 text-gray-400 hover:text-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg transition" title="下载">
+                    <fa :icon="['fas', 'download']" />
+                  </button>
+                  <button class="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition" title="删除">
+                    <fa :icon="['fas', 'trash']" />
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Empty State (hidden when there are items) -->
+          <div v-if="false" class="flex flex-col items-center justify-center py-16 px-4">
+            <div class="w-24 h-24 rounded-full bg-gray-100 dark:bg-[#3A3A3C] flex items-center justify-center mb-6">
+              <fa :icon="['fas', 'music']" class="text-4xl text-gray-400 dark:text-gray-500" />
+            </div>
+            <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-2">暂无音频素材</h3>
+            <p class="text-sm text-gray-500 dark:text-gray-400 mb-6 text-center max-w-md">
+              上传音频素材以便在剪辑中使用。支持 MP3、WAV、AAC 等格式。
+            </p>
+            <button
+              class="px-6 py-3 bg-brand-green text-white rounded-lg font-medium hover:bg-brand-green-dark transition flex items-center gap-2"
+            >
+              <fa :icon="['fas', 'upload']" />
+              上传第一个音频
             </button>
           </div>
         </div>
