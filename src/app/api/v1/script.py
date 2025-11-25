@@ -135,17 +135,37 @@ async def upload_file_to_library(
     if not lib:
         raise HTTPException(status_code=404, detail="Library not found")
 
-    # 2. Upload to MinIO
+    # 2. Upload to MinIO - Determine file type and subfolder
     file_content = await file.read()
     filename_lower = file.filename.lower()
     content_type = file.content_type or "application/octet-stream"
-    image_exts = {".png", ".jpg", ".jpeg", ".gif", ".bmp", ".webp", ".svg"}
+    
     import os
     _, ext = os.path.splitext(filename_lower)
-    is_image = content_type.startswith("image/") or ext in image_exts
-    subfolder = "images" if is_image else "text"
+    
+    # Define file type categories and extensions
+    image_exts = {".png", ".jpg", ".jpeg", ".gif", ".bmp", ".webp", ".svg", ".ico"}
+    video_exts = {".mp4", ".avi", ".mov", ".mkv", ".flv", ".wmv", ".webm", ".m4v", ".mpeg", ".mpg"}
+    audio_exts = {".mp3", ".wav", ".aac", ".flac", ".ogg", ".m4a", ".wma", ".opus"}
+    
+    # Determine file type and subfolder
+    if content_type.startswith("image/") or ext in image_exts:
+        file_type = "image"
+        subfolder = "images"
+    elif content_type.startswith("video/") or ext in video_exts:
+        file_type = "video"
+        subfolder = "video"
+    elif content_type.startswith("audio/") or ext in audio_exts:
+        file_type = "audio"
+        subfolder = "audio"
+    else:
+        file_type = "text"
+        subfolder = "text"
+    
+    # Construct object key and upload
     object_key = f"{lib.minio_folder_path}{subfolder}/{file.filename}"
     file_url = minio_client.upload_file(file_content, object_key, content_type)
+
 
     # 3. Save to database
     new_file_id = int(generate_numeric_uuid18())
@@ -158,7 +178,7 @@ async def upload_file_to_library(
         filename=file.filename,
         file_url=file_url,
         minio_object_key=object_key,
-        file_type="image" if is_image else "text"
+        file_type=file_type
     )
     db.add(new_file)
     await db.commit()
@@ -167,13 +187,24 @@ async def upload_file_to_library(
     return new_file
 
 
+
 @router.get("/libraries/{lib_id}/files", response_model=List[FileResponse])
 async def list_files(
     lib_id: int,
+    file_type: str = None,  # Optional filter: "video", "audio", "image", "text"
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
-    """List all files in a library"""
+    """
+    List all files in a library
+    
+    Args:
+        lib_id: Library ID
+        file_type: Optional filter by file type ("video", "audio", "image", "text")
+    
+    Returns:
+        List of files, optionally filtered by type
+    """
     # Check library exists and belongs to user
     result = await db.execute(
         select(ScriptLibrary).where(
@@ -186,13 +217,26 @@ async def list_files(
     if not lib:
         raise HTTPException(status_code=404, detail="Library not found")
     
-    # Get files
-    result = await db.execute(
-        select(ScriptFile).where(ScriptFile.library_id == lib_id)
-    )
+    # Build query for files
+    query = select(ScriptFile).where(ScriptFile.library_id == lib_id)
+    
+    # Apply file type filter if specified
+    if file_type:
+        # Validate file_type parameter
+        valid_types = ["video", "audio", "image", "text"]
+        if file_type not in valid_types:
+            raise HTTPException(
+                status_code=400, 
+                detail=f"Invalid file_type. Must be one of: {', '.join(valid_types)}"
+            )
+        query = query.where(ScriptFile.file_type == file_type)
+    
+    # Execute query
+    result = await db.execute(query)
     files = result.scalars().all()
     
     return files
+
 
 
 @router.delete("/files/{file_id}")
@@ -265,11 +309,12 @@ async def get_file_content(
     try:
         content = minio_client.get_file_content(file_obj.minio_object_key)
 
-        # Determine content type based on file type
+        # Determine content type based on file type and extension
+        import os
+        _, ext = os.path.splitext(file_obj.filename.lower())
+        
         if file_obj.file_type == "image":
-            # Try to determine image content type from filename
-            import os
-            _, ext = os.path.splitext(file_obj.filename.lower())
+            # Image content types
             content_type_map = {
                 ".png": "image/png",
                 ".jpg": "image/jpeg",
@@ -277,13 +322,43 @@ async def get_file_content(
                 ".gif": "image/gif",
                 ".bmp": "image/bmp",
                 ".webp": "image/webp",
-                ".svg": "image/svg+xml"
+                ".svg": "image/svg+xml",
+                ".ico": "image/x-icon"
             }
             content_type = content_type_map.get(ext, "image/jpeg")
+        elif file_obj.file_type == "video":
+            # Video content types
+            content_type_map = {
+                ".mp4": "video/mp4",
+                ".avi": "video/x-msvideo",
+                ".mov": "video/quicktime",
+                ".mkv": "video/x-matroska",
+                ".flv": "video/x-flv",
+                ".wmv": "video/x-ms-wmv",
+                ".webm": "video/webm",
+                ".m4v": "video/x-m4v",
+                ".mpeg": "video/mpeg",
+                ".mpg": "video/mpeg"
+            }
+            content_type = content_type_map.get(ext, "video/mp4")
+        elif file_obj.file_type == "audio":
+            # Audio content types
+            content_type_map = {
+                ".mp3": "audio/mpeg",
+                ".wav": "audio/wav",
+                ".aac": "audio/aac",
+                ".flac": "audio/flac",
+                ".ogg": "audio/ogg",
+                ".m4a": "audio/mp4",
+                ".wma": "audio/x-ms-wma",
+                ".opus": "audio/opus"
+            }
+            content_type = content_type_map.get(ext, "audio/mpeg")
         else:
-            # For text files, try to return as text
+            # Text files
             content_type = "text/plain; charset=utf-8"
 
         return Response(content=content, media_type=content_type)
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to retrieve file content: {str(e)}")
+

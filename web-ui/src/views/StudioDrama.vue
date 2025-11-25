@@ -337,30 +337,353 @@ const getItemStyle = (it) => {
   return { left: left + 'px', width: width + 'px' }
 }
 
+// Video Assets View Mode
+const videoViewMode = ref('grid') // 'grid' or 'list'
+
+// Delete Confirmation Modal
+const showDeleteConfirm = ref(false)
+const videoToDelete = ref(null)
+
+const openDeleteConfirm = (media) => {
+  videoToDelete.value = media
+  showDeleteConfirm.value = true
+}
+
+const closeDeleteConfirm = () => {
+  showDeleteConfirm.value = false
+  videoToDelete.value = null
+}
+
+const confirmDeleteVideo = async () => {
+  if (!videoToDelete.value || !videoToDelete.value.fileId) return
+
+  try {
+    const token = localStorage.getItem('accessToken')
+    const response = await fetch(`${API_BASE}/api/v1/script/files/${videoToDelete.value.fileId}`, {
+      method: 'DELETE',
+      headers: {
+        'Authorization': `Bearer ${token}`
+      }
+    })
+
+    if (!response.ok) {
+      if (response.status === 401) {
+        router.push('/login')
+        return
+      }
+      throw new Error('删除失败')
+    }
+
+    // Remove from local list
+    const index = externalMedia.value.findIndex(m => m.fileId === videoToDelete.value.fileId)
+    if (index !== -1) {
+      externalMedia.value.splice(index, 1)
+    }
+
+    showToastMessage('视频删除成功', 'success')
+    closeDeleteConfirm()
+  } catch (error) {
+    console.error('Delete error:', error)
+    showToastMessage(error.message || '删除失败', 'error')
+  }
+}
+
+// Video Upload Modal
+const showVideoUploadModal = ref(false)
+const videoUploadFiles = ref([])
+const videoUploadInput = ref(null)
+const videoUploadDragging = ref(false)
+
+const openVideoUploadModal = () => {
+  showVideoUploadModal.value = true
+  videoUploadFiles.value = []
+}
+
+const closeVideoUploadModal = () => {
+  showVideoUploadModal.value = false
+  videoUploadFiles.value = []
+  if (videoUploadInput.value) videoUploadInput.value.value = ''
+}
+
+const triggerVideoUploadInput = () => {
+  videoUploadInput.value?.click()
+}
+
+const handleVideoUploadSelect = (event) => {
+  const files = event.target.files
+  if (files && files.length > 0) {
+    addFilesToUploadList(Array.from(files))
+  }
+}
+
+const handleVideoUploadDragOver = (event) => {
+  event.preventDefault()
+  videoUploadDragging.value = true
+}
+
+const handleVideoUploadDragLeave = () => {
+  videoUploadDragging.value = false
+}
+
+const handleVideoUploadDrop = (event) => {
+  event.preventDefault()
+  videoUploadDragging.value = false
+  const files = event.dataTransfer.files
+  if (files && files.length > 0) {
+    const videoFiles = Array.from(files).filter(f => f.type.startsWith('video/'))
+    if (videoFiles.length > 0) {
+      addFilesToUploadList(videoFiles)
+    } else {
+      showToastMessage('请选择视频文件', 'error')
+    }
+  }
+}
+
+const addFilesToUploadList = (files) => {
+  files.forEach(file => {
+    const fileObj = {
+      id: Date.now() + Math.random(),
+      file: file,
+      name: file.name,
+      size: (file.size / 1024 / 1024).toFixed(2) + ' MB',
+      status: 'pending', // pending, uploading, completed, error
+      progress: 0,
+      error: null
+    }
+    videoUploadFiles.value.push(fileObj)
+    
+    // Automatically start upload for this file
+    uploadSingleVideoFile(fileObj)
+  })
+}
+
+
+const removeUploadFile = (id) => {
+  const index = videoUploadFiles.value.findIndex(f => f.id === id)
+  if (index !== -1) {
+    videoUploadFiles.value.splice(index, 1)
+  }
+}
+
+const clearUploadList = () => {
+  videoUploadFiles.value = []
+}
+
+const startBatchUpload = async () => {
+  const pendingFiles = videoUploadFiles.value.filter(f => f.status === 'pending' || f.status === 'error')
+  
+  for (const fileObj of pendingFiles) {
+    await uploadSingleVideoFile(fileObj)
+  }
+  
+  // Check if all uploads completed successfully
+  const allCompleted = videoUploadFiles.value.every(f => f.status === 'completed')
+  if (allCompleted && videoUploadFiles.value.length > 0) {
+    showToastMessage('所有视频上传成功', 'success')
+    setTimeout(() => {
+      closeVideoUploadModal()
+      loadMediaFiles() // Reload media list
+    }, 1000)
+  }
+}
+
+const uploadSingleVideoFile = async (fileObj) => {
+  if (!projectId) {
+    fileObj.status = 'error'
+    fileObj.error = '未找到项目ID'
+    return
+  }
+
+  fileObj.status = 'uploading'
+  fileObj.progress = 0
+
+  const formData = new FormData()
+  formData.append('file', fileObj.file)
+
+  try {
+    const token = localStorage.getItem('accessToken')
+    const xhr = new XMLHttpRequest()
+
+    // Track upload progress
+    xhr.upload.addEventListener('progress', (e) => {
+      if (e.lengthComputable) {
+        fileObj.progress = Math.round((e.loaded / e.total) * 100)
+      }
+    })
+
+    // Handle completion
+    await new Promise((resolve, reject) => {
+      xhr.addEventListener('load', () => {
+        if (xhr.status >= 200 && xhr.status < 300) {
+          // Handle large integer IDs by converting to strings before JSON parsing
+          const text = xhr.responseText.replace(/"id":(\d{15,})/g, '"id":"$1"')
+          const result = JSON.parse(text)
+          fileObj.status = 'completed'
+          fileObj.progress = 100
+
+          // Add to externalMedia list
+          externalMedia.value.push({
+            key: result.id.toString(),
+            type: result.file_type,
+            src: result.file_url,
+            label: result.filename,
+            uuid: result.id.toString(),
+            fileId: result.id
+          })
+
+          resolve()
+        } else {
+          reject(new Error(`上传失败: ${xhr.statusText}`))
+        }
+      })
+
+      xhr.addEventListener('error', () => {
+        reject(new Error('网络错误'))
+      })
+
+      xhr.open('POST', `${API_BASE}/api/v1/script/libraries/${projectId}/files`)
+      xhr.setRequestHeader('Authorization', `Bearer ${token}`)
+      xhr.send(formData)
+    })
+  } catch (error) {
+    console.error('Upload error:', error)
+    fileObj.status = 'error'
+    fileObj.error = error.message || '上传失败'
+  }
+}
+
+
 const mediaIsDragging = ref(false)
 const mediaFileInput = ref(null)
-const triggerMediaFileInput = () => { mediaFileInput.value?.click() }
-const handleMediaFileSelect = (event) => {
+const uploadingMedia = ref(false)
+
+const triggerMediaFileInput = () => { openVideoUploadModal() }
+
+const handleMediaFileSelect = async (event) => {
   const files = event.target.files
-  if (files && files.length > 0) Array.from(files).forEach(addMediaFile)
+  if (files && files.length > 0) {
+    for (const file of Array.from(files)) {
+      await uploadMediaToBackend(file)
+    }
+  }
+  // Reset input
+  if (mediaFileInput.value) mediaFileInput.value.value = ''
 }
-const handleMediaDragOver = (event) => { event.preventDefault(); mediaIsDragging.value = true; if (event.dataTransfer) event.dataTransfer.dropEffect = 'copy' }
+
+const handleMediaDragOver = (event) => { 
+  event.preventDefault()
+  mediaIsDragging.value = true
+  if (event.dataTransfer) event.dataTransfer.dropEffect = 'copy'
+}
+
 const handleMediaDragLeave = () => { mediaIsDragging.value = false }
-const handleMediaDrop = (event) => {
-  event.preventDefault(); mediaIsDragging.value = false
+
+const handleMediaDrop = async (event) => {
+  event.preventDefault()
+  mediaIsDragging.value = false
   const files = event.dataTransfer.files
   if (!files || files.length === 0) return
+  
   let accepted = 0
-  Array.from(files).forEach(file => {
-    if (file.type && file.type.startsWith('video/')) { addMediaFile(file); accepted++ }
-  })
-  if (accepted === 0) alert('仅支持拖拽视频文件')
+  for (const file of Array.from(files)) {
+    if (file.type && file.type.startsWith('video/')) {
+      await uploadMediaToBackend(file)
+      accepted++
+    }
+  }
+  if (accepted === 0) {
+    showToastMessage('仅支持拖拽视频文件', 'error')
+  }
 }
-const addMediaFile = (file) => {
-  const url = URL.createObjectURL(file)
-  const type = file.type && file.type.startsWith('image/') ? 'image' : 'video'
-  externalMedia.value.push({ key: `ext-${Date.now()}-${Math.random()}`, type, src: url, label: `${type === 'image' ? '图片' : '视频'} ${file.name}` })
+
+
+const uploadMediaToBackend = async (file) => {
+  if (!projectId) {
+    showToastMessage('未找到项目ID', 'error')
+    return
+  }
+
+  uploadingMedia.value = true
+  const formData = new FormData()
+  formData.append('file', file)
+
+  try {
+    const token = localStorage.getItem('accessToken')
+    const response = await fetch(`${API_BASE}/api/v1/script/libraries/${projectId}/files`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${token}`
+      },
+      body: formData
+    })
+
+    if (!response.ok) {
+      if (response.status === 401) {
+        router.push('/login')
+        return
+      }
+      throw new Error(`上传失败: ${response.statusText}`)
+    }
+
+    const result = await response.json()
+    
+    // Add to externalMedia list
+    externalMedia.value.push({
+      key: result.id.toString(),
+      type: result.file_type,
+      src: result.file_url,
+      label: result.filename,
+      uuid: result.id.toString(),
+      fileId: result.id
+    })
+
+    showToastMessage('视频上传成功', 'success')
+  } catch (error) {
+    console.error('Upload error:', error)
+    showToastMessage(error.message || '上传失败', 'error')
+  } finally {
+    uploadingMedia.value = false
+  }
 }
+
+// Load existing media files from backend
+const loadMediaFiles = async () => {
+  if (!projectId) return
+
+  try {
+    const token = localStorage.getItem('accessToken')
+    const response = await fetch(`${API_BASE}/api/v1/script/libraries/${projectId}/files?file_type=video`, {
+      headers: {
+        'Authorization': `Bearer ${token}`
+      }
+    })
+
+    if (!response.ok) {
+      if (response.status === 401) {
+        router.push('/login')
+        return
+      }
+      throw new Error('加载视频失败')
+    }
+
+    // Handle large integer IDs by converting to strings before JSON parsing
+    const text = await response.text()
+    const files = JSON.parse(text.replace(/"id":(\d{15,})/g, '"id":"$1"'))
+
+    // Clear demo data and load real data
+    externalMedia.value = files.map(file => ({
+      key: file.id.toString(),
+      type: file.file_type,
+      src: file.file_url,
+      label: file.filename,
+      uuid: file.id.toString(),
+      fileId: file.id
+    }))
+  } catch (error) {
+    console.error('Load media error:', error)
+  }
+}
+
 // Video Preview Modal
 const showVideoPreview = ref(false)
 const currentVideoPreview = ref(null)
@@ -713,7 +1036,8 @@ const rejectGeneration = () => {
 // File upload (Multiple files support)
 const fileInput = ref(null)
 const isDragging = ref(false)
-const uploadedFiles = ref([])
+const uploadedFiles = ref([]) // Files being uploaded in modal (temporary)
+const existingFiles = ref([]) // Files loaded from backend (persistent)
 const showUploadModal = ref(false)
 const uploadModalDragging = ref(false)
 
@@ -724,6 +1048,9 @@ const openUploadModal = () => {
 const closeUploadModal = () => {
   showUploadModal.value = false
   uploadModalDragging.value = false
+  // Clear the upload list when closing modal
+  uploadedFiles.value = []
+  if (fileInput.value) fileInput.value.value = ''
 }
 
 const triggerFileInput = () => {
@@ -835,7 +1162,7 @@ const showToastMessage = (message, type = 'success') => {
 }
 
 const removeFile = (index) => {
-  const fileData = uploadedFiles.value[index]
+  const fileData = existingFiles.value[index]
 
   // If it's an existing file from backend, show confirmation modal
   if (fileData.isExisting && fileData.fileId) {
@@ -844,7 +1171,7 @@ const removeFile = (index) => {
     showDeleteFileConfirm.value = true
   } else {
     // For files that are still uploading or failed, just remove from list
-    uploadedFiles.value.splice(index, 1)
+    existingFiles.value.splice(index, 1)
   }
 }
 
@@ -858,7 +1185,7 @@ const confirmDeleteFile = async () => {
   const index = deleteFileIndex.value
   if (index === -1) return
 
-  const fileData = uploadedFiles.value[index]
+  const fileData = existingFiles.value[index]
 
   try {
     const token = typeof localStorage !== 'undefined' ? localStorage.getItem('accessToken') : ''
@@ -881,7 +1208,7 @@ const confirmDeleteFile = async () => {
     }
 
     // Remove from list after successful deletion
-    uploadedFiles.value.splice(index, 1)
+    existingFiles.value.splice(index, 1)
     showToastMessage('文件删除成功', 'success')
     cancelDeleteFile()
   } catch (error) {
@@ -919,14 +1246,34 @@ const uploadFileToBackend = async (fileData) => {
         fileData.progress = 'completed'
         fileData.uploadProgress = 100
         try {
-          const response = JSON.parse(xhr.responseText)
+          // Handle large integer IDs by converting to strings before JSON parsing
+          const text = xhr.responseText.replace(/"id":(\d{15,})/g, '"id":"$1"')
+          const response = JSON.parse(text)
+
           // Store file ID if returned by backend
           if (response.id) {
             fileData.fileId = response.id
+            fileData.isExisting = true
           }
-          if (response.file_name) {
-            fileData.fileName = response.file_name
+          if (response.filename) {
+            fileData.fileName = response.filename
           }
+
+          // Add to existingFiles list after successful upload
+          existingFiles.value.push({
+            fileId: response.id,
+            fileName: response.filename,
+            fileUrl: response.file_url,
+            fileType: response.file_type,
+            file: {
+              name: response.filename,
+              size: fileData.file.size
+            },
+            progress: 'completed',
+            uploadProgress: 100,
+            isExisting: true,
+            selected: false
+          })
         } catch (e) {
           console.error('Failed to parse response:', e)
         }
@@ -986,7 +1333,7 @@ const loadExistingFiles = async () => {
     const files = JSON.parse(fixedText)
 
     // Clear existing files and reload
-    uploadedFiles.value = []
+    existingFiles.value = []
 
     // Convert backend files to the same format as uploaded files
     if (Array.isArray(files)) {
@@ -1009,7 +1356,7 @@ const loadExistingFiles = async () => {
           isExisting: true, // Mark as existing file from backend
           selected: false // Add selected state
         })
-        uploadedFiles.value.push(fileData)
+        existingFiles.value.push(fileData)
       })
     }
   } catch (error) {
@@ -1218,19 +1565,19 @@ const extractError = ref('')
 const scriptSegments = ref([]) // Parsed script segments with selection state
 const selectAll = ref(true)
 const visibleSegments = computed(() => scriptSegments.value.map((seg, idx) => ({ seg, idx })))
-const visibleFiles = computed(() => uploadedFiles.value.map((file, idx) => ({ file, idx })))
+const visibleFiles = computed(() => existingFiles.value.map((file, idx) => ({ file, idx })))
 const fileListSelectAll = ref(false)
 
 const toggleFileSelectAll = () => {
   fileListSelectAll.value = !fileListSelectAll.value
-  uploadedFiles.value.forEach(f => f.selected = fileListSelectAll.value)
+  existingFiles.value.forEach(f => f.selected = fileListSelectAll.value)
 }
 
 const toggleFileSelection = (index) => {
-  const file = uploadedFiles.value[index]
+  const file = existingFiles.value[index]
   if (file) {
     file.selected = !file.selected
-    fileListSelectAll.value = uploadedFiles.value.every(f => f.selected)
+    fileListSelectAll.value = existingFiles.value.every(f => f.selected)
   }
 }
 
@@ -1239,7 +1586,7 @@ const showBatchDeleteConfirm = ref(false)
 const batchDeleteCount = ref(0)
 
 const openBatchDeleteConfirm = () => {
-  const selectedCount = uploadedFiles.value.filter(f => f.selected).length
+  const selectedCount = existingFiles.value.filter(f => f.selected).length
   if (selectedCount === 0) return
   batchDeleteCount.value = selectedCount
   showBatchDeleteConfirm.value = true
@@ -1251,7 +1598,7 @@ const cancelBatchDelete = () => {
 }
 
 const batchDeleteFiles = async () => {
-  const selectedIndices = uploadedFiles.value
+  const selectedIndices = existingFiles.value
     .map((f, i) => f.selected ? i : -1)
     .filter(i => i !== -1)
     .sort((a, b) => b - a) // Sort descending to remove from end
@@ -1263,8 +1610,8 @@ const batchDeleteFiles = async () => {
     // Note: This is a simplified batch delete. Ideally, we should have a batch API.
     // For now, we'll just call the delete API sequentially or remove from list.
     // Since removeFile has UI interaction (modal), we should refactor or just call the API directly here.
-    
-    const fileData = uploadedFiles.value[index]
+
+    const fileData = existingFiles.value[index]
     if (fileData.isExisting && fileData.fileId) {
        try {
         const token = typeof localStorage !== 'undefined' ? localStorage.getItem('accessToken') : ''
@@ -1279,7 +1626,7 @@ const batchDeleteFiles = async () => {
          console.error('Failed to delete file', fileData.fileName)
        }
     }
-    uploadedFiles.value.splice(index, 1)
+    existingFiles.value.splice(index, 1)
   }
   fileListSelectAll.value = false
   showToastMessage('批量删除完成', 'success')
@@ -1460,10 +1807,9 @@ const confirmExtractCreate = () => {
 
 
 onMounted(() => {
-  // Load library info
   loadLibraryInfo()
-  // Load existing files from backend
   loadExistingFiles()
+  loadMediaFiles()  // Load existing video files from backend
 })
 
 // Watch for tab changes to reload files when switching to files tab
@@ -1809,12 +2155,12 @@ watch(activeTab, (newTab) => {
           >
 
           <!-- Files List -->
-          <div v-if="uploadedFiles.length > 0" class="bg-white dark:bg-[#2C2C2E] rounded-xl border border-gray-200 dark:border-[#3A3A3C] overflow-hidden">
+          <div v-if="existingFiles.length > 0" class="bg-white dark:bg-[#2C2C2E] rounded-xl border border-gray-200 dark:border-[#3A3A3C] overflow-hidden">
             <!-- Header Row -->
             <div class="flex items-center gap-4 px-6 py-3 bg-gray-50 dark:bg-[#3A3A3C]/50 border-b border-gray-200 dark:border-[#3A3A3C]">
               <div class="flex items-center gap-3">
-                <input 
-                  type="checkbox" 
+                <input
+                  type="checkbox"
                   :checked="fileListSelectAll"
                   @change="toggleFileSelectAll"
                   class="w-4 h-4 rounded border-gray-300 text-brand-green focus:ring-brand-green"
@@ -1822,9 +2168,9 @@ watch(activeTab, (newTab) => {
                 <span class="text-sm font-medium text-gray-700 dark:text-gray-300">全部文件</span>
               </div>
               <div class="ml-auto flex items-center gap-2">
-                <span class="text-xs text-gray-500 dark:text-gray-400">共 {{ uploadedFiles.length }} 个文件</span>
-                <button 
-                  v-if="uploadedFiles.some(f => f.selected)"
+                <span class="text-xs text-gray-500 dark:text-gray-400">共 {{ existingFiles.length }} 个文件</span>
+                <button
+                  v-if="existingFiles.some(f => f.selected)"
                   @click="openBatchDeleteConfirm"
                   class="text-xs text-red-500 hover:text-red-600 font-medium px-3 py-1.5 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20 transition"
                 >
@@ -1837,7 +2183,7 @@ watch(activeTab, (newTab) => {
             <!-- File List -->
             <div class="divide-y divide-gray-100 dark:divide-[#3A3A3C]">
               <div
-                v-for="(fileData, index) in uploadedFiles"
+                v-for="(fileData, index) in existingFiles"
                 :key="index"
                 class="flex items-center gap-4 px-6 py-4 hover:bg-gray-50 dark:hover:bg-[#3A3A3C]/30 transition-colors cursor-pointer"
                 :class="fileData.selected ? 'bg-brand-green/5' : ''"
@@ -1848,7 +2194,7 @@ watch(activeTab, (newTab) => {
                   <input
                     type="checkbox"
                     v-model="fileData.selected"
-                    @change="fileListSelectAll = uploadedFiles.every(f => f.selected)"
+                    @change="fileListSelectAll = existingFiles.every(f => f.selected)"
                     class="w-4 h-4 rounded border-gray-300 text-brand-green focus:ring-brand-green"
                   >
                 </div>
@@ -1937,41 +2283,125 @@ watch(activeTab, (newTab) => {
         <div v-else-if="activeTab === 'videoAssets'" class="max-w-6xl mx-auto">
           <div class="flex items-center justify-between mb-6">
             <h2 class="text-xl font-bold">视频素材管理</h2>
-            <button
-              @click="triggerMediaFileInput"
-              class="px-4 py-2 bg-brand-green text-white rounded-lg text-sm hover:bg-brand-green-dark transition flex items-center gap-2"
-            >
-              <fa :icon="['fas', 'plus']" />
-              上传视频
-            </button>
+            <div class="flex items-center gap-3">
+              <!-- View Mode Switcher -->
+              <div class="flex items-center bg-white p-1 rounded-lg border border-gray-200 dark:bg-[#2C2C2E] dark:border-[#3A3A3C]">
+                <button 
+                  @click="videoViewMode = 'grid'"
+                  class="px-3 py-1 text-sm rounded-md transition"
+                  :class="videoViewMode === 'grid' ? 'font-semibold text-white bg-brand-green' : 'text-gray-600 hover:text-gray-900 dark:text-gray-300 dark:hover:text-white'"
+                >
+                  <fa :icon="['fas', 'table-cells-large']" />
+                </button>
+                <button 
+                  @click="videoViewMode = 'list'"
+                  class="px-3 py-1 text-sm rounded-md transition"
+                  :class="videoViewMode === 'list' ? 'font-semibold text-white bg-brand-green' : 'text-gray-600 hover:text-gray-900 dark:text-gray-300 dark:hover:text-white'"
+                >
+                  <fa :icon="['fas', 'list']" />
+                </button>
+              </div>
+              
+              <!-- Upload Button -->
+              <button
+                @click="triggerMediaFileInput"
+                class="px-4 py-2 bg-brand-green text-white rounded-lg text-sm hover:bg-brand-green-dark transition flex items-center gap-2"
+              >
+                <fa :icon="['fas', 'plus']" />
+                上传视频
+              </button>
+            </div>
           </div>
 
-          <!-- Video Assets Grid -->
-          <div v-if="externalMedia.filter(m => m.type === 'video').length > 0" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            <div
-              v-for="media in externalMedia.filter(m => m.type === 'video')"
-              :key="media.key"
-              class="bg-white dark:bg-[#2C2C2E] rounded-xl border border-gray-200 dark:border-[#3A3A3C] overflow-hidden hover:shadow-md transition"
-            >
-              <div class="aspect-video bg-gray-100 dark:bg-[#3A3A3C] relative group">
-                <video :src="media.src" class="w-full h-full object-cover"></video>
-                <div class="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition flex items-center justify-center gap-2">
-                  <button @click="openVideoPreview(media)" class="p-3 bg-white rounded-full text-gray-800 hover:scale-110 transition">
-                    <fa :icon="['fas', 'play']" />
-                  </button>
+          <!-- Hidden file input for video uploads -->
+          <input 
+            ref="mediaFileInput" 
+            type="file" 
+            multiple 
+            class="hidden" 
+            accept="video/*" 
+            @change="handleMediaFileSelect" 
+          />
+
+          <!-- Video Assets Grid View -->
+          <div v-if="externalMedia.filter(m => m.type === 'video').length > 0">
+            <!-- Grid View -->
+            <div v-if="videoViewMode === 'grid'" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              <div
+                v-for="media in externalMedia.filter(m => m.type === 'video')"
+                :key="media.key"
+                class="bg-white dark:bg-[#2C2C2E] rounded-xl border border-gray-200 dark:border-[#3A3A3C] overflow-hidden hover:shadow-md transition"
+              >
+                <div class="aspect-video bg-gray-100 dark:bg-[#3A3A3C] relative group">
+                  <video :src="media.src" class="w-full h-full object-cover"></video>
+                  <div class="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition flex items-center justify-center gap-2">
+                    <button @click="openVideoPreview(media)" class="p-3 bg-white rounded-full text-gray-800 hover:scale-110 transition">
+                      <fa :icon="['fas', 'play']" />
+                    </button>
+                  </div>
+                </div>
+                <div class="p-4">
+                  <p class="text-sm font-medium text-gray-900 dark:text-white truncate mb-2">{{ media.label }}</p>
+                  <div class="flex items-center gap-2">
+                    <button class="flex-1 px-3 py-1.5 text-xs border border-gray-200 dark:border-[#3A3A3C] rounded-lg hover:bg-gray-50 dark:hover:bg-[#3A3A3C] transition">
+                      <fa :icon="['fas', 'download']" class="mr-1" /> 下载
+                    </button>
+                    <button @click="openDeleteConfirm(media)" class="flex-1 px-3 py-1.5 text-xs border border-red-200 text-red-500 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20 transition">
+                      <fa :icon="['fas', 'trash']" class="mr-1" /> 删除
+                    </button>
+                  </div>
                 </div>
               </div>
-              <div class="p-4">
-                <p class="text-sm font-medium text-gray-900 dark:text-white truncate mb-2">{{ media.label }}</p>
-                <div class="flex items-center gap-2">
-                  <button class="flex-1 px-3 py-1.5 text-xs border border-gray-200 dark:border-[#3A3A3C] rounded-lg hover:bg-gray-50 dark:hover:bg-[#3A3A3C] transition">
-                    <fa :icon="['fas', 'download']" class="mr-1" /> 下载
-                  </button>
-                  <button class="flex-1 px-3 py-1.5 text-xs border border-red-200 text-red-500 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20 transition">
-                    <fa :icon="['fas', 'trash']" class="mr-1" /> 删除
-                  </button>
-                </div>
-              </div>
+            </div>
+
+            <!-- List View -->
+            <div v-else class="bg-white dark:bg-[#2C2C2E] rounded-xl border border-gray-200 dark:border-[#3A3A3C] overflow-hidden">
+              <table class="w-full">
+                <thead class="bg-gray-50 dark:bg-[#1C1C1E] border-b border-gray-200 dark:border-[#3A3A3C]">
+                  <tr>
+                    <th class="px-4 py-3 text-left text-xs font-semibold text-gray-600 dark:text-gray-400">预览</th>
+                    <th class="px-4 py-3 text-left text-xs font-semibold text-gray-600 dark:text-gray-400">文件名</th>
+                    <th class="px-4 py-3 text-left text-xs font-semibold text-gray-600 dark:text-gray-400">时长</th>
+                    <th class="px-4 py-3 text-left text-xs font-semibold text-gray-600 dark:text-gray-400">大小</th>
+                    <th class="px-4 py-3 text-right text-xs font-semibold text-gray-600 dark:text-gray-400">操作</th>
+                  </tr>
+                </thead>
+                <tbody class="divide-y divide-gray-200 dark:divide-[#3A3A3C]">
+                  <tr 
+                    v-for="media in externalMedia.filter(m => m.type === 'video')"
+                    :key="media.key"
+                    class="hover:bg-gray-50 dark:hover:bg-[#3A3A3C]/50 transition"
+                  >
+                    <td class="px-4 py-3">
+                      <div class="w-24 h-14 bg-gray-100 dark:bg-[#3A3A3C] rounded overflow-hidden relative group cursor-pointer" @click="openVideoPreview(media)">
+                        <video :src="media.src" class="w-full h-full object-cover"></video>
+                        <div class="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition flex items-center justify-center">
+                          <fa :icon="['fas', 'play']" class="text-white text-sm" />
+                        </div>
+                      </div>
+                    </td>
+                    <td class="px-4 py-3">
+                      <p class="text-sm font-medium text-gray-900 dark:text-white truncate max-w-xs">{{ media.label }}</p>
+                    </td>
+                    <td class="px-4 py-3">
+                      <p class="text-sm text-gray-600 dark:text-gray-400">{{ media.duration || '-' }}</p>
+                    </td>
+                    <td class="px-4 py-3">
+                      <p class="text-sm text-gray-600 dark:text-gray-400">{{ media.size || '-' }}</p>
+                    </td>
+                    <td class="px-4 py-3">
+                      <div class="flex items-center justify-end gap-2">
+                        <button class="p-2 hover:bg-gray-100 dark:hover:bg-[#3A3A3C] rounded transition" title="下载">
+                          <fa :icon="['fas', 'download']" class="text-gray-600 dark:text-gray-400 text-sm" />
+                        </button>
+                        <button @click="openDeleteConfirm(media)" class="p-2 text-gray-600 dark:text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded transition" title="删除">
+                          <fa :icon="['fas', 'trash']" class="text-sm" />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
             </div>
           </div>
 
@@ -3364,8 +3794,213 @@ watch(activeTab, (newTab) => {
         </div>
       </div>
     </teleport>
+
+    <!-- Video Upload Modal -->
+    <teleport to="body">
+      <div 
+        v-if="showVideoUploadModal"
+        class="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4"
+        @click="closeVideoUploadModal"
+      >
+        <div 
+          class="bg-white dark:bg-[#2C2C2E] rounded-2xl shadow-2xl w-full max-w-2xl mx-4 overflow-hidden"
+          @click.stop
+        >
+          <!-- Modal Header -->
+          <div class="flex items-center justify-between px-6 py-4 border-b border-gray-200 dark:border-[#3A3A3C]">
+            <h3 class="text-lg font-bold text-gray-900 dark:text-white">上传视频</h3>
+            <button 
+              @click="closeVideoUploadModal"
+              class="p-2 hover:bg-gray-100 dark:hover:bg-[#3A3A3C] rounded-lg transition"
+            >
+              <fa :icon="['fas', 'xmark']" class="text-gray-500 dark:text-gray-400" />
+            </button>
+          </div>
+
+          <!-- Modal Body -->
+          <div class="p-6">
+            <!-- Hidden file input -->
+            <input 
+              ref="videoUploadInput" 
+              type="file" 
+              multiple 
+              class="hidden" 
+              accept="video/*"
+              @change="handleVideoUploadSelect"
+            />
+
+            <!-- Upload Area -->
+            <div 
+              @click="triggerVideoUploadInput"
+              @dragenter="handleVideoUploadDragOver"
+              @dragover.prevent="handleVideoUploadDragOver"
+              @dragleave="handleVideoUploadDragLeave"
+              @drop="handleVideoUploadDrop"
+              class="border-2 border-dashed rounded-xl p-12 flex flex-col items-center justify-center text-center transition-all cursor-pointer"
+              :class="videoUploadDragging ? 'border-brand-green bg-brand-green/5' : 'border-gray-300 dark:border-[#3A3A3C] hover:bg-gray-50 dark:hover:bg-[#3A3A3C]/30'"
+            >
+              <div class="w-16 h-16 rounded-full bg-brand-green/10 flex items-center justify-center mb-4">
+                <fa :icon="['fas', 'cloud-arrow-up']" class="text-3xl text-brand-green" />
+              </div>
+              <p class="text-lg font-medium text-gray-900 dark:text-white mb-2">点击或拖拽视频到此处</p>
+              <p class="text-sm text-gray-500 dark:text-gray-400 mb-4">
+                支持批量上传,可同时选择多个文件
+              </p>
+              <p class="text-xs text-gray-400 dark:text-gray-500">
+                支持格式: MP4, AVI, MOV, MKV, WebM (最大 100MB/文件)
+              </p>
+            </div>
+
+            <!-- Uploaded Files Preview -->
+            <div v-if="videoUploadFiles.length > 0" class="mt-6">
+              <div class="flex items-center justify-between mb-3">
+                <h4 class="text-sm font-semibold text-gray-700 dark:text-gray-300">
+                  已选择 {{ videoUploadFiles.length }} 个文件
+                </h4>
+                <button 
+                  @click="clearUploadList"
+                  class="text-xs text-gray-500 hover:text-red-500 transition"
+                >
+                  清空列表
+                </button>
+              </div>
+
+              <div class="max-h-64 overflow-y-auto space-y-2">
+                <div 
+                  v-for="fileObj in videoUploadFiles" 
+                  :key="fileObj.id"
+                  class="flex items-center gap-3 p-3 bg-gray-50 dark:bg-[#3A3A3C] rounded-lg"
+                >
+                  <fa :icon="['fas', 'file-video']" class="text-brand-green text-xl" />
+                  
+                  <div class="flex-1 min-w-0">
+                    <p class="text-sm font-medium text-gray-900 dark:text-white truncate">{{ fileObj.name }}</p>
+                    <div class="flex items-center gap-2 mt-1">
+                      <p class="text-xs text-gray-500 dark:text-gray-400">{{ fileObj.size }}</p>
+                      
+                      <!-- Progress bar for uploading -->
+                      <div v-if="fileObj.status === 'uploading'" class="flex-1 max-w-xs">
+                        <div class="h-1.5 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
+                          <div 
+                            class="h-full bg-brand-green transition-all duration-300"
+                            :style="{ width: fileObj.progress + '%' }"
+                          ></div>
+                        </div>
+                        <p class="text-xs text-gray-500 mt-0.5">{{ fileObj.progress }}%</p>
+                      </div>
+                      
+                      <!-- Error message -->
+                      <p v-if="fileObj.status === 'error'" class="text-xs text-red-500">{{ fileObj.error }}</p>
+                    </div>
+                  </div>
+
+                  <!-- Status badge -->
+                  <span 
+                    v-if="fileObj.status === 'completed'"
+                    class="text-xs px-2 py-1 rounded-full bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400"
+                  >
+                    完成
+                  </span>
+                  <span 
+                    v-else-if="fileObj.status === 'uploading'"
+                    class="text-xs px-2 py-1 rounded-full bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400"
+                  >
+                    上传中
+                  </span>
+                  <span 
+                    v-else-if="fileObj.status === 'error'"
+                    class="text-xs px-2 py-1 rounded-full bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400"
+                  >
+                    失败
+                  </span>
+                  <span
+                    v-else
+                    class="text-xs px-2 py-1 rounded-full bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-400"
+                  >
+                    等待
+                  </span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Modal Footer -->
+          <div class="flex items-center justify-end gap-3 px-6 py-4 bg-gray-50 dark:bg-[#1C1C1E] border-t border-gray-200 dark:border-[#3A3A3C]">
+            <button 
+              @click="closeVideoUploadModal"
+              class="px-4 py-2 rounded-lg border border-gray-300 dark:border-[#3A3A3C] text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-[#3A3A3C] transition font-medium"
+            >
+              关闭
+            </button>
+          </div>
+        </div>
+      </div>
+    </teleport>
+
+    <!-- Delete Confirmation Modal -->
+    <teleport to="body">
+      <div 
+        v-if="showDeleteConfirm"
+        class="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4"
+        @click="closeDeleteConfirm"
+      >
+        <div 
+          class="bg-white dark:bg-[#2C2C2E] rounded-2xl shadow-2xl w-full max-w-md mx-4 overflow-hidden"
+          @click.stop
+        >
+          <!-- Modal Header -->
+          <div class="flex items-center justify-between px-6 py-4 border-b border-gray-200 dark:border-[#3A3A3C]">
+            <h3 class="text-lg font-bold text-gray-900 dark:text-white">确认删除</h3>
+            <button 
+              @click="closeDeleteConfirm"
+              class="p-2 hover:bg-gray-100 dark:hover:bg-[#3A3A3C] rounded-lg transition"
+            >
+              <fa :icon="['fas', 'xmark']" class="text-gray-500 dark:text-gray-400" />
+            </button>
+          </div>
+
+          <!-- Modal Body -->
+          <div class="p-6">
+            <div class="flex items-start gap-4">
+              <div class="w-12 h-12 rounded-full bg-red-100 dark:bg-red-900/30 flex items-center justify-center flex-shrink-0">
+                <fa :icon="['fas', 'exclamation-triangle']" class="text-red-600 dark:text-red-400 text-xl" />
+              </div>
+              <div class="flex-1">
+                <p class="text-gray-900 dark:text-white font-medium mb-2">
+                  确定要删除这个视频吗?
+                </p>
+                <p class="text-sm text-gray-600 dark:text-gray-400 mb-3">
+                  {{ videoToDelete?.label }}
+                </p>
+                <p class="text-sm text-gray-500 dark:text-gray-400">
+                  此操作无法撤销,视频文件将被永久删除。
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <!-- Modal Footer -->
+          <div class="flex items-center justify-end gap-3 px-6 py-4 bg-gray-50 dark:bg-[#1C1C1E] border-t border-gray-200 dark:border-[#3A3A3C]">
+            <button 
+              @click="closeDeleteConfirm"
+              class="px-4 py-2 rounded-lg border border-gray-300 dark:border-[#3A3A3C] text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-[#3A3A3C] transition font-medium"
+            >
+              取消
+            </button>
+            <button 
+              @click="confirmDeleteVideo"
+              class="px-4 py-2 rounded-lg bg-red-600 text-white hover:bg-red-700 transition font-medium"
+            >
+              <fa :icon="['fas', 'trash']" class="mr-2" />
+              确认删除
+            </button>
+          </div>
+        </div>
+      </div>
+    </teleport>
   </div>
 </template>
+
 
 <style scoped>
 /* Custom scrollbar for script editor */
