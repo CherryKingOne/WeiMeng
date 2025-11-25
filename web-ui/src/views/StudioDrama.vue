@@ -3660,12 +3660,16 @@ watch(activeTab, (newTab) => {
           <div class="flex-1 overflow-hidden flex">
             <!-- Left: Video Player -->
             <div class="flex-1 bg-black flex items-center justify-center p-6">
-              <video 
-                :src="currentVideoPreview.src" 
-                controls 
-                autoplay
+              <video
+                :src="currentVideoPreview.src"
+                controls
+                preload="metadata"
                 class="w-full h-full max-h-[70vh] rounded-lg"
-              ></video>
+                @error="(e) => console.error('Video load error:', e, 'URL:', currentVideoPreview.src)"
+                @loadedmetadata="() => console.log('Video loaded:', currentVideoPreview.src)"
+              >
+                您的浏览器不支持视频播放
+              </video>
             </div>
 
             <!-- Right: Info Panel -->

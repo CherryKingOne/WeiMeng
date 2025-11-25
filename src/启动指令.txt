@@ -3,7 +3,7 @@ docker run --name minio \
   -p 9000:9000 \
   -p 9001:9001 \
   -e MINIO_ROOT_USER=weimeng \
-  -e MINIO_ROOT_PASSWORD=weimeng. \
+  -e MINIO_ROOT_PASSWORD=Weimeng.20251123 \
   --restart=always \
   minio/minio:RELEASE.2025-06-13T11-33-47Z-cpuv1 \
   server /data --console-address ":9001"
