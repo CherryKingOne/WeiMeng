@@ -387,6 +387,7 @@ const confirmCreate = async () => {
     projects.value.unshift({
       id: String(lib.id),
       name: lib.name,
+      type: lib.type,
       updated: new Date(lib.created_at).toLocaleString(),
       thumbnail: 'https://images.unsplash.com/photo-1520975916090-3105956dac38?q=80&w=800&auto=format&fit=crop',
       desc: lib.description || ''
@@ -698,6 +699,7 @@ const loadLibraries = async () => {
     const mapped = (Array.isArray(data) ? data : []).map(lib => ({
       id: String(lib.id),
       name: lib.name,
+      type: lib.type,
       updated: new Date(lib.created_at).toLocaleString(),
       thumbnail: 'https://images.unsplash.com/photo-1520975916090-3105956dac38?q=80&w=800&auto=format&fit=crop',
       desc: lib.description || ''
@@ -712,7 +714,7 @@ const loadLibraries = async () => {
     <aside class="w-64 flex-shrink-0 bg-white border-r border-gray-200 flex flex-col dark:bg-[#1E1E1E] dark:border-[#333333]">
       <div class="h-16 flex items-center px-6 border-b border-gray-200 dark:border-[#3A3A3C]">
         <router-link to="/" class="text-2xl font-bold text-primary dark:text-white flex items-center">
-          <img src="@/assets/logo.png" :alt="t('brand.name') + ' Logo'" class="w-10 h-10 mr-4 rounded-lg" />
+          <img src="@/assets/logo.png" :alt="t('brand.name') + ' Logo'" class="h-10 w-auto mr-3 object-contain" />
           {{ t('brand.name') }}
         </router-link>
       </div>
@@ -999,7 +1001,17 @@ const loadLibraries = async () => {
                 </div>
 
                 <!-- 文件名 -->
-                <h3 class="font-semibold text-primary dark:text-white text-lg mb-8 break-words">{{ p.name }}</h3>
+                <h3 class="font-semibold text-primary dark:text-white text-lg mb-2 break-words">{{ p.name }}</h3>
+                
+                <!-- 类型标签 -->
+                <div v-if="p.type" class="mb-6">
+                  <span v-if="p.type === 'novel'" class="inline-block px-2 py-1 rounded text-xs font-medium bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400">
+                    小说剧本
+                  </span>
+                  <span v-else-if="p.type === 'ad'" class="inline-block px-2 py-1 rounded text-xs font-medium bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400">
+                    广告创作
+                  </span>
+                </div>
 
                 <!-- 底部信息 -->
                 <div class="space-y-2 text-sm text-secondary dark:text-gray-400">
@@ -1044,6 +1056,12 @@ const loadLibraries = async () => {
                 <div>
                   <div class="font-medium text-primary dark:text-white text-base">{{ p.name }}</div>
                   <div class="flex items-center gap-3 mt-1">
+                    <span v-if="p.type === 'novel'" class="text-xs px-2 py-0.5 rounded-full bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400">
+                      小说剧本
+                    </span>
+                    <span v-else-if="p.type === 'ad'" class="text-xs px-2 py-0.5 rounded-full bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400">
+                      广告创作
+                    </span>
                     <span class="text-xs px-2 py-0.5 rounded-full bg-gray-100 text-gray-600 dark:bg-[#333333] dark:text-gray-300">
                       <span v-if="p.status">{{ $t('workspace.status.' + p.status) }}</span>
                   </span>
@@ -1109,7 +1127,7 @@ const loadLibraries = async () => {
             </div>
           </div>
         </div>
-        <div v-if="showDuplicate" class="fixed inset-0 z-30 flex items-center justify-center">
+        <div v-if="showDuplicate" class="fixed inset-0 z-50 flex items-center justify-center">
           <div class="absolute inset-0 bg-black/40" @click="cancelDuplicate"></div>
           <div class="relative w-full max-w-md bg-white rounded-xl shadow-2xl border border-gray-200 p-6 dark:bg-[#2C2C2E] dark:border-[#3A3A3C]">
             <h3 class="text-xl font-semibold text-primary dark:text-white">{{ $t('workspace.duplicate_project') }}</h3>
@@ -1128,7 +1146,7 @@ const loadLibraries = async () => {
         </div>
 
         <!-- 删除确认弹窗 -->
-        <div v-if="showDeleteConfirm" class="fixed inset-0 z-30 flex items-center justify-center">
+        <div v-if="showDeleteConfirm" class="fixed inset-0 z-50 flex items-center justify-center">
           <div class="absolute inset-0 bg-black/40" @click="cancelDelete"></div>
           <div class="relative w-full max-w-md bg-white rounded-xl shadow-2xl border border-gray-200 p-6 dark:bg-[#2C2C2E] dark:border-[#3A3A3C]">
             <div class="flex items-start gap-4">

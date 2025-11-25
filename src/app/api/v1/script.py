@@ -39,6 +39,7 @@ async def create_library(
         id=new_id,
         user_id=current_user.id,
         name=library.name,
+        type=library.type,
         description=library.description,
         minio_folder_path=folder_path
     )
