@@ -1282,53 +1282,125 @@ const loadLibraries = async () => {
                   </div>
                 </div>
               </div>
-              <div v-else-if="settingsTab==='providers'" class="space-y-4">
-                <div class="p-4 rounded-xl border bg-white dark:bg-[#1E1E1E] dark:border-[#333333]">
-                  <div class="font-semibold mb-3">模型列表</div>
-                  <div v-if="providers.filter(x=>x.configured).length" class="space-y-3">
-                    <div v-for="p in providers.filter(x=>x.configured)" :key="'ml-'+p.id" class="rounded-xl border border-gray-200 bg-white p-3 flex items-center justify-between dark:bg-[#12161a] dark:border-[#333333]">
-                      <div class="flex items-start gap-3">
-                        <picture>
-                          <source :srcset="`https://unpkg.com/@lobehub/icons-static-png@latest/dark/${p.slug}.png`" media="(prefers-color-scheme: dark)" />
-                          <img :src="`https://unpkg.com/@lobehub/icons-static-png@latest/light/${p.slug}.png`" class="w-10 h-10 object-contain rounded-md" alt="logo" />
-                        </picture>
-                        <div>
-                          <div class="font-semibold text-primary dark:text-white">{{ p.name }}</div>
-                          <div class="mt-1 flex flex-wrap gap-2">
-                            <span v-for="tag in (p.caps || ['LLM'])" :key="p.id+'-'+tag" class="px-2 py-0.5 rounded text-xs bg-gray-100 text-gray-700 dark:bg-[#2C2C2E] dark:text-gray-300">{{ tag }}</span>
-                          </div>
-                          <div v-if="p.models && p.models.length" class="mt-2 flex flex-wrap gap-2">
-                            <span v-for="m in p.models" :key="m.id" class="px-2 py-0.5 rounded text-xs bg-brand-green/10 text-brand-green">{{ m.name }}</span>
-                          </div>
+              <div v-else-if="settingsTab==='providers'" class="space-y-8">
+                <!-- Header -->
+                <div class="flex items-center justify-between">
+                  <div class="text-xl font-bold text-primary dark:text-white">模型列表</div>
+                  <button class="px-3 py-1.5 rounded-md border border-gray-300 bg-white text-sm text-primary hover:bg-gray-50 flex items-center gap-2 dark:bg-[#2C2C2E] dark:border-[#3A3A3C] dark:text-white dark:hover:bg-[#3A3A3C]">
+                    <fa :icon="['fas','sliders']" />
+                    系统模型设置
+                  </button>
+                </div>
+
+                <!-- Configured Models (Mock for OpenAI) -->
+                <div class="rounded-xl bg-gray-100 border border-gray-200 p-4 dark:bg-[#1E1E1E] dark:border-[#333333]">
+                  <div class="flex items-start justify-between">
+                    <div class="flex items-center gap-3">
+                      <div class="w-10 h-10 bg-white rounded-lg flex items-center justify-center dark:bg-[#2C2C2E]">
+                        <img src="https://unpkg.com/@lobehub/icons-static-png@latest/light/openai.png" class="w-8 h-8 object-contain" />
+                      </div>
+                      <div>
+                        <div class="font-bold text-lg text-primary dark:text-white">OpenAI</div>
+                        <div class="flex gap-2 mt-1">
+                          <span class="px-1.5 py-0.5 rounded text-[10px] font-medium bg-gray-200 text-gray-600 dark:bg-[#333333] dark:text-gray-400">LLM</span>
+                          <span class="px-1.5 py-0.5 rounded text-[10px] font-medium bg-gray-200 text-gray-600 dark:bg-[#333333] dark:text-gray-400">TEXT EMBEDDING</span>
+                          <span class="px-1.5 py-0.5 rounded text-[10px] font-medium bg-gray-200 text-gray-600 dark:bg-[#333333] dark:text-gray-400">SPEECH2TEXT</span>
+                          <span class="px-1.5 py-0.5 rounded text-[10px] font-medium bg-gray-200 text-gray-600 dark:bg-[#333333] dark:text-gray-400">MODERATION</span>
+                          <span class="px-1.5 py-0.5 rounded text-[10px] font-medium bg-gray-200 text-gray-600 dark:bg-[#333333] dark:text-gray-400">TTS</span>
                         </div>
                       </div>
-                      <div class="flex items-center gap-2">
-                        <button class="px-3 py-1.5 rounded-md bg-brand-green text-white text-sm" @click="openAddModelModal(p)">添加模型</button>
+                    </div>
+                    <div class="flex gap-3">
+                      <div class="bg-white rounded-lg border border-gray-200 px-3 py-2 flex flex-col items-center justify-center min-w-[100px] dark:bg-[#2C2C2E] dark:border-[#3A3A3C]">
+                        <div class="text-xs text-secondary mb-1">额度 <fa :icon="['fas','circle-question']" class="text-gray-400" /></div>
+                        <div class="text-lg font-bold text-primary dark:text-white">200 <span class="text-xs font-normal text-secondary">消息额度</span></div>
+                      </div>
+                      <div class="bg-white rounded-lg border border-gray-200 p-1 flex flex-col gap-1 min-w-[140px] dark:bg-[#2C2C2E] dark:border-[#3A3A3C]">
+                        <div class="flex items-center justify-between px-2 py-1">
+                          <span class="text-xs text-secondary">未授权</span>
+                          <span class="w-2 h-2 rounded-full bg-red-500"></span>
+                        </div>
+                        <button class="w-full flex items-center justify-center gap-2 bg-white border border-gray-200 rounded py-1.5 text-sm font-medium hover:bg-gray-50 dark:bg-[#3A3A3C] dark:border-transparent dark:text-white dark:hover:bg-[#48484A]">
+                          <fa :icon="['fas','sliders']" /> 设置
+                        </button>
                       </div>
                     </div>
                   </div>
-                  <div v-else class="text-sm text-secondary">尚未配置模型</div>
+                  <div class="mt-4 pt-3 border-t border-gray-200 dark:border-[#333333] flex items-center justify-between">
+                    <button class="text-sm text-secondary hover:text-primary flex items-center gap-1 dark:text-gray-400 dark:hover:text-white">
+                      显示模型 <fa :icon="['fas','chevron-right']" class="text-xs" />
+                    </button>
+                    <button class="text-sm text-secondary hover:text-primary flex items-center gap-1 dark:text-gray-400 dark:hover:text-white">
+                      <fa :icon="['fas','plus-circle']" /> 添加模型
+                    </button>
+                  </div>
                 </div>
-                <div class="p-4 rounded-xl border bg-white dark:bg-[#1E1E1E] dark:border-[#333333]">
-                  <div class="font-semibold mb-4">{{ $t('workspace.providers') }}</div>
-                  <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div v-for="p in providers" :key="p.id" class="group rounded-xl border border-gray-200 bg-white p-4 dark:bg-[#12161a] dark:border-[#333333]">
-                      <div class="flex items-start gap-3">
-                        <picture>
-                          <source :srcset="`https://unpkg.com/@lobehub/icons-static-png@latest/dark/${p.slug}.png`" media="(prefers-color-scheme: dark)" />
-                          <img :src="`https://unpkg.com/@lobehub/icons-static-png@latest/light/${p.slug}.png`" class="w-10 h-10 object-contain rounded-md" alt="logo" />
-                        </picture>
+
+                <!-- Pending Configuration -->
+                <div class="space-y-4">
+                  <div class="font-bold text-lg text-primary dark:text-white">待配置</div>
+                  <div class="rounded-xl border border-gray-200 bg-white p-4 dark:bg-[#1E1E1E] dark:border-[#333333]">
+                    <div class="flex items-start justify-between">
+                      <div class="flex items-center gap-3">
+                        <div class="w-10 h-10 flex items-center justify-center">
+                          <fa :icon="['fas','cube']" class="text-2xl text-primary dark:text-white" />
+                        </div>
                         <div>
-                          <div class="font-semibold text-primary dark:text-white">{{ p.name }}</div>
-                          <div class="text-sm text-secondary mt-1 dark:text-gray-400">{{ p.desc }}</div>
+                          <div class="font-bold text-primary dark:text-white">OpenAI-API-compatible</div>
+                          <div class="flex gap-2 mt-1">
+                            <span class="px-1.5 py-0.5 rounded text-[10px] font-medium bg-gray-100 text-gray-600 dark:bg-[#333333] dark:text-gray-400">LLM</span>
+                            <span class="px-1.5 py-0.5 rounded text-[10px] font-medium bg-gray-100 text-gray-600 dark:bg-[#333333] dark:text-gray-400">RERANK</span>
+                            <span class="px-1.5 py-0.5 rounded text-[10px] font-medium bg-gray-100 text-gray-600 dark:bg-[#333333] dark:text-gray-400">TEXT EMBEDDING</span>
+                            <span class="px-1.5 py-0.5 rounded text-[10px] font-medium bg-gray-100 text-gray-600 dark:bg-[#333333] dark:text-gray-400">SPEECH2TEXT</span>
+                            <span class="px-1.5 py-0.5 rounded text-[10px] font-medium bg-gray-100 text-gray-600 dark:bg-[#333333] dark:text-gray-400">TTS</span>
+                          </div>
                         </div>
                       </div>
-                      <div class="mt-3 flex gap-2 opacity-0 pointer-events-none group-hover:opacity-100 group-hover:pointer-events-auto transition">
-                        <button class="px-4 py-1.5 rounded-md bg-brand-green text-white text-sm font-medium hover:opacity-90" @click="configureProvider(p)">配置</button>
-                        <button class="px-4 py-1.5 rounded-md border border-gray-300 bg-white text-sm text-primary hover:bg-gray-50 dark:bg-[#12161a] dark:text-white dark:border-[#333333] dark:hover:bg-[#1C1C1E]" @click="viewProviderDetail(p)">
-                          详情
-                          <fa :icon="['fas','arrow-up-right-from-square']" class="ml-1" />
-                        </button>
+                    </div>
+                    <div class="mt-4 flex items-center justify-between bg-blue-50 px-3 py-2 rounded text-sm text-blue-600 dark:bg-blue-900/20 dark:text-blue-400">
+                      <div class="flex items-center gap-2">
+                        <fa :icon="['fas','circle-info']" />
+                        请配置 API 密钥，添加模型。
+                      </div>
+                      <button class="font-medium hover:underline flex items-center gap-1">
+                        <fa :icon="['fas','plus-circle']" /> 添加模型
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Install Model Providers -->
+                <div class="space-y-4">
+                  <div class="flex items-center justify-between">
+                    <div class="flex items-center gap-2">
+                      <fa :icon="['fas','chevron-down']" class="text-sm" />
+                      <div class="font-bold text-lg text-primary dark:text-white">安装模型供应商</div>
+                    </div>
+                    <a href="#" class="text-sm text-brand-green hover:underline flex items-center gap-1">
+                      发现更多就在 Dify 市场 <fa :icon="['fas','arrow-up-right-from-square']" class="text-xs" />
+                    </a>
+                  </div>
+                  <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div v-for="p in providers" :key="p.id" class="group rounded-xl border border-gray-200 bg-white p-5 hover:shadow-md transition-all dark:bg-[#1E1E1E] dark:border-[#333333]">
+                      <div class="flex items-start gap-4">
+                        <div class="w-12 h-12 bg-gray-50 rounded-lg flex items-center justify-center flex-shrink-0 dark:bg-[#2C2C2E]">
+                          <picture>
+                            <source :srcset="`https://unpkg.com/@lobehub/icons-static-png@latest/dark/${p.slug}.png`" media="(prefers-color-scheme: dark)" />
+                            <img :src="`https://unpkg.com/@lobehub/icons-static-png@latest/light/${p.slug}.png`" class="w-8 h-8 object-contain" alt="logo" />
+                          </picture>
+                        </div>
+                        <div class="flex-1 min-w-0">
+                          <div class="flex items-center justify-between">
+                            <div class="font-bold text-primary truncate dark:text-white">{{ p.name }}</div>
+                          </div>
+                          <div class="text-xs text-secondary mt-0.5 flex items-center gap-2">
+                            <span>langgenius</span>
+                            <span>•</span>
+                            <fa :icon="['fas','download']" class="text-[10px]" />
+                            <span>{{ Math.floor(Math.random() * 50000) + 10000 }}</span>
+                          </div>
+                          <div class="text-sm text-secondary mt-3 line-clamp-2 dark:text-gray-400 min-h-[40px]">{{ p.desc }}</div>
+                        </div>
                       </div>
                     </div>
                   </div>
