@@ -10,9 +10,18 @@ WeiMeng (唯梦/微梦) is an AI-assisted drama and video production platform th
 
 ## Development Commands
 
+### Prerequisites
+
+- Python 3.9+
+- PostgreSQL 15+
+- MinIO (or use Docker Compose)
+
 ### Backend (from `src/` directory)
 
 ```bash
+# Start PostgreSQL and MinIO services via Docker
+docker-compose up -d
+
 # Install dependencies
 pip install -r requirements.txt
 
@@ -24,6 +33,10 @@ uvicorn app.main:app --reload --port 7767
 ```
 
 Backend runs on `http://localhost:7767` (configurable via `.env`).
+
+Docker Compose starts:
+- PostgreSQL on port 5432
+- MinIO on port 9000 (console on port 9001)
 
 ### Frontend (from `web-ui/` directory)
 
@@ -57,11 +70,35 @@ alembic upgrade head
 ### Environment Configuration
 
 Create a `.env` file in the `src/` directory with required settings (see `app/core/config.py:5` for all available options):
-- PostgreSQL connection (host, port, database, user, password)
-- MinIO endpoint and credentials
-- LLM API configuration (URL, key, model name)
-- JWT secret key
-- Optional: SMTP settings, external AI API keys (JIMENG_API_KEY, QINIU_ACCESS_KEY)
+
+```ini
+# Application
+PROJECT_NAME=AI_Script_Engine
+API_PORT=7767
+SECRET_KEY=your-secret-key-here
+
+# PostgreSQL
+POSTGRESQL_DB=weimeng
+POSTGRESQL_USER=postgres
+POSTGRESQL_PASSWORD=your_password
+POSTGRESQL_HOST=localhost
+POSTGRESQL_PORT=5432
+
+# MinIO
+MINIO_ENDPOINT=localhost:9000
+MINIO_ACCESS_KEY=weimeng
+MINIO_SECRET_KEY=weimeng.
+MINIO_BUCKET_NAME=script-libraries
+
+# LLM API
+LLM_API_URL=https://api.openai.com/v1
+LLM_API_KEY=your-llm-api-key
+LLM_MODEL_NAME=gpt-4
+
+# Optional: SMTP, external AI APIs
+# JIMENG_API_KEY=...
+# QINIU_ACCESS_KEY=...
+```
 
 ## Architecture
 

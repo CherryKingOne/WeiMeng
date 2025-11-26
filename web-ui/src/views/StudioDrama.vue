@@ -402,11 +402,13 @@ const videoUploadFiles = ref([])
 const showAIConfigMenu = ref(false)
 const aiConfig = ref({
   model: 'gpt-4',
-  temperature: { enabled: false, value: 0 },
-  topP: { enabled: false, value: 1 },
-  presencePenalty: { enabled: false, value: 0 },
-  frequencyPenalty: { enabled: false, value: 0 },
-  maxTokens: { enabled: false, value: 512 },
+  temperature: { enabled: true, value: 0 },
+  topP: { enabled: true, value: 1 },
+  presencePenalty: { enabled: true, value: 0 },
+  frequencyPenalty: { enabled: true, value: 0 },
+  maxTokens: { enabled: true, value: 512 },
+  reasoningMode: { enabled: false },
+  reasoningLimit: { enabled: false, value: 4096 },
   seed: { enabled: false, value: 0 },
   responseFormat: { enabled: false, value: 'text' }
 })
@@ -1755,47 +1757,88 @@ const showAnalysisModal = ref(false)
 const targetChapterId = ref(null)
 const analysisConfig = ref({
   style: '2D Anime', // '2D Anime' or 'Realistic'
-  tab: 'visual' // 'visual' or 'json'
+  tab: 'json' // 'visual' or 'json'
 })
 
 const confirmAnalysis = async () => {
-  if (!targetChapterId.value) return
-  
+  if (!targetChapterId.value || !selectedChapter.value) return
+
   showAnalysisModal.value = false
   analyzing.value = true
-  
-  // Simulate AI analysis (replace with actual API call)
-  await new Promise(resolve => setTimeout(resolve, 2000))
-  
-  // Mock analysis results
-  analysisResults.value[targetChapterId.value] = {
-    characters: [
-      { id: 1, name: '角色A', role: '主角', desc: '勇敢坚定的主人公' },
-      { id: 2, name: '角色B', role: '配角', desc: '忠诚的伙伴' }
-    ],
-    scenes: [
-      { id: 1, name: '场景1', desc: '故事发生的主要地点' },
-      { id: 2, name: '场景2', desc: '关键转折点的场景' }
-    ],
-    plots: [
-      { id: 1, point: '主角面临重大挑战' },
-      { id: 2, point: '主角做出关键决定' }
-    ],
-    dialogues: [
-      { id: 1, speaker: '角色A', content: '我一定要完成这个任务' },
-      { id: 2, speaker: '角色B', content: '我会一直支持你' }
-    ]
+
+  try {
+    const token = localStorage.getItem('accessToken')
+    const fileId = targetChapterId.value.toString()
+
+    // Check if project exists and delete it
+    try {
+      await fetch(`${API_BASE}/api/v1/scriptwriting/projects/${fileId}`, {
+        method: 'DELETE',
+        headers: { 'Authorization': `Bearer ${token}` }
+      })
+    } catch (e) {
+      // Ignore delete errors (project may not exist)
+    }
+
+    const requestData = {
+      file_info: {
+        file_id: fileId,
+        file_name: selectedChapter.value.title,
+        total_word_count: selectedChapter.value.content.length,
+        script_generation_time: new Date().toISOString()
+      },
+      global_config: {
+        visual_style: analysisConfig.value.style,
+        context_usage_count: 10
+      },
+      script_shot_list: selectedChapter.value.content.split('\n\n').filter(p => p.trim()).map((paragraph, index) => ({
+        shot_number: index + 1,
+        original_text: paragraph.trim(),
+        type: paragraph.includes('：') || paragraph.includes(':') ? "dialogue" : "narration/action",
+        duration: "3.5s",
+        video_url: "",
+        character_info: { character_name: "", gender: "", appearance_description: "" },
+        visual_content: {
+          scene_content: "", shot_size: "medium", camera_movement: "fixed",
+          front_image_url: "", back_image_url: "", side_image_url: "",
+          text_to_image_prompt: { CN: { positive_prompt: "", negative_prompt: "" }, English: { positive_prompt: "", negative_prompt: "" } },
+          image_to_video_prompt: { CN: { positive_prompt: "", negative_prompt: "" }, English: { positive_prompt: "", negative_prompt: "" } }
+        },
+        audio_info: { dialogue_content: "", voice_over: "", voice_emotion: "", sound_effects: "" },
+        context_summary: ""
+      }))
+    }
+
+    const response = await fetch(`${API_BASE}/api/v1/scriptwriting/projects`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      },
+      body: JSON.stringify(requestData)
+    })
+
+    if (!response.ok) {
+      if (response.status === 401) {
+        router.push('/login')
+        return
+      }
+      throw new Error('创建剧本失败')
+    }
+
+    const chapter = novelChapters.value.find(c => c.id === targetChapterId.value)
+    if (chapter) {
+      chapter.analyzed = true
+    }
+
+    showToastMessage('剧本创建成功', 'success')
+  } catch (error) {
+    console.error('Analysis error:', error)
+    showToastMessage(error.message || '创建剧本失败', 'error')
+  } finally {
+    analyzing.value = false
+    targetChapterId.value = null
   }
-  
-  // Mark chapter as analyzed
-  const chapter = novelChapters.value.find(c => c.id === targetChapterId.value)
-  if (chapter) {
-    chapter.analyzed = true
-  }
-  
-  analyzing.value = false
-  targetChapterId.value = null
-  showToastMessage('分析完成', 'success')
 }
 
 const showJsonPreview = () => {
@@ -1811,6 +1854,49 @@ const showJsonPreview = () => {
 const currentAnalysis = computed(() => {
   if (!selectedChapter.value) return null
   return analysisResults.value[selectedChapter.value.id]
+})
+
+const coloredJsonPreview = computed(() => {
+  const data = {
+    file_info: {
+      file_id: targetChapterId.value || "FILE_123456789",
+      file_name: selectedChapter.value?.title || "未命名章节",
+      total_word_count: (selectedChapter.value?.content || '').length,
+      script_generation_time: new Date().toISOString()
+    },
+    global_config: {
+      visual_style: analysisConfig.value.style,
+      context_usage_count: 10
+    },
+    script_shot_list: (selectedChapter.value?.content || '').split('\n\n').filter(p => p.trim()).map((paragraph, index) => ({
+      shot_number: index + 1,
+      original_text: paragraph.trim(),
+      core_concept_extraction: "",
+      original_word_count: paragraph.trim().length,
+      type: paragraph.includes('：') || paragraph.includes(':') ? "dialogue" : "narration/action",
+      duration: "3.5s",
+      character_info: { character_name: "", gender: "", appearance_description: "" },
+      visual_content: {
+        scene_content: "", shot_size: "medium", camera_movement: "fixed",
+        text_to_image_prompt: { CN: { positive_prompt: "", negative_prompt: "" }, English: { positive_prompt: "", negative_prompt: "" } },
+        front_image: "图片地址",
+        text_to_image_prompt_back: { CN: { positive_prompt: "", negative_prompt: "" }, English: { positive_prompt: "", negative_prompt: "" } },
+        back_image: "图片地址",
+        text_to_image_prompt_side: { CN: { positive_prompt: "", negative_prompt: "" }, English: { positive_prompt: "", negative_prompt: "" } },
+        side_image: "图片地址"
+      },
+      image_to_video_prompt: { CN: { positive_prompt: "", negative_prompt: "" }, English: { positive_prompt: "", negative_prompt: "" } },
+      video: "url或者视频地址",
+      audio_performance: { dialogue_content: "", voice_over: "", voice_emotion: "", sound_effects: "" },
+      context_summary: ""
+    }))
+  }
+
+  return JSON.stringify(data, null, 2)
+    .replace(/"([^"]+)":/g, '<span class="text-red-600 dark:text-red-400">"$1"</span>:')
+    .replace(/: "([^"]*)"/g, ': <span class="text-green-600 dark:text-green-400">"$1"</span>')
+    .replace(/: (\d+)/g, ': <span class="text-blue-600 dark:text-blue-400">$1</span>')
+    .replace(/: (true|false|null)/g, ': <span class="text-purple-600 dark:text-purple-400">$1</span>')
 })
 
 // Extract characters from script
@@ -2439,6 +2525,63 @@ watch(activeTab, (newTab) => {
                   :disabled="!aiConfig.maxTokens.enabled"
                   :class="aiConfig.maxTokens.enabled ? '[&::-webkit-slider-thumb]:bg-brand-green' : '[&::-webkit-slider-thumb]:bg-gray-300 opacity-50'"
                   :style="getSliderStyle(aiConfig.maxTokens.value, 1, 4096, aiConfig.maxTokens.enabled)"
+                />
+              </div>
+
+              <!-- Reasoning Mode -->
+              <div class="flex items-center justify-between">
+                <div class="flex items-center gap-2">
+                  <div
+                    @click="aiConfig.reasoningMode.enabled = !aiConfig.reasoningMode.enabled; onConfigChange()"
+                    class="w-8 h-4 rounded-full relative cursor-pointer transition-colors"
+                    :class="aiConfig.reasoningMode.enabled ? 'bg-brand-green' : 'bg-gray-200 dark:bg-gray-700'"
+                  >
+                    <div
+                      class="absolute top-0.5 left-0.5 w-3 h-3 bg-white rounded-full transition-transform shadow-sm"
+                      :class="aiConfig.reasoningMode.enabled ? 'translate-x-4' : ''"
+                    ></div>
+                  </div>
+                  <span class="text-sm text-gray-700 dark:text-gray-300">思考模式</span>
+                  <fa :icon="['fas', 'circle-info']" class="text-gray-300 text-xs cursor-help" />
+                </div>
+              </div>
+
+              <!-- Reasoning Limit -->
+              <div class="space-y-2">
+                <div class="flex items-center justify-between">
+                  <div class="flex items-center gap-2">
+                    <div
+                      @click="aiConfig.reasoningLimit.enabled = !aiConfig.reasoningLimit.enabled; onConfigChange()"
+                      class="w-8 h-4 rounded-full relative cursor-pointer transition-colors"
+                      :class="aiConfig.reasoningLimit.enabled ? 'bg-brand-green' : 'bg-gray-200 dark:bg-gray-700'"
+                    >
+                      <div
+                        class="absolute top-0.5 left-0.5 w-3 h-3 bg-white rounded-full transition-transform shadow-sm"
+                        :class="aiConfig.reasoningLimit.enabled ? 'translate-x-4' : ''"
+                      ></div>
+                    </div>
+                    <span class="text-sm text-gray-700 dark:text-gray-300">思考长度限制</span>
+                    <fa :icon="['fas', 'circle-info']" class="text-gray-300 text-xs cursor-help" />
+                  </div>
+                  <input
+                    type="number"
+                    v-model.number="aiConfig.reasoningLimit.value"
+                    @input="onConfigChange"
+                    class="w-16 px-2 py-1 text-xs border border-gray-200 dark:border-[#3A3A3C] rounded bg-gray-50 dark:bg-[#1C1C1E] text-right"
+                    :disabled="!aiConfig.reasoningLimit.enabled"
+                  />
+                </div>
+                <input
+                  type="range"
+                  v-model.number="aiConfig.reasoningLimit.value"
+                  @input="onConfigChange"
+                  min="1"
+                  max="8192"
+                  step="1"
+                  class="w-full h-1 rounded-lg appearance-none cursor-pointer [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-3 [&::-webkit-slider-thumb]:h-3 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:shadow-sm [&::-webkit-slider-thumb]:transition-colors"
+                  :class="aiConfig.reasoningLimit.enabled ? '[&::-webkit-slider-thumb]:bg-brand-green' : '[&::-webkit-slider-thumb]:bg-gray-300 opacity-50'"
+                  :disabled="!aiConfig.reasoningLimit.enabled"
+                  :style="getSliderStyle(aiConfig.reasoningLimit.value, 1, 8192, aiConfig.reasoningLimit.enabled)"
                 />
               </div>
 
@@ -3183,19 +3326,30 @@ watch(activeTab, (newTab) => {
             <div v-else>
               <div class="flex items-center justify-between mb-4">
                 <h2 class="text-2xl font-bold text-primary dark:text-gray-200">{{ selectedChapter.title }}</h2>
-                <button
-                  @click="analyzeChapter(selectedChapter.id)"
-                  :disabled="analyzing || selectedChapter.analyzed"
-                  class="px-4 py-2 rounded-lg text-sm font-medium transition"
-                  :class="selectedChapter.analyzed 
-                    ? 'bg-gray-100 dark:bg-[#3A3A3C] text-gray-400 cursor-not-allowed' 
-                    : 'bg-brand-green text-white hover:bg-brand-green/90'"
-                >
-                  <fa v-if="analyzing" :icon="['fas', 'circle-dot']" class="mr-2 animate-spin" />
-                  <fa v-else-if="selectedChapter.analyzed" :icon="['fas', 'check']" class="mr-2" />
-                  <fa v-else :icon="['fas', 'wand-magic-sparkles']" class="mr-2" />
-                  {{ analyzing ? '分析中...' : selectedChapter.analyzed ? '已分析' : '分析章节' }}
-                </button>
+                <div class="flex items-center gap-2">
+                  <button
+                    @click="analyzeChapter(selectedChapter.id)"
+                    :disabled="analyzing || selectedChapter.analyzed"
+                    class="px-4 py-2 rounded-lg text-sm font-medium transition"
+                    :class="selectedChapter.analyzed
+                      ? 'bg-gray-100 dark:bg-[#3A3A3C] text-gray-400 cursor-not-allowed'
+                      : 'bg-brand-green text-white hover:bg-brand-green/90'"
+                  >
+                    <fa v-if="analyzing" :icon="['fas', 'circle-dot']" class="mr-2 animate-spin" />
+                    <fa v-else-if="selectedChapter.analyzed" :icon="['fas', 'check']" class="mr-2" />
+                    <fa v-else :icon="['fas', 'wand-magic-sparkles']" class="mr-2" />
+                    {{ analyzing ? '分析中...' : selectedChapter.analyzed ? '已分析' : '分析章节' }}
+                  </button>
+                  <button
+                    v-if="selectedChapter.analyzed"
+                    @click="selectedChapter.analyzed = false; analyzeChapter(selectedChapter.id)"
+                    :disabled="analyzing"
+                    class="px-4 py-2 rounded-lg text-sm font-medium transition bg-white dark:bg-[#2C2C2E] border border-brand-green text-brand-green hover:bg-brand-green hover:text-white"
+                  >
+                    <fa :icon="['fas', 'rotate']" class="mr-2" />
+                    重新分析
+                  </button>
+                </div>
               </div>
               <div class="prose dark:prose-invert max-w-none">
                 <div v-if="selectedChapter.loading" class="flex items-center justify-center py-12">
@@ -4923,38 +5077,8 @@ watch(activeTab, (newTab) => {
               </div>
               
               <!-- Editor Content -->
-              <div class="flex-1 overflow-auto bg-[#FAFAFA] dark:bg-[#1E1E1E] p-4 font-mono text-sm flex">
-                <!-- Line Numbers -->
-                <div class="flex-shrink-0 text-right pr-4 text-gray-300 dark:text-gray-600 select-none border-r border-gray-200 dark:border-[#3A3A3C] mr-4 leading-6">
-                  <div v-for="n in 9" :key="n">{{ n }}</div>
-                </div>
-                
-                <!-- Code -->
-                <div class="flex-1 leading-6 text-gray-800 dark:text-gray-300">
-                  <div><span class="text-purple-600 dark:text-purple-400">{</span></div>
-                  <div class="pl-4">
-                    <span class="text-red-600 dark:text-red-400">"chapterId"</span>: <span class="text-blue-600 dark:text-blue-400">{{ targetChapterId }}</span>,
-                  </div>
-                  <div class="pl-4">
-                    <span class="text-red-600 dark:text-red-400">"config"</span>: <span class="text-purple-600 dark:text-purple-400">{</span>
-                  </div>
-                  <div class="pl-8">
-                    <span class="text-red-600 dark:text-red-400">"style"</span>: <span class="text-green-600 dark:text-green-400">"{{ analysisConfig.style }}"</span>,
-                  </div>
-                  <div class="pl-8">
-                    <span class="text-red-600 dark:text-red-400">"mode"</span>: <span class="text-green-600 dark:text-green-400">"analysis"</span>,
-                  </div>
-                  <div class="pl-8">
-                    <span class="text-red-600 dark:text-red-400">"extract"</span>: <span class="text-gray-600 dark:text-gray-400">[</span><span class="text-green-600 dark:text-green-400">"characters"</span>, <span class="text-green-600 dark:text-green-400">"scenes"</span>, <span class="text-green-600 dark:text-green-400">"plots"</span>, <span class="text-green-600 dark:text-green-400">"dialogues"</span><span class="text-gray-600 dark:text-gray-400">]</span>
-                  </div>
-                  <div class="pl-4">
-                    <span class="text-purple-600 dark:text-purple-400">}</span>,
-                  </div>
-                  <div class="pl-4">
-                    <span class="text-red-600 dark:text-red-400">"timestamp"</span>: <span class="text-green-600 dark:text-green-400">"{{ new Date().toISOString() }}"</span>
-                  </div>
-                  <div><span class="text-purple-600 dark:text-purple-400">}</span></div>
-                </div>
+              <div class="flex-1 overflow-auto bg-[#FAFAFA] dark:bg-[#1E1E1E] p-4 font-mono text-sm">
+                <pre class="text-gray-800 dark:text-gray-300" v-html="coloredJsonPreview"></pre>
               </div>
             </div>
           </div>

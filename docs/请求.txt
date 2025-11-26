@@ -86,3 +86,78 @@ curl -X GET "http://0.0.0.0:7767/api/v1/script/files/664849435721465312/content?
 
 
 
+
+# 测试接口关联：
+创建剧本
+```
+curl -X POST http://0.0.0.0:7767/api/v1/scriptwriting/projects \
+  -H "Content-Type: application/json" \
+  -d '{
+    "file_info": {
+      "file_id": "string",
+      "file_name": "string",
+      "total_word_count": 0,
+      "script_generation_time": "2025-11-26T15:20:03.061Z"
+    },
+    "global_config": {
+      "visual_style": "string",
+      "context_usage_count": 0
+    },
+    "script_shot_list": [
+      {
+        "shot_number": 0,
+        "original_text": "string",
+        "type": "string",
+        "duration": "string",
+        "video_url": "string",
+        "character_info": {
+          "character_name": "string",
+          "gender": "string",
+          "appearance_description": "string"
+        },
+        "visual_content": {
+          "scene_content": "string",
+          "shot_size": "string",
+          "camera_movement": "string",
+          "front_image_url": "string",
+          "back_image_url": "string",
+          "side_image_url": "string",
+          "text_to_image_prompt": {
+            "additionalProp1": {}
+          },
+          "image_to_video_prompt": {
+            "additionalProp1": {}
+          }
+        },
+        "audio_info": {
+          "dialogue_content": "string",
+          "voice_over": "string",
+          "voice_emotion": "string",
+          "sound_effects": "string"
+        },
+        "context_summary": "string"
+      }
+    ]
+  }'
+```
+
+获取剧本详细信息
+curl -X GET http://0.0.0.0:7767/api/v1/scriptwriting/projects/664849435721465312 \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJjaGVycnlfMDUwNjA3QDE2My5jb20iLCJleHAiOjE3NjY1NjA5MDZ9.LpVZZyHLemOQDXrMWDcjxsAqo7Qas_JK7QdcFi7pIAE"
+
+
+获取指定剧本中所有镜头
+curl -X GET "http://0.0.0.0:7767/api/v1/scriptwriting/projects/664849435721465312/shots?page=1&page_size=20" \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJjaGVycnlfMDUwNjA3QDE2My5jb20iLCJleHAiOjE3NjY1NjA5MDZ9.LpVZZyHLemOQDXrMWDcjxsAqo7Qas_JK7QdcFi7pIAE"
+
+查看指定镜头：
+curl -X GET http://0.0.0.0:7767/api/v1/scriptwriting/shots/1 \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJjaGVycnlfMDUwNjA3QDE2My5jb20iLCJleHAiOjE3NjY1NjA5MDZ9.LpVZZyHLemOQDXrMWDcjxsAqo7Qas_JK7QdcFi7pIAE"
+
+删除指定剧本：
+curl -X DELETE http://0.0.0.0:7767/api/v1/scriptwriting/projects/664849435721465312 \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJjaGVycnlfMDUwNjA3QDE2My5jb20iLCJleHAiOjE3NjY1NjA5MDZ9.LpVZZyHLemOQDXrMWDcjxsAqo7Qas_JK7QdcFi7pIAE"
