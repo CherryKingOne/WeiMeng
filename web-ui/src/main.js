@@ -26,7 +26,7 @@ app.mount('#app')
 
 const setTitleAndLang = (loc) => {
   const isZh = String(loc || '').toLowerCase().startsWith('zh')
-  document.title = isZh ? '维梦 CN' : 'WeiMeng'
+  document.title = isZh ? '维梦' : 'WeiMeng'
   document.documentElement.lang = isZh ? 'zh-CN' : 'en'
 }
 

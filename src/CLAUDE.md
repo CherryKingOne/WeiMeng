@@ -4,31 +4,48 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-WeiMeng (微梦) is an AI-powered script generation engine backend built with FastAPI. It provides APIs for generating short drama scripts, managing script libraries with MinIO object storage, and integrating with LLM services for content generation.
+WeiMeng (唯梦/微梦) is an AI-assisted drama and video production platform that streamlines the entire creative workflow from script writing to final video editing. The project consists of:
+- **Backend** (`src/`): FastAPI-based REST API with PostgreSQL, MinIO object storage, and LLM integration
+- **Frontend** (`web-ui/`): Vue 3 SPA with Vite, Tailwind CSS, and i18n support
 
 ## Development Commands
 
-### Running the Application
+### Backend (from `src/` directory)
 
 ```bash
-# Start the server (from src/ directory)
+# Install dependencies
+pip install -r requirements.txt
+
+# Start the server with auto-reload
 python main.py
 
-# Or use uvicorn directly with auto-reload
+# Or use uvicorn directly
 uvicorn app.main:app --reload --port 7767
 ```
 
-The server runs on port 7767 by default (configurable via `.env`).
+Backend runs on `http://localhost:7767` (configurable via `.env`).
 
-### Installing Dependencies
+### Frontend (from `web-ui/` directory)
 
 ```bash
-pip install -r requirements.txt
+# Install dependencies
+npm install
+
+# Start dev server
+npm run dev
+
+# Build for production
+npm run build
+
+# Preview production build
+npm run preview
 ```
+
+Frontend runs on `http://localhost:5173`.
 
 ### Database Setup
 
-The application uses PostgreSQL with async SQLAlchemy. Database tables are automatically created on startup via `init_db()` in `app/core/database.py:36`.
+The application uses PostgreSQL with async SQLAlchemy. Database tables are automatically created on startup via `init_db()` in `app/core/database.py:36`. The `init_db()` function also handles lightweight schema migrations (BIGINT conversions, adding columns) wrapped in try-except blocks.
 
 For manual migrations using Alembic:
 ```bash
@@ -36,6 +53,15 @@ alembic init alembic
 alembic revision --autogenerate -m "Migration message"
 alembic upgrade head
 ```
+
+### Environment Configuration
+
+Create a `.env` file in the `src/` directory with required settings (see `app/core/config.py:5` for all available options):
+- PostgreSQL connection (host, port, database, user, password)
+- MinIO endpoint and credentials
+- LLM API configuration (URL, key, model name)
+- JWT secret key
+- Optional: SMTP settings, external AI API keys (JIMENG_API_KEY, QINIU_ACCESS_KEY)
 
 ## Architecture
 
@@ -50,10 +76,11 @@ alembic upgrade head
 - `MinioService` (`app/services/minio_service.py`): Manages file uploads/downloads to MinIO object storage
 - Services are instantiated as global singletons (e.g., `llm_engine`, `minio_client`)
 
-**Script Library System**: Two-level hierarchy:
-- `ScriptLibrary` model: Represents a collection/folder in MinIO (maps to `minio_folder_path`)
-- `ScriptFile` model: Individual files within a library (stores `minio_object_key` and `file_url`)
+**Script Library System**: Two-level hierarchy with type support:
+- `ScriptLibrary` model (`app/models/script.py:7`): Represents a collection/folder in MinIO with `type` field ('novel' for drama scripts or 'ad' for advertising content)
+- `ScriptFile` model (`app/models/script.py:22`): Individual files within a library (stores `minio_object_key`, `file_url`, and optional `content_summary`)
 - Files are organized as `{library_name}/{filename}` in MinIO
+- Supports cascade deletion: deleting a library removes all associated files from both database and MinIO
 
 ### Configuration
 
@@ -73,17 +100,24 @@ Routes are organized under `/api/v1/` with the following modules:
 
 ### Prompt System
 
-System prompts for LLM calls are stored as markdown files in `prompts/` directory. Use `load_prompt(filename)` from `app/utils/prompt_loader.py:5` to load them. The loader automatically resolves paths relative to the project root.
+System prompts for LLM calls are stored as markdown files in `prompts/` directory (e.g., `分镜头脚本生成提示词.md`). Use `load_prompt(filename)` from `app/utils/prompt_loader.py:5` to load them. The loader automatically resolves paths relative to the project root and handles UTF-8 encoding.
 
 ## Important Implementation Details
 
 **Async Patterns**: All database operations and external API calls use async/await. Database queries use SQLAlchemy 2.0 style with `select()` statements and `await db.execute()`.
 
-**MinIO Integration**: MinIO doesn't have true folders - they're simulated via object key prefixes. When creating a script library, set `minio_folder_path` to the desired prefix (e.g., `"library-name/"`). Files are uploaded with keys like `{minio_folder_path}{filename}`.
+**MinIO Integration**: MinIO doesn't have true folders - they're simulated via object key prefixes. The `MinioService` (`app/services/minio_service.py:6`) provides:
+- Automatic bucket creation on initialization
+- File upload/download with content type handling
+- Presigned URL generation for secure temporary access (default 1 hour expiry)
+- Folder deletion via prefix-based object listing
+- When creating a script library, set `minio_folder_path` to the desired prefix (e.g., `"library-name/"`)
 
-**Database Migrations**: The `init_db()` function includes lightweight ALTER TABLE statements to handle BIGINT column migrations for `script_libraries` and `script_files` tables. These are wrapped in try-except to avoid errors on fresh databases.
+**Error Handling**: Services use try-except blocks with console logging. LLM and MinIO errors are propagated to API endpoints for proper HTTP error responses.
 
 **CORS Configuration**: Currently set to allow all origins (`allow_origins=["*"]`) in `app/main.py:22`. This should be restricted to specific origins in production.
+
+**Frontend Architecture**: Vue 3 with Composition API, Vue Router for navigation, Vue I18n for internationalization (Chinese/English), Tailwind CSS for styling, and FontAwesome icons. Node.js version requirement: 20.19.0+ or 22.12.0+.
 
 ## API Documentation
 

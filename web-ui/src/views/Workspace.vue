@@ -250,6 +250,42 @@ const providers = ref([
   { id: 'minimax', name: 'Minimax', slug: 'minimax', desc: '对话、语音与多模态模型', enabled: false, caps: ['LLM','Speech'], models: [], configured: false },
   { id: 'qiniu', name: '七牛云', slug: 'qiniu', desc: '七牛云模型与推理服务', enabled: false, caps: ['LLM'], models: [], configured: false }
 ])
+const showSystemModelSettings = ref(false)
+const systemReasoningModel = ref('gpt-4')
+const embeddingModel = ref('text-embedding-3-large')
+const speechToTextModel = ref('gpt-4o-mini-transcribe')
+const openSystemModelSettings = async () => {
+  await nextTick()
+  showSystemModelSettings.value = true
+}
+const closeSystemModelSettings = () => {
+  showSystemModelSettings.value = false
+}
+const saveSystemModelSettings = () => {
+  // Save logic here (mock)
+  openToast('系统模型设置已保存')
+  closeSystemModelSettings()
+}
+const showApiKeyConfig = ref(false)
+const apiKeyForm = ref({
+  name: '',
+  apiKey: '',
+  orgId: '',
+  apiBase: ''
+})
+const openApiKeyConfig = async () => {
+  await nextTick()
+  showApiKeyConfig.value = true
+}
+const closeApiKeyConfig = () => {
+  showApiKeyConfig.value = false
+  apiKeyForm.value = { name: '', apiKey: '', orgId: '', apiBase: '' }
+}
+const saveApiKeyConfig = () => {
+  // Save logic here
+  openToast('API 密钥配置已保存')
+  closeApiKeyConfig()
+}
 const configureProvider = (p) => { p.configured = true }
 const viewProviderDetail = (p) => {
   const q = encodeURIComponent((p.name || '') + ' API')
@@ -1249,7 +1285,7 @@ const loadLibraries = async () => {
                 <!-- Header -->
                 <div class="flex items-center justify-between">
                   <div class="text-xl font-bold text-primary dark:text-white">模型列表</div>
-                  <button class="px-3 py-1.5 rounded-md border border-gray-300 bg-white text-sm text-primary hover:bg-gray-50 flex items-center gap-2 dark:bg-[#2C2C2E] dark:border-[#3A3A3C] dark:text-white dark:hover:bg-[#3A3A3C]">
+                  <button class="px-3 py-1.5 rounded-md border border-gray-300 bg-white text-sm text-primary hover:bg-gray-50 flex items-center gap-2 dark:bg-[#2C2C2E] dark:border-[#3A3A3C] dark:text-white dark:hover:bg-[#3A3A3C]" @click="openSystemModelSettings">
                     <fa :icon="['fas','sliders']" />
                     系统模型设置
                   </button>
@@ -1283,7 +1319,7 @@ const loadLibraries = async () => {
                           <span class="text-xs text-secondary">未授权</span>
                           <span class="w-2 h-2 rounded-full bg-red-500"></span>
                         </div>
-                        <button class="w-full flex items-center justify-center gap-2 bg-white border border-gray-200 rounded py-1.5 text-sm font-medium hover:bg-gray-50 dark:bg-[#3A3A3C] dark:border-transparent dark:text-white dark:hover:bg-[#48484A]">
+                        <button class="w-full flex items-center justify-center gap-2 bg-white border border-gray-200 rounded py-1.5 text-sm font-medium hover:bg-gray-50 dark:bg-[#3A3A3C] dark:border-transparent dark:text-white dark:hover:bg-[#48484A]" @click="openApiKeyConfig">
                           <fa :icon="['fas','sliders']" /> 设置
                         </button>
                       </div>
@@ -1967,4 +2003,183 @@ const loadLibraries = async () => {
       </teleport>
     </div>
   </div>
+      <teleport to="body">
+        <div v-if="showSystemModelSettings" class="fixed inset-0 z-50 flex items-center justify-center">
+          <div class="absolute inset-0 bg-black/30 backdrop-blur-md" @click="closeSystemModelSettings"></div>
+          <div class="relative w-full max-w-lg bg-white rounded-2xl shadow-2xl border border-gray-200 overflow-hidden dark:bg-[#2C2C2E] dark:border-[#3A3A3C]">
+            <div class="p-6">
+              <div class="flex items-center justify-between mb-6">
+                 <h3 class="text-lg font-bold text-primary dark:text-white">系统模型设置</h3>
+                 <button class="px-3 py-1.5 rounded-md border text-sm hover:bg-gray-100 dark:border-[#3A3A3C] dark:hover:bg-[#3A3A3C]" @click="closeSystemModelSettings">
+                    <fa :icon="['fas','sliders']" class="mr-1" /> 系统模型设置
+                 </button>
+              </div>
+
+              <div class="space-y-5">
+                 <!-- System Reasoning -->
+                 <div>
+                   <div class="flex items-center gap-2 mb-2">
+                     <label class="text-sm font-bold text-primary dark:text-white">系统推理模型</label>
+                     <fa :icon="['fas','circle-question']" class="text-gray-400 text-sm" />
+                   </div>
+                   <div class="relative">
+                     <div class="absolute left-3 top-1/2 -translate-y-1/2 flex items-center justify-center pointer-events-none">
+                        <img src="https://unpkg.com/@lobehub/icons-static-png@latest/light/openai.png" class="w-5 h-5 object-contain" />
+                     </div>
+                     <select v-model="systemReasoningModel" class="w-full bg-gray-100 border-none rounded-lg py-2.5 pl-10 pr-16 text-sm font-medium focus:ring-2 focus:ring-brand-green appearance-none dark:bg-[#1E1E1E] dark:text-[#E0E0E0]">
+                       <option value="gpt-4">gpt-4</option>
+                       <option value="gpt-3.5-turbo">gpt-3.5-turbo</option>
+                     </select>
+                     <div class="absolute right-8 top-1/2 -translate-y-1/2 pointer-events-none">
+                        <span class="text-[10px] px-1.5 py-0.5 rounded border border-gray-300 text-gray-500 bg-white dark:bg-[#2C2C2E] dark:border-[#3A3A3C] dark:text-gray-400">CHAT</span>
+                     </div>
+                     <div class="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-gray-400">
+                        <fa :icon="['fas','chevron-down']" class="text-xs" />
+                     </div>
+                   </div>
+                 </div>
+
+                 <!-- Embedding -->
+                 <div>
+                   <div class="flex items-center gap-2 mb-2">
+                     <label class="text-sm font-bold text-primary dark:text-white">Embedding 模型</label>
+                     <fa :icon="['fas','circle-question']" class="text-gray-400 text-sm" />
+                   </div>
+                   <div class="relative">
+                     <div class="absolute left-3 top-1/2 -translate-y-1/2 flex items-center justify-center pointer-events-none">
+                        <img src="https://unpkg.com/@lobehub/icons-static-png@latest/light/openai.png" class="w-5 h-5 object-contain" />
+                     </div>
+                     <select v-model="embeddingModel" class="w-full bg-gray-100 border-none rounded-lg py-2.5 pl-10 pr-10 text-sm font-medium focus:ring-2 focus:ring-brand-green appearance-none dark:bg-[#1E1E1E] dark:text-[#E0E0E0]">
+                       <option value="text-embedding-3-large">text-embedding-3-large</option>
+                       <option value="text-embedding-3-small">text-embedding-3-small</option>
+                     </select>
+                     <div class="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-gray-400">
+                        <fa :icon="['fas','chevron-down']" class="text-xs" />
+                     </div>
+                   </div>
+                 </div>
+
+                 <!-- Rerank -->
+                 <div>
+                   <div class="flex items-center gap-2 mb-2">
+                     <label class="text-sm font-bold text-primary dark:text-white">Rerank 模型</label>
+                     <fa :icon="['fas','circle-question']" class="text-gray-400 text-sm" />
+                   </div>
+                   <div class="bg-gray-100 rounded-lg py-2 px-3 flex items-center justify-between dark:bg-[#1E1E1E]">
+                      <div class="flex items-center gap-2 text-gray-400">
+                        <fa :icon="['fas','cubes']" />
+                        <span class="text-sm">模型设置</span>
+                      </div>
+                      <button class="text-gray-500 hover:text-primary dark:hover:text-white">
+                        <fa :icon="['fas','sliders']" />
+                      </button>
+                   </div>
+                 </div>
+
+                 <!-- Speech to Text -->
+                 <div>
+                   <div class="flex items-center gap-2 mb-2">
+                     <label class="text-sm font-bold text-primary dark:text-white">语音转文本模型</label>
+                     <fa :icon="['fas','circle-question']" class="text-gray-400 text-sm" />
+                   </div>
+                   <div class="relative">
+                     <div class="absolute left-3 top-1/2 -translate-y-1/2 flex items-center justify-center pointer-events-none">
+                        <img src="https://unpkg.com/@lobehub/icons-static-png@latest/light/openai.png" class="w-5 h-5 object-contain" />
+                     </div>
+                     <select v-model="speechToTextModel" class="w-full bg-gray-100 border-none rounded-lg py-2.5 pl-10 pr-10 text-sm font-medium focus:ring-2 focus:ring-brand-green appearance-none dark:bg-[#1E1E1E] dark:text-[#E0E0E0]">
+                       <option value="gpt-4o-mini-transcribe">gpt-4o-mini-transcribe</option>
+                       <option value="whisper-1">whisper-1</option>
+                     </select>
+                     <div class="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-gray-400">
+                        <fa :icon="['fas','chevron-down']" class="text-xs" />
+                     </div>
+                   </div>
+                 </div>
+
+                 <!-- Text to Speech -->
+                 <div>
+                   <div class="flex items-center gap-2 mb-2">
+                     <label class="text-sm font-bold text-primary dark:text-white">文本转语音模型</label>
+                     <fa :icon="['fas','circle-question']" class="text-gray-400 text-sm" />
+                   </div>
+                   <div class="bg-gray-100 rounded-lg py-2 px-3 flex items-center justify-between dark:bg-[#1E1E1E]">
+                      <div class="flex items-center gap-2 text-gray-400">
+                        <fa :icon="['fas','cubes']" />
+                        <span class="text-sm">模型设置</span>
+                      </div>
+                      <button class="text-gray-500 hover:text-primary dark:hover:text-white">
+                        <fa :icon="['fas','sliders']" />
+                      </button>
+                   </div>
+                 </div>
+              </div>
+
+              <div class="flex justify-end gap-3 mt-8">
+                <button class="px-4 py-2 rounded-lg border border-gray-300 text-secondary hover:bg-gray-100 dark:border-[#3A3A3C] dark:text-gray-300 dark:hover:bg-[#3A3A3C]" @click="closeSystemModelSettings">取消</button>
+                <button class="px-6 py-2 rounded-lg bg-blue-600 text-white hover:bg-blue-700 font-medium" @click="saveSystemModelSettings">保存</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </teleport>
+      <teleport to="body">
+        <div v-if="showApiKeyConfig" class="fixed inset-0 z-50 flex items-center justify-center">
+          <div class="absolute inset-0 bg-black/30 backdrop-blur-md" @click="closeApiKeyConfig"></div>
+          <div class="relative w-full max-w-2xl bg-white rounded-2xl shadow-2xl border border-gray-200 overflow-hidden dark:bg-[#2C2C2E] dark:border-[#3A3A3C]">
+            <div class="p-8">
+              <div class="flex items-start justify-between mb-4">
+                 <div>
+                   <h3 class="text-xl font-bold text-primary dark:text-white mb-1">API 密钥授权配置</h3>
+                   <p class="text-sm text-secondary dark:text-gray-400">配置凭据后，工作空间中的所有成员都可以在编排应用时使用此模型。</p>
+                 </div>
+                 <button class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200" @click="closeApiKeyConfig">
+                    <fa :icon="['fas','xmark']" class="text-lg" />
+                 </button>
+              </div>
+
+              <div class="space-y-5">
+                 <!-- Name -->
+                 <div>
+                   <label class="block text-sm font-bold text-primary dark:text-white mb-2">凭据名称</label>
+                   <input v-model="apiKeyForm.name" type="text" placeholder="请输入" class="w-full bg-gray-100 border-none rounded-lg py-2.5 px-4 text-sm focus:ring-2 focus:ring-brand-green dark:bg-[#1E1E1E] dark:text-[#E0E0E0]" />
+                 </div>
+
+                 <!-- API Key -->
+                 <div>
+                   <label class="block text-sm font-bold text-primary dark:text-white mb-2">API Key <span class="text-red-500">*</span></label>
+                   <input v-model="apiKeyForm.apiKey" type="password" placeholder="在此输入您的 API Key" class="w-full bg-gray-100 border-none rounded-lg py-2.5 px-4 text-sm focus:ring-2 focus:ring-brand-green dark:bg-[#1E1E1E] dark:text-[#E0E0E0]" />
+                 </div>
+
+                 <!-- Org ID -->
+                 <div>
+                   <label class="block text-sm font-bold text-primary dark:text-white mb-2">组织 ID</label>
+                   <input v-model="apiKeyForm.orgId" type="text" placeholder="在此输入您的组织 ID" class="w-full bg-gray-100 border-none rounded-lg py-2.5 px-4 text-sm focus:ring-2 focus:ring-brand-green dark:bg-[#1E1E1E] dark:text-[#E0E0E0]" />
+                 </div>
+
+                 <!-- API Base -->
+                 <div>
+                   <label class="block text-sm font-bold text-primary dark:text-white mb-2">API Base</label>
+                   <input v-model="apiKeyForm.apiBase" type="text" placeholder="在此输入您的 API Base，如：https://api.openai.com" class="w-full bg-gray-100 border-none rounded-lg py-2.5 px-4 text-sm focus:ring-2 focus:ring-brand-green dark:bg-[#1E1E1E] dark:text-[#E0E0E0]" />
+                 </div>
+              </div>
+
+              <div class="mt-8 flex items-center justify-between">
+                <a href="#" class="text-brand-green text-sm font-medium hover:underline flex items-center gap-1">
+                  从 OpenAI 获取 API Key <fa :icon="['fas','arrow-up-right-from-square']" class="text-xs" />
+                </a>
+                <div class="flex gap-3">
+                  <button class="px-6 py-2 rounded-lg border border-gray-300 text-secondary hover:bg-gray-100 dark:border-[#3A3A3C] dark:text-gray-300 dark:hover:bg-[#3A3A3C]" @click="closeApiKeyConfig">取消</button>
+                  <button class="px-8 py-2 rounded-lg bg-blue-600 text-white hover:bg-blue-700 font-medium" @click="saveApiKeyConfig">保存</button>
+                </div>
+              </div>
+            </div>
+            <div class="bg-gray-50 px-8 py-3 border-t border-gray-200 dark:bg-[#1E1E1E] dark:border-[#3A3A3C]">
+               <div class="flex items-center gap-2 text-xs text-secondary dark:text-gray-400">
+                 <fa :icon="['fas','lock']" />
+                 您的密钥将使用 PKCS1_OAEP 技术进行加密和存储。
+               </div>
+            </div>
+          </div>
+        </div>
+      </teleport>
 </template>
