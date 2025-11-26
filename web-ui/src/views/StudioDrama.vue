@@ -81,16 +81,63 @@ const tabs = [
   { id: 'files', label: '剧本文件管理', icon: 'folder' },
   { id: 'videoAssets', label: '视频素材管理', icon: 'film' },
   { id: 'audioAssets', label: '音频素材管理', icon: 'music' },
-  { id: 'characters', label: '角色一致性', icon: 'users' },
+  { id: 'novelAnalysis', label: '小说拆解', icon: 'book-open' },
   { id: 'storyboard', label: '分镜生成', icon: 'clapperboard' },
   { id: 'video', label: '视频剪辑', icon: 'scissors', badge: 'Beta' }
 ]
 
 const scriptContent = ref('[场景] 豪华办公室，白天\n顾北辰：（冷冷地）这份设计稿重做。\n苏晚晚：（坚定地）我会重新来过。\n旁白：两人的眼神交错，空气凝固。\nJohn: You should reconsider.\nMary: I won\'t.')
-const characters = ref([
-  { id: 1, name: '顾北辰', role: '男主角', desc: '霸道总裁，冷酷深情', avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Felix' },
-  { id: 2, name: '苏晚晚', role: '女主角', desc: '坚韧乐观，设计师', avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Aneka' }
+
+// Novel Analysis Data
+const novelChapters = ref([
+  { 
+    id: 1, 
+    title: '第一章 初遇', 
+    content: '在繁华的都市中,苏晚晚第一次见到了顾北辰。那是一个阳光明媚的下午,她拿着自己精心准备的设计稿,走进了顾氏集团的大楼。\n\n"你就是新来的设计师?"顾北辰冷冷地问道,眼神中透着审视。\n\n"是的,顾总。"苏晚晚努力保持镇定,尽管内心紧张不已。\n\n顾北辰翻看着设计稿,眉头越皱越紧。"这种水平也敢来我们公司?"\n\n苏晚晚咬了咬嘴唇,坚定地说:"请给我一次机会,我会证明自己的。"',
+    analyzed: false
+  },
+  { 
+    id: 2, 
+    title: '第二章 挑战', 
+    content: '顾北辰给了苏晚晚一个几乎不可能完成的任务——在三天内完成一个大型项目的全套设计方案。\n\n"三天?"苏晚晚惊讶地问。\n\n"怎么,做不到就趁早离开。"顾北辰冷漠地回应。\n\n苏晚晚深吸一口气:"我接受这个挑战。"\n\n接下来的三天,她几乎没有合眼,反复修改设计方案。办公室的灯光陪伴着她度过了一个又一个不眠之夜。',
+    analyzed: true
+  },
+  { 
+    id: 3, 
+    title: '第三章 转机', 
+    content: '第三天,苏晚晚准时提交了设计方案。顾北辰仔细审阅后,脸上难得露出了一丝赞许的表情。\n\n"不错,比我想象的要好。"他淡淡地说。\n\n苏晚晚松了一口气,但顾北辰接着说:"但还不够完美,继续改进。"\n\n尽管如此,苏晚晚知道自己已经得到了认可。她的努力没有白费。',
+    analyzed: false
+  }
 ])
+
+const selectedChapter = ref(null)
+const analysisTab = ref('characters') // 'characters', 'scenes', 'plots', 'dialogues'
+const analyzing = ref(false)
+
+const analysisResults = ref({
+  1: null,
+  2: {
+    characters: [
+      { id: 1, name: '苏晚晚', role: '女主角', desc: '新来的设计师,坚韧不拔,努力证明自己' },
+      { id: 2, name: '顾北辰', role: '男主角', desc: '顾氏集团总裁,冷漠严苛,对工作要求极高' }
+    ],
+    scenes: [
+      { id: 1, name: '办公室', desc: '苏晚晚工作的地方,灯光明亮,充满紧张氛围' },
+      { id: 2, name: '深夜的办公楼', desc: '只有苏晚晚一人加班,寂静而孤独' }
+    ],
+    plots: [
+      { id: 1, point: '顾北辰给苏晚晚布置了一个几乎不可能完成的任务' },
+      { id: 2, point: '苏晚晚接受挑战,决心证明自己' },
+      { id: 3, point: '苏晚晚连续三天不眠不休地工作' }
+    ],
+    dialogues: [
+      { id: 1, speaker: '顾北辰', content: '三天?' },
+      { id: 2, speaker: '苏晚晚', content: '怎么,做不到就趁早离开。' },
+      { id: 3, speaker: '苏晚晚', content: '我接受这个挑战。' }
+    ]
+  },
+  3: null
+})
 
 const storyboards = ref([
   {
@@ -1625,94 +1672,53 @@ const copyFileContent = async () => {
   }
 }
 
-// Character creation modal
-const showCharacterModal = ref(false)
-const newCharacter = ref({
-  name: '',
-  role: '',
-  desc: '',
-  avatar: ''
+// Novel Analysis Functions
+const selectChapter = (chapter) => {
+  selectedChapter.value = chapter
+}
+
+const analyzeChapter = async (chapterId) => {
+  if (!chapterId) return
+  
+  analyzing.value = true
+  
+  // Simulate AI analysis (replace with actual API call)
+  await new Promise(resolve => setTimeout(resolve, 2000))
+  
+  // Mock analysis results
+  analysisResults.value[chapterId] = {
+    characters: [
+      { id: 1, name: '角色A', role: '主角', desc: '勇敢坚定的主人公' },
+      { id: 2, name: '角色B', role: '配角', desc: '忠诚的伙伴' }
+    ],
+    scenes: [
+      { id: 1, name: '场景1', desc: '故事发生的主要地点' },
+      { id: 2, name: '场景2', desc: '关键转折点的场景' }
+    ],
+    plots: [
+      { id: 1, point: '主角面临重大挑战' },
+      { id: 2, point: '主角做出关键决定' }
+    ],
+    dialogues: [
+      { id: 1, speaker: '角色A', content: '我一定要完成这个任务' },
+      { id: 2, speaker: '角色B', content: '我会一直支持你' }
+    ]
+  }
+  
+  // Mark chapter as analyzed
+  const chapter = novelChapters.value.find(c => c.id === chapterId)
+  if (chapter) {
+    chapter.analyzed = true
+  }
+  
+  analyzing.value = false
+  showToastMessage('分析完成', 'success')
+}
+
+const currentAnalysis = computed(() => {
+  if (!selectedChapter.value) return null
+  return analysisResults.value[selectedChapter.value.id]
 })
-const characterError = ref('')
-const characterImageInput = ref(null)
-const characterImagePreview = ref('')
-
-const openCharacterModal = () => {
-  showCharacterModal.value = true
-  newCharacter.value = { name: '', role: '', desc: '', avatar: '' }
-  characterError.value = ''
-  characterImagePreview.value = ''
-}
-
-const closeCharacterModal = () => {
-  showCharacterModal.value = false
-  newCharacter.value = { name: '', role: '', desc: '', avatar: '' }
-  characterError.value = ''
-  characterImagePreview.value = ''
-}
-
-const createCharacter = () => {
-  if (!newCharacter.value.name.trim()) {
-    characterError.value = '请输入角色名称'
-    return
-  }
-  if (!newCharacter.value.role.trim()) {
-    characterError.value = '请输入角色定位'
-    return
-  }
-  
-  // Use uploaded image, or generate random avatar if not provided
-  const avatar = characterImagePreview.value || newCharacter.value.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${newCharacter.value.name}`
-  
-  const character = {
-    id: Date.now(),
-    name: newCharacter.value.name,
-    role: newCharacter.value.role,
-    desc: newCharacter.value.desc || '暂无描述',
-    avatar: avatar
-  }
-  
-  characters.value.push(character)
-  closeCharacterModal()
-}
-
-const triggerCharacterImageUpload = () => {
-  characterImageInput.value?.click()
-}
-
-const handleCharacterImageUpload = (event) => {
-  const file = event.target.files?.[0]
-  if (!file) return
-  
-  // Check if file is an image
-  if (!file.type.startsWith('image/')) {
-    characterError.value = '请上传图片文件'
-    return
-  }
-  
-  // Check file size (max 5MB)
-  const maxSize = 5 * 1024 * 1024
-  if (file.size > maxSize) {
-    characterError.value = '图片大小不能超过 5MB'
-    return
-  }
-  
-  // Read and preview image
-  const reader = new FileReader()
-  reader.onload = (e) => {
-    characterImagePreview.value = e.target?.result
-    characterError.value = ''
-  }
-  reader.readAsDataURL(file)
-}
-
-const removeCharacterImage = () => {
-  characterImagePreview.value = ''
-  newCharacter.value.avatar = ''
-  if (characterImageInput.value) {
-    characterImageInput.value.value = ''
-  }
-}
 
 // Extract characters from script
 const showExtractWizard = ref(false)
@@ -1979,6 +1985,11 @@ onMounted(() => {
   loadLibraryInfo()
   loadExistingFiles()
   loadMediaFiles()  // Load existing video files from backend
+
+  // Auto-select first chapter for novel analysis
+  if (novelChapters.value.length > 0 && !selectedChapter.value) {
+    selectedChapter.value = novelChapters.value[0]
+  }
 
   // Add global click listener
   document.addEventListener('click', handleGlobalClick)
@@ -3038,31 +3049,173 @@ watch(activeTab, (newTab) => {
         </div>
 
         <!-- Characters View -->
-        <div v-else-if="activeTab === 'characters'" class="max-w-6xl mx-auto">
-          <div class="flex items-center justify-between mb-3">
-            <h2 class="text-xl font-bold">角色管理</h2>
-            <div class="flex items-center gap-3">
-              <button @click="openExtractWizard" class="px-4 py-2 bg-white dark:bg-[#2C2C2E] text-brand-green border border-brand-green rounded-lg text-sm hover:bg-brand-green/10 transition">
-                <fa :icon="['fas', 'wand-magic-sparkles']" class="mr-2" /> 角色提炼
-              </button>
-              <button @click="openCharacterModal" class="px-4 py-2 bg-brand-green text-white rounded-lg text-sm hover:bg-brand-green-dark transition">
-                <fa :icon="['fas', 'plus']" class="mr-2" /> 新建角色
+        <!-- Novel Analysis View -->
+        <div v-else-if="activeTab === 'novelAnalysis'" class="h-full flex gap-4">
+          <!-- Left Sidebar: Chapter List -->
+          <div class="w-80 flex-shrink-0 bg-white dark:bg-[#2C2C2E] rounded-xl border border-gray-200 dark:border-[#3A3A3C] p-4 overflow-y-auto">
+            <h2 class="text-lg font-bold mb-4 text-primary dark:text-gray-200">章节列表</h2>
+            <div v-if="novelChapters.length === 0" class="text-center py-8 text-secondary dark:text-gray-400">
+              <fa :icon="['fas', 'book-open']" class="text-4xl mb-2 opacity-50" />
+              <p class="text-sm">暂无章节</p>
+            </div>
+            <div v-else class="space-y-2">
+              <button
+                v-for="chapter in novelChapters"
+                :key="chapter.id"
+                @click="selectChapter(chapter)"
+                class="w-full text-left p-3 rounded-lg border transition"
+                :class="selectedChapter?.id === chapter.id 
+                  ? 'bg-brand-green/10 border-brand-green text-brand-green dark:bg-brand-green/20' 
+                  : 'border-gray-200 dark:border-[#3A3A3C] hover:bg-gray-50 dark:hover:bg-[#3A3A3C] text-primary dark:text-gray-200'"
+              >
+                <div class="flex items-center justify-between mb-1">
+                  <span class="font-medium text-sm">{{ chapter.title }}</span>
+                  <fa v-if="chapter.analyzed" :icon="['fas', 'check-circle']" class="text-brand-green text-xs" />
+                </div>
+                <p class="text-xs text-secondary dark:text-gray-400 line-clamp-2">{{ chapter.content.substring(0, 50) }}...</p>
               </button>
             </div>
           </div>
-          <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            <div v-for="char in characters" :key="char.id" class="bg-white dark:bg-[#2C2C2E] rounded-xl border border-gray-200 dark:border-[#3A3A3C] overflow-hidden hover:shadow-md transition">
-              <div class="aspect-square bg-gray-100 dark:bg-[#3A3A3C] relative group">
-                <img :src="char.avatar" class="w-full h-full object-cover" :alt="char.name">
-                <div class="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition flex items-center justify-center gap-2">
-                  <button class="p-2 bg-white rounded-full text-gray-800 hover:scale-110 transition"><fa :icon="['fas', 'pen']" /></button>
-                  <button class="p-2 bg-white rounded-full text-red-500 hover:scale-110 transition"><fa :icon="['fas', 'trash']" /></button>
+
+          <!-- Center: Chapter Content -->
+          <div class="flex-1 bg-white dark:bg-[#2C2C2E] rounded-xl border border-gray-200 dark:border-[#3A3A3C] p-6 overflow-y-auto">
+            <div v-if="!selectedChapter" class="h-full flex flex-col items-center justify-center text-secondary dark:text-gray-400">
+              <fa :icon="['fas', 'book-open']" class="text-6xl mb-4 opacity-30" />
+              <p class="text-lg">选择章节查看内容</p>
+            </div>
+            <div v-else>
+              <div class="flex items-center justify-between mb-4">
+                <h2 class="text-2xl font-bold text-primary dark:text-gray-200">{{ selectedChapter.title }}</h2>
+                <button
+                  @click="analyzeChapter(selectedChapter.id)"
+                  :disabled="analyzing || selectedChapter.analyzed"
+                  class="px-4 py-2 rounded-lg text-sm font-medium transition"
+                  :class="selectedChapter.analyzed 
+                    ? 'bg-gray-100 dark:bg-[#3A3A3C] text-gray-400 cursor-not-allowed' 
+                    : 'bg-brand-green text-white hover:bg-brand-green/90'"
+                >
+                  <fa v-if="analyzing" :icon="['fas', 'circle-dot']" class="mr-2 animate-spin" />
+                  <fa v-else-if="selectedChapter.analyzed" :icon="['fas', 'check']" class="mr-2" />
+                  <fa v-else :icon="['fas', 'wand-magic-sparkles']" class="mr-2" />
+                  {{ analyzing ? '分析中...' : selectedChapter.analyzed ? '已分析' : '分析章节' }}
+                </button>
+              </div>
+              <div class="prose dark:prose-invert max-w-none">
+                <p class="text-base leading-relaxed text-primary dark:text-gray-300 whitespace-pre-wrap">{{ selectedChapter.content }}</p>
+              </div>
+            </div>
+          </div>
+
+          <!-- Right Sidebar: Analysis Results -->
+          <div class="w-96 flex-shrink-0 bg-white dark:bg-[#2C2C2E] rounded-xl border border-gray-200 dark:border-[#3A3A3C] overflow-hidden flex flex-col">
+            <div class="p-4 border-b border-gray-200 dark:border-[#3A3A3C]">
+              <h2 class="text-lg font-bold text-primary dark:text-gray-200">分析结果</h2>
+            </div>
+            
+            <div v-if="!currentAnalysis" class="flex-1 flex flex-col items-center justify-center text-secondary dark:text-gray-400 p-6">
+              <fa :icon="['fas', 'circle-info']" class="text-5xl mb-3 opacity-30" />
+              <p class="text-sm text-center">选择已分析的章节<br/>查看分析结果</p>
+            </div>
+            
+            <div v-else class="flex-1 overflow-y-auto">
+              <!-- Analysis Tabs -->
+              <div class="flex border-b border-gray-200 dark:border-[#3A3A3C] sticky top-0 bg-white dark:bg-[#2C2C2E] z-10">
+                <button
+                  @click="analysisTab = 'characters'"
+                  class="flex-1 px-3 py-2 text-sm font-medium transition border-b-2"
+                  :class="analysisTab === 'characters' 
+                    ? 'border-brand-green text-brand-green' 
+                    : 'border-transparent text-secondary dark:text-gray-400 hover:text-primary dark:hover:text-gray-200'"
+                >
+                  角色
+                </button>
+                <button
+                  @click="analysisTab = 'scenes'"
+                  class="flex-1 px-3 py-2 text-sm font-medium transition border-b-2"
+                  :class="analysisTab === 'scenes' 
+                    ? 'border-brand-green text-brand-green' 
+                    : 'border-transparent text-secondary dark:text-gray-400 hover:text-primary dark:hover:text-gray-200'"
+                >
+                  场景
+                </button>
+                <button
+                  @click="analysisTab = 'plots'"
+                  class="flex-1 px-3 py-2 text-sm font-medium transition border-b-2"
+                  :class="analysisTab === 'plots' 
+                    ? 'border-brand-green text-brand-green' 
+                    : 'border-transparent text-secondary dark:text-gray-400 hover:text-primary dark:hover:text-gray-200'"
+                >
+                  情节
+                </button>
+                <button
+                  @click="analysisTab = 'dialogues'"
+                  class="flex-1 px-3 py-2 text-sm font-medium transition border-b-2"
+                  :class="analysisTab === 'dialogues' 
+                    ? 'border-brand-green text-brand-green' 
+                    : 'border-transparent text-secondary dark:text-gray-400 hover:text-primary dark:hover:text-gray-200'"
+                >
+                  对话
+                </button>
+              </div>
+
+              <!-- Characters Tab -->
+              <div v-if="analysisTab === 'characters'" class="p-4 space-y-3">
+                <div v-for="char in currentAnalysis.characters" :key="char.id" class="p-3 rounded-lg bg-gray-50 dark:bg-[#1C1C1E] border border-gray-200 dark:border-[#3A3A3C]">
+                  <div class="flex items-start gap-2">
+                    <div class="w-8 h-8 rounded-full bg-brand-green/20 flex items-center justify-center flex-shrink-0">
+                      <fa :icon="['fas', 'user']" class="text-brand-green text-sm" />
+                    </div>
+                    <div class="flex-1 min-w-0">
+                      <h4 class="font-bold text-sm text-primary dark:text-gray-200">{{ char.name }}</h4>
+                      <p class="text-xs text-brand-green mb-1">{{ char.role }}</p>
+                      <p class="text-xs text-secondary dark:text-gray-400">{{ char.desc }}</p>
+                    </div>
+                  </div>
                 </div>
               </div>
-              <div class="p-4">
-                <h3 class="font-bold text-lg">{{ char.name }}</h3>
-                <p class="text-sm text-brand-green font-medium mb-2">{{ char.role }}</p>
-                <p class="text-sm text-secondary dark:text-gray-400 line-clamp-2">{{ char.desc }}</p>
+
+              <!-- Scenes Tab -->
+              <div v-if="analysisTab === 'scenes'" class="p-4 space-y-3">
+                <div v-for="scene in currentAnalysis.scenes" :key="scene.id" class="p-3 rounded-lg bg-gray-50 dark:bg-[#1C1C1E] border border-gray-200 dark:border-[#3A3A3C]">
+                  <div class="flex items-start gap-2">
+                    <div class="w-8 h-8 rounded-full bg-purple-500/20 flex items-center justify-center flex-shrink-0">
+                      <fa :icon="['fas', 'image']" class="text-purple-500 text-sm" />
+                    </div>
+                    <div class="flex-1 min-w-0">
+                      <h4 class="font-bold text-sm text-primary dark:text-gray-200">{{ scene.name }}</h4>
+                      <p class="text-xs text-secondary dark:text-gray-400 mt-1">{{ scene.desc }}</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Plots Tab -->
+              <div v-if="analysisTab === 'plots'" class="p-4 space-y-3">
+                <div v-for="(plot, index) in currentAnalysis.plots" :key="plot.id" class="p-3 rounded-lg bg-gray-50 dark:bg-[#1C1C1E] border border-gray-200 dark:border-[#3A3A3C]">
+                  <div class="flex items-start gap-2">
+                    <div class="w-8 h-8 rounded-full bg-orange-500/20 flex items-center justify-center flex-shrink-0">
+                      <span class="text-orange-500 text-xs font-bold">{{ index + 1 }}</span>
+                    </div>
+                    <div class="flex-1 min-w-0">
+                      <p class="text-sm text-primary dark:text-gray-200">{{ plot.point }}</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Dialogues Tab -->
+              <div v-if="analysisTab === 'dialogues'" class="p-4 space-y-3">
+                <div v-for="dialogue in currentAnalysis.dialogues" :key="dialogue.id" class="p-3 rounded-lg bg-gray-50 dark:bg-[#1C1C1E] border border-gray-200 dark:border-[#3A3A3C]">
+                  <div class="flex items-start gap-2">
+                    <div class="w-8 h-8 rounded-full bg-teal-500/20 flex items-center justify-center flex-shrink-0">
+                      <fa :icon="['fas', 'comment-dots']" class="text-teal-500 text-sm" />
+                    </div>
+                    <div class="flex-1 min-w-0">
+                      <h4 class="font-bold text-xs text-brand-green mb-1">{{ dialogue.speaker }}</h4>
+                      <p class="text-sm text-primary dark:text-gray-200">"{{ dialogue.content }}"</p>
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
