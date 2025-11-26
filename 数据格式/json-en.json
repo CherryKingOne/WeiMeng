@@ -1,0 +1,221 @@
+{
+  "file_info": {
+    "file_id": "FILE_123456789",
+    "file_name": "修仙剧本_01.txt",
+    "total_word_count": 158,
+    "script_generation_time": "2023-10-27T10:00:00Z"
+  },
+  "global_config": {
+    "visual_style": "2D Anime",
+    "context_usage_count": 10
+  },
+  "script_shot_list": [
+    {
+      "shot_number": 1,
+      "original_text": "林师兄，红鸾峰的柳师姐让你过去一趟。",
+      "core_concept_extraction": "",
+      "original_word_count": 19,
+      "type": "dialogue",
+      "duration": "3.5s",
+      "character_info": {
+        "character_name": "传话弟子",
+        "gender": "male",
+        "appearance_description": "穿着灰色杂役弟子服，神态恭敬，身体微躬"
+      },
+      "visual_content": {
+        "scene_content": "一个穿着杂役服饰的弟子站在门口，双手抱拳，神态恭敬地向屋内传话。",
+        "shot_size": "medium",
+        "camera_movement": "fixed",
+        "text_to_image_prompt": {
+          "CN": {
+            "positive_prompt": "2D动漫风格，修仙界，杂役弟子，灰色长袍，恭敬，抱拳，中景，清晰",
+            "negative_prompt": "低质量，模糊，多余的手指，写实风格，现代建筑"
+          },
+          "English": {
+            "positive_prompt": "2D anime style, xianxia world, servant disciple, grey robe, respectful, cupped hands, medium shot, sharp focus",
+            "negative_prompt": "low quality, blurry, extra fingers, realistic, modern architecture"
+          }
+        },
+        "front_image": "图片地址",
+        "text_to_image_prompt_back": {
+          "CN": {
+            "positive_prompt": "2D动漫风格，修仙界，杂役弟子，灰色长袍，恭敬，抱拳，背面视角，中景，清晰",
+            "negative_prompt": "低质量，模糊，多余的手指，写实风格，现代建筑"
+          },
+          "English": {
+            "positive_prompt": "2D anime style, xianxia world, servant disciple, grey robe, respectful, cupped hands, back view, medium shot, sharp focus",
+            "negative_prompt": "low quality, blurry, extra fingers, realistic, modern architecture"
+          }
+        },
+        "back_image": "图片地址",
+        "text_to_image_prompt_side": {
+          "CN": {
+            "positive_prompt": "2D动漫风格，修仙界，杂役弟子，灰色长袍，恭敬，抱拳，侧面视角，中景，清晰",
+            "negative_prompt": "低质量，模糊，多余的手指，写实风格，现代建筑"
+          },
+          "English": {
+            "positive_prompt": "2D anime style, xianxia world, servant disciple, grey robe, respectful, cupped hands, side view, medium shot, sharp focus",
+            "negative_prompt": "low quality, blurry, extra fingers, realistic, modern architecture"
+          }
+        },
+        "side_image": "图片地址"
+      },
+      "image_to_video_prompt": {
+        "CN": {
+          "positive_prompt": "微小的身体起伏，嘴巴在动，眨眼，衣服飘动",
+          "negative_prompt": "画面扭曲，静止，模糊"
+        },
+        "English": {
+          "positive_prompt": "微小的身体起伏，嘴巴在动，眨眼，衣服飘动",
+          "negative_prompt": "画面扭曲，静止，模糊"
+        }
+      },
+      "video": "url或者视频地址",
+      "audio_performance": {
+        "dialogue_content": "林师兄，红鸾峰的柳师姐让你过去一趟。",
+        "voice_over": "无",
+        "voice_emotion": "恭敬、急切",
+        "sound_effects": "环境鸟鸣声"
+      },
+      "context_summary": "故事开篇，杂役弟子来通知主角前往红鸾峰。"
+    },
+    {
+      "shot_number": 2,
+      "original_text": "林风眠连忙应了一声，匆匆起身赶往红鸾峰。",
+      "core_concept_extraction": "",
+      "original_word_count": 20,
+      "type": "narration/action",
+      "duration": "4.0s",
+      "character_info": {
+        "character_name": "林风眠",
+        "gender": "male",
+        "appearance_description": "玉树临风，穿着青色外门弟子服，腰间挂着玉佩"
+      },
+      "visual_content": {
+        "scene_content": "林风眠从蒲团上快速站起，整理衣衫，推门而出，神色略带紧张与期待。",
+        "shot_size": "full",
+        "camera_movement": "follow",
+        "text_to_image_prompt": {
+          "CN": {
+            "positive_prompt": "2D动漫，英俊男子，青色长袍，站起动作，古代房间内饰，全身镜头，动态模糊",
+            "negative_prompt": "丑陋，低分辨率，身体比例失调，静态"
+          },
+          "English": {
+            "positive_prompt": "2D anime, handsome man, green robes, standing up action, ancient room interior, full body shot, motion blur",
+            "negative_prompt": "ugly, low res, bad anatomy, static"
+          }
+        },
+        "front_image": "图片地址",
+        "text_to_image_prompt_back": {
+          "CN": {
+            "positive_prompt": "2D动漫，英俊男子，青色长袍，站起动作，古代房间内饰，背面视角，全身镜头，动态模糊",
+            "negative_prompt": "丑陋，低分辨率，身体比例失调，静态"
+          },
+          "English": {
+            "positive_prompt": "2D anime, handsome man, green robes, standing up action, ancient room interior, back view, full body shot, motion blur",
+            "negative_prompt": "ugly, low res, bad anatomy, static"
+          }
+        },
+        "back_image": "图片地址",
+        "text_to_image_prompt_side": {
+          "CN": {
+            "positive_prompt": "2D动漫，英俊男子，青色长袍，站起动作，古代房间内饰，侧面视角，全身镜头，动态模糊",
+            "negative_prompt": "丑陋，低分辨率，身体比例失调，静态"
+          },
+          "English": {
+            "positive_prompt": "2D anime, handsome man, green robes, standing up action, ancient room interior, side view, full body shot, motion blur",
+            "negative_prompt": "ugly, low res, bad anatomy, static"
+          }
+        },
+        "side_image": "图片地址"
+      },
+      "image_to_video_prompt": {
+        "CN": {
+          "positive_prompt": "人物站起，快速行走，推门动作",
+          "negative_prompt": "瞬移，画面撕裂，多个人物"
+        },
+        "English": {
+          "positive_prompt": "人物站起，快速行走，推门动作",
+          "negative_prompt": "瞬移，画面撕裂，多个人物"
+        }
+      },
+      "video": "url或者视频地址",
+      "audio_performance": {
+        "dialogue_content": "无",
+        "voice_over": "林风眠连忙应了一声，匆匆起身赶往红鸾峰。",
+        "voice_emotion": "平淡叙述",
+        "sound_effects": "衣物摩擦声，急促脚步声"
+      },
+      "context_summary": "主角响应召唤，开始移动场景。"
+    },
+    {
+      "shot_number": 3,
+      "original_text": "身后的男弟子们露出艳羡的目光，看着林风眠玉树临风的背影，一个个又嫉又恨。",
+      "core_concept_extraction": "",
+      "original_word_count": 38,
+      "type": "group/scene/narration",
+      "duration": "5.0s",
+      "character_info": {
+        "character_name": "众男弟子",
+        "gender": "male",
+        "appearance_description": "穿着统一的青色或灰色弟子服，表情夸张，嫉妒面孔"
+      },
+      "visual_content": {
+        "scene_content": "一群男弟子聚在一起，视线统一看向远处，表情有的咬牙切齿，有的满脸羡慕，背景是远去的林风眠背影。",
+        "shot_size": "close_up/group",
+        "camera_movement": "slow_push",
+        "text_to_image_prompt": {
+          "CN": {
+            "positive_prompt": "2D动漫，一群男人，嫉妒的表情，羡慕的眼神，背景虚化，焦点在表情上，特写",
+            "negative_prompt": "开心，冷漠，单人，面部崩坏"
+          },
+          "English": {
+            "positive_prompt": "2D anime, group of men, jealous expressions, envious eyes, bokeh background, focus on expressions, close up",
+            "negative_prompt": "happy, indifferent, solo, bad face"
+          }
+        },
+        "front_image": "图片地址",
+        "text_to_image_prompt_back": {
+          "CN": {
+            "positive_prompt": "2D动漫，一群男人，嫉妒的表情，羡慕的眼神，背景虚化，焦点在表情上，背面视角，特写",
+            "negative_prompt": "开心，冷漠，单人，面部崩坏"
+          },
+          "English": {
+            "positive_prompt": "2D anime, group of men, jealous expressions, envious eyes, bokeh background, focus on expressions, back view, close up",
+            "negative_prompt": "happy, indifferent, solo, bad face"
+          }
+        },
+        "back_image": "图片地址",
+        "text_to_image_prompt_side": {
+          "CN": {
+            "positive_prompt": "2D动漫，一群男人，嫉妒的表情，羡慕的眼神，背景虚化，焦点在表情上，侧面视角，特写",
+            "negative_prompt": "开心，冷漠，单人，面部崩坏"
+          },
+          "English": {
+            "positive_prompt": "2D anime, group of men, jealous expressions, envious eyes, bokeh background, focus on expressions, side view, close up",
+            "negative_prompt": "happy, indifferent, solo, bad face"
+          }
+        },
+        "side_image": "图片地址"
+      },
+      "image_to_video_prompt": {
+        "CN": {
+          "positive_prompt": "眼神跟随移动，面部表情变化，窃窃私语",
+          "negative_prompt": "大幅度肢体动作，画面闪烁"
+        },
+        "English": {
+          "positive_prompt": "眼神跟随移动，面部表情变化，窃窃私语",
+          "negative_prompt": "大幅度肢体动作，画面闪烁"
+        }
+      },
+      "video": "url或者视频地址",
+      "audio_performance": {
+        "dialogue_content": "无",
+        "voice_over": "身后的男弟子们露出艳羡的目光，看着林风眠玉树临风的背影，一个个又嫉又恨。",
+        "voice_emotion": "调侃、酸溜溜",
+        "sound_effects": "嘈杂的议论声（背景音）"
+      },
+      "context_summary": "侧面描写主角的特殊待遇，烘托红鸾峰的特殊性。"
+    }
+  ]
+}
