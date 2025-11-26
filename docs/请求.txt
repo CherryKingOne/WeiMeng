@@ -44,7 +44,7 @@ curl -X POST "http://0.0.0.0:7767/api/v1/script/libraries" \
 
 查询指定的剧本库
 curl -X 'GET' \
-  'http://localhost:7767/api/v1/script/libraries/5901335392758722' \
+  'http://localhost:7767/api/v1/script/libraries/6250527834723381' \
   -H 'accept: application/json' \
   -H 'Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJjaGVycnlfMDUwNjA3QDE2My5jb20iLCJleHAiOjE3NjY1NjA5MDZ9.LpVZZyHLemOQDXrMWDcjxsAqo7Qas_JK7QdcFi7pIAE'
 
@@ -79,7 +79,7 @@ curl -X 'DELETE' \
 
 
 查看指定文件中的内容
-curl -X GET "http://0.0.0.0:7767/api/v1/script/files/102134671425109052/content" \
+curl -X GET "http://0.0.0.0:7767/api/v1/script/files/664849435721465312/content?max_length=48" \
   -H "Accept: application/json" \
   -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJjaGVycnlfMDUwNjA3QDE2My5jb20iLCJleHAiOjE3NjY1NjA5MDZ9.LpVZZyHLemOQDXrMWDcjxsAqo7Qas_JK7QdcFi7pIAE"
 

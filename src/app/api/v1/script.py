@@ -280,10 +280,11 @@ async def delete_file(
 @router.get("/files/{file_id}/content")
 async def get_file_content(
     file_id: int,
+    max_length: int = None,
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
-    """Get file content from MinIO"""
+    """Get file content from MinIO with optional truncation"""
     # Get file and check ownership through library
     result = await db.execute(
         select(ScriptFile).where(ScriptFile.id == file_id)
@@ -357,6 +358,13 @@ async def get_file_content(
         else:
             # Text files
             content_type = "text/plain; charset=utf-8"
+
+            # Apply truncation for text files if max_length is specified
+            if max_length and max_length > 3:
+                text_content = content.decode('utf-8') if isinstance(content, bytes) else content
+                if len(text_content) > max_length:
+                    actual_length = max_length - 3
+                    content = (text_content[:actual_length] + "...").encode('utf-8')
 
         return Response(content=content, media_type=content_type)
     except Exception as e:

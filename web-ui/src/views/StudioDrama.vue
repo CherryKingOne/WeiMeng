@@ -89,55 +89,14 @@ const tabs = [
 const scriptContent = ref('[场景] 豪华办公室，白天\n顾北辰：（冷冷地）这份设计稿重做。\n苏晚晚：（坚定地）我会重新来过。\n旁白：两人的眼神交错，空气凝固。\nJohn: You should reconsider.\nMary: I won\'t.')
 
 // Novel Analysis Data
-const novelChapters = ref([
-  { 
-    id: 1, 
-    title: '第一章 初遇', 
-    content: '在繁华的都市中,苏晚晚第一次见到了顾北辰。那是一个阳光明媚的下午,她拿着自己精心准备的设计稿,走进了顾氏集团的大楼。\n\n"你就是新来的设计师?"顾北辰冷冷地问道,眼神中透着审视。\n\n"是的,顾总。"苏晚晚努力保持镇定,尽管内心紧张不已。\n\n顾北辰翻看着设计稿,眉头越皱越紧。"这种水平也敢来我们公司?"\n\n苏晚晚咬了咬嘴唇,坚定地说:"请给我一次机会,我会证明自己的。"',
-    analyzed: false
-  },
-  { 
-    id: 2, 
-    title: '第二章 挑战', 
-    content: '顾北辰给了苏晚晚一个几乎不可能完成的任务——在三天内完成一个大型项目的全套设计方案。\n\n"三天?"苏晚晚惊讶地问。\n\n"怎么,做不到就趁早离开。"顾北辰冷漠地回应。\n\n苏晚晚深吸一口气:"我接受这个挑战。"\n\n接下来的三天,她几乎没有合眼,反复修改设计方案。办公室的灯光陪伴着她度过了一个又一个不眠之夜。',
-    analyzed: true
-  },
-  { 
-    id: 3, 
-    title: '第三章 转机', 
-    content: '第三天,苏晚晚准时提交了设计方案。顾北辰仔细审阅后,脸上难得露出了一丝赞许的表情。\n\n"不错,比我想象的要好。"他淡淡地说。\n\n苏晚晚松了一口气,但顾北辰接着说:"但还不够完美,继续改进。"\n\n尽管如此,苏晚晚知道自己已经得到了认可。她的努力没有白费。',
-    analyzed: false
-  }
-])
+const novelChapters = ref([])
+const loadingChapters = ref(false)
 
 const selectedChapter = ref(null)
 const analysisTab = ref('characters') // 'characters', 'scenes', 'plots', 'dialogues'
 const analyzing = ref(false)
 
-const analysisResults = ref({
-  1: null,
-  2: {
-    characters: [
-      { id: 1, name: '苏晚晚', role: '女主角', desc: '新来的设计师,坚韧不拔,努力证明自己' },
-      { id: 2, name: '顾北辰', role: '男主角', desc: '顾氏集团总裁,冷漠严苛,对工作要求极高' }
-    ],
-    scenes: [
-      { id: 1, name: '办公室', desc: '苏晚晚工作的地方,灯光明亮,充满紧张氛围' },
-      { id: 2, name: '深夜的办公楼', desc: '只有苏晚晚一人加班,寂静而孤独' }
-    ],
-    plots: [
-      { id: 1, point: '顾北辰给苏晚晚布置了一个几乎不可能完成的任务' },
-      { id: 2, point: '苏晚晚接受挑战,决心证明自己' },
-      { id: 3, point: '苏晚晚连续三天不眠不休地工作' }
-    ],
-    dialogues: [
-      { id: 1, speaker: '顾北辰', content: '三天?' },
-      { id: 2, speaker: '苏晚晚', content: '怎么,做不到就趁早离开。' },
-      { id: 3, speaker: '苏晚晚', content: '我接受这个挑战。' }
-    ]
-  },
-  3: null
-})
+const analysisResults = ref({})
 
 const storyboards = ref([
   {
@@ -1673,8 +1632,116 @@ const copyFileContent = async () => {
 }
 
 // Novel Analysis Functions
+// Load chapters from backend API
+const loadNovelChapters = async () => {
+  if (!projectId) return
+  
+  loadingChapters.value = true
+  
+  try {
+    const token = localStorage.getItem('accessToken')
+    const response = await fetch(`${API_BASE}/api/v1/script/libraries/${projectId}/files`, {
+      headers: {
+        'Accept': 'application/json',
+        'Authorization': `Bearer ${token}`
+      }
+    })
+    
+    if (!response.ok) {
+      if (response.status === 401) {
+        router.push('/login')
+        return
+      }
+      throw new Error('Failed to load chapters')
+    }
+    
+    // Handle large integer IDs
+    const text = await response.text()
+    const data = JSON.parse(text.replace(/"id":(\d{15,})/g, '"id":"$1"'))
+    
+    // Convert files to chapters
+    novelChapters.value = data.map(file => ({
+      id: file.id,
+      fileId: file.id,
+      title: file.filename,
+      content: '',  // Will be loaded on demand
+      preview: '',  // Will be loaded on demand
+      analyzed: false,
+      loading: false
+    }))
+    
+    // Load preview for each chapter (first 50 chars)
+    for (const chapter of novelChapters.value) {
+      loadChapterPreview(chapter)
+    }
+    
+  } catch (error) {
+    console.error('Error loading chapters:', error)
+    showToastMessage('加载章节失败', 'error')
+  } finally {
+    loadingChapters.value = false
+  }
+}
+
+// Load chapter preview (first N characters)
+const loadChapterPreview = async (chapter) => {
+  try {
+    const token = localStorage.getItem('accessToken')
+    const response = await fetch(`${API_BASE}/api/v1/script/files/${chapter.fileId}/content?max_length=50`, {
+      headers: {
+        'Accept': 'text/plain',
+        'Authorization': `Bearer ${token}`
+      }
+    })
+    
+    if (response.ok) {
+      const text = await response.text()
+      chapter.preview = text || ''
+    }
+  } catch (error) {
+    console.error('Error loading chapter preview:', error)
+  }
+}
+
+// Load full chapter content
+const loadChapterContent = async (chapter) => {
+  if (chapter.content) return  // Already loaded
+  
+  chapter.loading = true
+  
+  try {
+    const token = localStorage.getItem('accessToken')
+    const response = await fetch(`${API_BASE}/api/v1/script/files/${chapter.fileId}/content`, {
+      headers: {
+        'Accept': 'text/plain',
+        'Authorization': `Bearer ${token}`
+      }
+    })
+    
+    if (!response.ok) {
+      if (response.status === 401) {
+        router.push('/login')
+        return
+      }
+      throw new Error('Failed to load content')
+    }
+    
+    const text = await response.text()
+    chapter.content = text || ''
+  } catch (error) {
+    console.error('Error loading chapter content:', error)
+    showToastMessage('加载章节内容失败', 'error')
+  } finally {
+    chapter.loading = false
+  }
+}
+
 const selectChapter = (chapter) => {
   selectedChapter.value = chapter
+  // Load full content if not already loaded
+  if (!chapter.content) {
+    loadChapterContent(chapter)
+  }
 }
 
 const analyzeChapter = async (chapterId) => {
@@ -1985,11 +2052,15 @@ onMounted(() => {
   loadLibraryInfo()
   loadExistingFiles()
   loadMediaFiles()  // Load existing video files from backend
+  loadNovelChapters()  // Load novel chapters for analysis
 
-  // Auto-select first chapter for novel analysis
-  if (novelChapters.value.length > 0 && !selectedChapter.value) {
-    selectedChapter.value = novelChapters.value[0]
-  }
+  // Auto-select first chapter for novel analysis (after chapters are loaded)
+  watch(novelChapters, (chapters) => {
+    if (chapters.length > 0 && !selectedChapter.value && activeTab.value === 'novelAnalysis') {
+      selectedChapter.value = chapters[0]
+      loadChapterContent(chapters[0])
+    }
+  }, { immediate: true })
 
   // Add global click listener
   document.addEventListener('click', handleGlobalClick)
@@ -3072,7 +3143,7 @@ watch(activeTab, (newTab) => {
                   <span class="font-medium text-sm">{{ chapter.title }}</span>
                   <fa v-if="chapter.analyzed" :icon="['fas', 'check-circle']" class="text-brand-green text-xs" />
                 </div>
-                <p class="text-xs text-secondary dark:text-gray-400 line-clamp-2">{{ chapter.content.substring(0, 50) }}...</p>
+                <p class="text-xs text-secondary dark:text-gray-400 line-clamp-2">{{ chapter.preview || '加载中...' }}</p>
               </button>
             </div>
           </div>
@@ -3101,7 +3172,12 @@ watch(activeTab, (newTab) => {
                 </button>
               </div>
               <div class="prose dark:prose-invert max-w-none">
-                <p class="text-base leading-relaxed text-primary dark:text-gray-300 whitespace-pre-wrap">{{ selectedChapter.content }}</p>
+                <div v-if="selectedChapter.loading" class="flex items-center justify-center py-12">
+                  <fa :icon="['fas', 'circle-dot']" class="text-3xl text-brand-green animate-spin mr-3" />
+                  <span class="text-secondary dark:text-gray-400">加载内容中...</span>
+                </div>
+                <p v-else-if="selectedChapter.content" class="text-base leading-relaxed text-primary dark:text-gray-300 whitespace-pre-wrap">{{ selectedChapter.content }}</p>
+                <p v-else class="text-center text-secondary dark:text-gray-400 py-12">暂无内容</p>
               </div>
             </div>
           </div>
