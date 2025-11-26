@@ -1744,16 +1744,31 @@ const selectChapter = (chapter) => {
   }
 }
 
-const analyzeChapter = async (chapterId) => {
+const analyzeChapter = (chapterId) => {
   if (!chapterId) return
+  targetChapterId.value = chapterId
+  showAnalysisModal.value = true
+}
+
+// Analysis Configuration Modal
+const showAnalysisModal = ref(false)
+const targetChapterId = ref(null)
+const analysisConfig = ref({
+  style: '2D Anime', // '2D Anime' or 'Realistic'
+  tab: 'visual' // 'visual' or 'json'
+})
+
+const confirmAnalysis = async () => {
+  if (!targetChapterId.value) return
   
+  showAnalysisModal.value = false
   analyzing.value = true
   
   // Simulate AI analysis (replace with actual API call)
   await new Promise(resolve => setTimeout(resolve, 2000))
   
   // Mock analysis results
-  analysisResults.value[chapterId] = {
+  analysisResults.value[targetChapterId.value] = {
     characters: [
       { id: 1, name: '角色A', role: '主角', desc: '勇敢坚定的主人公' },
       { id: 2, name: '角色B', role: '配角', desc: '忠诚的伙伴' }
@@ -1773,13 +1788,24 @@ const analyzeChapter = async (chapterId) => {
   }
   
   // Mark chapter as analyzed
-  const chapter = novelChapters.value.find(c => c.id === chapterId)
+  const chapter = novelChapters.value.find(c => c.id === targetChapterId.value)
   if (chapter) {
     chapter.analyzed = true
   }
   
   analyzing.value = false
+  targetChapterId.value = null
   showToastMessage('分析完成', 'success')
+}
+
+const showJsonPreview = () => {
+  // Placeholder for JSON preview functionality
+  const previewData = {
+    chapterId: targetChapterId.value,
+    config: analysisConfig.value,
+    timestamp: new Date().toISOString()
+  }
+  alert(JSON.stringify(previewData, null, 2))
 }
 
 const currentAnalysis = computed(() => {
@@ -4779,6 +4805,182 @@ watch(activeTab, (newTab) => {
               确认删除
             </button>
           </div>
+        </div>
+      </div>
+    </teleport>
+
+    <!-- Analysis Configuration Modal -->
+    <teleport to="body">
+      <div v-if="showAnalysisModal" class="fixed inset-0 z-50 flex items-center justify-center p-4">
+        <div class="absolute inset-0 bg-black/50 backdrop-blur-sm" @click="showAnalysisModal = false"></div>
+        <div class="relative bg-white dark:bg-[#2C2C2E] rounded-xl shadow-2xl w-full max-w-5xl h-[700px] flex flex-col overflow-hidden animate-fade-in-up">
+          
+          <!-- 1. Header -->
+          <div class="px-6 py-4 flex justify-between items-center border-b border-gray-100 dark:border-[#3A3A3C]">
+            <h3 class="text-lg font-bold text-primary dark:text-white">分析配置</h3>
+            <button @click="showAnalysisModal = false" class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 transition">
+              <fa :icon="['fas', 'xmark']" class="text-lg" />
+            </button>
+          </div>
+
+          <!-- 2. Toolbar / Tabs -->
+          <div class="px-6 py-3 flex items-center justify-between border-b border-gray-100 dark:border-[#3A3A3C] bg-white dark:bg-[#2C2C2E]">
+            <div class="flex items-center gap-2 bg-gray-100 dark:bg-[#3A3A3C] p-1 rounded-lg">
+              <button 
+                @click="analysisConfig.tab = 'visual'"
+                class="px-3 py-1.5 text-sm font-medium rounded-md transition flex items-center gap-2"
+                :class="analysisConfig.tab === 'visual' 
+                  ? 'bg-white dark:bg-[#2C2C2E] text-primary dark:text-white shadow-sm' 
+                  : 'text-secondary dark:text-gray-400 hover:text-primary dark:hover:text-gray-200'"
+              >
+                <fa :icon="['fas', 'wand-magic-sparkles']" />
+                风格配置
+              </button>
+              <button 
+                @click="analysisConfig.tab = 'json'"
+                class="px-3 py-1.5 text-sm font-medium rounded-md transition flex items-center gap-2"
+                :class="analysisConfig.tab === 'json' 
+                  ? 'bg-white dark:bg-[#2C2C2E] text-primary dark:text-white shadow-sm' 
+                  : 'text-secondary dark:text-gray-400 hover:text-primary dark:hover:text-gray-200'"
+              >
+                <fa :icon="['fas', 'code']" />
+                JSON 预览
+              </button>
+            </div>
+            
+            <!-- Optional Right Side Actions -->
+            <div v-if="analysisConfig.tab === 'json'" class="flex items-center gap-3">
+              <button class="text-xs text-brand-green hover:text-brand-green-dark flex items-center gap-1">
+                <fa :icon="['fas', 'file-import']" />
+                从 JSON 导入
+              </button>
+            </div>
+          </div>
+          
+          <!-- 3. Content Area -->
+          <div class="flex-1 bg-gray-50 dark:bg-[#1C1C1E] p-6 overflow-hidden relative">
+            
+            <!-- Visual Config Tab -->
+            <div v-if="analysisConfig.tab === 'visual'" class="h-full overflow-y-auto">
+              <div class="bg-white dark:bg-[#2C2C2E] rounded-lg border border-gray-200 dark:border-[#3A3A3C] p-6 max-w-3xl mx-auto mt-8">
+                <h4 class="text-sm font-bold text-primary dark:text-white mb-4">风格选择</h4>
+                <div class="grid grid-cols-2 gap-6">
+                  <button
+                    @click="analysisConfig.style = '2D Anime'"
+                    class="relative p-6 rounded-xl border-2 transition flex flex-col items-center gap-4 group overflow-hidden"
+                    :class="analysisConfig.style === '2D Anime' 
+                      ? 'border-brand-green bg-brand-green/5' 
+                      : 'border-gray-200 dark:border-[#3A3A3C] hover:border-brand-green/50 bg-white dark:bg-[#2C2C2E]'"
+                  >
+                    <div class="w-16 h-16 rounded-full bg-gradient-to-br from-pink-400 to-purple-500 flex items-center justify-center text-white shadow-lg">
+                      <fa :icon="['fas', 'wand-magic-sparkles']" class="text-2xl" />
+                    </div>
+                    <div class="text-center">
+                      <span class="block font-bold text-primary dark:text-white mb-1">2D 动漫风</span>
+                      <span class="text-xs text-secondary dark:text-gray-400">适合二次元、轻小说风格</span>
+                    </div>
+                    <div v-if="analysisConfig.style === '2D Anime'" class="absolute top-3 right-3 text-brand-green">
+                      <fa :icon="['fas', 'circle-check']" class="text-xl" />
+                    </div>
+                  </button>
+
+                  <button
+                    @click="analysisConfig.style = 'Realistic'"
+                    class="relative p-6 rounded-xl border-2 transition flex flex-col items-center gap-4 group overflow-hidden"
+                    :class="analysisConfig.style === 'Realistic' 
+                      ? 'border-brand-green bg-brand-green/5' 
+                      : 'border-gray-200 dark:border-[#3A3A3C] hover:border-brand-green/50 bg-white dark:bg-[#2C2C2E]'"
+                  >
+                    <div class="w-16 h-16 rounded-full bg-gradient-to-br from-blue-400 to-cyan-500 flex items-center justify-center text-white shadow-lg">
+                      <fa :icon="['fas', 'camera']" class="text-2xl" />
+                    </div>
+                    <div class="text-center">
+                      <span class="block font-bold text-primary dark:text-white mb-1">真人写实风</span>
+                      <span class="text-xs text-secondary dark:text-gray-400">适合都市、职场、悬疑风格</span>
+                    </div>
+                    <div v-if="analysisConfig.style === 'Realistic'" class="absolute top-3 right-3 text-brand-green">
+                      <fa :icon="['fas', 'circle-check']" class="text-xl" />
+                    </div>
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <!-- JSON Preview Tab -->
+            <!-- JSON Preview Tab -->
+            <div v-else class="h-full flex flex-col bg-gray-50 dark:bg-[#1C1C1E] rounded-lg overflow-hidden border border-gray-200 dark:border-[#3A3A3C]">
+              <!-- Editor Header -->
+              <div class="flex items-center justify-between px-4 py-2 bg-white dark:bg-[#2C2C2E] border-b border-gray-200 dark:border-[#3A3A3C]">
+                <span class="text-xs font-bold text-gray-500 dark:text-gray-400">JSON</span>
+                <div class="flex items-center gap-3">
+                  <button class="text-gray-400 hover:text-primary dark:hover:text-gray-200 transition" title="Format">
+                    <fa :icon="['fas', 'indent']" class="text-sm" />
+                  </button>
+                  <button class="text-gray-400 hover:text-primary dark:hover:text-gray-200 transition" title="Copy">
+                    <fa :icon="['fas', 'copy']" class="text-sm" />
+                  </button>
+                </div>
+              </div>
+              
+              <!-- Editor Content -->
+              <div class="flex-1 overflow-auto bg-[#FAFAFA] dark:bg-[#1E1E1E] p-4 font-mono text-sm flex">
+                <!-- Line Numbers -->
+                <div class="flex-shrink-0 text-right pr-4 text-gray-300 dark:text-gray-600 select-none border-r border-gray-200 dark:border-[#3A3A3C] mr-4 leading-6">
+                  <div v-for="n in 9" :key="n">{{ n }}</div>
+                </div>
+                
+                <!-- Code -->
+                <div class="flex-1 leading-6 text-gray-800 dark:text-gray-300">
+                  <div><span class="text-purple-600 dark:text-purple-400">{</span></div>
+                  <div class="pl-4">
+                    <span class="text-red-600 dark:text-red-400">"chapterId"</span>: <span class="text-blue-600 dark:text-blue-400">{{ targetChapterId }}</span>,
+                  </div>
+                  <div class="pl-4">
+                    <span class="text-red-600 dark:text-red-400">"config"</span>: <span class="text-purple-600 dark:text-purple-400">{</span>
+                  </div>
+                  <div class="pl-8">
+                    <span class="text-red-600 dark:text-red-400">"style"</span>: <span class="text-green-600 dark:text-green-400">"{{ analysisConfig.style }}"</span>,
+                  </div>
+                  <div class="pl-8">
+                    <span class="text-red-600 dark:text-red-400">"mode"</span>: <span class="text-green-600 dark:text-green-400">"analysis"</span>,
+                  </div>
+                  <div class="pl-8">
+                    <span class="text-red-600 dark:text-red-400">"extract"</span>: <span class="text-gray-600 dark:text-gray-400">[</span><span class="text-green-600 dark:text-green-400">"characters"</span>, <span class="text-green-600 dark:text-green-400">"scenes"</span>, <span class="text-green-600 dark:text-green-400">"plots"</span>, <span class="text-green-600 dark:text-green-400">"dialogues"</span><span class="text-gray-600 dark:text-gray-400">]</span>
+                  </div>
+                  <div class="pl-4">
+                    <span class="text-purple-600 dark:text-purple-400">}</span>,
+                  </div>
+                  <div class="pl-4">
+                    <span class="text-red-600 dark:text-red-400">"timestamp"</span>: <span class="text-green-600 dark:text-green-400">"{{ new Date().toISOString() }}"</span>
+                  </div>
+                  <div><span class="text-purple-600 dark:text-purple-400">}</span></div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- 4. Footer -->
+          <div class="px-6 py-4 border-t border-gray-100 dark:border-[#3A3A3C] flex justify-between items-center bg-white dark:bg-[#2C2C2E]">
+            <a href="#" class="text-xs text-blue-500 hover:underline flex items-center gap-1">
+              <fa :icon="['fas', 'circle-info']" />
+              了解有关分析配置的更多信息
+            </a>
+            <div class="flex items-center gap-3">
+              <button 
+                @click="showAnalysisModal = false"
+                class="px-4 py-2 rounded-lg border border-gray-200 dark:border-[#3A3A3C] text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-[#3A3A3C] transition font-medium text-sm"
+              >
+                取消
+              </button>
+              <button 
+                @click="confirmAnalysis"
+                class="px-6 py-2 rounded-lg bg-brand-green text-white hover:bg-brand-green-dark transition font-medium text-sm shadow-lg shadow-brand-green/20"
+              >
+                保存并分析
+              </button>
+            </div>
+          </div>
+          
         </div>
       </div>
     </teleport>
