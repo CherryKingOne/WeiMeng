@@ -244,48 +244,11 @@ const closeSettings = () => {
 const providers = ref([
   { id: 'openai', name: 'OpenAI', slug: 'openai', desc: 'OpenAI 提供的模型，例如 GPT‑4、GPT‑4o 等', enabled: true, caps: ['LLM','Embedding'], models: [], configured: false },
   { id: 'anthropic', name: 'Anthropic', slug: 'anthropic', desc: 'Anthropic 的 Claude 系列模型', enabled: false, caps: ['LLM'], models: [], configured: false },
-  { id: 'bedrock', name: 'Amazon Bedrock', slug: 'bedrock', desc: '亚马逊 Bedrock 聚合多家模型供应商', enabled: false, caps: ['LLM'], models: [], configured: false },
-  { id: 'azure-openai', name: 'Azure OpenAI', slug: 'azure', desc: 'Azure OpenAI Service，企业级合规与连接能力', enabled: false, caps: ['LLM'], models: [], configured: false },
-  { id: 'azure-ai-studio', name: 'Azure AI Studio', slug: 'azureai', desc: 'Azure AI Studio，端到端 AI 应用构建平台', enabled: false, caps: ['LLM','Vision'], models: [], configured: false },
-  { id: 'cohere', name: 'Cohere', slug: 'cohere', desc: 'Cohere Command、Embed 等模型', enabled: false, caps: ['LLM','Embedding'], models: [], configured: false },
-  { id: 'gemini', name: 'Gemini', slug: 'gemini', desc: '谷歌提供的 Gemini 模型', enabled: false, caps: ['LLM','Vision'], models: [], configured: false },
-  { id: 'huggingface', name: 'Hugging Face Hub', slug: 'huggingface', desc: '海量开源模型与数据集的托管平台', enabled: false, caps: ['LLM'], models: [], configured: false },
-  { id: 'replicate', name: 'Replicate', slug: 'replicate', desc: '通过 API 调用社区模型进行推理', enabled: false, caps: ['LLM','Image'], models: [], configured: false },
-  { id: 'deepseek', name: '深度求索', slug: 'deepseek', desc: '深度求索提供的对话与代码模型', enabled: false, caps: ['LLM','Code'], models: [], configured: false },
-  { id: 'ollama', name: 'Ollama', slug: 'ollama', desc: '本地部署与运行开源大模型', enabled: false, caps: ['LLM','Local'], models: [], configured: false },
+  { id: 'openai-compatible', name: 'OpenAI-API-compatible', slug: 'openai', desc: '兼容 OpenAI API 的模型供应商，例如 LM Studio', enabled: false, caps: ['LLM','Compatible'], models: [], configured: false },
   { id: 'qwen', name: '通义千问', slug: 'qwen', desc: '阿里通义千问系列模型', enabled: false, caps: ['LLM'], models: [], configured: false },
-  { id: 'volcengine', name: '火山方舟', slug: 'volcengine', desc: '火山引擎模型与 Doubao 系列', enabled: false, caps: ['LLM'], models: [], configured: false },
-  { id: 'xinference', name: 'Xorbits Inference', slug: 'xinference', desc: '面向推理的开源框架', enabled: false, caps: ['LLM'], models: [], configured: false },
-  { id: 'openrouter', name: 'OpenRouter', slug: 'openrouter', desc: '统一访问多家模型的路由平台', enabled: false, caps: ['LLM'], models: [], configured: false },
-  { id: 'lmstudio', name: 'LM Studio', slug: 'lmstudio', desc: '在本地运行与管理 LLM', enabled: false, caps: ['LLM','Local'], models: [], configured: false },
-  { id: 'vllm', name: 'vLLM', slug: 'vllm', desc: '高性能推理与服务框架', enabled: false, caps: ['LLM'], models: [], configured: false },
-  { id: 'zhipu', name: '智谱 AI', slug: 'zhipu', desc: '智谱 ChatGLM、GLM 系列', enabled: false, caps: ['LLM'], models: [], configured: false },
-  { id: 'jina', name: 'Jina', slug: 'jina', desc: '嵌入与重排等向量服务', enabled: false, caps: ['Embedding'], models: [], configured: false },
-  { id: 'moonshot', name: '月之暗面', slug: 'moonshot', desc: 'Moonshot 模型与 API', enabled: false, caps: ['LLM'], models: [], configured: false },
-  { id: 'hunyuan', name: '腾讯混元', slug: 'hunyuan', desc: '腾讯混元系列模型', enabled: false, caps: ['LLM'], models: [], configured: false },
-  { id: 'wenxin', name: '文心一言', slug: 'wenxin', desc: '百度文心系列模型', enabled: false, caps: ['LLM'], models: [], configured: false },
+  { id: 'deepseek', name: '深度求索', slug: 'deepseek', desc: '深度求索提供的对话与代码模型', enabled: false, caps: ['LLM','Code'], models: [], configured: false },
   { id: 'minimax', name: 'Minimax', slug: 'minimax', desc: '对话、语音与多模态模型', enabled: false, caps: ['LLM','Speech'], models: [], configured: false },
-  { id: 'vertexai', name: 'Vertex AI', slug: 'vertexai', desc: 'Google Cloud 的 AI 平台', enabled: false, caps: ['LLM'], models: [], configured: false },
-  { id: 'xai', name: 'xAI', slug: 'xai', desc: 'Grok 等模型与服务', enabled: false, caps: ['LLM'], models: [], configured: false },
-  { id: 'localai', name: 'LocalAI', slug: 'localai', desc: '纯本地推理的 API 兼容实现', enabled: false, caps: ['LLM','Local'], models: [], configured: false },
-  { id: 'groq', name: 'Groq', slug: 'groq', desc: 'GroqCloud 与超高速推理', enabled: false, caps: ['LLM'], models: [], configured: false },
-  { id: 'mistral', name: 'Mistral AI', slug: 'mistral', desc: 'Mistral 系列与 API', enabled: false, caps: ['LLM'], models: [], configured: false },
-  { id: 'modelscope', name: '魔搭社区', slug: 'modelscope', desc: '阿里巴巴 ModelScope 模型', enabled: false, caps: ['LLM'], models: [], configured: false },
-  { id: 'baichuan', name: '百川智能', slug: 'baichuan', desc: '百川大模型与 API', enabled: false, caps: ['LLM'], models: [], configured: false },
-  { id: '01ai', name: '零一万物', slug: '01ai', desc: 'Yi 系列模型', enabled: false, caps: ['LLM'], models: [], configured: false },
-  { id: 'qiniu', name: '七牛云', slug: 'qiniu', desc: '七牛云模型与推理服务', enabled: false, caps: ['LLM'], models: [], configured: false },
-  { id: 'llamaapi', name: 'Llama API', slug: 'llamaapi', desc: 'Llama 模型 API 平台', enabled: false, caps: ['LLM'], models: [], configured: false },
-  { id: 'elevenlabs', name: 'ElevenLabs', slug: 'elevenlabs', desc: '语音 TTS/STT 服务', enabled: false, caps: ['Speech'], models: [], configured: false },
-  { id: 'voyage', name: 'Voyage', slug: 'voyage', desc: '高质量嵌入与检索服务', enabled: false, caps: ['Embedding'], models: [], configured: false },
-  { id: 'sagemaker', name: 'Amazon SageMaker', slug: 'sagemaker', desc: '自部署模型与托管推理', enabled: false, caps: ['LLM'], models: [], configured: false },
-  { id: 'togetherai', name: 'Together.AI', slug: 'togetherai', desc: '聚合开源与商用模型', enabled: false, caps: ['LLM'], models: [], configured: false },
-  { id: 'ucloud', name: 'UCloud 优刻得', slug: 'ucloud', desc: '一站式模型 API 访问', enabled: false, caps: ['LLM'], models: [], configured: false },
-  { id: 'cometapi', name: 'CometAPI', slug: 'cometapi', desc: '多模型 API 聚合', enabled: false, caps: ['LLM'], models: [], configured: false },
-  { id: 'longcat', name: 'LongCat', slug: 'longcat', desc: '长上下文模型与服务', enabled: false, caps: ['LLM'], models: [], configured: false },
-  { id: 'watsonx', name: 'IBM WatsonX', slug: 'watsonx', desc: 'IBM 企业级 AI 平台', enabled: false, caps: ['LLM'], models: [], configured: false },
-  { id: '302ai', name: '302.AI', slug: '302ai', desc: '统一接入与资源平台', enabled: false, caps: ['LLM'], models: [], configured: false },
-  { id: 'siliconflow', name: '硅基流动', slug: 'siliconcloud', desc: '提供多种模型与推理服务', enabled: false, caps: ['LLM'], models: [], configured: false },
-  { id: 'openai-compatible', name: 'OpenAI-API-compatible', slug: 'openai', desc: '兼容 OpenAI API 的模型供应商，例如 LM Studio', enabled: false, caps: ['LLM','Compatible'], models: [], configured: false }
+  { id: 'qiniu', name: '七牛云', slug: 'qiniu', desc: '七牛云模型与推理服务', enabled: false, caps: ['LLM'], models: [], configured: false }
 ])
 const configureProvider = (p) => { p.configured = true }
 const viewProviderDetail = (p) => {
@@ -1384,10 +1347,7 @@ const loadLibraries = async () => {
                     <div v-for="p in providers" :key="p.id" class="group rounded-xl border border-gray-200 bg-white p-5 hover:shadow-md transition-all dark:bg-[#1E1E1E] dark:border-[#333333]">
                       <div class="flex items-start gap-4">
                         <div class="w-12 h-12 bg-gray-50 rounded-lg flex items-center justify-center flex-shrink-0 dark:bg-[#2C2C2E]">
-                          <picture>
-                            <source :srcset="`https://unpkg.com/@lobehub/icons-static-png@latest/dark/${p.slug}.png`" media="(prefers-color-scheme: dark)" />
-                            <img :src="`https://unpkg.com/@lobehub/icons-static-png@latest/light/${p.slug}.png`" class="w-8 h-8 object-contain" alt="logo" />
-                          </picture>
+                          <img :src="`https://unpkg.com/@lobehub/icons-static-png@latest/light/${p.slug}.png`" class="w-8 h-8 object-contain" alt="logo" />
                         </div>
                         <div class="flex-1 min-w-0">
                           <div class="flex items-center justify-between">
