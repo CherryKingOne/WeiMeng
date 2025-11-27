@@ -13,7 +13,7 @@ from app.api.deps import get_current_user
 from app.models.user import User
 from app.models.model_config import ModelConfig
 from app.models.chat import ChatSession, ChatMessage, ChatRequestTask, ChatError
-from app.schemas.chat import ChatRequest, ChatResponse, SessionListResponse, MessageListResponse
+from app.schemas.chat import ChatRequest, ChatResponse, SessionListResponse, MessageListResponse, SetDefaultModelRequest, SetLibraryLocalModelRequest
 from app.chat.model_chat import ModelChatService
 from app.utils.encryption import decrypt_key
 
@@ -172,18 +172,30 @@ async def chat_completions(
     # 初始化 ID
     session_id = request.session_id if request.session_id else generate_session_id(user_id)
     task_id = None
+    config_id = None  # 初始化 config_id
 
     try:
-        # 2. 获取配置
-        config = await db_get_model_config(db, request.config_id, user_id)
+        # 2. 获取配置（如果没有传config_id，使用用户的默认模型）
+        config_id = request.config_id
+
+        if not config_id:
+            # 使用用户的默认LLM模型
+            if not current_user.default_models or "LLM" not in current_user.default_models:
+                raise HTTPException(
+                    status_code=400,
+                    detail="No config_id provided and no default LLM model set. Please set a default LLM model first."
+                )
+            config_id = current_user.default_models["LLM"]
+
+        config = await db_get_model_config(db, config_id, user_id)
         if not config:
             raise HTTPException(status_code=404, detail="Config ID not found or access denied")
 
         # 3. 【创建任务日志】状态 processing
-        task_id = await db_create_task(db, session_id, user_id, request.config_id, config['model_name'])
+        task_id = await db_create_task(db, session_id, user_id, config_id, config['model_name'])
 
         # 4. 保存会话信息
-        await db_save_session(db, session_id, user_id, request.config_id, config['model_name'], request)
+        await db_save_session(db, session_id, user_id, config_id, config['model_name'], request)
 
         # 5. 准备对话数据
         if not request.messages:
@@ -226,7 +238,7 @@ async def chat_completions(
 
                 except Exception as e:
                     # 流中断错误处理
-                    await db_save_error(db, user_id, session_id, request.config_id, e, request.dict())
+                    await db_save_error(db, user_id, session_id, config_id, e, request.dict())
                     await db_update_task(db, task_id, "failed", start_time)
                     yield f"data: {json.dumps({'error': str(e)}, ensure_ascii=False)}\n\n"
 
@@ -266,7 +278,7 @@ async def chat_completions(
         error_msg = str(e)
 
         # 记录错误日志
-        await db_save_error(db, user_id, session_id, request.config_id, e, request.dict())
+        await db_save_error(db, user_id, session_id, config_id or request.config_id, e, request.dict())
 
         # 8. 【计时结束 - 异常】更新任务表 (Failed)
         if task_id:
@@ -390,4 +402,424 @@ async def delete_session(
         code=200,
         msg="Session deleted successfully",
         data={"session_id": session_id}
+    )
+
+
+@router.post("/default-model", response_model=ChatResponse)
+async def set_default_model(
+    request: SetDefaultModelRequest,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
+):
+    """
+    设置指定类型的默认模型
+
+    Args:
+        request: 设置默认模型请求体
+    """
+    # 验证模型配置是否存在且属于当前用户
+    result = await db.execute(
+        select(ModelConfig).where(
+            ModelConfig.id == request.config_id,
+            ModelConfig.tenant_id == current_user.id,
+            ModelConfig.is_deleted == False
+        )
+    )
+    config = result.scalars().first()
+
+    if not config:
+        raise HTTPException(status_code=404, detail="Model config not found")
+
+    # 使用模型配置中的类型，如果没有传入model_type
+    target_model_type = request.model_type or config.model_type
+
+    # 初始化或更新用户的默认模型配置
+    if current_user.default_models is None:
+        current_user.default_models = {}
+
+    current_user.default_models[target_model_type] = request.config_id
+
+    # 标记字段已修改（SQLAlchemy需要这样才能检测到JSONB的变化）
+    from sqlalchemy.orm.attributes import flag_modified
+    flag_modified(current_user, "default_models")
+
+    await db.commit()
+
+    return ChatResponse(
+        code=200,
+        msg="Default model set successfully",
+        data={
+            "config_id": request.config_id,
+            "model_name": config.model_name,
+            "model_type": target_model_type
+        }
+    )
+
+
+@router.get("/default-model", response_model=ChatResponse)
+async def get_default_model(
+    config_id: Optional[str] = None,
+    model_type: Optional[str] = None,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
+):
+    """
+    查看当前设置的默认模型
+
+    Args:
+        config_id: 模型配置ID（可选），查询该配置是否被设置为某个类型的默认模型
+        model_type: 模型类型（可选），查询该类型的默认模型
+
+    注意：
+        - 如果同时传入 config_id 和 model_type，优先使用 config_id
+        - 如果都不传，返回所有类型的默认模型
+    """
+    # 情况1: 通过 config_id 查询
+    if config_id:
+        if not current_user.default_models:
+            return ChatResponse(
+                code=200,
+                msg="No default model set",
+                data=None
+            )
+
+        # 查找该 config_id 被设置为哪些类型的默认模型
+        matched_types = []
+        for m_type, c_id in current_user.default_models.items():
+            if c_id == config_id:
+                matched_types.append(m_type)
+
+        if not matched_types:
+            return ChatResponse(
+                code=200,
+                msg=f"Config ID {config_id} is not set as default for any model type",
+                data=None
+            )
+
+        # 查询模型配置详情
+        result = await db.execute(
+            select(ModelConfig).where(
+                ModelConfig.id == config_id,
+                ModelConfig.tenant_id == current_user.id,
+                ModelConfig.is_deleted == False
+            )
+        )
+        config = result.scalars().first()
+
+        if not config:
+            return ChatResponse(
+                code=200,
+                msg="Model config not found or deleted",
+                data=None
+            )
+
+        return ChatResponse(
+            code=200,
+            msg="success",
+            data={
+                "config_id": config.id,
+                "model_name": config.model_name,
+                "model_type": config.model_type,
+                "base_url": config.base_url,
+                "description": config.description,
+                "default_for_types": matched_types,  # 该模型被设置为哪些类型的默认模型
+                "created_at": config.created_at.isoformat(),
+                "updated_at": config.updated_at.isoformat()
+            }
+        )
+
+    # 情况2: 通过 model_type 查询
+    if model_type:
+        if not current_user.default_models:
+            return ChatResponse(
+                code=200,
+                msg="No default model set",
+                data=None
+            )
+
+        config_id = current_user.default_models.get(model_type)
+        if not config_id:
+            return ChatResponse(
+                code=200,
+                msg=f"No default model set for type: {model_type}",
+                data=None
+            )
+
+        # 查询模型配置
+        result = await db.execute(
+            select(ModelConfig).where(
+                ModelConfig.id == config_id,
+                ModelConfig.tenant_id == current_user.id,
+                ModelConfig.is_deleted == False
+            )
+        )
+        config = result.scalars().first()
+
+        if not config:
+            return ChatResponse(
+                code=200,
+                msg="Default model not found or deleted",
+                data=None
+            )
+
+        return ChatResponse(
+            code=200,
+            msg="success",
+            data={
+                "model_type": model_type,
+                "config_id": config.id,
+                "model_name": config.model_name,
+                "base_url": config.base_url,
+                "description": config.description,
+                "created_at": config.created_at.isoformat(),
+                "updated_at": config.updated_at.isoformat()
+            }
+        )
+
+    # 情况3: 都不传，返回所有类型的默认模型
+    if not current_user.default_models:
+        return ChatResponse(
+            code=200,
+            msg="No default model set",
+            data=None
+        )
+
+    default_models_info = {}
+    for m_type, c_id in current_user.default_models.items():
+        result = await db.execute(
+            select(ModelConfig).where(
+                ModelConfig.id == c_id,
+                ModelConfig.tenant_id == current_user.id,
+                ModelConfig.is_deleted == False
+            )
+        )
+        config = result.scalars().first()
+
+        if config:
+            default_models_info[m_type] = {
+                "config_id": config.id,
+                "model_name": config.model_name,
+                "base_url": config.base_url,
+                "description": config.description,
+                "created_at": config.created_at.isoformat(),
+                "updated_at": config.updated_at.isoformat()
+            }
+
+    return ChatResponse(
+        code=200,
+        msg="success",
+        data=default_models_info
+    )
+
+
+# --- Script Library Local Model Configuration ---
+
+@router.post("/libraries/{library_id}/local-model", response_model=ChatResponse)
+async def set_library_local_model(
+    library_id: int,
+    request: SetLibraryLocalModelRequest,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
+):
+    """
+    设置剧本库的局部模型配置
+
+    Args:
+        library_id: 剧本库ID（路径参数）
+        request: 请求体，包含config_id（必填）和model_type（可选）
+
+    说明：
+        - 局部模型配置优先级高于全局默认模型
+        - 如果设置了局部模型，该剧本库将使用指定的模型
+        - 如果未设置局部模型，将使用用户的全局默认模型
+        - model_type为可选参数，可用于验证模型类型是否匹配
+    """
+    from app.models.script import ScriptLibrary
+
+    # 验证剧本库是否存在且属于当前用户
+    result = await db.execute(
+        select(ScriptLibrary).where(
+            ScriptLibrary.id == library_id,
+            ScriptLibrary.user_id == current_user.id
+        )
+    )
+    library = result.scalars().first()
+
+    if not library:
+        raise HTTPException(status_code=404, detail="Script library not found")
+
+    # 验证模型配置是否存在且属于当前用户
+    config_result = await db.execute(
+        select(ModelConfig).where(
+            ModelConfig.id == request.config_id,
+            ModelConfig.tenant_id == current_user.id,
+            ModelConfig.is_deleted == False
+        )
+    )
+    config = config_result.scalars().first()
+
+    if not config:
+        raise HTTPException(status_code=404, detail="Model config not found")
+
+    # 如果传入了model_type，验证是否匹配
+    if request.model_type and config.model_type != request.model_type:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Model type mismatch: expected {request.model_type}, but config has {config.model_type}"
+        )
+
+    # 设置局部模型配置
+    library.local_model_config_id = request.config_id
+    await db.commit()
+
+    return ChatResponse(
+        code=200,
+        msg="Local model set successfully",
+        data={
+            "library_id": library_id,
+            "library_name": library.name,
+            "config_id": request.config_id,
+            "model_name": config.model_name,
+            "model_type": config.model_type
+        }
+    )
+
+
+@router.delete("/libraries/{library_id}/local-model", response_model=ChatResponse)
+async def remove_library_local_model(
+    library_id: int,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
+):
+    """
+    移除剧本库的局部模型配置，恢复使用全局默认模型
+
+    Args:
+        library_id: 剧本库ID
+    """
+    from app.models.script import ScriptLibrary
+
+    # 验证剧本库是否存在且属于当前用户
+    result = await db.execute(
+        select(ScriptLibrary).where(
+            ScriptLibrary.id == library_id,
+            ScriptLibrary.user_id == current_user.id
+        )
+    )
+    library = result.scalars().first()
+
+    if not library:
+        raise HTTPException(status_code=404, detail="Script library not found")
+
+    # 移除局部模型配置
+    library.local_model_config_id = None
+    await db.commit()
+
+    return ChatResponse(
+        code=200,
+        msg="Local model removed successfully, will use global default model",
+        data={
+            "library_id": library_id,
+            "library_name": library.name
+        }
+    )
+
+
+@router.get("/libraries/{library_id}/effective-model", response_model=ChatResponse)
+async def get_library_effective_model(
+    library_id: int,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
+):
+    """
+    查看剧本库实际使用的模型配置
+
+    Args:
+        library_id: 剧本库ID
+
+    说明：
+        - 如果剧本库设置了局部模型，返回局部模型信息
+        - 如果未设置局部模型，返回用户的全局默认LLM模型信息
+        - 优先级：局部模型 > 全局默认模型
+    """
+    from app.models.script import ScriptLibrary
+
+    # 验证剧本库是否存在且属于当前用户
+    result = await db.execute(
+        select(ScriptLibrary).where(
+            ScriptLibrary.id == library_id,
+            ScriptLibrary.user_id == current_user.id
+        )
+    )
+    library = result.scalars().first()
+
+    if not library:
+        raise HTTPException(status_code=404, detail="Script library not found")
+
+    # 优先使用局部模型配置
+    if library.local_model_config_id:
+        config_result = await db.execute(
+            select(ModelConfig).where(
+                ModelConfig.id == library.local_model_config_id,
+                ModelConfig.tenant_id == current_user.id,
+                ModelConfig.is_deleted == False
+            )
+        )
+        config = config_result.scalars().first()
+
+        if config:
+            return ChatResponse(
+                code=200,
+                msg="success",
+                data={
+                    "library_id": library_id,
+                    "library_name": library.name,
+                    "model_source": "local",  # 局部配置
+                    "config_id": config.id,
+                    "model_name": config.model_name,
+                    "model_type": config.model_type,
+                    "base_url": config.base_url,
+                    "description": config.description
+                }
+            )
+
+    # 如果没有局部配置或局部配置已删除，使用全局默认LLM模型
+    if current_user.default_models and "LLM" in current_user.default_models:
+        global_config_id = current_user.default_models["LLM"]
+        config_result = await db.execute(
+            select(ModelConfig).where(
+                ModelConfig.id == global_config_id,
+                ModelConfig.tenant_id == current_user.id,
+                ModelConfig.is_deleted == False
+            )
+        )
+        config = config_result.scalars().first()
+
+        if config:
+            return ChatResponse(
+                code=200,
+                msg="success",
+                data={
+                    "library_id": library_id,
+                    "library_name": library.name,
+                    "model_source": "global",  # 全局默认
+                    "config_id": config.id,
+                    "model_name": config.model_name,
+                    "model_type": config.model_type,
+                    "base_url": config.base_url,
+                    "description": config.description
+                }
+            )
+
+    # 既没有局部配置，也没有全局默认模型
+    return ChatResponse(
+        code=200,
+        msg="No model configured",
+        data={
+            "library_id": library_id,
+            "library_name": library.name,
+            "model_source": "none",
+            "config_id": None,
+            "model_name": None
+        }
     )

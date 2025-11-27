@@ -14,6 +14,7 @@ class ScriptLibrary(Base):
     type = Column(String, nullable=False)  # 类型: novel(小说剧本) 或 ad(广告创作)
     description = Column(String, nullable=True)
     minio_folder_path = Column(String, nullable=False)  # 存储在Minio中的前缀路径
+    local_model_config_id = Column(String(64), nullable=True)  # 局部模型配置ID，优先级高于全局默认模型
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
     files = relationship("ScriptFile", back_populates="library", cascade="all, delete-orphan")

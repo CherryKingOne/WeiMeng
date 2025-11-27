@@ -26,7 +26,7 @@ Authorization: Bearer <your_jwt_token>
 Content-Type: application/json
 ```
 
-#### 请求体（流式输出）
+#### 请求体（指定模型）
 ```json
 {
   "config_id": "wm63405339065589127630",
@@ -43,28 +43,28 @@ Content-Type: application/json
 }
 ```
 
-#### 请求体（非流式输出）
+#### 请求体（使用全局默认模型）
 ```json
 {
-  "config_id": "wm63405339065589127630",
   "messages": [
     {
       "role": "user",
       "content": "请帮我写一个关于人工智能的短剧大纲"
     }
   ],
-  "stream": false,
+  "stream": true,
   "temperature": 0.7,
-  "thinking_mode": false,
-  "session_id": null
+  "thinking_mode": false
 }
 ```
+
+**注意**：如果不传 `config_id`，系统会自动使用用户设置的全局默认模型。如果用户未设置默认模型，会返回 400 错误。
 
 #### 参数说明
 
 | 参数 | 类型 | 必填 | 说明 |
 |------|------|------|------|
-| config_id | string | 是 | 模型配置ID（从 `/api/v2/model_config/list` 获取） |
+| config_id | string | 否 | 模型配置ID，不传则使用全局默认模型 |
 | messages | array | 是 | 消息列表，最后一条为当前提问 |
 | stream | boolean | 否 | 是否流式输出，默认true |
 | temperature | float | 否 | 随机性参数(0-2)，默认0.7 |
@@ -101,7 +101,157 @@ data: [DONE]
 }
 ```
 
-### 2. 获取会话列表
+### 2. 设置默认模型（按类型）
+
+**POST** `/api/v3/chat/default-model`
+
+#### 请求头
+```
+Authorization: Bearer <your_jwt_token>
+Content-Type: application/json
+```
+
+#### 请求体（自动使用模型配置中的类型）
+```json
+{
+  "config_id": "wm63405339065589127630"
+}
+```
+
+#### 请求体（指定模型类型）
+```json
+{
+  "config_id": "wm63405339065589127630",
+  "model_type": "LLM"
+}
+```
+
+**说明**：
+- 如果不传 `model_type`，系统会自动使用模型配置中的类型
+- 支持的模型类型：LLM, Rerank, Text Embedding, Speech2text, TTS, Video, Image
+- 可以为不同类型设置不同的默认模型
+
+#### 响应
+```json
+{
+  "code": 200,
+  "msg": "Default model set successfully",
+  "data": {
+    "config_id": "wm63405339065589127630",
+    "model_name": "Qwen/Qwen3-Coder-480B-A35B-Instruct",
+    "model_type": "LLM"
+  }
+}
+```
+
+### 3. 查看默认模型
+
+**GET** `/api/v3/chat/default-model`
+
+#### 请求头
+```
+Authorization: Bearer <your_jwt_token>
+```
+
+#### 查询参数
+
+| 参数 | 类型 | 必填 | 说明 |
+|------|------|------|------|
+| config_id | string | 否 | 模型配置ID，查询该配置是否被设置为默认模型 |
+| model_type | string | 否 | 模型类型，查询该类型的默认模型 |
+
+**说明**：
+- 如果同时传入 `config_id` 和 `model_type`，优先使用 `config_id`
+- 如果都不传，返回所有类型的默认模型
+
+#### 使用示例
+
+**1. 通过 config_id 查询**
+```bash
+GET /api/v3/chat/default-model?config_id=wm63405339065589127630
+```
+
+响应：
+```json
+{
+  "code": 200,
+  "msg": "success",
+  "data": {
+    "config_id": "wm63405339065589127630",
+    "model_name": "Qwen/Qwen3-Coder-480B-A35B-Instruct",
+    "model_type": "LLM",
+    "base_url": "https://api-inference.modelscope.cn/v1",
+    "description": "通义千问编程模型",
+    "default_for_types": ["LLM", "Rerank"],
+    "created_at": "2025-11-27T10:00:00",
+    "updated_at": "2025-11-27T10:00:00"
+  }
+}
+```
+
+**2. 通过 model_type 查询**
+```bash
+GET /api/v3/chat/default-model?model_type=LLM
+```
+
+响应：
+```json
+{
+  "code": 200,
+  "msg": "success",
+  "data": {
+    "model_type": "LLM",
+    "config_id": "wm63405339065589127630",
+    "model_name": "Qwen/Qwen3-Coder-480B-A35B-Instruct",
+    "base_url": "https://api-inference.modelscope.cn/v1",
+    "description": "通义千问编程模型",
+    "created_at": "2025-11-27T10:00:00",
+    "updated_at": "2025-11-27T10:00:00"
+  }
+}
+```
+
+**3. 查询所有类型的默认模型**
+```bash
+GET /api/v3/chat/default-model
+```
+
+响应：
+```json
+{
+  "code": 200,
+  "msg": "success",
+  "data": {
+    "LLM": {
+      "config_id": "wm63405339065589127630",
+      "model_name": "Qwen/Qwen3-Coder-480B-A35B-Instruct",
+      "base_url": "https://api-inference.modelscope.cn/v1",
+      "description": "通义千问编程模型",
+      "created_at": "2025-11-27T10:00:00",
+      "updated_at": "2025-11-27T10:00:00"
+    },
+    "TTS": {
+      "config_id": "wm12345678901234567890",
+      "model_name": "CosyVoice-300M",
+      "base_url": "https://api.example.com/v1",
+      "description": "语音合成模型",
+      "created_at": "2025-11-27T11:00:00",
+      "updated_at": "2025-11-27T11:00:00"
+    }
+  }
+}
+```
+
+#### 响应（未设置默认模型）
+```json
+{
+  "code": 200,
+  "msg": "No default model set",
+  "data": null
+}
+```
+
+### 4. 获取会话列表
 
 **GET** `/api/v3/chat/sessions?page=1&page_size=20`
 

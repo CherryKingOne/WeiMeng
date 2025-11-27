@@ -63,5 +63,17 @@ async def init_db():
         except Exception:
             pass
 
+        # Add default_models column to users if it doesn't exist (JSONB type)
+        try:
+            await conn.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS default_models JSONB"))
+        except Exception:
+            pass
+
+        # Add local_model_config_id column to script_libraries if it doesn't exist
+        try:
+            await conn.execute(text("ALTER TABLE script_libraries ADD COLUMN IF NOT EXISTS local_model_config_id VARCHAR(64)"))
+        except Exception:
+            pass
+
         # Create all tables
         await conn.run_sync(Base.metadata.create_all)

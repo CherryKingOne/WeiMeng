@@ -11,7 +11,7 @@ class ChatMessage(BaseModel):
 
 class ChatRequest(BaseModel):
     """聊天请求模型"""
-    config_id: str = Field(..., description="从 v2/model_config/list 获取的 config_id")
+    config_id: Optional[str] = Field(None, description="模型配置ID，不传则使用全局默认模型")
     messages: List[ChatMessage] = Field(..., description="上下文消息列表")
     stream: bool = Field(default=True, description="是否流式输出")
     temperature: float = Field(default=0.7, ge=0.0, le=2.0, description="随机性 (0-2)")
@@ -60,3 +60,15 @@ class MessageListResponse(BaseModel):
     """消息列表响应"""
     total: int
     messages: List[MessageInfo]
+
+
+class SetDefaultModelRequest(BaseModel):
+    """设置默认模型请求"""
+    config_id: str = Field(..., description="模型配置ID")
+    model_type: Optional[str] = Field(None, description="模型类型（可选），如果不传则使用模型配置中的类型")
+
+
+class SetLibraryLocalModelRequest(BaseModel):
+    """设置剧本库局部模型请求"""
+    config_id: str = Field(..., description="模型配置ID")
+    model_type: Optional[str] = Field(None, description="模型类型（可选），用于验证或记录")
