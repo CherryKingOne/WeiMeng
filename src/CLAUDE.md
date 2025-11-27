@@ -19,9 +19,6 @@ WeiMeng (唯梦/微梦) is an AI-assisted drama and video production platform th
 ### Backend (from `src/` directory)
 
 ```bash
-# Start PostgreSQL and MinIO services via Docker
-docker-compose up -d
-
 # Install dependencies
 pip install -r requirements.txt
 
@@ -34,9 +31,7 @@ uvicorn app.main:app --reload --port 7767
 
 Backend runs on `http://localhost:7767` (configurable via `.env`).
 
-Docker Compose starts:
-- PostgreSQL on port 5432
-- MinIO on port 9000 (console on port 9001)
+**Note**: PostgreSQL and MinIO must be running before starting the backend. Set up these services manually or via Docker containers as needed.
 
 ### Frontend (from `web-ui/` directory)
 
@@ -119,6 +114,24 @@ LLM_MODEL_NAME=gpt-4
 - Files are organized as `{library_name}/{filename}` in MinIO
 - Supports cascade deletion: deleting a library removes all associated files from both database and MinIO
 
+**Scriptwriting Project System**: Detailed storyboard management for video production:
+- `ScriptwritingProject` model (`app/models/scriptwriting.py:8`): Represents a complete script project with metadata (file_id, visual_style, word count, generation time)
+- `ScriptwritingShot` model (`app/models/scriptwriting.py:24`): Individual shots/scenes with comprehensive details:
+  - Character information (name, gender, appearance)
+  - Visual content (scene description, shot size, camera movement, image URLs)
+  - Audio information (dialogue, voice-over, emotion, sound effects)
+  - AI generation prompts stored in JSONB field (`text_to_image_prompt`, `image_to_video_prompt`)
+  - Context summary for maintaining narrative continuity
+- Supports pagination, search by character/type/visual style, and individual shot updates
+- Cascade deletion: deleting a project removes all associated shots
+
+**Model Configuration System**: Multi-tenant model management with security:
+- `ModelConfig` model (`app/models/model_config.py:6`): Stores LLM and AI model configurations per tenant
+- Supports multiple model types: LLM, Rerank, Text Embedding, Speech2text, TTS, Video, Image
+- API keys are encrypted using AES-256-CBC before storage (`app/utils/encryption.py`)
+- Soft deletion pattern with `is_deleted` flag
+- Custom ID generation using `generate_wm_id()` for unique 22-character identifiers
+
 ### Configuration
 
 All settings are managed through `app/core/config.py` using Pydantic Settings. The `.env` file in the `src/` directory is automatically loaded. Key settings include:
@@ -129,11 +142,12 @@ All settings are managed through `app/core/config.py` using Pydantic Settings. T
 
 ### API Structure
 
-Routes are organized under `/api/v1/` with the following modules:
+Routes are organized under `/api/v1/` and `/api/v2/` with the following modules:
 - `auth.py`: User registration, login, profile management
-- `llm.py`: LLM chat completion endpoints
 - `script.py`: Script library and file management (CRUD operations)
+- `scriptwriting.py`: Scriptwriting project and shot management (detailed storyboard system)
 - `media.py`: AI media generation endpoints (placeholder for future implementation)
+- `model_config.py` (v2): Model configuration management with encrypted API keys
 
 ### Prompt System
 
@@ -155,6 +169,12 @@ System prompts for LLM calls are stored as markdown files in `prompts/` director
 **CORS Configuration**: Currently set to allow all origins (`allow_origins=["*"]`) in `app/main.py:22`. This should be restricted to specific origins in production.
 
 **Frontend Architecture**: Vue 3 with Composition API, Vue Router for navigation, Vue I18n for internationalization (Chinese/English), Tailwind CSS for styling, and FontAwesome icons. Node.js version requirement: 20.19.0+ or 22.12.0+.
+
+**Security Patterns**:
+- JWT tokens with Bearer authentication (configurable expiration, default 30 days)
+- Password hashing using bcrypt via passlib
+- API key encryption using AES-256-CBC with PKCS7 padding (`app/utils/encryption.py`)
+- All protected endpoints require `get_current_user` dependency which validates JWT and checks user active status
 
 ## API Documentation
 

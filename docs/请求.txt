@@ -189,7 +189,7 @@ curl -X GET \
 
 查询类型模型
 curl -X GET \
-  "http://127.0.0.1:7767/api/v2/model_config/list?page=1&page_size=10&model_type=LLM&config_id=wm10946408328372511112" \
+  "http://127.0.0.1:7767/api/v2/model_config/list?page=1&page_size=10&model_type=LLM" \
   -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJjaGVycnlfMDUwNjA3QDE2My5jb20iLCJleHAiOjE3NjY1NjA5MDZ9.LpVZZyHLemOQDXrMWDcjxsAqo7Qas_JK7QdcFi7pIAE"
 
 
@@ -217,3 +217,20 @@ curl -X DELETE \
 
 模型对话
 1.指定模型对话模型的配置中的uuid（这个用来确认使用那个配置好的模型）然后回返回与之关联的api、key、url、模型名称
+
+curl -X POST http://0.0.0.0:7767/api/v3/chat/completions \
+  -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJjaGVycnlfMDUwNjA3QDE2My5jb20iLCJleHAiOjE3NjY1NjA5MDZ9.LpVZZyHLemOQDXrMWDcjxsAqo7Qas_JK7QdcFi7pIAE" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "config_id": "wm63405339065589127630",
+    "messages": [
+      {
+        "role": "user",
+        "content": "你是谁"
+      }
+    ],
+    "stream": true,
+    "temperature": 0.7,
+    "thinking_mode": false
+  }'
+

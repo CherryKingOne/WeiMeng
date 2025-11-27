@@ -9,6 +9,7 @@ from app.core.database import init_db
 
 # Import routers
 from app.api.v1 import auth, script, media, scriptwriting, model_config
+from app.api.v3 import chat
 
 app = FastAPI(
     title=settings.PROJECT_NAME,
@@ -31,6 +32,7 @@ app.include_router(script.router, prefix="/api/v1/script", tags=["Script & Files
 app.include_router(media.router, prefix="/api/v1/media", tags=["AI Media"])
 app.include_router(scriptwriting.router, prefix="/api/v1/scriptwriting", tags=["Scriptwriting"])
 app.include_router(model_config.router, prefix="/api/v2/model_config", tags=["Model Config"])
+app.include_router(chat.router, prefix="/api/v3/chat", tags=["AI Chat"])
 
 
 @app.get("/")
