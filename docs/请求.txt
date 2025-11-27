@@ -187,7 +187,10 @@ curl -X GET \
   "http://127.0.0.1:7767/api/v2/model_config/list?page=1&page_size=10&config_id=wm63405339065589127630" \
   -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJjaGVycnlfMDUwNjA3QDE2My5jb20iLCJleHAiOjE3NjY1NjA5MDZ9.LpVZZyHLemOQDXrMWDcjxsAqo7Qas_JK7QdcFi7pIAE"
 
-
+查询类型模型
+curl -X GET \
+  "http://127.0.0.1:7767/api/v2/model_config/list?page=1&page_size=10&model_type=LLM&config_id=wm10946408328372511112" \
+  -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJjaGVycnlfMDUwNjA3QDE2My5jb20iLCJleHAiOjE3NjY1NjA5MDZ9.LpVZZyHLemOQDXrMWDcjxsAqo7Qas_JK7QdcFi7pIAE"
 
 
 

@@ -2,6 +2,7 @@
 import { ref, onMounted, onBeforeUnmount, computed, nextTick } from 'vue'
 import { useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
+import ModelSelector from '@/components/ModelSelector.vue'
 
 const { locale, t } = useI18n()
 const router = useRouter()
@@ -252,12 +253,118 @@ const providers = ref([
   { id: 'qiniu', name: '七牛云', slug: 'qiniu', desc: '七牛云模型与推理服务', enabled: false, caps: ['LLM'], models: [], configured: false }
 ])
 const showSystemModelSettings = ref(false)
-const systemReasoningModel = ref('gpt-4')
-const embeddingModel = ref('text-embedding-3-large')
-const speechToTextModel = ref('gpt-4o-mini-transcribe')
+const systemReasoningModel = ref('')
+const embeddingModel = ref('')
+const rerankModel = ref('')
+const speechToTextModel = ref('')
+const textToSpeechModel = ref('')
+const videoModel = ref('')
+const imageModel = ref('')
+
+// Available models from API
+const availableModels = ref({
+  LLM: [],
+  Embedding: [],
+  Rerank: [],
+  STT: [],
+  TTS: [],
+  Video: [],
+  Image: []
+})
+const loadingModels = ref(false)
+// Get provider icon based on model name
+const getProviderIcon = (modelName) => {
+  if (!modelName) return 'https://unpkg.com/@lobehub/icons-static-png@latest/light/openai.png'
+  
+  const name = modelName.toLowerCase()
+  if (name.includes('gpt') || name.includes('openai')) {
+    return 'https://unpkg.com/@lobehub/icons-static-png@latest/light/openai.png'
+  } else if (name.includes('claude') || name.includes('anthropic')) {
+    return 'https://unpkg.com/@lobehub/icons-static-png@latest/light/anthropic.png'
+  } else if (name.includes('qwen') || name.includes('tongyi')) {
+    return 'https://unpkg.com/@lobehub/icons-static-png@latest/light/qwen.png'
+  } else if (name.includes('glm') || name.includes('zhipu')) {
+    return 'https://unpkg.com/@lobehub/icons-static-png@latest/light/zhipu.png'
+  } else if (name.includes('deepseek')) {
+    return 'https://unpkg.com/@lobehub/icons-static-png@latest/light/deepseek.png'
+  } else if (name.includes('gemini') || name.includes('google')) {
+    return 'https://unpkg.com/@lobehub/icons-static-png@latest/light/google.png'
+  }
+  return 'https://unpkg.com/@lobehub/icons-static-png@latest/light/openai.png'
+}
+
+// Load model configurations from API
+const loadModelConfigurations = async (modelType) => {
+  try {
+    const token = localStorage.getItem('accessToken')
+    const response = await fetch(
+      `${API_BASE}/api/v2/model_config/list?page=1&page_size=100&model_type=${modelType}`,
+      {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      }
+    )
+    
+    if (response.status === 401) {
+      router.push('/login')
+      return []
+    }
+    
+    const data = await response.json()
+    if (data.code === 200 && data.data && data.data.list) {
+      return data.data.list
+    }
+    return []
+  } catch (error) {
+    console.error(`Failed to load ${modelType} models:`, error)
+    return []
+  }
+}
+
+const loadAllModelConfigurations = async () => {
+  loadingModels.value = true
+  try {
+    const types = ['LLM', 'Embedding', 'Rerank', 'STT', 'TTS', 'Video', 'Image']
+    const results = await Promise.all(
+      types.map(type => loadModelConfigurations(type))
+    )
+    
+    types.forEach((type, index) => {
+      availableModels.value[type] = results[index]
+    })
+    
+    // Auto-select first model if current selection is empty
+    if (!systemReasoningModel.value && availableModels.value.LLM.length > 0) {
+      systemReasoningModel.value = availableModels.value.LLM[0].model_name
+    }
+    if (!embeddingModel.value && availableModels.value.Embedding.length > 0) {
+      embeddingModel.value = availableModels.value.Embedding[0].model_name
+    }
+    if (!rerankModel.value && availableModels.value.Rerank.length > 0) {
+      rerankModel.value = availableModels.value.Rerank[0].model_name
+    }
+    if (!speechToTextModel.value && availableModels.value.STT.length > 0) {
+      speechToTextModel.value = availableModels.value.STT[0].model_name
+    }
+    if (!textToSpeechModel.value && availableModels.value.TTS.length > 0) {
+      textToSpeechModel.value = availableModels.value.TTS[0].model_name
+    }
+    if (!videoModel.value && availableModels.value.Video.length > 0) {
+      videoModel.value = availableModels.value.Video[0].model_name
+    }
+    if (!imageModel.value && availableModels.value.Image.length > 0) {
+      imageModel.value = availableModels.value.Image[0].model_name
+    }
+  } finally {
+    loadingModels.value = false
+  }
+}
+
 const openSystemModelSettings = async () => {
   await nextTick()
   showSystemModelSettings.value = true
+  loadAllModelConfigurations()
 }
 const closeSystemModelSettings = () => {
   showSystemModelSettings.value = false
@@ -2179,19 +2286,22 @@ const loadLibraries = async () => {
                      <label class="text-sm font-bold text-primary dark:text-white">系统推理模型</label>
                      <fa :icon="['fas','circle-question']" class="text-gray-400 text-sm" />
                    </div>
-                   <div class="relative">
-                     <div class="absolute left-3 top-1/2 -translate-y-1/2 flex items-center justify-center pointer-events-none">
-                        <img src="https://unpkg.com/@lobehub/icons-static-png@latest/light/openai.png" class="w-5 h-5 object-contain" />
-                     </div>
-                     <select v-model="systemReasoningModel" class="w-full bg-gray-100 border-none rounded-lg py-2.5 pl-10 pr-16 text-sm font-medium focus:ring-2 focus:ring-brand-green appearance-none dark:bg-[#1E1E1E] dark:text-[#E0E0E0]">
-                       <option value="gpt-4">gpt-4</option>
-                       <option value="gpt-3.5-turbo">gpt-3.5-turbo</option>
-                     </select>
-                     <div class="absolute right-8 top-1/2 -translate-y-1/2 pointer-events-none">
+                   <div v-if="loadingModels" class="text-center py-2">
+                     <span class="text-xs text-secondary dark:text-gray-400">加载中...</span>
+                   </div>
+                   <div v-else-if="availableModels.LLM.length === 0" class="bg-gray-100 rounded-lg py-2 px-3 text-sm text-gray-400 dark:bg-[#1E1E1E]">
+                     暂无可用模型
+                   </div>
+                   <div v-else class="relative">
+                     <ModelSelector
+                       v-model="systemReasoningModel"
+                       :models="availableModels.LLM"
+                       :get-provider-icon="getProviderIcon"
+                       placeholder="请选择模型"
+                       @open-settings="openApiKeyConfig"
+                     />
+                     <div class="absolute right-8 top-2.5 pointer-events-none z-10">
                         <span class="text-[10px] px-1.5 py-0.5 rounded border border-gray-300 text-gray-500 bg-white dark:bg-[#2C2C2E] dark:border-[#3A3A3C] dark:text-gray-400">CHAT</span>
-                     </div>
-                     <div class="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-gray-400">
-                        <fa :icon="['fas','chevron-down']" class="text-xs" />
                      </div>
                    </div>
                  </div>
@@ -2202,17 +2312,20 @@ const loadLibraries = async () => {
                      <label class="text-sm font-bold text-primary dark:text-white">Embedding 模型</label>
                      <fa :icon="['fas','circle-question']" class="text-gray-400 text-sm" />
                    </div>
-                   <div class="relative">
-                     <div class="absolute left-3 top-1/2 -translate-y-1/2 flex items-center justify-center pointer-events-none">
-                        <img src="https://unpkg.com/@lobehub/icons-static-png@latest/light/openai.png" class="w-5 h-5 object-contain" />
-                     </div>
-                     <select v-model="embeddingModel" class="w-full bg-gray-100 border-none rounded-lg py-2.5 pl-10 pr-10 text-sm font-medium focus:ring-2 focus:ring-brand-green appearance-none dark:bg-[#1E1E1E] dark:text-[#E0E0E0]">
-                       <option value="text-embedding-3-large">text-embedding-3-large</option>
-                       <option value="text-embedding-3-small">text-embedding-3-small</option>
-                     </select>
-                     <div class="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-gray-400">
-                        <fa :icon="['fas','chevron-down']" class="text-xs" />
-                     </div>
+                   <div v-if="loadingModels" class="text-center py-2">
+                     <span class="text-xs text-secondary dark:text-gray-400">加载中...</span>
+                   </div>
+                   <div v-else-if="availableModels.Embedding.length === 0" class="bg-gray-100 rounded-lg py-2 px-3 text-sm text-gray-400 dark:bg-[#1E1E1E]">
+                     暂无可用模型
+                   </div>
+                   <div v-else>
+                     <ModelSelector
+                       v-model="embeddingModel"
+                       :models="availableModels.Embedding"
+                       :get-provider-icon="getProviderIcon"
+                       placeholder="请选择模型"
+                       @open-settings="openApiKeyConfig"
+                     />
                    </div>
                  </div>
 
@@ -2222,14 +2335,26 @@ const loadLibraries = async () => {
                      <label class="text-sm font-bold text-primary dark:text-white">Rerank 模型</label>
                      <fa :icon="['fas','circle-question']" class="text-gray-400 text-sm" />
                    </div>
-                   <div class="bg-gray-100 rounded-lg py-2 px-3 flex items-center justify-between dark:bg-[#1E1E1E]">
+                   <div v-if="loadingModels" class="text-center py-2">
+                     <span class="text-xs text-secondary dark:text-gray-400">加载中...</span>
+                   </div>
+                   <div v-else-if="availableModels.Rerank.length === 0" class="bg-gray-100 rounded-lg py-2 px-3 flex items-center justify-between dark:bg-[#1E1E1E]">
                       <div class="flex items-center gap-2 text-gray-400">
                         <fa :icon="['fas','cubes']" />
-                        <span class="text-sm">模型设置</span>
+                        <span class="text-sm">暂无可用模型</span>
                       </div>
-                      <button class="text-gray-500 hover:text-primary dark:hover:text-white">
+                      <button class="text-gray-500 hover:text-primary dark:hover:text-white" @click="openApiKeyConfig">
                         <fa :icon="['fas','sliders']" />
                       </button>
+                   </div>
+                   <div v-else>
+                     <ModelSelector
+                       v-model="rerankModel"
+                       :models="availableModels.Rerank"
+                       :get-provider-icon="getProviderIcon"
+                       placeholder="请选择模型"
+                       @open-settings="openApiKeyConfig"
+                     />
                    </div>
                  </div>
 
@@ -2239,17 +2364,20 @@ const loadLibraries = async () => {
                      <label class="text-sm font-bold text-primary dark:text-white">语音转文本模型</label>
                      <fa :icon="['fas','circle-question']" class="text-gray-400 text-sm" />
                    </div>
-                   <div class="relative">
-                     <div class="absolute left-3 top-1/2 -translate-y-1/2 flex items-center justify-center pointer-events-none">
-                        <img src="https://unpkg.com/@lobehub/icons-static-png@latest/light/openai.png" class="w-5 h-5 object-contain" />
-                     </div>
-                     <select v-model="speechToTextModel" class="w-full bg-gray-100 border-none rounded-lg py-2.5 pl-10 pr-10 text-sm font-medium focus:ring-2 focus:ring-brand-green appearance-none dark:bg-[#1E1E1E] dark:text-[#E0E0E0]">
-                       <option value="gpt-4o-mini-transcribe">gpt-4o-mini-transcribe</option>
-                       <option value="whisper-1">whisper-1</option>
-                     </select>
-                     <div class="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-gray-400">
-                        <fa :icon="['fas','chevron-down']" class="text-xs" />
-                     </div>
+                   <div v-if="loadingModels" class="text-center py-2">
+                     <span class="text-xs text-secondary dark:text-gray-400">加载中...</span>
+                   </div>
+                   <div v-else-if="availableModels.STT.length === 0" class="bg-gray-100 rounded-lg py-2 px-3 text-sm text-gray-400 dark:bg-[#1E1E1E]">
+                     暂无可用模型
+                   </div>
+                   <div v-else>
+                     <ModelSelector
+                       v-model="speechToTextModel"
+                       :models="availableModels.STT"
+                       :get-provider-icon="getProviderIcon"
+                       placeholder="请选择模型"
+                       @open-settings="openApiKeyConfig"
+                     />
                    </div>
                  </div>
 
@@ -2259,14 +2387,72 @@ const loadLibraries = async () => {
                      <label class="text-sm font-bold text-primary dark:text-white">文本转语音模型</label>
                      <fa :icon="['fas','circle-question']" class="text-gray-400 text-sm" />
                    </div>
-                   <div class="bg-gray-100 rounded-lg py-2 px-3 flex items-center justify-between dark:bg-[#1E1E1E]">
+                   <div v-if="loadingModels" class="text-center py-2">
+                     <span class="text-xs text-secondary dark:text-gray-400">加载中...</span>
+                   </div>
+                   <div v-else-if="availableModels.TTS.length === 0" class="bg-gray-100 rounded-lg py-2 px-3 flex items-center justify-between dark:bg-[#1E1E1E]">
                       <div class="flex items-center gap-2 text-gray-400">
                         <fa :icon="['fas','cubes']" />
-                        <span class="text-sm">模型设置</span>
+                        <span class="text-sm">暂无可用模型</span>
                       </div>
-                      <button class="text-gray-500 hover:text-primary dark:hover:text-white">
+                      <button class="text-gray-500 hover:text-primary dark:hover:text-white" @click="openApiKeyConfig">
                         <fa :icon="['fas','sliders']" />
                       </button>
+                   </div>
+                   <div v-else>
+                     <ModelSelector
+                       v-model="textToSpeechModel"
+                       :models="availableModels.TTS"
+                       :get-provider-icon="getProviderIcon"
+                       placeholder="请选择模型"
+                       @open-settings="openApiKeyConfig"
+                     />
+                   </div>
+                 </div>
+
+                 <!-- Video Generation -->
+                 <div>
+                   <div class="flex items-center gap-2 mb-2">
+                     <label class="text-sm font-bold text-primary dark:text-white">视频生成模型</label>
+                     <fa :icon="['fas','circle-question']" class="text-gray-400 text-sm" />
+                   </div>
+                   <div v-if="loadingModels" class="text-center py-2">
+                     <span class="text-xs text-secondary dark:text-gray-400">加载中...</span>
+                   </div>
+                   <div v-else-if="availableModels.Video.length === 0" class="bg-gray-100 rounded-lg py-2 px-3 text-sm text-gray-400 dark:bg-[#1E1E1E]">
+                     暂无可用模型
+                   </div>
+                   <div v-else>
+                     <ModelSelector
+                       v-model="videoModel"
+                       :models="availableModels.Video"
+                       :get-provider-icon="getProviderIcon"
+                       placeholder="请选择模型"
+                       @open-settings="openApiKeyConfig"
+                     />
+                   </div>
+                 </div>
+
+                 <!-- Image Generation -->
+                 <div>
+                   <div class="flex items-center gap-2 mb-2">
+                     <label class="text-sm font-bold text-primary dark:text-white">图片生成模型</label>
+                     <fa :icon="['fas','circle-question']" class="text-gray-400 text-sm" />
+                   </div>
+                   <div v-if="loadingModels" class="text-center py-2">
+                     <span class="text-xs text-secondary dark:text-gray-400">加载中...</span>
+                   </div>
+                   <div v-else-if="availableModels.Image.length === 0" class="bg-gray-100 rounded-lg py-2 px-3 text-sm text-gray-400 dark:bg-[#1E1E1E]">
+                     暂无可用模型
+                   </div>
+                   <div v-else>
+                     <ModelSelector
+                       v-model="imageModel"
+                       :models="availableModels.Image"
+                       :get-provider-icon="getProviderIcon"
+                       placeholder="请选择模型"
+                       @open-settings="openApiKeyConfig"
+                     />
                    </div>
                  </div>
               </div>

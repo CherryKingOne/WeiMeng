@@ -508,37 +508,94 @@ const closeAIConfigMenu = () => {
 // Model Selection Menu
 const showModelMenu = ref(false)
 const modelSearchQuery = ref('')
+const loadingModels = ref(false)
 
-const availableModels = [
-  { id: 'chatgpt-4o-latest', name: 'chatgpt-4o-latest', provider: 'OpenAI', icon: 'robot', color: 'text-blue-500' },
-  { id: 'gpt-4o', name: 'gpt-4o', provider: 'OpenAI', icon: 'robot', color: 'text-blue-500' },
-  { id: 'gpt-4o-mini', name: 'gpt-4o-mini', provider: 'OpenAI', icon: 'robot', color: 'text-blue-500' },
-  { id: 'gpt-4o-mini-2024-07-18', name: 'gpt-4o-mini-2024-07-18', provider: 'OpenAI', icon: 'robot', color: 'text-blue-500' },
-  { id: 'gpt-4', name: 'gpt-4', provider: 'OpenAI', icon: 'robot', color: 'text-purple-500' },
-  { id: 'gpt-3.5-turbo', name: 'gpt-3.5-turbo', provider: 'OpenAI', icon: 'robot', color: 'text-green-500' },
-  { id: 'gpt-3.5-turbo-0125', name: 'gpt-3.5-turbo-0125', provider: 'OpenAI', icon: 'robot', color: 'text-green-500' },
-  { id: 'gpt-3.5-turbo-1106', name: 'gpt-3.5-turbo-1106', provider: 'OpenAI', icon: 'robot', color: 'text-green-500' },
-  { id: 'gpt-3.5-turbo-16k', name: 'gpt-3.5-turbo-16k', provider: 'OpenAI', icon: 'robot', color: 'text-green-500' },
-  { id: 'gpt-3.5-turbo-instruct', name: 'gpt-3.5-turbo-instruct', provider: 'OpenAI', icon: 'robot', color: 'text-green-500' }
-]
+const availableModels = ref([])
+
+// Fetch models from API
+const fetchModels = async () => {
+  console.log('[ModelSelector] Starting to fetch models...')
+  loadingModels.value = true
+  try {
+    const token = localStorage.getItem('accessToken')
+    console.log('[ModelSelector] Token retrieved:', token ? 'Yes' : 'No')
+    
+    const url = `${API_BASE}/api/v2/model_config/list?page=1&page_size=100&model_type=LLM`
+    console.log('[ModelSelector] Request URL:', url)
+    
+    const response = await fetch(url, {
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Accept': 'application/json'
+      }
+    })
+    
+    console.log('[ModelSelector] Response status:', response.status)
+    
+    if (response.status === 401) {
+      console.warn('[ModelSelector] Unauthorized, redirecting to login')
+      router.push('/login')
+      return
+    }
+    
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`)
+    }
+    
+    const data = await response.json()
+    console.log('[ModelSelector] Response data:', data)
+    
+    if (data.code === 200 && data.data && data.data.list) {
+      console.log('[ModelSelector] Models found:', data.data.list.length)
+      availableModels.value = data.data.list.map(m => {
+        let color = 'text-gray-500'
+        const name = m.model_name.toLowerCase()
+        if (name.includes('gpt-4')) color = 'text-purple-500'
+        else if (name.includes('gpt-3.5')) color = 'text-green-500'
+        else if (name.includes('claude')) color = 'text-orange-500'
+        else if (m.provider === 'OpenAI') color = 'text-blue-500'
+        
+        return {
+          id: m.model_name,
+          name: m.model_name,
+          provider: m.provider,
+          icon: 'robot',
+          color: color
+        }
+      })
+      console.log('[ModelSelector] Mapped models:', availableModels.value)
+    } else {
+      console.warn('[ModelSelector] No models found or invalid format', data)
+      availableModels.value = []
+    }
+  } catch (error) {
+    console.error('[ModelSelector] Error fetching models:', error)
+    showToastMessage('获取模型列表失败', 'error')
+  } finally {
+    loadingModels.value = false
+    console.log('[ModelSelector] Fetch completed')
+  }
+}
 
 const filteredModels = computed(() => {
-  if (!modelSearchQuery.value) return availableModels
+  if (!modelSearchQuery.value) return availableModels.value
   const query = modelSearchQuery.value.toLowerCase()
-  return availableModels.filter(model =>
+  return availableModels.value.filter(model =>
     model.name.toLowerCase().includes(query) ||
     model.provider.toLowerCase().includes(query)
   )
 })
 
 const currentModel = computed(() => {
-  return availableModels.find(m => m.id === aiConfig.value.model) || availableModels[4]
+  return availableModels.value.find(m => m.id === aiConfig.value.model) || 
+         (availableModels.value.length > 0 ? availableModels.value[0] : { name: aiConfig.value.model, icon: 'robot', color: 'text-gray-500' })
 })
 
 const toggleModelMenu = () => {
   showModelMenu.value = !showModelMenu.value
   if (showModelMenu.value) {
     modelSearchQuery.value = ''
+    fetchModels()
   }
 }
 
@@ -1928,6 +1985,12 @@ const toggleFileSelection = (index) => {
 const showBatchDeleteConfirm = ref(false)
 const batchDeleteCount = ref(0)
 
+// Character modal
+const showCharacterModal = ref(false)
+const closeCharacterModal = () => {
+  showCharacterModal.value = false
+}
+
 const openBatchDeleteConfirm = () => {
   const selectedCount = existingFiles.value.filter(f => f.selected).length
   if (selectedCount === 0) return
@@ -2217,7 +2280,7 @@ watch(activeTab, (newTab) => {
             :class="showAIConfigMenu ? 'ring-2 ring-brand-green/20 border-brand-green' : ''"
           >
             <fa :icon="['fas', 'wand-magic-sparkles']" class="text-purple-500" />
-            <span class="text-sm font-medium text-gray-700 dark:text-gray-200">GPT-4</span>
+            <span class="text-sm font-medium text-gray-700 dark:text-gray-200">{{ currentModel.name }}</span>
             <span class="px-1.5 py-0.5 text-[10px] font-bold bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400 rounded ml-1">CHAT</span>
             <fa :icon="['fas', 'sliders']" class="text-gray-400 group-hover:text-purple-500 transition ml-1 text-xs" />
           </div>
@@ -2270,7 +2333,14 @@ watch(activeTab, (newTab) => {
 
                 <!-- Model List -->
                 <div class="max-h-64 overflow-y-auto">
-                  <div class="p-2">
+                  <div v-if="loadingModels" class="p-4 text-center text-gray-500 dark:text-gray-400 text-sm">
+                    <fa :icon="['fas', 'spinner']" spin class="mr-2" />
+                    加载中...
+                  </div>
+                  <div v-else-if="filteredModels.length === 0" class="p-4 text-center text-gray-500 dark:text-gray-400 text-sm">
+                    暂无可用模型
+                  </div>
+                  <div v-else class="p-2">
                     <div class="text-xs font-bold text-gray-500 dark:text-gray-400 px-2 py-1">OpenAI</div>
                     <button
                       v-for="model in filteredModels"
