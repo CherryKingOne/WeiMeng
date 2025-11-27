@@ -8,7 +8,7 @@ from app.core.config import settings
 from app.core.database import init_db
 
 # Import routers
-from app.api.v1 import auth, llm, script, media, scriptwriting
+from app.api.v1 import auth, script, media, scriptwriting, model_config
 
 app = FastAPI(
     title=settings.PROJECT_NAME,
@@ -27,10 +27,10 @@ app.add_middleware(
 
 # Register routers
 app.include_router(auth.router, prefix="/api/v1/auth", tags=["Authentication"])
-app.include_router(llm.router, prefix="/api/v1/llm", tags=["LLM"])
 app.include_router(script.router, prefix="/api/v1/script", tags=["Script & Files"])
 app.include_router(media.router, prefix="/api/v1/media", tags=["AI Media"])
 app.include_router(scriptwriting.router, prefix="/api/v1/scriptwriting", tags=["Scriptwriting"])
+app.include_router(model_config.router, prefix="/api/v2/model_config", tags=["Model Config"])
 
 
 @app.get("/")
