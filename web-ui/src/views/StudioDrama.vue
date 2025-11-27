@@ -89,14 +89,114 @@ const tabs = [
 const scriptContent = ref('[场景] 豪华办公室，白天\n顾北辰：（冷冷地）这份设计稿重做。\n苏晚晚：（坚定地）我会重新来过。\n旁白：两人的眼神交错，空气凝固。\nJohn: You should reconsider.\nMary: I won\'t.')
 
 // Novel Analysis Data
-const novelChapters = ref([])
+const novelChapters = ref([
+  {
+    id: 'demo-chapter-1',
+    fileId: 'demo',
+    title: '示例章节：霸道总裁爱上我',
+    content: '第一章 初遇\n\n顾北辰坐在豪华的办公室里，冷冷地看着手中的文件。落地窗外，S市的繁华景象尽收眼底，但他眼中只有冰冷。\n\n"这份设计稿重做。"他随手将文件扔在桌上，发出"啪"的一声脆响。\n\n站在办公桌前的苏晚晚身体微微一颤，但她很快挺直了背脊，眼神坚定地看着眼前的男人。\n\n"顾总，我认为这个设计完全符合您的要求。它不仅仅是一个商业项目，更是一种艺术的表达。"苏晚晚的声音虽然不大，但字字铿锵。\n\n顾北辰抬起头，深邃的目光落在苏晚晚身上。这个女人，竟然敢反驳他？\n\n"艺术？"顾北辰嗤笑一声，站起身，一步步走向苏晚晚，强大的气场瞬间笼罩了她，"在商言商，我要的是利润，不是你所谓的艺术。"\n\n两人对视，空气仿佛凝固。就在这时，办公室的门被推开，林雨萱走了进来。\n\n"北辰哥哥，还在忙吗？"林雨萱声音甜美，眼神却在扫过苏晚晚时闪过一丝嫉妒。\n\n苏晚晚深吸一口气，收起桌上的文件，"既然顾总不满意，我会重新修改。告辞。"说完，她转身离去，背影倔强而孤独。',
+    preview: '第一章 初遇\n\n顾北辰坐在豪华的办公室里，冷冷地看着手中的文件...',
+    analyzed: true,
+    loading: false
+  }
+])
 const loadingChapters = ref(false)
 
 const selectedChapter = ref(null)
 const analysisTab = ref('characters') // 'characters', 'scenes', 'plots', 'dialogues'
 const analyzing = ref(false)
 
-const analysisResults = ref({})
+const analysisResults = ref({
+  // 示例数据 - 展示AI分析结果的格式
+  'demo-chapter-1': {
+    characters: [
+      {
+        id: 1,
+        name: '顾北辰',
+        role: '男主角 / 霸道总裁',
+        desc: '冷峻高傲,商业帝国的掌舵者,外表冷漠内心炽热,对苏晚晚情有独钟'
+      },
+      {
+        id: 2,
+        name: '苏晚晚',
+        role: '女主角 / 设计师',
+        desc: '独立坚强的设计师,才华横溢但命运坎坷,在困境中不断成长'
+      },
+      {
+        id: 3,
+        name: '林雨萱',
+        role: '女配角 / 竞争对手',
+        desc: '顾北辰的青梅竹马,嫉妒苏晚晚,多次设计陷害女主'
+      }
+    ],
+    scenes: [
+      {
+        id: 1,
+        name: '豪华办公室',
+        desc: '现代化的总裁办公室,落地窗外是城市天际线,室内装饰简约奢华,冷色调为主'
+      },
+      {
+        id: 2,
+        name: '设计工作室',
+        desc: '充满创意氛围的开放式工作空间,设计稿和样品散落各处,温暖的灯光'
+      },
+      {
+        id: 3,
+        name: '高档餐厅',
+        desc: '优雅的法式餐厅,水晶吊灯,白色桌布,浪漫的烛光晚餐氛围'
+      }
+    ],
+    plots: [
+      {
+        id: 1,
+        point: '苏晚晚的设计稿被顾北辰严厉批评,她决心证明自己的实力'
+      },
+      {
+        id: 2,
+        point: '林雨萱暗中破坏苏晚晚的设计方案,导致项目出现问题'
+      },
+      {
+        id: 3,
+        point: '顾北辰发现真相,开始重新审视苏晚晚,两人关系出现转机'
+      },
+      {
+        id: 4,
+        point: '苏晚晚在压力下完成了惊艳的设计,赢得了顾北辰的认可'
+      },
+      {
+        id: 5,
+        point: '两人在项目庆功宴上,情感关系有了微妙的变化'
+      }
+    ],
+    dialogues: [
+      {
+        id: 1,
+        speaker: '顾北辰',
+        content: '这份设计稿完全不符合我的要求,重做!'
+      },
+      {
+        id: 2,
+        speaker: '苏晚晚',
+        content: '顾总,我会证明给你看,我的设计绝对不会让你失望。'
+      },
+      {
+        id: 3,
+        speaker: '林雨萱',
+        content: '晚晚,北辰哥哥对你要求这么严格,你还是放弃吧。'
+      },
+      {
+        id: 4,
+        speaker: '苏晚晚',
+        content: '我不会放弃的,这是我的梦想。'
+      },
+      {
+        id: 5,
+        speaker: '顾北辰',
+        content: '你的设计...很出色,我之前误会你了。'
+      }
+    ]
+  }
+})
 
 const storyboards = ref([
   {
@@ -1719,7 +1819,7 @@ const loadNovelChapters = async () => {
     const data = JSON.parse(text.replace(/"id":(\d{15,})/g, '"id":"$1"'))
     
     // Convert files to chapters
-    novelChapters.value = data.map(file => ({
+    const apiChapters = data.map(file => ({
       id: file.id,
       fileId: file.id,
       title: file.filename,
@@ -1728,6 +1828,19 @@ const loadNovelChapters = async () => {
       analyzed: false,
       loading: false
     }))
+
+    // Add demo chapter
+    const demoChapter = {
+      id: 'demo-chapter-1',
+      fileId: 'demo',
+      title: '示例章节：霸道总裁爱上我',
+      content: '第一章 初遇\n\n顾北辰坐在豪华的办公室里，冷冷地看着手中的文件。落地窗外，S市的繁华景象尽收眼底，但他眼中只有冰冷。\n\n"这份设计稿重做。"他随手将文件扔在桌上，发出"啪"的一声脆响。\n\n站在办公桌前的苏晚晚身体微微一颤，但她很快挺直了背脊，眼神坚定地看着眼前的男人。\n\n"顾总，我认为这个设计完全符合您的要求。它不仅仅是一个商业项目，更是一种艺术的表达。"苏晚晚的声音虽然不大，但字字铿锵。\n\n顾北辰抬起头，深邃的目光落在苏晚晚身上。这个女人，竟然敢反驳他？\n\n"艺术？"顾北辰嗤笑一声，站起身，一步步走向苏晚晚，强大的气场瞬间笼罩了她，"在商言商，我要的是利润，不是你所谓的艺术。"\n\n两人对视，空气仿佛凝固。就在这时，办公室的门被推开，林雨萱走了进来。\n\n"北辰哥哥，还在忙吗？"林雨萱声音甜美，眼神却在扫过苏晚晚时闪过一丝嫉妒。\n\n苏晚晚深吸一口气，收起桌上的文件，"既然顾总不满意，我会重新修改。告辞。"说完，她转身离去，背影倔强而孤独。',
+      preview: '第一章 初遇\n\n顾北辰坐在豪华的办公室里，冷冷地看着手中的文件...',
+      analyzed: true,
+      loading: false
+    }
+
+    novelChapters.value = [demoChapter, ...apiChapters]
     
     // Load preview for each chapter (first 50 chars)
     for (const chapter of novelChapters.value) {
@@ -1816,6 +1929,7 @@ const analysisConfig = ref({
   style: '2D Anime', // '2D Anime' or 'Realistic'
   tab: 'json' // 'visual' or 'json'
 })
+const showStyleTooltip = ref(null) // null, '2d', or 'realistic'
 
 const confirmAnalysis = async () => {
   if (!targetChapterId.value || !selectedChapter.value) return
@@ -2229,9 +2343,9 @@ onMounted(() => {
   loadMediaFiles()  // Load existing video files from backend
   loadNovelChapters()  // Load novel chapters for analysis
 
-  // Auto-select first chapter for novel analysis (after chapters are loaded)
-  watch(novelChapters, (chapters) => {
-    if (chapters.length > 0 && !selectedChapter.value && activeTab.value === 'novelAnalysis') {
+  // Auto-select first chapter for novel analysis (after chapters are loaded or tab switched)
+  watch([novelChapters, activeTab], ([chapters, tab]) => {
+    if (chapters.length > 0 && !selectedChapter.value && tab === 'novelAnalysis') {
       selectedChapter.value = chapters[0]
       loadChapterContent(chapters[0])
     }
@@ -5082,73 +5196,110 @@ watch(activeTab, (newTab) => {
           </div>
           
           <!-- 3. Content Area -->
-          <div class="flex-1 bg-gray-50 dark:bg-[#1C1C1E] p-6 overflow-hidden relative">
-            
+          <div class="flex-1 bg-white dark:bg-[#2C2C2E] p-6 overflow-hidden relative">
+
             <!-- Visual Config Tab -->
             <div v-if="analysisConfig.tab === 'visual'" class="h-full overflow-y-auto">
-              <div class="bg-white dark:bg-[#2C2C2E] rounded-lg border border-gray-200 dark:border-[#3A3A3C] p-6 max-w-3xl mx-auto mt-8">
-                <h4 class="text-sm font-bold text-primary dark:text-white mb-4">风格选择</h4>
-                <div class="grid grid-cols-2 gap-6">
-                  <button
-                    @click="analysisConfig.style = '2D Anime'"
-                    class="relative p-6 rounded-xl border-2 transition flex flex-col items-center gap-4 group overflow-hidden"
-                    :class="analysisConfig.style === '2D Anime' 
-                      ? 'border-brand-green bg-brand-green/5' 
-                      : 'border-gray-200 dark:border-[#3A3A3C] hover:border-brand-green/50 bg-white dark:bg-[#2C2C2E]'"
-                  >
-                    <div class="w-16 h-16 rounded-full bg-gradient-to-br from-pink-400 to-purple-500 flex items-center justify-center text-white shadow-lg">
-                      <fa :icon="['fas', 'wand-magic-sparkles']" class="text-2xl" />
+              <div class="max-w-2xl">
+                <h4 class="text-base font-bold text-primary dark:text-white mb-6">风格选择</h4>
+                <div class="flex flex-col gap-4">
+                  <!-- 2D 动漫风 -->
+                  <label class="flex items-center gap-3 cursor-pointer group">
+                    <div class="relative flex items-center">
+                      <input
+                        type="radio"
+                        name="style"
+                        value="2D Anime"
+                        v-model="analysisConfig.style"
+                        class="w-5 h-5 text-brand-green border-gray-300 dark:border-gray-600 focus:ring-brand-green focus:ring-2 focus:ring-offset-0 cursor-pointer accent-brand-green"
+                      />
                     </div>
-                    <div class="text-center">
-                      <span class="block font-bold text-primary dark:text-white mb-1">2D 动漫风</span>
-                      <span class="text-xs text-secondary dark:text-gray-400">适合二次元、轻小说风格</span>
+                    <span class="text-base font-medium text-primary dark:text-white group-hover:text-brand-green transition">
+                      2D 动漫风
+                    </span>
+                    <div class="relative">
+                      <button
+                        type="button"
+                        @mouseenter="showStyleTooltip = '2d'"
+                        @mouseleave="showStyleTooltip = null"
+                        class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition focus:outline-none"
+                        @click.prevent
+                      >
+                        <fa :icon="['fas', 'circle-question']" class="text-sm" />
+                      </button>
+                      <!-- Tooltip -->
+                      <div
+                        v-if="showStyleTooltip === '2d'"
+                        class="absolute left-6 top-1/2 -translate-y-1/2 z-50 w-64 px-3 py-2 text-sm text-white bg-gray-900 dark:bg-gray-800 rounded-lg shadow-lg"
+                      >
+                        <div class="relative">
+                          适合二次元、轻小说风格
+                          <!-- Arrow -->
+                          <div class="absolute right-full top-1/2 -translate-y-1/2 border-8 border-transparent border-r-gray-900 dark:border-r-gray-800"></div>
+                        </div>
+                      </div>
                     </div>
-                    <div v-if="analysisConfig.style === '2D Anime'" class="absolute top-3 right-3 text-brand-green">
-                      <fa :icon="['fas', 'circle-check']" class="text-xl" />
-                    </div>
-                  </button>
+                  </label>
 
-                  <button
-                    @click="analysisConfig.style = 'Realistic'"
-                    class="relative p-6 rounded-xl border-2 transition flex flex-col items-center gap-4 group overflow-hidden"
-                    :class="analysisConfig.style === 'Realistic' 
-                      ? 'border-brand-green bg-brand-green/5' 
-                      : 'border-gray-200 dark:border-[#3A3A3C] hover:border-brand-green/50 bg-white dark:bg-[#2C2C2E]'"
-                  >
-                    <div class="w-16 h-16 rounded-full bg-gradient-to-br from-blue-400 to-cyan-500 flex items-center justify-center text-white shadow-lg">
-                      <fa :icon="['fas', 'camera']" class="text-2xl" />
+                  <!-- 真人写实风 -->
+                  <label class="flex items-center gap-3 cursor-pointer group">
+                    <div class="relative flex items-center">
+                      <input
+                        type="radio"
+                        name="style"
+                        value="Realistic"
+                        v-model="analysisConfig.style"
+                        class="w-5 h-5 text-brand-green border-gray-300 dark:border-gray-600 focus:ring-brand-green focus:ring-2 focus:ring-offset-0 cursor-pointer accent-brand-green"
+                      />
                     </div>
-                    <div class="text-center">
-                      <span class="block font-bold text-primary dark:text-white mb-1">真人写实风</span>
-                      <span class="text-xs text-secondary dark:text-gray-400">适合都市、职场、悬疑风格</span>
+                    <span class="text-base font-medium text-primary dark:text-white group-hover:text-brand-green transition">
+                      真人写实风
+                    </span>
+                    <div class="relative">
+                      <button
+                        type="button"
+                        @mouseenter="showStyleTooltip = 'realistic'"
+                        @mouseleave="showStyleTooltip = null"
+                        class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition focus:outline-none"
+                        @click.prevent
+                      >
+                        <fa :icon="['fas', 'circle-question']" class="text-sm" />
+                      </button>
+                      <!-- Tooltip -->
+                      <div
+                        v-if="showStyleTooltip === 'realistic'"
+                        class="absolute left-6 top-1/2 -translate-y-1/2 z-50 w-64 px-3 py-2 text-sm text-white bg-gray-900 dark:bg-gray-800 rounded-lg shadow-lg"
+                      >
+                        <div class="relative">
+                          适合都市、职场、悬疑风格
+                          <!-- Arrow -->
+                          <div class="absolute right-full top-1/2 -translate-y-1/2 border-8 border-transparent border-r-gray-900 dark:border-r-gray-800"></div>
+                        </div>
+                      </div>
                     </div>
-                    <div v-if="analysisConfig.style === 'Realistic'" class="absolute top-3 right-3 text-brand-green">
-                      <fa :icon="['fas', 'circle-check']" class="text-xl" />
-                    </div>
-                  </button>
+                  </label>
                 </div>
               </div>
             </div>
 
             <!-- JSON Preview Tab -->
-            <!-- JSON Preview Tab -->
-            <div v-else class="h-full flex flex-col bg-gray-50 dark:bg-[#1C1C1E] rounded-lg overflow-hidden border border-gray-200 dark:border-[#3A3A3C]">
+            <div v-else class="h-full flex flex-col overflow-hidden">
               <!-- Editor Header -->
-              <div class="flex items-center justify-between px-4 py-2 bg-white dark:bg-[#2C2C2E] border-b border-gray-200 dark:border-[#3A3A3C]">
-                <span class="text-xs font-bold text-gray-500 dark:text-gray-400">JSON</span>
+              <div class="flex items-center justify-between px-4 py-3 border-b border-gray-200 dark:border-[#3A3A3C]">
+                <span class="text-sm font-semibold text-gray-700 dark:text-gray-300">JSON 配置预览</span>
                 <div class="flex items-center gap-3">
-                  <button class="text-gray-400 hover:text-primary dark:hover:text-gray-200 transition" title="Format">
+                  <button class="text-gray-400 hover:text-primary dark:hover:text-gray-200 transition" title="格式化">
                     <fa :icon="['fas', 'indent']" class="text-sm" />
                   </button>
-                  <button class="text-gray-400 hover:text-primary dark:hover:text-gray-200 transition" title="Copy">
+                  <button class="text-gray-400 hover:text-primary dark:hover:text-gray-200 transition" title="复制">
                     <fa :icon="['fas', 'copy']" class="text-sm" />
                   </button>
                 </div>
               </div>
-              
+
               <!-- Editor Content -->
-              <div class="flex-1 overflow-auto bg-[#FAFAFA] dark:bg-[#1E1E1E] p-4 font-mono text-sm">
-                <pre class="text-gray-800 dark:text-gray-300" v-html="coloredJsonPreview"></pre>
+              <div class="flex-1 overflow-auto bg-[#F8F9FA] dark:bg-[#1A1A1A] p-4">
+                <pre class="font-mono text-sm text-gray-800 dark:text-gray-300" v-html="coloredJsonPreview"></pre>
               </div>
             </div>
           </div>

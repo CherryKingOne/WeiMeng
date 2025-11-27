@@ -1,10 +1,14 @@
 # CLAUDE.md
 
-本文件为 Claude Code (claude.ai/code) 提供在此代码库中工作的指导。
+This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
 ## 项目概述
 
 WeiMeng (唯梦) 是一个 AI 辅助的短剧/视频制作平台,基于 Vue 3 + Vite 构建。应用包含营销网站(支持国际化)、工作区(项目管理)和工作室界面(剧本创作、角色管理、分镜生成和视频编辑)。
+
+## 开发环境要求
+
+**Node.js**: 需要 Node.js ^20.19.0 或 >=22.12.0 (在 package.json 的 engines 字段中定义)
 
 ## 开发命令
 
@@ -47,6 +51,14 @@ npm run preview
 **路径别名**: `@` 解析为 `src/` 目录(在 vite.config.js 中配置)
 
 **主题系统**: 深色/浅色模式通过 localStorage('theme') 管理,并应用到文档根元素的 class('dark' class)。每个视图(Workspace、Studio)通过 applyTheme() 函数实现自己的主题应用逻辑。
+
+**环境变量**:
+- `VITE_API_BASE` - 后端 API 基础 URL,默认为 'http://localhost:7767'。在 .env 文件中配置或通过环境变量设置。
+
+**自动标题和语言**: main.js 中的 `setTitleAndLang()` 函数根据 i18n locale 自动设置:
+- 中文环境: document.title = '维梦', lang = 'zh-CN'
+- 英文环境: document.title = 'WeiMeng', lang = 'en'
+- 通过 watch 监听 locale 变化实时更新
 
 ## 工作区视图 (src/views/Workspace.vue)
 
