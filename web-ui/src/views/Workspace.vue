@@ -322,42 +322,125 @@ const loadModelConfigurations = async (modelType) => {
   }
 }
 
+// Load default model configuration from backend
+const loadDefaultModelConfig = async () => {
+  try {
+    const token = localStorage.getItem('accessToken')
+    if (!token) {
+      console.log('[默认模型配置] 未找到 token，跳过加载')
+      return null
+    }
+
+    // 使用固定的 config_id，或者从用户配置中获取
+    const configId = 'wm63405339065589127630'
+    const url = `${API_BASE}/api/v3/chat/default-model?config_id=${configId}`
+
+    console.log('[默认模型配置] 开始加载:', url)
+
+    const response = await fetch(url, {
+      headers: {
+        'Accept': 'application/json',
+        'Authorization': `Bearer ${token}`
+      }
+    })
+
+    console.log('[默认模型配置] 响应状态:', response.status)
+
+    if (response.status === 401) {
+      console.warn('[默认模型配置] 未授权，跳转到登录页')
+      router.push('/login')
+      return null
+    }
+
+    if (!response.ok) {
+      console.error('[默认模型配置] 加载失败，状态码:', response.status)
+      return null
+    }
+
+    const data = await response.json()
+    console.log('[默认模型配置] 加载成功:', data)
+    return data
+  } catch (error) {
+    console.error('[默认模型配置] 加载异常:', error)
+    return null
+  }
+}
+
 const loadAllModelConfigurations = async () => {
+  console.log('[模型配置] 开始加载所有模型配置')
   loadingModels.value = true
   try {
     const types = ['LLM', 'Embedding', 'Rerank', 'STT', 'TTS', 'Video', 'Image']
     const results = await Promise.all(
       types.map(type => loadModelConfigurations(type))
     )
-    
+
     types.forEach((type, index) => {
       availableModels.value[type] = results[index]
+      console.log(`[模型配置] ${type} 模型数量:`, results[index].length)
     })
-    
-    // Auto-select first model if current selection is empty
-    if (!systemReasoningModel.value && availableModels.value.LLM.length > 0) {
-      systemReasoningModel.value = availableModels.value.LLM[0].model_name
+
+    // Load default model configuration from backend
+    const defaultConfig = await loadDefaultModelConfig()
+
+    // Set models from backend config or auto-select first model
+    if (defaultConfig && defaultConfig.data) {
+      const config = defaultConfig.data
+      console.log('[模型配置] 使用后端配置设置默认模型:', {
+        chat_model: config.chat_model,
+        embedding_model: config.embedding_model,
+        rerank_model: config.rerank_model,
+        stt_model: config.stt_model,
+        tts_model: config.tts_model,
+        video_model: config.video_model,
+        image_model: config.image_model
+      })
+
+      systemReasoningModel.value = config.chat_model || (availableModels.value.LLM.length > 0 ? availableModels.value.LLM[0].model_name : '')
+      embeddingModel.value = config.embedding_model || (availableModels.value.Embedding.length > 0 ? availableModels.value.Embedding[0].model_name : '')
+      rerankModel.value = config.rerank_model || (availableModels.value.Rerank.length > 0 ? availableModels.value.Rerank[0].model_name : '')
+      speechToTextModel.value = config.stt_model || (availableModels.value.STT.length > 0 ? availableModels.value.STT[0].model_name : '')
+      textToSpeechModel.value = config.tts_model || (availableModels.value.TTS.length > 0 ? availableModels.value.TTS[0].model_name : '')
+      videoModel.value = config.video_model || (availableModels.value.Video.length > 0 ? availableModels.value.Video[0].model_name : '')
+      imageModel.value = config.image_model || (availableModels.value.Image.length > 0 ? availableModels.value.Image[0].model_name : '')
+    } else {
+      console.log('[模型配置] 未找到后端配置，使用自动选择')
+      // Auto-select first model if current selection is empty
+      if (!systemReasoningModel.value && availableModels.value.LLM.length > 0) {
+        systemReasoningModel.value = availableModels.value.LLM[0].model_name
+      }
+      if (!embeddingModel.value && availableModels.value.Embedding.length > 0) {
+        embeddingModel.value = availableModels.value.Embedding[0].model_name
+      }
+      if (!rerankModel.value && availableModels.value.Rerank.length > 0) {
+        rerankModel.value = availableModels.value.Rerank[0].model_name
+      }
+      if (!speechToTextModel.value && availableModels.value.STT.length > 0) {
+        speechToTextModel.value = availableModels.value.STT[0].model_name
+      }
+      if (!textToSpeechModel.value && availableModels.value.TTS.length > 0) {
+        textToSpeechModel.value = availableModels.value.TTS[0].model_name
+      }
+      if (!videoModel.value && availableModels.value.Video.length > 0) {
+        videoModel.value = availableModels.value.Video[0].model_name
+      }
+      if (!imageModel.value && availableModels.value.Image.length > 0) {
+        imageModel.value = availableModels.value.Image[0].model_name
+      }
     }
-    if (!embeddingModel.value && availableModels.value.Embedding.length > 0) {
-      embeddingModel.value = availableModels.value.Embedding[0].model_name
-    }
-    if (!rerankModel.value && availableModels.value.Rerank.length > 0) {
-      rerankModel.value = availableModels.value.Rerank[0].model_name
-    }
-    if (!speechToTextModel.value && availableModels.value.STT.length > 0) {
-      speechToTextModel.value = availableModels.value.STT[0].model_name
-    }
-    if (!textToSpeechModel.value && availableModels.value.TTS.length > 0) {
-      textToSpeechModel.value = availableModels.value.TTS[0].model_name
-    }
-    if (!videoModel.value && availableModels.value.Video.length > 0) {
-      videoModel.value = availableModels.value.Video[0].model_name
-    }
-    if (!imageModel.value && availableModels.value.Image.length > 0) {
-      imageModel.value = availableModels.value.Image[0].model_name
-    }
+
+    console.log('[模型配置] 最终选择的模型:', {
+      systemReasoningModel: systemReasoningModel.value,
+      embeddingModel: embeddingModel.value,
+      rerankModel: rerankModel.value,
+      speechToTextModel: speechToTextModel.value,
+      textToSpeechModel: textToSpeechModel.value,
+      videoModel: videoModel.value,
+      imageModel: imageModel.value
+    })
   } finally {
     loadingModels.value = false
+    console.log('[模型配置] 加载完成')
   }
 }
 
@@ -369,10 +452,77 @@ const openSystemModelSettings = async () => {
 const closeSystemModelSettings = () => {
   showSystemModelSettings.value = false
 }
-const saveSystemModelSettings = () => {
-  // Save logic here (mock)
-  openToast('系统模型设置已保存')
-  closeSystemModelSettings()
+const saveSystemModelSettings = async () => {
+  console.log('[保存模型配置] 开始保存')
+  try {
+    const token = localStorage.getItem('accessToken')
+    if (!token) {
+      console.warn('[保存模型配置] 未找到 token')
+      openToast('请先登录', 'error')
+      return
+    }
+
+    // 使用固定的 config_id，或者从用户配置中获取
+    const configId = 'wm63405339065589127630'
+
+    // 构建请求体
+    const requestBody = {
+      config_id: configId,
+      chat_model: systemReasoningModel.value || null,
+      embedding_model: embeddingModel.value || null,
+      rerank_model: rerankModel.value || null,
+      stt_model: speechToTextModel.value || null,
+      tts_model: textToSpeechModel.value || null,
+      video_model: videoModel.value || null,
+      image_model: imageModel.value || null
+    }
+
+    console.log('[保存模型配置] 请求体:', requestBody)
+    console.log('[保存模型配置] 请求 URL:', `${API_BASE}/api/v3/chat/default-model`)
+
+    const response = await fetch(
+      `${API_BASE}/api/v3/chat/default-model`,
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify(requestBody)
+      }
+    )
+
+    console.log('[保存模型配置] 响应状态:', response.status)
+
+    if (response.status === 401) {
+      console.warn('[保存模型配置] 未授权，跳转到登录页')
+      router.push('/login')
+      return
+    }
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}))
+      console.error('[保存模型配置] 保存失败:', errorData)
+      openToast(errorData.message || '保存失败', 'error')
+      return
+    }
+
+    const result = await response.json()
+    console.log('[保存模型配置] 响应数据:', result)
+
+    if (result.code === 200 || result.success) {
+      console.log('[保存模型配置] 保存成功')
+      openToast('系统模型设置已保存')
+      closeSystemModelSettings()
+    } else {
+      console.error('[保存模型配置] 保存失败，返回错误:', result.message)
+      openToast(result.message || '保存失败', 'error')
+    }
+  } catch (error) {
+    console.error('[保存模型配置] 保存异常:', error)
+    openToast('保存失败，请稍后重试', 'error')
+  }
 }
 const showApiKeyConfig = ref(false)
 const apiKeyForm = ref({

@@ -264,7 +264,6 @@ curl -X POST "http://0.0.0.0:7767/api/v3/chat/default-model" \
   }'
 
 查看当前全局使用的默认模型
-# 查询指定配置ID是否被设置为默认模型
 curl -X GET "http://0.0.0.0:7767/api/v3/chat/default-model?config_id=wm63405339065589127630" \
   -H "Accept: application/json" \
   -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJjaGVycnlfMDUwNjA3QDE2My5jb20iLCJleHAiOjE3NjY1NjA5MDZ9.LpVZZyHLemOQDXrMWDcjxsAqo7Qas_JK7QdcFi7pIAE"
@@ -278,7 +277,14 @@ curl -X GET "http://0.0.0.0:7767/api/v3/chat/libraries/6250527834723381/effectiv
 
 
 
-
+配置局部模型
+curl -X POST "http://0.0.0.0:7767/api/v3/chat/libraries/6250527834723381/local-model" \
+  -H "Content-Type: application/json" \
+  -H "Accept: application/json" \
+  -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJjaGVycnlfMDUwNjA3QDE2My5jb20iLCJleHAiOjE3NjY1NjA5MDZ9.LpVZZyHLemOQDXrMWDcjxsAqo7Qas_JK7QdcFi7pIAE" \
+  -d '{
+    "config_id": "wm04781979820985307412"
+  }'
 
 
 

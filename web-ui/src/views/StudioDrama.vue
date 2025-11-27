@@ -654,11 +654,12 @@ const fetchModels = async () => {
         else if (name.includes('gpt-3.5')) color = 'text-green-500'
         else if (name.includes('claude')) color = 'text-orange-500'
         else if (m.provider === 'OpenAI') color = 'text-blue-500'
-        
+
         return {
           id: m.model_name,
           name: m.model_name,
           provider: m.provider,
+          config_id: m.config_id || m.id,  // 保存 config_id 用于配置局部模型
           icon: 'robot',
           color: color
         }
@@ -691,6 +692,189 @@ const currentModel = computed(() => {
          (availableModels.value.length > 0 ? availableModels.value[0] : { name: aiConfig.value.model, icon: 'robot', color: 'text-gray-500' })
 })
 
+// Load effective model (local first, then global)
+const loadEffectiveModel = async () => {
+  if (!projectId) {
+    console.warn('【有效模型】未找到剧本库 ID，跳过加载')
+    return
+  }
+
+  try {
+    const token = localStorage.getItem('accessToken')
+    if (!token) {
+      console.warn('【有效模型】未找到 token，跳过加载')
+      return
+    }
+
+    const url = `${API_BASE}/api/v3/chat/libraries/${projectId}/effective-model`
+    console.log('【有效模型】开始加载:', url)
+
+    const response = await fetch(url, {
+      headers: {
+        'Accept': 'application/json',
+        'Authorization': `Bearer ${token}`
+      }
+    })
+
+    console.log('【有效模型】响应状态:', response.status)
+
+    if (response.status === 401) {
+      console.warn('【有效模型】未授权，跳转到登录页')
+      router.push('/login')
+      return
+    }
+
+    // 如果是 404，说明该剧本库还没有配置，尝试加载全局默认模型
+    if (response.status === 404) {
+      console.warn('【有效模型】该剧本库未配置模型，尝试加载全局默认模型')
+      await loadGlobalDefaultModel()
+      return
+    }
+
+    if (!response.ok) {
+      console.error('【有效模型】加载失败，状态码:', response.status)
+      return
+    }
+
+    const data = await response.json()
+    console.log('【有效模型】响应数据:', data)
+
+    if (data.code === 200 && data.data) {
+      const effectiveModel = data.data
+      const modelType = effectiveModel.is_local ? '局部' : '全局'
+      console.log(`【${modelType}】有效模型信息:`, {
+        chat_model: effectiveModel.chat_model,
+        is_local: effectiveModel.is_local,
+        config_id: effectiveModel.config_id
+      })
+
+      // 设置当前使用的模型
+      if (effectiveModel.chat_model) {
+        aiConfig.value.model = effectiveModel.chat_model
+        console.log(`【${modelType}】已设置模型:`, effectiveModel.chat_model)
+      }
+    }
+  } catch (error) {
+    console.error('【有效模型】加载异常:', error)
+    // 出错时尝试加载全局默认模型
+    await loadGlobalDefaultModel()
+  }
+}
+
+// Load global default model
+const loadGlobalDefaultModel = async () => {
+  try {
+    const token = localStorage.getItem('accessToken')
+    if (!token) {
+      console.warn('【全局】未找到 token，跳过加载')
+      return
+    }
+
+    // 使用固定的 config_id 或从用户配置中获取
+    const configId = 'wm63405339065589127630'
+    const url = `${API_BASE}/api/v3/chat/default-model?config_id=${configId}`
+    console.log('【全局】开始加载全局默认模型:', url)
+
+    const response = await fetch(url, {
+      headers: {
+        'Accept': 'application/json',
+        'Authorization': `Bearer ${token}`
+      }
+    })
+
+    console.log('【全局】响应状态:', response.status)
+
+    if (response.status === 401) {
+      console.warn('【全局】未授权，跳转到登录页')
+      router.push('/login')
+      return
+    }
+
+    if (!response.ok) {
+      console.error('【全局】加载失败，状态码:', response.status)
+      return
+    }
+
+    const data = await response.json()
+    console.log('【全局】响应数据:', data)
+
+    if (data.code === 200 && data.data && data.data.chat_model) {
+      aiConfig.value.model = data.data.chat_model
+      console.log('【全局】已设置默认模型:', data.data.chat_model)
+    }
+  } catch (error) {
+    console.error('【全局】加载异常:', error)
+  }
+}
+
+// Configure local model for current library
+const configureLocalModel = async (configId) => {
+  if (!projectId) {
+    console.warn('【局部】未找到剧本库 ID，无法配置')
+    showToastMessage('无法配置局部模型', 'error')
+    return false
+  }
+
+  try {
+    const token = localStorage.getItem('accessToken')
+    if (!token) {
+      console.warn('【局部】未找到 token')
+      showToastMessage('请先登录', 'error')
+      return false
+    }
+
+    const url = `${API_BASE}/api/v3/chat/libraries/${projectId}/local-model`
+    const requestBody = { config_id: configId }
+
+    console.log('【局部】开始配置局部模型:', url)
+    console.log('【局部】请求体:', requestBody)
+
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+        'Authorization': `Bearer ${token}`
+      },
+      body: JSON.stringify(requestBody)
+    })
+
+    console.log('【局部】响应状态:', response.status)
+
+    if (response.status === 401) {
+      console.warn('【局部】未授权，跳转到登录页')
+      router.push('/login')
+      return false
+    }
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}))
+      console.error('【局部】配置失败:', errorData)
+      showToastMessage(errorData.message || '配置局部模型失败', 'error')
+      return false
+    }
+
+    const result = await response.json()
+    console.log('【局部】响应数据:', result)
+
+    if (result.code === 200 || result.success) {
+      console.log('【局部】配置成功')
+      showToastMessage('局部模型配置成功', 'success')
+      // 重新加载有效模型
+      await loadEffectiveModel()
+      return true
+    } else {
+      console.error('【局部】配置失败，返回错误:', result.message)
+      showToastMessage(result.message || '配置局部模型失败', 'error')
+      return false
+    }
+  } catch (error) {
+    console.error('【局部】配置异常:', error)
+    showToastMessage('配置局部模型失败，请稍后重试', 'error')
+    return false
+  }
+}
+
 const toggleModelMenu = () => {
   showModelMenu.value = !showModelMenu.value
   if (showModelMenu.value) {
@@ -699,10 +883,21 @@ const toggleModelMenu = () => {
   }
 }
 
-const selectModel = (modelId) => {
+const selectModel = async (modelId, configId) => {
+  console.log('【模型选择】用户选择模型:', modelId, '配置ID:', configId)
+
+  // 先更新 UI 显示
   aiConfig.value.model = modelId
   showModelMenu.value = false
   modelSearchQuery.value = ''
+
+  // 如果有 configId，则配置为局部模型
+  if (configId && projectId) {
+    console.log('【模型选择】配置为局部模型')
+    await configureLocalModel(configId)
+  } else {
+    console.log('【模型选择】仅更新 UI，不配置局部模型')
+  }
 }
 
 const getSliderStyle = (value, min, max, enabled) => {
@@ -1645,7 +1840,13 @@ const loadExistingFiles = async () => {
         router.push('/login')
         return
       }
-      console.error('Failed to load files')
+      // 如果是 404，说明是新创建的剧本库，还没有文件，这是正常的
+      if (res.status === 404) {
+        console.log('【文件加载】新剧本库，暂无文件')
+        existingFiles.value = []
+        return
+      }
+      console.error('【文件加载】加载失败，状态码:', res.status)
       return
     }
 
@@ -1794,9 +1995,9 @@ const copyFileContent = async () => {
 // Load chapters from backend API
 const loadNovelChapters = async () => {
   if (!projectId) return
-  
+
   loadingChapters.value = true
-  
+
   try {
     const token = localStorage.getItem('accessToken')
     const response = await fetch(`${API_BASE}/api/v1/script/libraries/${projectId}/files`, {
@@ -1805,19 +2006,36 @@ const loadNovelChapters = async () => {
         'Authorization': `Bearer ${token}`
       }
     })
-    
+
     if (!response.ok) {
       if (response.status === 401) {
         router.push('/login')
         return
       }
+      // 如果是 404，说明是新创建的剧本库，还没有文件，这是正常的
+      if (response.status === 404) {
+        console.log('【章节加载】新剧本库，暂无文件')
+        // 只显示示例章节
+        const demoChapter = {
+          id: 'demo-chapter-1',
+          fileId: 'demo',
+          title: '示例章节：霸道总裁爱上我',
+          content: '第一章 初遇\n\n顾北辰坐在豪华的办公室里，冷冷地看着手中的文件。落地窗外，S市的繁华景象尽收眼底，但他眼中只有冰冷。\n\n"这份设计稿重做。"他随手将文件扔在桌上，发出"啪"的一声脆响。\n\n站在办公桌前的苏晚晚身体微微一颤，但她很快挺直了背脊，眼神坚定地看着眼前的男人。\n\n"顾总，我认为这个设计完全符合您的要求。它不仅仅是一个商业项目，更是一种艺术的表达。"苏晚晚的声音虽然不大，但字字铿锵。\n\n顾北辰抬起头，深邃的目光落在苏晚晚身上。这个女人，竟然敢反驳他？\n\n"艺术？"顾北辰嗤笑一声，站起身，一步步走向苏晚晚，强大的气场瞬间笼罩了她，"在商言商，我要的是利润，不是你所谓的艺术。"\n\n两人对视，空气仿佛凝固。就在这时，办公室的门被推开，林雨萱走了进来。\n\n"北辰哥哥，还在忙吗？"林雨萱声音甜美，眼神却在扫过苏晚晚时闪过一丝嫉妒。\n\n苏晚晚深吸一口气，收起桌上的文件，"既然顾总不满意，我会重新修改。告辞。"说完，她转身离去，背影倔强而孤独。',
+          preview: '第一章 初遇\n\n顾北辰坐在豪华的办公室里，冷冷地看着手中的文件...',
+          analyzed: true,
+          loading: false
+        }
+        novelChapters.value = [demoChapter]
+        return
+      }
+      // 其他错误才抛出
       throw new Error('Failed to load chapters')
     }
-    
+
     // Handle large integer IDs
     const text = await response.text()
     const data = JSON.parse(text.replace(/"id":(\d{15,})/g, '"id":"$1"'))
-    
+
     // Convert files to chapters
     const apiChapters = data.map(file => ({
       id: file.id,
@@ -1841,14 +2059,14 @@ const loadNovelChapters = async () => {
     }
 
     novelChapters.value = [demoChapter, ...apiChapters]
-    
+
     // Load preview for each chapter (first 50 chars)
     for (const chapter of novelChapters.value) {
       loadChapterPreview(chapter)
     }
-    
+
   } catch (error) {
-    console.error('Error loading chapters:', error)
+    console.error('【章节加载】加载异常:', error)
     showToastMessage('加载章节失败', 'error')
   } finally {
     loadingChapters.value = false
@@ -2337,11 +2555,15 @@ const handleGlobalClick = (event) => {
   }
 }
 
-onMounted(() => {
+onMounted(async () => {
   loadLibraryInfo()
   loadExistingFiles()
   loadMediaFiles()  // Load existing video files from backend
   loadNovelChapters()  // Load novel chapters for analysis
+
+  // Load models first, then load effective model
+  await fetchModels()  // Load available models list
+  await loadEffectiveModel()  // Load effective model (local first, then global)
 
   // Auto-select first chapter for novel analysis (after chapters are loaded or tab switched)
   watch([novelChapters, activeTab], ([chapters, tab]) => {
@@ -2459,7 +2681,7 @@ watch(activeTab, (newTab) => {
                     <button
                       v-for="model in filteredModels"
                       :key="model.id"
-                      @click="selectModel(model.id)"
+                      @click="selectModel(model.id, model.config_id)"
                       class="w-full flex items-center gap-2 px-2 py-2 rounded-lg hover:bg-gray-50 dark:hover:bg-[#3A3A3C] transition-colors text-left"
                       :class="aiConfig.model === model.id ? 'bg-gray-50 dark:bg-[#3A3A3C]' : ''"
                     >
