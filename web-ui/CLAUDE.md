@@ -1,210 +1,210 @@
 # CLAUDE.md
 
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+本文件为 Claude Code (claude.ai/code) 提供在此代码库中工作的指导。
 
-## Project Overview
+## 项目概述
 
-Vue 3 + Vite application for WeiMeng (唯梦), an AI-assisted drama/video production platform. The app features a marketing site with i18n support, workspace for project management, and a studio interface for script writing, character management, storyboard generation, and video editing.
+WeiMeng (唯梦) 是一个 AI 辅助的短剧/视频制作平台,基于 Vue 3 + Vite 构建。应用包含营销网站(支持国际化)、工作区(项目管理)和工作室界面(剧本创作、角色管理、分镜生成和视频编辑)。
 
-## Development Commands
+## 开发命令
 
 ```bash
-# Install dependencies
+# 安装依赖
 npm install
 
-# Start dev server (http://localhost:5173)
+# 启动开发服务器 (http://localhost:5173)
 npm run dev
 
-# Build for production
+# 生产环境构建
 npm run build
 
-# Preview production build
+# 预览生产构建
 npm run preview
 ```
 
-## Architecture
+## 架构设计
 
-**Tech Stack**: Vue 3 (Composition API), Vue Router, Vue I18n, Vite, Tailwind CSS, FontAwesome, JSZip
+**技术栈**: Vue 3 (Composition API)、Vue Router、Vue I18n、Vite、Tailwind CSS、FontAwesome、JSZip
 
-**Entry Point**: src/main.js initializes the app with i18n, router, and FontAwesome icons
+**入口文件**: src/main.js 初始化应用,配置 i18n、路由和 FontAwesome 图标
 
-**Routing**: src/router/index.js defines routes with authentication guards:
-- `/` - Home (marketing page with header/footer)
-- `/login` - Login page
-- `/workspace` - Workspace view (project management, requires auth)
-- `/studio` - Studio interface (StudioDrama.vue - drama production editor, requires auth)
+**路由系统**: src/router/index.js 定义路由及认证守卫:
+- `/` - 首页(营销页面,带 header/footer)
+- `/login` - 登录页
+- `/workspace` - 工作区视图(项目管理,需要认证)
+- `/studio` - 工作室界面(StudioDrama.vue - 短剧制作编辑器,需要认证)
 
-**Authentication**: Routes with `meta: { requiresAuth: true }` check localStorage('loggedIn') and redirect to login if not authenticated
+**认证机制**: 带有 `meta: { requiresAuth: true }` 的路由会检查 localStorage('loggedIn'),未认证则重定向到登录页
 
-**Layout Logic**: App.vue conditionally shows Header/Footer only on home route using computed properties based on route.name
+**布局逻辑**: App.vue 根据 route.name 使用计算属性条件性地显示 Header/Footer(仅在首页显示)
 
-**I18n**: src/i18n.js contains English and Chinese translations. Locale persists to localStorage ('locale' key). All UI text should use i18n keys with $t() or {{ $t('key') }}.
+**国际化**: src/i18n.js 包含中英文翻译。语言设置持久化到 localStorage('locale')。所有用户界面文本应使用 i18n 键,通过 $t() 或 {{ $t('key') }} 调用。
 
-**Styling**: Tailwind CSS is primary styling system. Custom styles in src/assets/ (base.css, tailwind.css, main.css loaded in order)
+**样式系统**: Tailwind CSS 是主要样式系统。自定义样式位于 src/assets/(按顺序加载 base.css、tailwind.css、main.css)
 
-**Icons**: FontAwesome icons registered in main.js. Use `<fa :icon="['fas', 'icon-name']" />` component. All icons must be imported and added to library in main.js before use.
+**图标系统**: FontAwesome 图标在 main.js 中注册。使用 `<fa :icon="['fas', 'icon-name']" />` 组件。所有图标必须先在 main.js 中导入并添加到 library 才能使用。
 
-**Path Alias**: `@` resolves to `src/` directory (configured in vite.config.js)
+**路径别名**: `@` 解析为 `src/` 目录(在 vite.config.js 中配置)
 
-**Theme System**: Dark/light mode managed via localStorage ('theme' key) and applied to document root class ('dark' class). Each view (Workspace, Studio) implements its own theme application logic via applyTheme() function.
+**主题系统**: 深色/浅色模式通过 localStorage('theme') 管理,并应用到文档根元素的 class('dark' class)。每个视图(Workspace、Studio)通过 applyTheme() 函数实现自己的主题应用逻辑。
 
-## Workspace View (src/views/Workspace.vue)
+## 工作区视图 (src/views/Workspace.vue)
 
-The workspace is the main project management interface with complex state management:
+工作区是主要的项目管理界面,具有复杂的状态管理:
 
-**Modal Architecture**: Uses Vue's `<teleport to="body">` for all modals to ensure proper z-index stacking:
-- Settings modal (`showSettings`) - Multi-tab workspace configuration
-- Account modal (`showAccount`) - User profile management with inline editing
-- Password reset modal (`showReset`) - Password change flow with verification code
-- Change email modal (`showChangeEmail`) - Email change with two-phase verification (current + new)
-- Create project modal (`showCreateModal`) - New project creation with validation
-- Duplicate project modal (`showDuplicate`) - Project duplication with custom naming
-- Add member modal (`showAddMember`) - Team member invitation
-- Invite link modal (`showInviteLink`) - Share invite link after adding member
+**模态框架构**: 使用 Vue 的 `<teleport to="body">` 确保所有模态框的 z-index 正确堆叠:
+- 设置模态框(`showSettings`) - 多标签工作区配置
+- 账户模态框(`showAccount`) - 用户资料管理,支持内联编辑
+- 密码重置模态框(`showReset`) - 带验证码的密码修改流程
+- 修改邮箱模态框(`showChangeEmail`) - 两阶段验证的邮箱修改(当前+新邮箱)
+- 创建项目模态框(`showCreateModal`) - 新建项目,带验证
+- 复制项目模态框(`showDuplicate`) - 项目复制,自定义命名
+- 添加成员模态框(`showAddMember`) - 团队成员邀请
+- 邀请链接模态框(`showInviteLink`) - 添加成员后分享邀请链接
 
-**Modal Pattern**: Each modal follows this structure:
-1. Boolean ref for visibility (e.g., `showSettings`)
-2. Open function that closes user menu first, waits for nextTick, then shows modal
-3. Close function that resets modal state and clears form data
-4. Click outside backdrop to close (via `@click` on backdrop div)
-5. Form validation with error refs (e.g., `nameError`, `permError`)
+**模态框模式**: 每个模态框遵循以下结构:
+1. 布尔 ref 控制可见性(如 `showSettings`)
+2. 打开函数先关闭用户菜单,等待 nextTick,然后显示模态框
+3. 关闭函数重置模态框状态并清空表单数据
+4. 点击背景关闭(通过背景 div 的 `@click`)
+5. 表单验证使用错误 refs(如 `nameError`、`permError`)
 
-**State Management Patterns**:
-- Search/filter: `headerSearch` ref with computed `filteredProjects`, `filteredFavoritesByHeader`, etc.
-- Section navigation: `currentSection` ref ('drafts', 'favorites', 'recent', 'team', 'recycle')
-- View modes: `viewMode` ref ('grid' or 'list')
-- Sort: `sortOption` ref ('modified', 'name') with `sortOrder` ref ('asc', 'desc')
-- Menu tracking: `openMenuId` ref for project menus, `roleMenuForId` ref for member role menus
+**状态管理模式**:
+- 搜索/过滤: `headerSearch` ref 配合计算属性 `filteredProjects`、`filteredFavoritesByHeader` 等
+- 区域导航: `currentSection` ref('drafts'、'favorites'、'recent'、'team'、'recycle')
+- 视图模式: `viewMode` ref('grid' 或 'list')
+- 排序: `sortOption` ref('modified'、'name') 配合 `sortOrder` ref('asc'、'desc')
+- 菜单跟踪: `openMenuId` ref 用于项目菜单,`roleMenuForId` ref 用于成员角色菜单
 
-**Global Click Handler**: Document-level click listener (`onDocClick`) closes all open menus/dropdowns. Use `@click.stop` on interactive elements inside dropdowns to prevent propagation. Handler checks for specific data attributes (e.g., `data-project-menu`, `data-project-menu-button`).
+**全局点击处理器**: 文档级点击监听器(`onDocClick`)关闭所有打开的菜单/下拉框。在下拉框内的交互元素上使用 `@click.stop` 防止事件传播。处理器检查特定的 data 属性(如 `data-project-menu`、`data-project-menu-button`)。
 
-**Toast/Notification System**:
-- `toastOpen` + `toastText` + `toastType` for temporary success/error messages
-- `copyHintOpen` + `copyHintText` for clipboard feedback
-- Auto-dismiss after 2 seconds using setTimeout
+**提示/通知系统**:
+- `toastOpen` + `toastText` + `toastType` 用于临时成功/错误消息
+- `copyHintOpen` + `copyHintText` 用于剪贴板反馈
+- 使用 setTimeout 2 秒后自动关闭
 
-**Member Management**:
-- Members list with search functionality (`searchQuery` + `filteredMembers` computed)
-- Role menu system using `roleMenuForId` ref to track which member's menu is open
-- Inline editing for admin and member names using window.prompt
+**成员管理**:
+- 成员列表带搜索功能(`searchQuery` + `filteredMembers` 计算属性)
+- 角色菜单系统使用 `roleMenuForId` ref 跟踪哪个成员的菜单打开
+- 使用 window.prompt 内联编辑管理员和成员名称
 
-## Studio View (src/views/StudioDrama.vue)
+## 工作室视图 (src/views/StudioDrama.vue)
 
-The studio is a drama production interface with four main tabs for the complete video production workflow:
+工作室是短剧制作界面,包含完整视频制作工作流的四个主要标签:
 
-**Tab System**: `activeTab` ref switches between:
-- `'script'` - Script writing and upload
-- `'characters'` - Character management and consistency
-- `'storyboard'` - Storyboard generation with AI
-- `'video'` - Video editing timeline
+**标签系统**: `activeTab` ref 在以下标签间切换:
+- `'script'` - 剧本创作和上传
+- `'characters'` - 角色管理和一致性
+- `'storyboard'` - AI 分镜生成
+- `'video'` - 视频编辑时间轴
 
-**Script Tab** (`activeTab === 'script'`):
-- Three modes via `scriptMode` ref: 'selection', 'upload', 'write'
-- Selection mode: Choose between uploading files or writing scripts
-- Upload mode: Drag-and-drop or click to upload .txt, .md, .doc, .docx, .csv, .xlsx, .pdf (max 10MB)
-  - `uploadedFiles` ref tracks files with `selected` state, upload progress, and completion status
-  - Files automatically upload to backend via `uploadFileToBackend()` using XMLHttpRequest for progress tracking
-  - `loadExistingFiles()` fetches files from backend on mount, using regex to preserve large integer IDs
-  - File selection system with checkboxes: `fileListSelectAll` ref and `toggleFileSelection()` function
-  - Batch delete functionality: `batchDeleteFiles()` deletes multiple selected files via API
-  - Custom delete confirmation modal (`showDeleteFileConfirm`) instead of browser confirm
-  - Toast notifications (`showToast`, `toastMessage`, `toastType`) for success/error feedback
-- Write mode: Full-screen script editor with AI continuation dialog
-  - `scriptContent` ref stores the script text
-  - AI dialog (`showAiDialog`) positioned at cursor using DOM measurement
-  - AI states: 'idle', 'generating', 'review' tracked by `aiState` ref
-  - `scriptTextarea` ref for cursor position calculation
+**剧本标签** (`activeTab === 'script'`):
+- 通过 `scriptMode` ref 三种模式:'selection'、'upload'、'write'
+- 选择模式: 在上传文件或编写剧本之间选择
+- 上传模式: 拖放或点击上传 .txt、.md、.doc、.docx、.csv、.xlsx、.pdf(最大 10MB)
+  - `uploadedFiles` ref 跟踪文件的 `selected` 状态、上传进度和完成状态
+  - 文件通过 `uploadFileToBackend()` 使用 XMLHttpRequest 自动上传到后端以跟踪进度
+  - `loadExistingFiles()` 从后端获取文件,使用正则表达式保留大整数 ID
+  - 文件选择系统带复选框: `fileListSelectAll` ref 和 `toggleFileSelection()` 函数
+  - 批量删除功能: `batchDeleteFiles()` 通过 API 删除多个选中文件
+  - 自定义删除确认模态框(`showDeleteFileConfirm`)而非浏览器 confirm
+  - Toast 通知(`showToast`、`toastMessage`、`toastType`)用于成功/错误反馈
+- 编写模式: 全屏剧本编辑器,带 AI 续写对话框
+  - `scriptContent` ref 存储剧本文本
+  - AI 对话框(`showAiDialog`)使用 DOM 测量定位在光标处
+  - AI 状态: 'idle'、'generating'、'review' 由 `aiState` ref 跟踪
+  - `scriptTextarea` ref 用于光标位置计算
 
-**Characters Tab** (`activeTab === 'characters'`):
-- Grid display of character cards with avatar, name, role, description
-- `characters` ref array stores character data
-- Character creation modal (`showCharacterModal`) with image upload support
-- Character extraction wizard (`showExtractWizard`) - 7-step process:
-  1. Select script segments or uploaded files
-  2. Select extracted character names
-  3. Edit character appearance/details (age, address, identity, gender, relations, description)
-  4. Review scene environments
-  5. Review dialogue lines
-  6. Choose character art style (2D/live-action)
-  7. Choose scene style (2D/live-action)
-- `extractedRoles` ref for wizard data, `roleDetails` reactive object for character metadata
-- Character image upload with preview (`characterImagePreview`)
+**角色标签** (`activeTab === 'characters'`):
+- 网格显示角色卡片,包含头像、姓名、角色、描述
+- `characters` ref 数组存储角色数据
+- 角色创建模态框(`showCharacterModal`)支持图片上传
+- 角色提取向导(`showExtractWizard`) - 7 步流程:
+  1. 选择剧本片段或上传的文件
+  2. 选择提取的角色名称
+  3. 编辑角色外观/详情(年龄、地址、身份、性别、关系、描述)
+  4. 审查场景环境
+  5. 审查对话台词
+  6. 选择角色艺术风格(2D/真人)
+  7. 选择场景风格(2D/真人)
+- `extractedRoles` ref 用于向导数据,`roleDetails` reactive 对象用于角色元数据
+- 角色图片上传带预览(`characterImagePreview`)
 
-**Storyboard Tab** (`activeTab === 'storyboard'`):
-- Two view modes via `storyboardView` ref: 'compact' (grid cards) or 'detail' (table)
-- `storyboards` ref array with shot data: scene, size, shot type, duration, description, dialogue, sound, prompts, generated flags
-- Batch operations: `generateAllImages()`, `generateAllVideos()` open size selection modal
-- Size modal (`showSizeModal`) with aspect ratio options (1:1, 4:3, 3:4, 16:9, 9:16, 3:2, 2:3, 21:9)
-- Action menu (`openActionMenuId`) for per-shot regeneration/deletion using teleported dropdown
-- Export menu with three options: script CSV, images ZIP (using JSZip), videos CSV
-- `ratioOptions` array defines pixel dimensions for each aspect ratio
+**分镜标签** (`activeTab === 'storyboard'`):
+- 通过 `storyboardView` ref 两种视图模式:'compact'(网格卡片)或 'detail'(表格)
+- `storyboards` ref 数组包含镜头数据: 场景、尺寸、镜头类型、时长、描述、对话、音效、提示词、生成标志
+- 批量操作: `generateAllImages()`、`generateAllVideos()` 打开尺寸选择模态框
+- 尺寸模态框(`showSizeModal`)带宽高比选项(1:1、4:3、3:4、16:9、9:16、3:2、2:3、21:9)
+- 操作菜单(`openActionMenuId`)用于单个镜头的重新生成/删除,使用 teleport 下拉框
+- 导出菜单三个选项: 剧本 CSV、图片 ZIP(使用 JSZip)、视频 CSV
+- `ratioOptions` 数组定义每个宽高比的像素尺寸
 
-**Video Tab** (`activeTab === 'video'`):
-- Media library sidebar with drag-and-drop import
-- `mediaLibrary` computed combines generated storyboard assets + `externalMedia` ref
-- Preview window showing selected media (`currentPreview` ref)
-- Timeline with video/audio tracks using drag-and-drop from media library
-- `timelineItems` ref tracks placed clips with track, label, duration
-- `getItemStyle()` calculates clip positioning (40px per second)
-- Drag-and-drop handlers: `handleDragStart()`, `handleTimelineDrop()`, `handleMediaDrop()`
+**视频标签** (`activeTab === 'video'`):
+- 媒体库侧边栏支持拖放导入
+- `mediaLibrary` 计算属性组合生成的分镜资源 + `externalMedia` ref
+- 预览窗口显示选中的媒体(`currentPreview` ref)
+- 时间轴包含视频/音频轨道,支持从媒体库拖放
+- `timelineItems` ref 跟踪放置的片段,包含轨道、标签、时长
+- `getItemStyle()` 计算片段定位(每秒 40px)
+- 拖放处理器: `handleDragStart()`、`handleTimelineDrop()`、`handleMediaDrop()`
 
-**Modal Architecture**: Uses `<teleport to="body">` for all modals:
-- Character creation modal with image upload
-- Character extraction wizard (multi-step)
-- Size selection modal for image/video generation
-- Action menu dropdown (positioned absolutely)
+**模态框架构**: 所有模态框使用 `<teleport to="body">`:
+- 角色创建模态框,带图片上传
+- 角色提取向导(多步骤)
+- 图片/视频生成的尺寸选择模态框
+- 操作菜单下拉框(绝对定位)
 
-**Theme System**: `theme` ref ('light'/'dark') with `toggleTheme()` applying 'dark' class to document root
+**主题系统**: `theme` ref('light'/'dark'),`toggleTheme()` 将 'dark' class 应用到文档根元素
 
-**State Management Patterns**:
-- Menu tracking: `openActionMenuId` for storyboard action menus, `openExportMenu` for export dropdown
-- File upload: `isDragging` for drag state, `fileInput` ref for hidden input trigger
-- Media: `mediaIsDragging` for video tab drag state, `mediaFileInput` ref
-- Wizard state: `extractStep` (1-7), `selectAll` for bulk selection, `roleEditing`/`roleDetailsOpen` reactive objects
-- Style selection: `styleKind`/`sceneStyleKind` ('2d'/'live'), `selectedCharacterStyle`/`selectedSceneStyle`
+**状态管理模式**:
+- 菜单跟踪: `openActionMenuId` 用于分镜操作菜单,`openExportMenu` 用于导出下拉框
+- 文件上传: `isDragging` 用于拖动状态,`fileInput` ref 用于隐藏的 input 触发器
+- 媒体: `mediaIsDragging` 用于视频标签拖动状态,`mediaFileInput` ref
+- 向导状态: `extractStep`(1-7),`selectAll` 用于批量选择,`roleEditing`/`roleDetailsOpen` reactive 对象
+- 风格选择: `styleKind`/`sceneStyleKind`('2d'/'live'),`selectedCharacterStyle`/`selectedSceneStyle`
 
-**Key Patterns**:
-- Cursor-positioned AI dialog using DOM measurement and mirror div technique
-- File processing simulation with intervals and chunk counting
-- CSV export with proper escaping and UTF-8 BOM
-- ZIP export using JSZip for batch image downloads
-- Drag-and-drop with JSON serialization via dataTransfer
-- Computed properties for filtered views: `visibleSegments`, `visibleFiles`, `sceneSegments`, `dialogueSegments`
+**关键模式**:
+- 使用 DOM 测量和镜像 div 技术的光标定位 AI 对话框
+- 使用 interval 和 chunk 计数的文件处理模拟
+- 带正确转义和 UTF-8 BOM 的 CSV 导出
+- 使用 JSZip 的批量图片下载 ZIP 导出
+- 通过 dataTransfer 进行 JSON 序列化的拖放
+- 过滤视图的计算属性: `visibleSegments`、`visibleFiles`、`sceneSegments`、`dialogueSegments`
 
-## Backend API Integration
+## 后端 API 集成
 
-**Base URL**: Configured via `API_BASE` constant: `import.meta.env.VITE_API_BASE || 'http://localhost:7767'`
+**基础 URL**: 通过 `API_BASE` 常量配置: `import.meta.env.VITE_API_BASE || 'http://localhost:7767'`
 
-**Authentication**: All API requests include `Authorization: Bearer ${token}` header from localStorage('accessToken')
+**认证**: 所有 API 请求包含 `Authorization: Bearer ${token}` 头,token 来自 localStorage('accessToken')
 
-**Key API Endpoints**:
-- `GET /api/v1/script/libraries` - List script libraries
-- `POST /api/v1/script/libraries` - Create script library
-- `DELETE /api/v1/script/libraries/{id}` - Delete script library
-- `GET /api/v1/script/libraries/{id}/files` - List files in library
-- `POST /api/v1/script/libraries/{id}/files` - Upload file (multipart/form-data)
-- `DELETE /api/v1/script/files/{fileId}` - Delete file
+**主要 API 端点**:
+- `GET /api/v1/script/libraries` - 列出剧本库
+- `POST /api/v1/script/libraries` - 创建剧本库
+- `DELETE /api/v1/script/libraries/{id}` - 删除剧本库
+- `GET /api/v1/script/libraries/{id}/files` - 列出库中的文件
+- `POST /api/v1/script/libraries/{id}/files` - 上传文件(multipart/form-data)
+- `DELETE /api/v1/script/files/{fileId}` - 删除文件
 
-**Large Integer Handling**: Backend returns IDs as large integers (15+ digits) that exceed JavaScript's `Number.MAX_SAFE_INTEGER`. To preserve precision:
-- Use regex replacement before JSON parsing: `text.replace(/"id":(\d{15,})/g, '"id":"$1"')`
-- Always store IDs as strings in frontend state
-- Example in `loadExistingFiles()` and `loadLibraries()` functions
+**大整数处理**: 后端返回的 ID 是大整数(15+ 位数字),超过 JavaScript 的 `Number.MAX_SAFE_INTEGER`。为保持精度:
+- JSON 解析前使用正则替换: `text.replace(/"id":(\d{15,})/g, '"id":"$1"')`
+- 前端状态中始终将 ID 存储为字符串
+- 参见 `loadExistingFiles()` 和 `loadLibraries()` 函数中的示例
 
-**Error Handling Pattern**:
-- 401 responses trigger redirect to `/login` via `router.push('/login')`
-- Use custom modals instead of `window.confirm()` or `window.alert()`
-- Show toast notifications for success/error feedback
+**错误处理模式**:
+- 401 响应通过 `router.push('/login')` 触发重定向到登录页
+- 使用自定义模态框而非 `window.confirm()` 或 `window.alert()`
+- 显示 toast 通知用于成功/错误反馈
 
-## Key Conventions
+## 关键约定
 
-- Use Composition API with `<script setup>`
-- All user-facing text must be internationalized via i18n keys (note: current implementation has mixed Chinese/English hardcoded text that should be migrated to i18n)
-- Components organized by type: layout/, sections/, icons/
-- Views in src/views/ for route components
-- Modal z-index: Use z-50 for modals to ensure proper stacking
-- Always use `@click.stop` on interactive elements inside dropdowns to prevent menu closure
-- Form validation pattern: separate error ref for each field, clear on submit, set on validation failure
-- Use `nextTick()` before showing modals to ensure DOM updates complete
-- Cleanup timers in component lifecycle (use onBeforeUnmount to clear intervals/timeouts)
-- Use `reactive()` for objects that need deep reactivity (e.g., file upload progress tracking)
-- Avoid browser default dialogs: use custom modals with `<teleport to="body">` instead
+- 使用 Composition API 配合 `<script setup>`
+- 所有用户界面文本必须通过 i18n 键国际化(注意: 当前实现中有混合的中英文硬编码文本,应迁移到 i18n)
+- 组件按类型组织: layout/、sections/、icons/
+- 路由组件放在 src/views/
+- 模态框 z-index: 使用 z-50 确保正确堆叠
+- 在下拉框内的交互元素上始终使用 `@click.stop` 防止菜单关闭
+- 表单验证模式: 每个字段单独的错误 ref,提交时清除,验证失败时设置
+- 显示模态框前使用 `nextTick()` 确保 DOM 更新完成
+- 组件生命周期中清理定时器(使用 onBeforeUnmount 清除 intervals/timeouts)
+- 对需要深度响应性的对象使用 `reactive()`(如文件上传进度跟踪)
+- 避免浏览器默认对话框: 使用带 `<teleport to="body">` 的自定义模态框

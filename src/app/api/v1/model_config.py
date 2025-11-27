@@ -14,7 +14,7 @@ from app.schemas.model_config import (
     ModelConfigResponse,
     ModelConfigListResponse
 )
-from app.utils.encryption import generate_wm_id, encrypt_key
+from app.utils.encryption import generate_wm_id, encrypt_key, decrypt_key
 
 router = APIRouter()
 
@@ -33,6 +33,7 @@ async def create_model_config(
         id=config_id,
         tenant_id=current_user.id,
         model_name=req.model_name,
+        model_type=req.model_type,
         base_url=req.base_url,
         encrypted_api_key=encrypted_api_key,
         description=req.description
@@ -47,6 +48,7 @@ async def create_model_config(
         "data": {
             "config_id": config_id,
             "model_name": req.model_name,
+            "model_type": req.model_type.value,
             "base_url": req.base_url
         }
     }
@@ -81,7 +83,9 @@ async def list_model_configs(
         ModelConfigResponse(
             config_id=config.id,
             model_name=config.model_name,
+            model_type=config.model_type,
             base_url=config.base_url,
+            api_key=decrypt_key(config.encrypted_api_key),
             description=config.description,
             created_at=config.created_at
         )
@@ -123,6 +127,8 @@ async def update_model_config(
 
     if req.model_name:
         config.model_name = req.model_name
+    if req.model_type:
+        config.model_type = req.model_type
     if req.base_url:
         config.base_url = req.base_url
     if req.api_key:

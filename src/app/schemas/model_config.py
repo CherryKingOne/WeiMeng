@@ -1,10 +1,23 @@
 from pydantic import BaseModel, Field
 from typing import Optional, List
 from datetime import datetime
+from enum import Enum
+
+
+class ModelType(str, Enum):
+    """模型类型枚举"""
+    LLM = "LLM"
+    RERANK = "Rerank"
+    TEXT_EMBEDDING = "Text Embedding"
+    SPEECH2TEXT = "Speech2text"
+    TTS = "TTS"
+    VIDEO = "Video"
+    IMAGE = "Image"
 
 
 class ModelConfigCreate(BaseModel):
     model_name: str = Field(..., description="模型名称")
+    model_type: ModelType = Field(..., description="模型类型: LLM, Rerank, Text Embedding, Speech2text, TTS, Video, Image")
     base_url: str = Field(..., description="基础URL")
     api_key: str = Field(..., description="API密钥")
     description: Optional[str] = Field(None, description="备注信息")
@@ -12,6 +25,7 @@ class ModelConfigCreate(BaseModel):
 
 class ModelConfigUpdate(BaseModel):
     model_name: Optional[str] = Field(None, description="模型名称")
+    model_type: Optional[ModelType] = Field(None, description="模型类型: LLM, Rerank, Text Embedding, Speech2text, TTS, Video, Image")
     base_url: Optional[str] = Field(None, description="基础URL")
     api_key: Optional[str] = Field(None, description="API密钥")
     description: Optional[str] = Field(None, description="备注信息")
@@ -30,7 +44,9 @@ class ModelConfigDelete(BaseModel):
 class ModelConfigResponse(BaseModel):
     config_id: str
     model_name: str
+    model_type: str
     base_url: str
+    api_key: str
     description: Optional[str]
     created_at: datetime
 

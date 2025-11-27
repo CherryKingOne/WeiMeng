@@ -9,6 +9,7 @@ class ModelConfig(Base):
     id = Column(String(22), primary_key=True, index=True)
     tenant_id = Column(String(64), nullable=False, index=True)
     model_name = Column(String(100), nullable=False)
+    model_type = Column(String(50), nullable=False)
     base_url = Column(String(255), nullable=False)
     encrypted_api_key = Column(Text, nullable=False)
     description = Column(Text)

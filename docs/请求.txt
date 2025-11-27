@@ -166,16 +166,16 @@ curl -X DELETE http://0.0.0.0:7767/api/v1/scriptwriting/projects/664849435721465
 
 添加模型：
 curl -X POST \
-  http://0.0.0.0:7767/api/v2/model_config/create \
+  http://127.0.0.1:7767/api/v2/model_config/create \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJjaGVycnlfMDUwNjA3QDE2My5jb20iLCJleHAiOjE3NjY1NjA5MDZ9.LpVZZyHLemOQDXrMWDcjxsAqo7Qas_JK7QdcFi7pIAE" \
   -d '{
-    "model_name": "deepseek",
-    "base_url": "https://api.openai.com/v1",
-    "api_key": "sk-your-api-key-here",
-    "description": "OpenAI GPT-4o Mini 模型配置（带认证）"
+    "model_name": "ZhipuAI/GLM-4.6",
+    "model_type": "LLM",
+    "base_url": "https://api-inference.modelscope.cn/v1",
+    "api_key": "ms-2ecf5308-d03f-4f7c-b4c1-2fc7e789045f",
+    "description": "ModelScope 平台 GLM-4.6 大语言模型配置（支持流式/非流式对话）"
   }'
-
 
 查询模型配置列表
 curl -X GET \
@@ -187,15 +187,16 @@ curl -X GET \
 
 
 更新模型
-curl -X PUT \
+curl -v -X PUT \
   http://127.0.0.1:7767/api/v2/model_config/wm10946408328372511112 \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJjaGVycnlfMDUwNjA3QDE2My5jb20iLCJleHAiOjE3NjY1NjA5MDZ9.LpVZZyHLemOQDXrMWDcjxsAqo7Qas_JK7QdcFi7pIAE" \
   -d '{
-    "model_name": "ZhipuAI/GLM-4.6",
-    "base_url": "https://dashscope.aliyuncs.com/api/v1",
+    "model_name": "deepseek-ai/DeepSeek-V3.2-Exp",
+    "model_type": "LLM",
+    "base_url": "https://api-inference.modelscope.cn/v1/chat/completions",
     "api_key": "ms-2ecf5308-d03f-4f7c-b4c1-2fc7e789045f",
-    "description": "自定义"
+    "description": "更新后：ModelScope 平台 GLM-4.6 大语言模型（优化接口稳定性，补充模型类型字段）"
   }'
 
 删除模型
@@ -205,3 +206,4 @@ curl -X DELETE \
   -H "Content-Type: application/json"
 
 
+模型对话

@@ -57,5 +57,11 @@ async def init_db():
         except Exception:
             pass
 
+        # Add model_type column to model_configs if it doesn't exist
+        try:
+            await conn.execute(text("ALTER TABLE model_configs ADD COLUMN IF NOT EXISTS model_type VARCHAR(50) NOT NULL DEFAULT 'LLM'"))
+        except Exception:
+            pass
+
         # Create all tables
         await conn.run_sync(Base.metadata.create_all)

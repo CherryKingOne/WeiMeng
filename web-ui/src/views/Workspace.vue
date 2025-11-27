@@ -227,6 +227,7 @@ onMounted(() => {
   applyTheme()
   document.addEventListener('click', onDocClick)
   loadLibraries()
+  loadConfiguredModels()
 })
 onBeforeUnmount(() => {
   document.removeEventListener('click', onDocClick)
@@ -268,23 +269,227 @@ const saveSystemModelSettings = () => {
 }
 const showApiKeyConfig = ref(false)
 const apiKeyForm = ref({
-  name: '',
-  apiKey: '',
-  orgId: '',
-  apiBase: ''
+  modelName: '',
+  modelType: '',
+  key: '',
+  url: '',
+  description: ''
 })
+const configuredModels = ref([])
+const showModelList = ref(false)
+const toggleModelList = () => {
+  showModelList.value = !showModelList.value
+}
+const loadConfiguredModels = async () => {
+  try {
+    const token = localStorage.getItem('accessToken')
+
+    if (!token) {
+      return
+    }
+
+    const url = `${API_BASE}/api/v2/model_config/list?page=1&page_size=100&keyword=`
+
+    const response = await fetch(url, {
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${token}`
+      }
+    })
+
+    if (response.status === 401) {
+      router.push('/login')
+      return
+    }
+
+    if (!response.ok) {
+      throw new Error('获取模型列表失败')
+    }
+
+    const result = await response.json()
+
+    // 处理 {code: 200, msg: 'success', data: {...}} 格式
+    let dataList = []
+    if (result.code === 200 && result.data) {
+      if (result.data.items && Array.isArray(result.data.items)) {
+        dataList = result.data.items
+      } else if (result.data.list && Array.isArray(result.data.list)) {
+        dataList = result.data.list
+      } else if (Array.isArray(result.data)) {
+        dataList = result.data
+      }
+    } else if (result.items && Array.isArray(result.items)) {
+      // 兼容 { items: [...], total: number } 格式
+      dataList = result.items
+    } else if (Array.isArray(result)) {
+      // 兼容直接返回数组格式
+      dataList = result
+    }
+
+    configuredModels.value = dataList.map(item => ({
+      id: item.config_id || item.id,
+      modelName: item.model_name,
+      modelType: item.model_type,
+      key: item.api_key,
+      url: item.base_url,
+      description: item.description
+    }))
+  } catch (error) {
+    console.error('[模型列表] 加载失败:', error)
+  }
+}
+const editingModelId = ref(null)
+const showDeleteModelConfirm = ref(false)
+const deleteModelTarget = ref(null)
 const openApiKeyConfig = async () => {
   await nextTick()
   showApiKeyConfig.value = true
 }
 const closeApiKeyConfig = () => {
   showApiKeyConfig.value = false
-  apiKeyForm.value = { name: '', apiKey: '', orgId: '', apiBase: '' }
+  editingModelId.value = null
+  apiKeyForm.value = { modelName: '', modelType: '', key: '', url: '', description: '' }
 }
-const saveApiKeyConfig = () => {
-  // Save logic here
-  openToast('API 密钥配置已保存')
-  closeApiKeyConfig()
+const editModel = async (model) => {
+  editingModelId.value = model.id
+
+  apiKeyForm.value = {
+    modelName: model.modelName,
+    modelType: model.modelType,
+    key: model.key,
+    url: model.url,
+    description: model.description || ''
+  }
+
+  await nextTick()
+  showApiKeyConfig.value = true
+}
+const openDeleteModelConfirm = async (model) => {
+  deleteModelTarget.value = model
+  await nextTick()
+  showDeleteModelConfirm.value = true
+}
+const closeDeleteModelConfirm = () => {
+  showDeleteModelConfirm.value = false
+  deleteModelTarget.value = null
+}
+const confirmDeleteModel = async () => {
+  const model = deleteModelTarget.value
+  if (!model) return
+
+  try {
+    const token = localStorage.getItem('accessToken')
+    if (!token) {
+      openToast('未找到授权令牌，请重新登录', 'error')
+      router.push('/login')
+      return
+    }
+
+    const response = await fetch(`${API_BASE}/api/v2/model_config/${model.id}`, {
+      method: 'DELETE',
+      headers: {
+        'Authorization': `Bearer ${token}`
+      }
+    })
+
+    if (response.status === 401) {
+      openToast('授权已过期，请重新登录', 'error')
+      router.push('/login')
+      return
+    }
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}))
+      throw new Error(errorData.detail || errorData.message || '删除失败')
+    }
+
+    openToast('模型删除成功')
+    closeDeleteModelConfirm()
+    await loadConfiguredModels()
+  } catch (error) {
+    console.error('[删除模型] 失败:', error)
+    openToast(error.message || '删除失败，请稍后重试', 'error')
+  }
+}
+const deleteModel = openDeleteModelConfirm
+const saveApiKeyConfig = async () => {
+  // 验证必填字段
+  if (!apiKeyForm.value.modelName || !apiKeyForm.value.key || !apiKeyForm.value.url) {
+    openToast('请填写所有必填字段', 'error')
+    return
+  }
+
+  try {
+    // 获取 token
+    const token = localStorage.getItem('accessToken')
+    if (!token) {
+      openToast('未找到授权令牌，请重新登录', 'error')
+      router.push('/login')
+      return
+    }
+
+    // 准备请求数据
+    const requestData = {
+      model_name: apiKeyForm.value.modelName.trim(),
+      model_type: apiKeyForm.value.modelType || 'LLM',
+      base_url: apiKeyForm.value.url.trim(),
+      api_key: apiKeyForm.value.key.trim(),
+      description: apiKeyForm.value.description ? apiKeyForm.value.description.trim() : ''
+    }
+
+    // 判断是编辑还是创建
+    const isEditing = editingModelId.value !== null
+    const url = isEditing
+      ? `${API_BASE}/api/v2/model_config/${editingModelId.value}`
+      : `${API_BASE}/api/v2/model_config/create`
+    const method = isEditing ? 'PUT' : 'POST'
+
+    // 调用后端 API
+    const response = await fetch(url, {
+      method: method,
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      },
+      body: JSON.stringify(requestData)
+    })
+
+    if (response.status === 401) {
+      openToast('授权已过期，请重新登录', 'error')
+      router.push('/login')
+      return
+    }
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}))
+      console.error('[保存模型] 错误详情:', errorData)
+
+      // 处理 FastAPI 的验证错误格式
+      let errorMessage = `保存失败 (${response.status})`
+      if (errorData.detail) {
+        if (Array.isArray(errorData.detail)) {
+          errorMessage = errorData.detail.map(err => `${err.loc?.join('.')||'字段'}: ${err.msg}`).join('; ')
+        } else if (typeof errorData.detail === 'string') {
+          errorMessage = errorData.detail
+        }
+      } else if (errorData.message) {
+        errorMessage = errorData.message
+      }
+
+      throw new Error(errorMessage)
+    }
+
+    const result = await response.json()
+
+    openToast(isEditing ? '模型更新成功' : 'API 密钥配置已保存')
+    closeApiKeyConfig()
+
+    // 重新加载模型列表
+    await loadConfiguredModels()
+  } catch (error) {
+    console.error('[保存模型] 失败:', error)
+    openToast(error.message || '保存失败，请稍后重试', 'error')
+  }
 }
 const configureProvider = (p) => { p.configured = true }
 const viewProviderDetail = (p) => {
@@ -1299,7 +1504,7 @@ const loadLibraries = async () => {
                         <img src="https://unpkg.com/@lobehub/icons-static-png@latest/light/openai.png" class="w-8 h-8 object-contain" />
                       </div>
                       <div>
-                        <div class="font-bold text-lg text-primary dark:text-white">OpenAI</div>
+                        <div class="font-bold text-lg text-primary dark:text-white">OpenAI-Compatible</div>
                         <div class="flex gap-2 mt-1">
                           <span class="px-1.5 py-0.5 rounded text-[10px] font-medium bg-gray-200 text-gray-600 dark:bg-[#333333] dark:text-gray-400">LLM</span>
                           <span class="px-1.5 py-0.5 rounded text-[10px] font-medium bg-gray-200 text-gray-600 dark:bg-[#333333] dark:text-gray-400">TEXT EMBEDDING</span>
@@ -1309,98 +1514,50 @@ const loadLibraries = async () => {
                         </div>
                       </div>
                     </div>
-                    <div class="flex gap-3">
-                      <div class="bg-white rounded-lg border border-gray-200 px-3 py-2 flex flex-col items-center justify-center min-w-[100px] dark:bg-[#2C2C2E] dark:border-[#3A3A3C]">
-                        <div class="text-xs text-secondary mb-1">额度 <fa :icon="['fas','circle-question']" class="text-gray-400" /></div>
-                        <div class="text-lg font-bold text-primary dark:text-white">200 <span class="text-xs font-normal text-secondary">消息额度</span></div>
-                      </div>
-                      <div class="bg-white rounded-lg border border-gray-200 p-1 flex flex-col gap-1 min-w-[140px] dark:bg-[#2C2C2E] dark:border-[#3A3A3C]">
-                        <div class="flex items-center justify-between px-2 py-1">
-                          <span class="text-xs text-secondary">未授权</span>
-                          <span class="w-2 h-2 rounded-full bg-red-500"></span>
-                        </div>
-                        <button class="w-full flex items-center justify-center gap-2 bg-white border border-gray-200 rounded py-1.5 text-sm font-medium hover:bg-gray-50 dark:bg-[#3A3A3C] dark:border-transparent dark:text-white dark:hover:bg-[#48484A]" @click="openApiKeyConfig">
-                          <fa :icon="['fas','sliders']" /> 设置
-                        </button>
-                      </div>
-                    </div>
                   </div>
                   <div class="mt-4 pt-3 border-t border-gray-200 dark:border-[#333333] flex items-center justify-between">
-                    <button class="text-sm text-secondary hover:text-primary flex items-center gap-1 dark:text-gray-400 dark:hover:text-white">
-                      显示模型 <fa :icon="['fas','chevron-right']" class="text-xs" />
+                    <button v-if="configuredModels.length > 0" class="text-sm text-secondary hover:text-primary flex items-center gap-1 dark:text-gray-400 dark:hover:text-white" @click="toggleModelList">
+                      {{ configuredModels.length }}个模型 <fa :icon="['fas', showModelList ? 'chevron-down' : 'chevron-right']" class="text-xs" />
                     </button>
-                    <button class="text-sm text-secondary hover:text-primary flex items-center gap-1 dark:text-gray-400 dark:hover:text-white">
-                      <fa :icon="['fas','plus-circle']" /> 添加模型
-                    </button>
-                  </div>
-                </div>
-
-                <!-- Pending Configuration -->
-                <div class="space-y-4">
-                  <div class="font-bold text-lg text-primary dark:text-white">待配置</div>
-                  <div class="rounded-xl border border-gray-200 bg-white p-4 dark:bg-[#1E1E1E] dark:border-[#333333]">
-                    <div class="flex items-start justify-between">
-                      <div class="flex items-center gap-3">
-                        <div class="w-10 h-10 flex items-center justify-center">
-                          <fa :icon="['fas','cube']" class="text-2xl text-primary dark:text-white" />
-                        </div>
-                        <div>
-                          <div class="font-bold text-primary dark:text-white">OpenAI-API-compatible</div>
-                          <div class="flex gap-2 mt-1">
-                            <span class="px-1.5 py-0.5 rounded text-[10px] font-medium bg-gray-100 text-gray-600 dark:bg-[#333333] dark:text-gray-400">LLM</span>
-                            <span class="px-1.5 py-0.5 rounded text-[10px] font-medium bg-gray-100 text-gray-600 dark:bg-[#333333] dark:text-gray-400">RERANK</span>
-                            <span class="px-1.5 py-0.5 rounded text-[10px] font-medium bg-gray-100 text-gray-600 dark:bg-[#333333] dark:text-gray-400">TEXT EMBEDDING</span>
-                            <span class="px-1.5 py-0.5 rounded text-[10px] font-medium bg-gray-100 text-gray-600 dark:bg-[#333333] dark:text-gray-400">SPEECH2TEXT</span>
-                            <span class="px-1.5 py-0.5 rounded text-[10px] font-medium bg-gray-100 text-gray-600 dark:bg-[#333333] dark:text-gray-400">TTS</span>
-                          </div>
-                        </div>
-                      </div>
+                    <div v-else class="flex items-center gap-2 text-sm text-blue-600 dark:text-blue-400">
+                      <fa :icon="['fas','circle-info']" />
+                      <span>请配置 API 密钥，添加模型。</span>
                     </div>
-                    <div class="mt-4 flex items-center justify-between bg-blue-50 px-3 py-2 rounded text-sm text-blue-600 dark:bg-blue-900/20 dark:text-blue-400">
-                      <div class="flex items-center gap-2">
-                        <fa :icon="['fas','circle-info']" />
-                        请配置 API 密钥，添加模型。
-                      </div>
-                      <button class="font-medium hover:underline flex items-center gap-1">
+                    <div class="flex items-center gap-3">
+                      <button v-if="configuredModels.length > 0" class="text-sm text-secondary hover:text-primary dark:text-gray-400 dark:hover:text-white">管理凭据</button>
+                      <button class="text-sm text-secondary hover:text-primary flex items-center gap-1 dark:text-gray-400 dark:hover:text-white" @click="openApiKeyConfig">
                         <fa :icon="['fas','plus-circle']" /> 添加模型
                       </button>
                     </div>
                   </div>
-                </div>
 
-                <!-- Install Model Providers -->
-                <div class="space-y-4">
-                  <div class="flex items-center justify-between">
-                    <div class="flex items-center gap-2">
-                      <fa :icon="['fas','chevron-down']" class="text-sm" />
-                      <div class="font-bold text-lg text-primary dark:text-white">安装模型供应商</div>
-                    </div>
-                    <a href="#" class="text-sm text-brand-green hover:underline flex items-center gap-1">
-                      发现更多就在 Dify 市场 <fa :icon="['fas','arrow-up-right-from-square']" class="text-xs" />
-                    </a>
-                  </div>
-                  <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div v-for="p in providers" :key="p.id" class="group rounded-xl border border-gray-200 bg-white p-5 hover:shadow-md transition-all dark:bg-[#1E1E1E] dark:border-[#333333]">
-                      <div class="flex items-start gap-4">
-                        <div class="w-12 h-12 bg-gray-50 rounded-lg flex items-center justify-center flex-shrink-0 dark:bg-[#2C2C2E]">
-                          <img :src="`https://unpkg.com/@lobehub/icons-static-png@latest/light/${p.slug}.png`" class="w-8 h-8 object-contain" alt="logo" />
+                  <!-- 模型列表展开区域 -->
+                  <div v-if="showModelList && configuredModels.length > 0" class="mt-4 space-y-3">
+                    <div v-for="model in configuredModels" :key="model.id" class="rounded-lg border border-gray-200 bg-gray-50 p-3 dark:bg-[#1E1E1E] dark:border-[#333333]">
+                      <div class="flex items-start justify-between">
+                        <div class="flex-1">
+                          <div class="flex items-center gap-2">
+                            <div class="font-medium text-primary dark:text-white">{{ model.modelName }}</div>
+                            <span v-if="model.modelType" class="px-1.5 py-0.5 rounded text-[10px] font-medium bg-gray-200 text-gray-600 dark:bg-[#333333] dark:text-gray-400">
+                              {{ model.modelType }}
+                            </span>
+                          </div>
+                          <div class="text-xs text-secondary mt-1 dark:text-gray-400">{{ model.url }}</div>
+                          <div v-if="model.description" class="text-xs text-secondary mt-1 dark:text-gray-400">{{ model.description }}</div>
                         </div>
-                        <div class="flex-1 min-w-0">
-                          <div class="flex items-center justify-between">
-                            <div class="font-bold text-primary truncate dark:text-white">{{ p.name }}</div>
-                          </div>
-                          <div class="text-xs text-secondary mt-0.5 flex items-center gap-2">
-                            <span>langgenius</span>
-                            <span>•</span>
-                            <fa :icon="['fas','download']" class="text-[10px]" />
-                            <span>{{ Math.floor(Math.random() * 50000) + 10000 }}</span>
-                          </div>
-                          <div class="text-sm text-secondary mt-3 line-clamp-2 dark:text-gray-400 min-h-[40px]">{{ p.desc }}</div>
+                        <div class="flex items-center gap-2">
+                          <button class="text-gray-400 hover:text-primary dark:hover:text-white" title="编辑" @click="editModel(model)">
+                            <fa :icon="['fas','pen-to-square']" class="text-sm" />
+                          </button>
+                          <button class="text-gray-400 hover:text-red-500" title="删除" @click="deleteModel(model)">
+                            <fa :icon="['fas','trash']" class="text-sm" />
+                          </button>
                         </div>
                       </div>
                     </div>
                   </div>
                 </div>
+
               </div>
               <div v-else-if="settingsTab==='data'" class="space-y-4">
                 <div class="p-4 rounded-xl border bg-white dark:bg-[#1E1E1E] dark:border-[#333333]">
@@ -2129,7 +2286,7 @@ const loadLibraries = async () => {
             <div class="p-8">
               <div class="flex items-start justify-between mb-4">
                  <div>
-                   <h3 class="text-xl font-bold text-primary dark:text-white mb-1">API 密钥授权配置</h3>
+                   <h3 class="text-xl font-bold text-primary dark:text-white mb-1">{{ editingModelId ? '更新 API 密钥授权配置' : 'API 密钥授权配置' }}</h3>
                    <p class="text-sm text-secondary dark:text-gray-400">配置凭据后，工作空间中的所有成员都可以在编排应用时使用此模型。</p>
                  </div>
                  <button class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200" @click="closeApiKeyConfig">
@@ -2138,28 +2295,42 @@ const loadLibraries = async () => {
               </div>
 
               <div class="space-y-5">
-                 <!-- Name -->
+                 <!-- 模型名称 -->
                  <div>
-                   <label class="block text-sm font-bold text-primary dark:text-white mb-2">凭据名称</label>
-                   <input v-model="apiKeyForm.name" type="text" placeholder="请输入" class="w-full bg-gray-100 border-none rounded-lg py-2.5 px-4 text-sm focus:ring-2 focus:ring-brand-green dark:bg-[#1E1E1E] dark:text-[#E0E0E0]" />
+                   <label class="block text-sm font-bold text-primary dark:text-white mb-2">模型名称 <span class="text-red-500">*</span></label>
+                   <input v-model="apiKeyForm.modelName" type="text" placeholder="请输入模型名称" class="w-full bg-gray-100 border-none rounded-lg py-2.5 px-4 text-sm focus:ring-2 focus:ring-brand-green dark:bg-[#1E1E1E] dark:text-[#E0E0E0]" />
                  </div>
 
-                 <!-- API Key -->
+                 <!-- 模型类型 -->
                  <div>
-                   <label class="block text-sm font-bold text-primary dark:text-white mb-2">API Key <span class="text-red-500">*</span></label>
-                   <input v-model="apiKeyForm.apiKey" type="password" placeholder="在此输入您的 API Key" class="w-full bg-gray-100 border-none rounded-lg py-2.5 px-4 text-sm focus:ring-2 focus:ring-brand-green dark:bg-[#1E1E1E] dark:text-[#E0E0E0]" />
+                   <label class="block text-sm font-bold text-primary dark:text-white mb-2">模型类型</label>
+                   <select v-model="apiKeyForm.modelType" class="w-full bg-gray-100 border-none rounded-lg py-2.5 px-4 text-sm focus:ring-2 focus:ring-brand-green dark:bg-[#1E1E1E] dark:text-[#E0E0E0]">
+                     <option value="">请选择模型类型</option>
+                     <option value="LLM">LLM</option>
+                     <option value="TEXT_EMBEDDING">TEXT EMBEDDING</option>
+                     <option value="RERANK">RERANK</option>
+                     <option value="SPEECH2TEXT">SPEECH2TEXT</option>
+                     <option value="TTS">TTS</option>
+                     <option value="MODERATION">MODERATION</option>
+                   </select>
                  </div>
 
-                 <!-- Org ID -->
+                 <!-- Key -->
                  <div>
-                   <label class="block text-sm font-bold text-primary dark:text-white mb-2">组织 ID</label>
-                   <input v-model="apiKeyForm.orgId" type="text" placeholder="在此输入您的组织 ID" class="w-full bg-gray-100 border-none rounded-lg py-2.5 px-4 text-sm focus:ring-2 focus:ring-brand-green dark:bg-[#1E1E1E] dark:text-[#E0E0E0]" />
+                   <label class="block text-sm font-bold text-primary dark:text-white mb-2">Key <span class="text-red-500">*</span></label>
+                   <input v-model="apiKeyForm.key" type="password" placeholder="在此输入您的 Key" class="w-full bg-gray-100 border-none rounded-lg py-2.5 px-4 text-sm focus:ring-2 focus:ring-brand-green dark:bg-[#1E1E1E] dark:text-[#E0E0E0]" />
                  </div>
 
-                 <!-- API Base -->
+                 <!-- URL -->
                  <div>
-                   <label class="block text-sm font-bold text-primary dark:text-white mb-2">API Base</label>
-                   <input v-model="apiKeyForm.apiBase" type="text" placeholder="在此输入您的 API Base，如：https://api.openai.com" class="w-full bg-gray-100 border-none rounded-lg py-2.5 px-4 text-sm focus:ring-2 focus:ring-brand-green dark:bg-[#1E1E1E] dark:text-[#E0E0E0]" />
+                   <label class="block text-sm font-bold text-primary dark:text-white mb-2">URL <span class="text-red-500">*</span></label>
+                   <input v-model="apiKeyForm.url" type="text" placeholder="在此输入您的 URL，如：https://api.openai.com" class="w-full bg-gray-100 border-none rounded-lg py-2.5 px-4 text-sm focus:ring-2 focus:ring-brand-green dark:bg-[#1E1E1E] dark:text-[#E0E0E0]" />
+                 </div>
+
+                 <!-- 描述 -->
+                 <div>
+                   <label class="block text-sm font-bold text-primary dark:text-white mb-2">描述</label>
+                   <textarea v-model="apiKeyForm.description" placeholder="请输入描述（可选）" rows="3" class="w-full bg-gray-100 border-none rounded-lg py-2.5 px-4 text-sm focus:ring-2 focus:ring-brand-green dark:bg-[#1E1E1E] dark:text-[#E0E0E0] resize-none"></textarea>
                  </div>
               </div>
 
@@ -2169,7 +2340,7 @@ const loadLibraries = async () => {
                 </a>
                 <div class="flex gap-3">
                   <button class="px-6 py-2 rounded-lg border border-gray-300 text-secondary hover:bg-gray-100 dark:border-[#3A3A3C] dark:text-gray-300 dark:hover:bg-[#3A3A3C]" @click="closeApiKeyConfig">取消</button>
-                  <button class="px-8 py-2 rounded-lg bg-blue-600 text-white hover:bg-blue-700 font-medium" @click="saveApiKeyConfig">保存</button>
+                  <button class="px-8 py-2 rounded-lg bg-blue-600 text-white hover:bg-blue-700 font-medium" @click="saveApiKeyConfig">{{ editingModelId ? '更新配置' : '保存' }}</button>
                 </div>
               </div>
             </div>
@@ -2178,6 +2349,29 @@ const loadLibraries = async () => {
                  <fa :icon="['fas','lock']" />
                  您的密钥将使用 PKCS1_OAEP 技术进行加密和存储。
                </div>
+            </div>
+          </div>
+        </div>
+      </teleport>
+      <!-- 删除模型确认弹窗 -->
+      <teleport to="body">
+        <div v-if="showDeleteModelConfirm" class="fixed inset-0 z-50 flex items-center justify-center">
+          <div class="absolute inset-0 bg-black/40" @click="closeDeleteModelConfirm"></div>
+          <div class="relative w-full max-w-md bg-white rounded-xl shadow-2xl border border-gray-200 p-6 dark:bg-[#2C2C2E] dark:border-[#3A3A3C]">
+            <div class="flex items-start gap-4">
+              <div class="flex-shrink-0 w-12 h-12 rounded-full bg-red-100 dark:bg-red-900/30 flex items-center justify-center">
+                <fa :icon="['fas','triangle-exclamation']" class="text-red-600 dark:text-red-400 text-xl" />
+              </div>
+              <div class="flex-1">
+                <h3 class="text-lg font-semibold text-primary dark:text-white">确认删除模型</h3>
+                <p class="mt-2 text-sm text-secondary dark:text-gray-400">
+                  确定要删除模型 <span class="font-semibold text-primary dark:text-white">"{{ deleteModelTarget?.modelName }}"</span> 吗？此操作无法撤销。
+                </p>
+              </div>
+            </div>
+            <div class="mt-6 flex justify-end gap-3">
+              <button class="px-4 py-2 rounded-lg border border-gray-300 text-secondary hover:bg-gray-100 dark:border-[#3A3A3C] dark:text-gray-300 dark:hover:bg-[#3A3A3C]" @click="closeDeleteModelConfirm">取消</button>
+              <button class="px-4 py-2 rounded-lg bg-red-600 text-white hover:bg-red-700 dark:bg-red-600 dark:hover:bg-red-700" @click="confirmDeleteModel">删除</button>
             </div>
           </div>
         </div>
