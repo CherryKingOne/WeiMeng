@@ -183,6 +183,37 @@ npm run preview
 - 通过 dataTransfer 进行 JSON 序列化的拖放
 - 过滤视图的计算属性: `visibleSegments`、`visibleFiles`、`sceneSegments`、`dialogueSegments`
 
+## AI 模型配置系统
+
+应用实现了两层模型配置架构,支持全局默认模型和剧本库级别的局部模型:
+
+**全局默认模型** (Workspace.vue):
+- 在工作区设置中配置,对所有剧本库生效
+- API: `GET/POST /api/v3/chat/default-model?config_id={configId}`
+- 配置包含: chat_model, embedding_model, rerank_model, stt_model, tts_model, video_model, image_model
+- 函数: `loadDefaultModelConfig()`, `saveSystemModelSettings()`
+- 控制台日志标签: `【全局】`
+
+**局部模型** (StudioDrama.vue):
+- 针对特定剧本库配置,优先级高于全局模型
+- API: `POST /api/v3/chat/libraries/{libraryId}/local-model` (配置局部模型)
+- API: `GET /api/v3/chat/libraries/{libraryId}/effective-model` (获取有效模型)
+- 函数: `loadEffectiveModel()`, `configureLocalModel()`, `loadGlobalDefaultModel()`
+- 控制台日志标签: `【局部】`、`【有效模型】`
+
+**模型选择流程**:
+1. 页面加载时调用 `fetchModels()` 加载可用模型列表
+2. 调用 `loadEffectiveModel()` 获取当前剧本库的有效模型
+3. 如果有局部配置,使用局部模型;否则使用全局默认模型
+4. 如果 effective-model API 返回 404(新剧本库),自动回退到 `loadGlobalDefaultModel()`
+5. 用户选择模型时,调用 `selectModel(modelId, configId)` 自动配置为局部模型
+
+**404 错误处理**: 新创建的剧本库可能返回 404,这是正常的:
+- `loadEffectiveModel()` - 404 时回退到全局默认模型
+- `loadNovelChapters()` - 404 时只显示示例章节
+- `loadExistingFiles()` - 404 时设置为空数组
+- 不显示错误提示,静默处理
+
 ## 后端 API 集成
 
 **基础 URL**: 通过 `API_BASE` 常量配置: `import.meta.env.VITE_API_BASE || 'http://localhost:7767'`
@@ -190,12 +221,21 @@ npm run preview
 **认证**: 所有 API 请求包含 `Authorization: Bearer ${token}` 头,token 来自 localStorage('accessToken')
 
 **主要 API 端点**:
+
+*剧本库管理*:
 - `GET /api/v1/script/libraries` - 列出剧本库
 - `POST /api/v1/script/libraries` - 创建剧本库
 - `DELETE /api/v1/script/libraries/{id}` - 删除剧本库
 - `GET /api/v1/script/libraries/{id}/files` - 列出库中的文件
 - `POST /api/v1/script/libraries/{id}/files` - 上传文件(multipart/form-data)
 - `DELETE /api/v1/script/files/{fileId}` - 删除文件
+
+*模型配置*:
+- `GET /api/v3/chat/default-model?config_id={id}` - 获取全局默认模型配置
+- `POST /api/v3/chat/default-model` - 保存全局默认模型配置
+- `GET /api/v3/chat/libraries/{id}/effective-model` - 获取剧本库的有效模型(局部优先)
+- `POST /api/v3/chat/libraries/{id}/local-model` - 配置剧本库的局部模型
+- `GET /api/v2/model_config/list?model_type={type}` - 获取可用模型列表
 
 **大整数处理**: 后端返回的 ID 是大整数(15+ 位数字),超过 JavaScript 的 `Number.MAX_SAFE_INTEGER`。为保持精度:
 - JSON 解析前使用正则替换: `text.replace(/"id":(\d{15,})/g, '"id":"$1"')`
@@ -204,8 +244,18 @@ npm run preview
 
 **错误处理模式**:
 - 401 响应通过 `router.push('/login')` 触发重定向到登录页
+- 404 响应在新创建的资源上是正常的,应静默处理而非显示错误
 - 使用自定义模态框而非 `window.confirm()` 或 `window.alert()`
 - 显示 toast 通知用于成功/错误反馈
+
+**调试日志约定**: 使用带标签的控制台日志便于调试:
+- `【全局】` - 全局默认模型相关操作
+- `【局部】` - 局部模型配置相关操作
+- `【有效模型】` - 加载有效模型的操作
+- `【章节加载】` - 章节加载相关操作
+- `【文件加载】` - 文件加载相关操作
+- `【模型选择】` - 用户选择模型的操作
+- `[ModelSelector]` - 模型选择器组件的操作
 
 ## 关键约定
 

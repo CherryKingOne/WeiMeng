@@ -2145,6 +2145,7 @@ const showAnalysisModal = ref(false)
 const targetChapterId = ref(null)
 const analysisConfig = ref({
   style: '2D Anime', // '2D Anime' or 'Realistic'
+  language: 'Chinese', // 'English' or 'Chinese'
   tab: 'json' // 'visual' or 'json'
 })
 const showStyleTooltip = ref(null) // null, '2d', or 'realistic'
@@ -2255,6 +2256,7 @@ const coloredJsonPreview = computed(() => {
     },
     global_config: {
       visual_style: analysisConfig.value.style,
+      language: analysisConfig.value.language,
       context_usage_count: 10
     },
     script_shot_list: (selectedChapter.value?.content || '').split('\n\n').filter(p => p.trim()).map((paragraph, index) => ({
@@ -2267,14 +2269,14 @@ const coloredJsonPreview = computed(() => {
       character_info: { character_name: "", gender: "", appearance_description: "" },
       visual_content: {
         scene_content: "", shot_size: "medium", camera_movement: "fixed",
-        text_to_image_prompt: { CN: { positive_prompt: "", negative_prompt: "" }, English: { positive_prompt: "", negative_prompt: "" } },
+        text_to_image_prompt: { positive_prompt: "", negative_prompt: "" },
         front_image: "图片地址",
-        text_to_image_prompt_back: { CN: { positive_prompt: "", negative_prompt: "" }, English: { positive_prompt: "", negative_prompt: "" } },
+        text_to_image_prompt_back: { positive_prompt: "", negative_prompt: "" },
         back_image: "图片地址",
-        text_to_image_prompt_side: { CN: { positive_prompt: "", negative_prompt: "" }, English: { positive_prompt: "", negative_prompt: "" } },
+        text_to_image_prompt_side: { positive_prompt: "", negative_prompt: "" },
         side_image: "图片地址"
       },
-      image_to_video_prompt: { CN: { positive_prompt: "", negative_prompt: "" }, English: { positive_prompt: "", negative_prompt: "" } },
+      image_to_video_prompt: { positive_prompt: "", negative_prompt: "" },
       video: "url或者视频地址",
       audio_performance: { dialogue_content: "", voice_over: "", voice_emotion: "", sound_effects: "" },
       context_summary: ""
@@ -5424,7 +5426,7 @@ watch(activeTab, (newTab) => {
             <div v-if="analysisConfig.tab === 'visual'" class="h-full overflow-y-auto">
               <div class="max-w-2xl">
                 <h4 class="text-base font-bold text-primary dark:text-white mb-6">风格选择</h4>
-                <div class="flex flex-col gap-4">
+                <div class="flex items-center gap-6">
                   <!-- 2D 动漫风 -->
                   <label class="flex items-center gap-3 cursor-pointer group">
                     <div class="relative flex items-center">
@@ -5433,7 +5435,7 @@ watch(activeTab, (newTab) => {
                         name="style"
                         value="2D Anime"
                         v-model="analysisConfig.style"
-                        class="w-5 h-5 text-brand-green border-gray-300 dark:border-gray-600 focus:ring-brand-green focus:ring-2 focus:ring-offset-0 cursor-pointer accent-brand-green"
+                        class="w-5 h-5 text-brand-green border-gray-300 dark:border-gray-600 focus:ring-0 focus:outline-none cursor-pointer accent-brand-green"
                       />
                     </div>
                     <span class="text-base font-medium text-primary dark:text-white group-hover:text-brand-green transition">
@@ -5471,7 +5473,7 @@ watch(activeTab, (newTab) => {
                         name="style"
                         value="Realistic"
                         v-model="analysisConfig.style"
-                        class="w-5 h-5 text-brand-green border-gray-300 dark:border-gray-600 focus:ring-brand-green focus:ring-2 focus:ring-offset-0 cursor-pointer accent-brand-green"
+                        class="w-5 h-5 text-brand-green border-gray-300 dark:border-gray-600 focus:ring-0 focus:outline-none cursor-pointer accent-brand-green"
                       />
                     </div>
                     <span class="text-base font-medium text-primary dark:text-white group-hover:text-brand-green transition">
@@ -5499,6 +5501,42 @@ watch(activeTab, (newTab) => {
                         </div>
                       </div>
                     </div>
+                  </label>
+                </div>
+
+                <!-- 语言选择 -->
+                <h4 class="text-base font-bold text-primary dark:text-white mb-6 mt-8">语言</h4>
+                <div class="flex items-center gap-6">
+                  <!-- English -->
+                  <label class="flex items-center gap-3 cursor-pointer group">
+                    <div class="relative flex items-center">
+                      <input
+                        type="radio"
+                        name="language"
+                        value="English"
+                        v-model="analysisConfig.language"
+                        class="w-5 h-5 text-brand-green border-gray-300 dark:border-gray-600 focus:ring-0 focus:outline-none cursor-pointer accent-brand-green"
+                      />
+                    </div>
+                    <span class="text-base font-medium text-primary dark:text-white group-hover:text-brand-green transition">
+                      English
+                    </span>
+                  </label>
+
+                  <!-- 中文 -->
+                  <label class="flex items-center gap-3 cursor-pointer group">
+                    <div class="relative flex items-center">
+                      <input
+                        type="radio"
+                        name="language"
+                        value="Chinese"
+                        v-model="analysisConfig.language"
+                        class="w-5 h-5 text-brand-green border-gray-300 dark:border-gray-600 focus:ring-0 focus:outline-none cursor-pointer accent-brand-green"
+                      />
+                    </div>
+                    <span class="text-base font-medium text-primary dark:text-white group-hover:text-brand-green transition">
+                      中文
+                    </span>
                   </label>
                 </div>
               </div>
