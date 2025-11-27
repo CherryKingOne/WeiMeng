@@ -2168,7 +2168,7 @@ const loadLibraries = async () => {
               <div class="flex items-center justify-between mb-6">
                  <h3 class="text-lg font-bold text-primary dark:text-white">系统模型设置</h3>
                  <button class="px-3 py-1.5 rounded-md border text-sm hover:bg-gray-100 dark:border-[#3A3A3C] dark:hover:bg-[#3A3A3C]" @click="closeSystemModelSettings">
-                    <fa :icon="['fas','sliders']" class="mr-1" /> 系统模型设置
+                    关闭
                  </button>
               </div>
 

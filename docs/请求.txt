@@ -182,6 +182,12 @@ curl -X GET \
   "http://127.0.0.1:7767/api/v2/model_config/list?page=1&page_size=10&keyword=" \
   -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJjaGVycnlfMDUwNjA3QDE2My5jb20iLCJleHAiOjE3NjY1NjA5MDZ9.LpVZZyHLemOQDXrMWDcjxsAqo7Qas_JK7QdcFi7pIAE"
 
+查询指定模型
+curl -X GET \
+  "http://127.0.0.1:7767/api/v2/model_config/list?page=1&page_size=10&config_id=wm63405339065589127630" \
+  -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJjaGVycnlfMDUwNjA3QDE2My5jb20iLCJleHAiOjE3NjY1NjA5MDZ9.LpVZZyHLemOQDXrMWDcjxsAqo7Qas_JK7QdcFi7pIAE"
+
+
 
 
 
@@ -207,3 +213,4 @@ curl -X DELETE \
 
 
 模型对话
+1.指定模型对话模型的配置中的uuid（这个用来确认使用那个配置好的模型）然后回返回与之关联的api、key、url、模型名称

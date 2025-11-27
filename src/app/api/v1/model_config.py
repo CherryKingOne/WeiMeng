@@ -59,17 +59,33 @@ async def list_model_configs(
     page: int = 1,
     page_size: int = 10,
     keyword: str = None,
+    model_type: str = None,
+    config_id: str = None,
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db)
 ):
-    """查询模型配置列表"""
+    """查询模型配置列表
+
+    参数:
+    - page: 页码
+    - page_size: 每页数量
+    - keyword: 按模型名称搜索（可选）
+    - model_type: 按模型类型筛选（可选）：LLM, Rerank, Text Embedding, Speech2text, TTS, Video, Image
+    - config_id: 按配置ID查询指定模型（可选）
+    """
     query = select(ModelConfig).where(
         ModelConfig.tenant_id == current_user.id,
         ModelConfig.is_deleted == False
     )
 
+    if config_id:
+        query = query.where(ModelConfig.id == config_id)
+
     if keyword:
         query = query.where(ModelConfig.model_name.ilike(f"%{keyword}%"))
+
+    if model_type:
+        query = query.where(ModelConfig.model_type == model_type)
 
     count_query = select(func.count()).select_from(query.subquery())
     total_result = await db.execute(count_query)
