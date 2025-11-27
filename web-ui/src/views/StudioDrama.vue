@@ -2146,9 +2146,210 @@ const targetChapterId = ref(null)
 const analysisConfig = ref({
   style: '2D Anime', // '2D Anime' or 'Realistic'
   language: 'Chinese', // 'English' or 'Chinese'
-  tab: 'json' // 'visual' or 'json'
+  promptType: 'preset', // 'preset' or 'custom' - 提示词类型
+  tab: 'json', // 'visual', 'prompt', 'variables', or 'json'
+  systemPrompt: '', // 系统提示词
+  outputVariables: '', // 输出变量
+  structuredOutput: false, // 结构化输出开关
+  structuredOutputConfigured: false, // 结构化输出是否已配置
+  structuredFields: [] // 结构化输出字段列表
 })
 const showStyleTooltip = ref(null) // null, '2d', or 'realistic'
+const showFieldEditor = ref(false) // 是否显示字段编辑器
+const currentField = ref({
+  name: '',
+  type: 'string',
+  description: '',
+  required: false,
+  enum: ''
+})
+const editingParentIndex = ref(null) // 正在编辑子字段的父字段索引
+const expandedFields = ref([]) // 展开的字段索引列表
+
+// 配置结构化输出
+const configureStructuredOutput = () => {
+  analysisConfig.value.structuredOutputConfigured = true
+}
+
+// 添加字段
+const addField = () => {
+  showFieldEditor.value = true
+  editingParentIndex.value = null
+  currentField.value = {
+    name: '',
+    type: 'string',
+    description: '',
+    required: false,
+    enum: ''
+  }
+}
+
+// 添加子字段
+const addChildField = (parentIndex) => {
+  editingParentIndex.value = parentIndex
+  showFieldEditor.value = true
+  currentField.value = {
+    name: '',
+    type: 'string',
+    description: '',
+    required: false,
+    enum: ''
+  }
+  // 自动展开父字段
+  if (!expandedFields.value.includes(parentIndex)) {
+    expandedFields.value.push(parentIndex)
+  }
+}
+
+// 切换字段展开/折叠
+const toggleFieldExpand = (index) => {
+  const idx = expandedFields.value.indexOf(index)
+  if (idx > -1) {
+    expandedFields.value.splice(idx, 1)
+  } else {
+    expandedFields.value.push(index)
+  }
+}
+
+// 保存字段
+const saveField = () => {
+  if (!currentField.value.name.trim()) return
+
+  const newField = {
+    ...currentField.value,
+    children: []
+  }
+
+  if (editingParentIndex.value !== null) {
+    // 添加为子字段
+    if (!analysisConfig.value.structuredFields[editingParentIndex.value].children) {
+      analysisConfig.value.structuredFields[editingParentIndex.value].children = []
+    }
+    analysisConfig.value.structuredFields[editingParentIndex.value].children.push(newField)
+  } else {
+    // 添加为顶级字段
+    analysisConfig.value.structuredFields.push(newField)
+  }
+
+  showFieldEditor.value = false
+  editingParentIndex.value = null
+  currentField.value = {
+    name: '',
+    type: 'string',
+    description: '',
+    required: false,
+    enum: ''
+  }
+}
+
+// 取消编辑字段
+const cancelFieldEdit = () => {
+  showFieldEditor.value = false
+  currentField.value = {
+    name: '',
+    type: 'string',
+    description: '',
+    required: false,
+    enum: ''
+  }
+}
+
+// 删除字段
+const deleteField = (index) => {
+  analysisConfig.value.structuredFields.splice(index, 1)
+}
+
+// 获取预设提示词
+const getPresetPrompt = () => {
+  return `你是一个专业的剧本分析师，擅长从剧本中提取关键信息。
+
+请分析提供的剧本内容，并按照以下JSON格式输出分析结果：
+
+{
+  "characters": [
+    {
+      "name": "角色名称",
+      "role": "角色定位（如：男主角/霸道总裁）",
+      "description": "角色性格和特征描述"
+    }
+  ],
+  "scenes": [
+    {
+      "name": "场景名称",
+      "location": "场景位置",
+      "description": "场景详细描述，包括环境、氛围、光线等"
+    }
+  ],
+  "plots": [
+    {
+      "sequence": 1,
+      "summary": "情节概要",
+      "description": "情节详细描述"
+    }
+  ],
+  "dialogues": [
+    {
+      "character": "角色名称",
+      "content": "对话内容",
+      "emotion": "情感状态"
+    }
+  ]
+}
+
+要求：
+1. 准确识别所有主要角色及其关系
+2. 详细描述每个场景的视觉元素
+3. 按时间顺序梳理情节发展
+4. 提取关键对话及其情感色彩
+5. 输出必须是有效的JSON格式`
+}
+
+// 应用提示词模板
+const applyPromptTemplate = (templateType) => {
+  const templates = {
+    anime: `你是一个专业的短剧分镜师，擅长将文字剧本转换为二次元动漫风格的视觉画面描述。
+
+请根据剧本内容，生成详细的分镜描述，要求：
+1. 画面风格：二次元动漫风格，色彩鲜艳，线条清晰
+2. 人物表现：表情生动，动作夸张，符合动漫特征
+3. 场景描述：详细描述场景环境、光线、氛围
+4. 镜头语言：明确镜头角度、景别、运动方式
+5. 情感传达：通过画面元素传达角色情感和剧情张力`,
+
+    realistic: `你是一个专业的短剧分镜师，擅长将文字剧本转换为真人写实风格的视觉画面描述。
+
+请根据剧本内容，生成详细的分镜描述，要求：
+1. 画面风格：真人写实风格，自然光线，真实质感
+2. 人物表现：自然的表情和动作，符合真实人物特征
+3. 场景描述：详细描述现实场景环境、光线、氛围
+4. 镜头语言：明确镜头角度、景别、运动方式
+5. 情感传达：通过细腻的画面细节传达角色情感`,
+
+    fantasy: `你是一个专业的短剧分镜师，擅长将文字剧本转换为奇幻风格的视觉画面描述。
+
+请根据剧本内容，生成详细的分镜描述，要求：
+1. 画面风格：奇幻艺术风格，魔法氛围，史诗场景
+2. 人物表现：神秘的角色形象，魔法特效，奇幻服饰
+3. 场景描述：详细描述奇幻世界环境、魔法光效、神秘氛围
+4. 镜头语言：明确镜头角度、景别、运动方式
+5. 情感传达：通过奇幻元素和氛围营造传达剧情张力`,
+
+    scifi: `你是一个专业的短剧分镜师，擅长将文字剧本转换为科幻风格的视觉画面描述。
+
+请根据剧本内容，生成详细的分镜描述，要求：
+1. 画面风格：科幻风格，未来感，高科技元素
+2. 人物表现：科技装备，未来服饰，赛博朋克美学
+3. 场景描述：详细描述未来科技环境、霓虹灯光、科幻氛围
+4. 镜头语言：明确镜头角度、景别、运动方式
+5. 情感传达：通过科技元素和未来感营造剧情氛围`
+  }
+
+  const template = templates[templateType]
+  if (template) {
+    analysisConfig.value.systemPrompt = template
+    showToastMessage('模板已应用', 'success')
+  }
+}
 
 const confirmAnalysis = async () => {
   if (!targetChapterId.value || !selectedChapter.value) return
@@ -2246,49 +2447,31 @@ const currentAnalysis = computed(() => {
   return analysisResults.value[selectedChapter.value.id]
 })
 
-const coloredJsonPreview = computed(() => {
-  const data = {
-    file_info: {
-      file_id: targetChapterId.value || "FILE_123456789",
-      file_name: selectedChapter.value?.title || "未命名章节",
-      total_word_count: (selectedChapter.value?.content || '').length,
-      script_generation_time: new Date().toISOString()
-    },
-    global_config: {
-      visual_style: analysisConfig.value.style,
-      language: analysisConfig.value.language,
-      context_usage_count: 10
-    },
-    script_shot_list: (selectedChapter.value?.content || '').split('\n\n').filter(p => p.trim()).map((paragraph, index) => ({
-      shot_number: index + 1,
-      original_text: paragraph.trim(),
-      core_concept_extraction: "",
-      original_word_count: paragraph.trim().length,
-      type: paragraph.includes('：') || paragraph.includes(':') ? "dialogue" : "narration/action",
-      duration: "3.5s",
-      character_info: { character_name: "", gender: "", appearance_description: "" },
-      visual_content: {
-        scene_content: "", shot_size: "medium", camera_movement: "fixed",
-        text_to_image_prompt: { positive_prompt: "", negative_prompt: "" },
-        front_image: "图片地址",
-        text_to_image_prompt_back: { positive_prompt: "", negative_prompt: "" },
-        back_image: "图片地址",
-        text_to_image_prompt_side: { positive_prompt: "", negative_prompt: "" },
-        side_image: "图片地址"
-      },
-      image_to_video_prompt: { positive_prompt: "", negative_prompt: "" },
-      video: "url或者视频地址",
-      audio_performance: { dialogue_content: "", voice_over: "", voice_emotion: "", sound_effects: "" },
-      context_summary: ""
-    }))
-  }
+// Generate JSON data for preview
+const jsonPreviewData = computed(() => {
+  // 默认返回空对象
+  return {}
+})
 
-  return JSON.stringify(data, null, 2)
+const coloredJsonPreview = computed(() => {
+  return JSON.stringify(jsonPreviewData.value, null, 2)
     .replace(/"([^"]+)":/g, '<span class="text-red-600 dark:text-red-400">"$1"</span>:')
     .replace(/: "([^"]*)"/g, ': <span class="text-green-600 dark:text-green-400">"$1"</span>')
     .replace(/: (\d+)/g, ': <span class="text-blue-600 dark:text-blue-400">$1</span>')
     .replace(/: (true|false|null)/g, ': <span class="text-purple-600 dark:text-purple-400">$1</span>')
 })
+
+// Copy JSON to clipboard
+const copyJsonToClipboard = async () => {
+  try {
+    const jsonString = JSON.stringify(jsonPreviewData.value, null, 2)
+    await navigator.clipboard.writeText(jsonString)
+    showToastMessage('JSON 已复制到剪贴板', 'success')
+  } catch (error) {
+    console.error('复制失败:', error)
+    showToastMessage('复制失败', 'error')
+  }
+}
 
 // Extract characters from script
 const showExtractWizard = ref(false)
@@ -4778,7 +4961,7 @@ watch(activeTab, (newTab) => {
     <!-- Toast Notification -->
     <teleport to="body">
       <transition name="toast">
-        <div v-if="showToast" class="fixed top-4 right-4 z-50 flex items-center gap-3 px-4 py-3 rounded-lg shadow-lg"
+        <div v-if="showToast" class="fixed top-4 right-4 z-[100] flex items-center gap-3 px-4 py-3 rounded-lg shadow-lg"
           :class="toastType === 'success' ? 'bg-green-500 text-white' : 'bg-red-500 text-white'">
           <fa :icon="['fas', toastType === 'success' ? 'check-circle' : 'triangle-exclamation']" class="text-xl" />
           <span class="font-medium">{{ toastMessage }}</span>
@@ -5388,28 +5571,47 @@ watch(activeTab, (newTab) => {
           <!-- 2. Toolbar / Tabs -->
           <div class="px-6 py-3 flex items-center justify-between border-b border-gray-100 dark:border-[#3A3A3C] bg-white dark:bg-[#2C2C2E]">
             <div class="flex items-center gap-2 bg-gray-100 dark:bg-[#3A3A3C] p-1 rounded-lg">
-              <button 
+              <button
                 @click="analysisConfig.tab = 'visual'"
                 class="px-3 py-1.5 text-sm font-medium rounded-md transition flex items-center gap-2"
-                :class="analysisConfig.tab === 'visual' 
-                  ? 'bg-white dark:bg-[#2C2C2E] text-primary dark:text-white shadow-sm' 
+                :class="analysisConfig.tab === 'visual'
+                  ? 'bg-white dark:bg-[#2C2C2E] text-primary dark:text-white shadow-sm'
                   : 'text-secondary dark:text-gray-400 hover:text-primary dark:hover:text-gray-200'"
               >
                 <fa :icon="['fas', 'wand-magic-sparkles']" />
                 风格配置
               </button>
-              <button 
+              <button
+                @click="analysisConfig.tab = 'prompt'"
+                class="px-3 py-1.5 text-sm font-medium rounded-md transition flex items-center gap-2"
+                :class="analysisConfig.tab === 'prompt'
+                  ? 'bg-white dark:bg-[#2C2C2E] text-primary dark:text-white shadow-sm'
+                  : 'text-secondary dark:text-gray-400 hover:text-primary dark:hover:text-gray-200'"
+              >
+                <fa :icon="['fas', 'message']" />
+                提示词
+              </button>
+              <button
+                @click="showToastMessage('输出变量功能正在开发中，敬请期待', 'info')"
+                class="px-3 py-1.5 text-sm font-medium rounded-md transition flex items-center gap-2 text-secondary dark:text-gray-400 hover:text-primary dark:hover:text-gray-200 relative"
+              >
+                <fa :icon="['fas', 'brackets-curly']" />
+                输出变量
+                <span class="px-1.5 py-0.5 text-[10px] font-bold bg-blue-500 text-white rounded uppercase">Beta</span>
+              </button>
+              <button
                 @click="analysisConfig.tab = 'json'"
                 class="px-3 py-1.5 text-sm font-medium rounded-md transition flex items-center gap-2"
-                :class="analysisConfig.tab === 'json' 
-                  ? 'bg-white dark:bg-[#2C2C2E] text-primary dark:text-white shadow-sm' 
+                :class="analysisConfig.tab === 'json'
+                  ? 'bg-white dark:bg-[#2C2C2E] text-primary dark:text-white shadow-sm'
                   : 'text-secondary dark:text-gray-400 hover:text-primary dark:hover:text-gray-200'"
               >
                 <fa :icon="['fas', 'code']" />
                 JSON 预览
+                <span class="px-1.5 py-0.5 text-[10px] font-bold bg-green-500 text-white rounded">处理结果</span>
               </button>
             </div>
-            
+
             <!-- Optional Right Side Actions -->
             <div v-if="analysisConfig.tab === 'json'" class="flex items-center gap-3">
               <button class="text-xs text-brand-green hover:text-brand-green-dark flex items-center gap-1">
@@ -5539,11 +5741,442 @@ watch(activeTab, (newTab) => {
                     </span>
                   </label>
                 </div>
+
+                <!-- 提示词选择 -->
+                <h4 class="text-base font-bold text-primary dark:text-white mb-6 mt-8">提示词选择</h4>
+                <div class="flex items-center gap-6">
+                  <!-- 预设 -->
+                  <label class="flex items-center gap-3 cursor-pointer group">
+                    <div class="relative flex items-center">
+                      <input
+                        type="radio"
+                        name="promptType"
+                        value="preset"
+                        v-model="analysisConfig.promptType"
+                        class="w-5 h-5 text-brand-green border-gray-300 dark:border-gray-600 focus:ring-0 focus:outline-none cursor-pointer accent-brand-green"
+                      />
+                    </div>
+                    <span class="text-base font-medium text-primary dark:text-white group-hover:text-brand-green transition">
+                      预设
+                    </span>
+                  </label>
+
+                  <!-- 自定义 -->
+                  <label class="flex items-center gap-3 cursor-pointer group">
+                    <div class="relative flex items-center">
+                      <input
+                        type="radio"
+                        name="promptType"
+                        value="custom"
+                        v-model="analysisConfig.promptType"
+                        class="w-5 h-5 text-brand-green border-gray-300 dark:border-gray-600 focus:ring-0 focus:outline-none cursor-pointer accent-brand-green"
+                      />
+                    </div>
+                    <span class="text-base font-medium text-primary dark:text-white group-hover:text-brand-green transition">
+                      自定义
+                    </span>
+                  </label>
+                </div>
+              </div>
+            </div>
+
+            <!-- Prompt Tab -->
+            <div v-else-if="analysisConfig.tab === 'prompt'" class="h-full flex flex-col overflow-hidden">
+              <!-- Prompt Header -->
+              <div class="flex items-center justify-between px-4 py-3 border-b border-gray-200 dark:border-[#3A3A3C]">
+                <span class="text-sm font-semibold text-gray-700 dark:text-gray-300">
+                  {{ analysisConfig.promptType === 'preset' ? '预设提示词（只读）' : '自定义提示词' }}
+                </span>
+                <div v-if="analysisConfig.promptType === 'custom'" class="flex items-center gap-3">
+                  <span class="text-xs text-gray-500 dark:text-gray-400">快速模板：</span>
+                  <button @click="applyPromptTemplate('anime')" class="text-xs text-brand-green hover:text-brand-green-dark flex items-center gap-1" title="动漫风格">
+                    <fa :icon="['fas', 'wand-magic-sparkles']" />
+                    动漫
+                  </button>
+                  <button @click="applyPromptTemplate('realistic')" class="text-xs text-brand-green hover:text-brand-green-dark flex items-center gap-1" title="写实风格">
+                    <fa :icon="['fas', 'camera']" />
+                    写实
+                  </button>
+                  <button @click="applyPromptTemplate('fantasy')" class="text-xs text-brand-green hover:text-brand-green-dark flex items-center gap-1" title="奇幻风格">
+                    <fa :icon="['fas', 'hat-wizard']" />
+                    奇幻
+                  </button>
+                  <button @click="applyPromptTemplate('scifi')" class="text-xs text-brand-green hover:text-brand-green-dark flex items-center gap-1" title="科幻风格">
+                    <fa :icon="['fas', 'rocket']" />
+                    科幻
+                  </button>
+                </div>
+              </div>
+
+              <!-- Prompt Editor Content -->
+              <div class="flex-1 overflow-auto bg-[#F8F9FA] dark:bg-[#1A1A1A] p-4">
+                <textarea
+                  v-if="analysisConfig.promptType === 'custom'"
+                  v-model="analysisConfig.systemPrompt"
+                  class="w-full h-full px-4 py-3 bg-white dark:bg-[#0D0D0D] border border-gray-300 dark:border-[#2A2A2A] rounded-lg font-mono text-sm text-gray-800 dark:text-gray-300 focus:ring-2 focus:ring-brand-green focus:border-transparent resize-none"
+                  placeholder="在这里写你的提示词"
+                ></textarea>
+                <div
+                  v-else
+                  class="w-full h-full px-4 py-3 bg-gray-100 dark:bg-[#0D0D0D] border border-gray-300 dark:border-[#2A2A2A] rounded-lg font-mono text-sm text-gray-600 dark:text-gray-400 overflow-auto whitespace-pre-wrap"
+                >{{ getPresetPrompt() }}</div>
+              </div>
+            </div>
+
+            <!-- Variables Tab -->
+            <div v-else-if="analysisConfig.tab === 'variables'" class="h-full overflow-y-auto">
+              <div class="max-w-3xl mx-auto py-3">
+                <!-- Header with Toggle -->
+                <div class="flex items-center justify-between mb-3 px-3">
+                  <div class="flex items-center gap-1.5">
+                    <h4 class="text-sm font-bold text-primary dark:text-white">输出变量</h4>
+                    <button class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300">
+                      <fa :icon="['fas', 'circle-question']" class="text-[10px]" />
+                    </button>
+                  </div>
+                  <div class="flex items-center gap-1.5">
+                    <fa :icon="['fas', 'triangle-exclamation']" class="text-orange-500 text-xs" />
+                    <span class="text-[11px] text-gray-600 dark:text-gray-400">结构化输出</span>
+                    <button
+                      @click="analysisConfig.structuredOutput = !analysisConfig.structuredOutput"
+                      class="relative inline-flex h-4 w-8 items-center rounded-full transition-colors"
+                      :class="analysisConfig.structuredOutput ? 'bg-blue-600' : 'bg-gray-300 dark:bg-gray-600'"
+                    >
+                      <span
+                        class="inline-block h-2.5 w-2.5 transform rounded-full bg-white transition-transform"
+                        :class="analysisConfig.structuredOutput ? 'translate-x-4' : 'translate-x-1'"
+                      ></span>
+                    </button>
+                  </div>
+                </div>
+
+                <!-- Variables List -->
+                <div class="space-y-1.5 px-3">
+                  <!-- text variable -->
+                  <div class="border border-gray-200 dark:border-[#3A3A3C] rounded p-2 bg-white dark:bg-[#1C1C1E]">
+                    <div class="flex items-start justify-between">
+                      <div class="flex-1">
+                        <div class="flex items-center gap-1.5">
+                          <span class="font-mono text-[11px] font-semibold text-primary dark:text-white">text</span>
+                          <span class="text-[9px] px-1 py-0.5 rounded bg-gray-100 dark:bg-[#2C2C2E] text-gray-600 dark:text-gray-400">string</span>
+                        </div>
+                        <p class="text-[10px] text-gray-500 dark:text-gray-400 mt-0.5">生成内容</p>
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- reasoning_content variable -->
+                  <div class="border border-gray-200 dark:border-[#3A3A3C] rounded p-2 bg-white dark:bg-[#1C1C1E]">
+                    <div class="flex items-start justify-between">
+                      <div class="flex-1">
+                        <div class="flex items-center gap-1.5">
+                          <span class="font-mono text-[11px] font-semibold text-primary dark:text-white">reasoning_content</span>
+                          <span class="text-[9px] px-1 py-0.5 rounded bg-gray-100 dark:bg-[#2C2C2E] text-gray-600 dark:text-gray-400">string</span>
+                        </div>
+                        <p class="text-[10px] text-gray-500 dark:text-gray-400 mt-0.5">推理内容</p>
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- usage variable -->
+                  <div class="border border-gray-200 dark:border-[#3A3A3C] rounded p-2 bg-white dark:bg-[#1C1C1E]">
+                    <div class="flex items-start justify-between">
+                      <div class="flex-1">
+                        <div class="flex items-center gap-1.5">
+                          <span class="font-mono text-[11px] font-semibold text-primary dark:text-white">usage</span>
+                          <span class="text-[9px] px-1 py-0.5 rounded bg-gray-100 dark:bg-[#2C2C2E] text-gray-600 dark:text-gray-400">object</span>
+                        </div>
+                        <p class="text-[10px] text-gray-500 dark:text-gray-400 mt-0.5">模型用量信息</p>
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- structured_output variable -->
+                  <div class="border border-gray-200 dark:border-[#3A3A3C] rounded p-2 bg-white dark:bg-[#1C1C1E]">
+                    <div class="flex items-start justify-between mb-1.5">
+                      <div class="flex-1">
+                        <div class="flex items-center gap-1.5">
+                          <span class="font-mono text-[11px] font-semibold text-primary dark:text-white">structured_output</span>
+                          <span class="text-[9px] px-1 py-0.5 rounded bg-gray-100 dark:bg-[#2C2C2E] text-gray-600 dark:text-gray-400">object</span>
+                        </div>
+                      </div>
+                      <button
+                        v-if="!analysisConfig.structuredOutputConfigured"
+                        @click="configureStructuredOutput"
+                        class="text-[11px] text-blue-600 hover:text-blue-700 dark:text-blue-400 flex items-center gap-0.5"
+                      >
+                        <fa :icon="['fas', 'pen']" class="text-[9px]" />
+                        配置
+                      </button>
+                    </div>
+                    <div v-if="!analysisConfig.structuredOutputConfigured" class="text-center py-3 text-[10px] text-gray-400 dark:text-gray-500">
+                      结构化输出尚未配置
+                    </div>
+                    <div v-else class="mt-2 space-y-2">
+                      <!-- 已添加的字段列表 -->
+                      <div v-for="(field, index) in analysisConfig.structuredFields" :key="index">
+                        <!-- 父字段 -->
+                        <div class="group border-l-2 border-blue-500 pl-2 py-1 hover:bg-gray-50 dark:hover:bg-[#2C2C2E] rounded-r transition relative">
+                          <div class="flex items-center justify-between">
+                            <div class="flex items-center gap-1.5">
+                              <!-- 展开/折叠箭头 - 仅当有子字段时显示 -->
+                              <button
+                                v-if="field.children && field.children.length > 0"
+                                @click="toggleFieldExpand(index)"
+                                class="p-0.5 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+                              >
+                                <fa :icon="['fas', expandedFields.includes(index) ? 'chevron-down' : 'chevron-right']" class="text-[8px]" />
+                              </button>
+                              <span v-else class="w-3"></span>
+                              <span class="font-mono text-[11px] font-semibold text-primary dark:text-white">{{ field.name }}</span>
+                              <span class="text-[9px] px-1 py-0.5 rounded bg-gray-100 dark:bg-[#2C2C2E] text-gray-600 dark:text-gray-400">{{ field.type }}</span>
+                            </div>
+                            <!-- 操作按钮 - 悬停时显示 -->
+                            <div class="hidden group-hover:flex items-center gap-1">
+                              <button
+                                v-if="field.required"
+                                class="px-1.5 py-0.5 text-[9px] bg-gray-200 dark:bg-[#3A3A3C] text-gray-600 dark:text-gray-400 rounded"
+                              >
+                                必填
+                              </button>
+                              <!-- 添加子字段按钮 - 仅 object 类型可用 -->
+                              <button
+                                @click="field.type === 'object' && addChildField(index)"
+                                :disabled="field.type !== 'object'"
+                                :class="field.type === 'object'
+                                  ? 'p-1 text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-500 cursor-pointer'
+                                  : 'p-1 text-gray-300 dark:text-gray-600 cursor-not-allowed'"
+                                title="添加子字段"
+                              >
+                                <fa :icon="['fas', 'plus']" class="text-[10px]" />
+                              </button>
+                              <button
+                                class="p-1 text-gray-500 hover:text-blue-600 dark:text-gray-400 dark:hover:text-blue-400"
+                                title="编辑"
+                              >
+                                <fa :icon="['fas', 'pen']" class="text-[10px]" />
+                              </button>
+                              <button
+                                @click="deleteField(index)"
+                                class="p-1 text-gray-500 hover:text-red-600 dark:text-gray-400 dark:hover:text-red-400"
+                                title="删除"
+                              >
+                                <fa :icon="['fas', 'trash']" class="text-[10px]" />
+                              </button>
+                            </div>
+                          </div>
+                          <p v-if="field.description" class="text-[10px] text-gray-500 dark:text-gray-400 mt-0.5 ml-4">{{ field.description }}</p>
+                        </div>
+
+                        <!-- 子字段列表 - 带引导线 -->
+                        <div v-if="field.children && field.children.length > 0 && expandedFields.includes(index)" class="ml-4 relative">
+                          <!-- 垂直引导线 -->
+                          <div class="absolute left-0 top-0 bottom-0 w-px bg-gray-300 dark:bg-gray-600"></div>
+
+                          <div v-for="(child, childIndex) in field.children" :key="childIndex" class="relative">
+                            <!-- 水平引导线 -->
+                            <div class="absolute left-0 top-3 w-3 h-px bg-gray-300 dark:bg-gray-600"></div>
+
+                            <div class="group pl-4 py-1 hover:bg-gray-50 dark:hover:bg-[#2C2C2E] rounded transition">
+                              <div class="flex items-center justify-between">
+                                <div class="flex items-center gap-1.5">
+                                  <span class="font-mono text-[11px] font-semibold text-primary dark:text-white">{{ child.name }}</span>
+                                  <span class="text-[9px] px-1 py-0.5 rounded bg-gray-100 dark:bg-[#2C2C2E] text-gray-600 dark:text-gray-400">{{ child.type }}</span>
+                                </div>
+                                <!-- 子字段操作按钮 -->
+                                <div class="hidden group-hover:flex items-center gap-1">
+                                  <button
+                                    v-if="child.required"
+                                    class="px-1.5 py-0.5 text-[9px] bg-gray-200 dark:bg-[#3A3A3C] text-gray-600 dark:text-gray-400 rounded"
+                                  >
+                                    必填
+                                  </button>
+                                  <button
+                                    class="p-1 text-gray-500 hover:text-blue-600 dark:text-gray-400 dark:hover:text-blue-400"
+                                    title="编辑"
+                                  >
+                                    <fa :icon="['fas', 'pen']" class="text-[10px]" />
+                                  </button>
+                                  <button
+                                    class="p-1 text-gray-500 hover:text-red-600 dark:text-gray-400 dark:hover:text-red-400"
+                                    title="删除"
+                                  >
+                                    <fa :icon="['fas', 'trash']" class="text-[10px]" />
+                                  </button>
+                                </div>
+                              </div>
+                              <p v-if="child.description" class="text-[10px] text-gray-500 dark:text-gray-400 mt-0.5">{{ child.description }}</p>
+                            </div>
+                          </div>
+                        </div>
+
+                        <!-- 子字段编辑器 - 显示在对应父字段下方 -->
+                        <div v-if="showFieldEditor && editingParentIndex === index" class="ml-4 mt-2 relative">
+                          <!-- 垂直引导线 -->
+                          <div class="absolute left-0 top-0 bottom-0 w-px bg-gray-300 dark:bg-gray-600"></div>
+                          <!-- 水平引导线 -->
+                          <div class="absolute left-0 top-3 w-3 h-px bg-gray-300 dark:bg-gray-600"></div>
+
+                          <div class="pl-4 border border-gray-300 dark:border-[#3A3A3C] rounded p-3 bg-gray-50 dark:bg-[#2C2C2E] space-y-2">
+                            <!-- 字段名 -->
+                            <div>
+                              <div class="flex items-center gap-2 mb-1">
+                                <input
+                                  v-model="currentField.name"
+                                  type="text"
+                                  placeholder="字段名"
+                                  class="flex-1 px-2 py-1 text-[11px] border border-gray-300 dark:border-[#3A3A3C] rounded bg-white dark:bg-[#1C1C1E] text-primary dark:text-white focus:ring-1 focus:ring-brand-green focus:border-transparent"
+                                />
+                                <select
+                                  v-model="currentField.type"
+                                  class="px-2 py-1 text-[11px] border border-gray-300 dark:border-[#3A3A3C] rounded bg-white dark:bg-[#1C1C1E] text-primary dark:text-white focus:ring-1 focus:ring-brand-green"
+                                >
+                                  <option value="string">string</option>
+                                  <option value="number">number</option>
+                                  <option value="boolean">boolean</option>
+                                  <option value="array">array</option>
+                                  <option value="object">object</option>
+                                </select>
+                              </div>
+                            </div>
+
+                            <!-- 描述 -->
+                            <input
+                              v-model="currentField.description"
+                              type="text"
+                              placeholder="添加描述"
+                              class="w-full px-2 py-1 text-[11px] border border-gray-300 dark:border-[#3A3A3C] rounded bg-white dark:bg-[#1C1C1E] text-primary dark:text-white focus:ring-1 focus:ring-brand-green focus:border-transparent"
+                            />
+
+                            <!-- 字符串验证 -->
+                            <div v-if="currentField.type === 'string'">
+                              <label class="block text-[10px] text-gray-600 dark:text-gray-400 mb-1">字符串验证</label>
+                              <div class="text-[11px] font-semibold text-primary dark:text-white mb-1">Enum</div>
+                              <textarea
+                                v-model="currentField.enum"
+                                rows="3"
+                                placeholder="abcd, 1, 1.5, etc."
+                                class="w-full px-2 py-1 text-[10px] border border-gray-300 dark:border-[#3A3A3C] rounded bg-white dark:bg-[#1C1C1E] text-primary dark:text-white focus:ring-1 focus:ring-brand-green focus:border-transparent resize-none"
+                              ></textarea>
+                            </div>
+
+                            <!-- 操作按钮 -->
+                            <div class="flex items-center justify-between pt-2">
+                              <label class="flex items-center gap-1 cursor-pointer">
+                                <input
+                                  v-model="currentField.required"
+                                  type="checkbox"
+                                  class="w-3 h-3 text-brand-green border-gray-300 rounded focus:ring-brand-green"
+                                />
+                                <span class="text-[10px] text-gray-600 dark:text-gray-400">必填</span>
+                              </label>
+                              <div class="flex items-center gap-2">
+                                <button
+                                  @click="cancelFieldEdit"
+                                  class="px-3 py-1 text-[11px] text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200"
+                                >
+                                  取消
+                                </button>
+                                <button
+                                  @click="saveField"
+                                  class="px-3 py-1 text-[11px] bg-blue-600 text-white rounded hover:bg-blue-700"
+                                >
+                                  保存
+                                </button>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+
+                      <!-- 顶级字段编辑器 -->
+                      <div v-if="showFieldEditor && editingParentIndex === null" class="border border-gray-300 dark:border-[#3A3A3C] rounded p-3 bg-gray-50 dark:bg-[#2C2C2E] space-y-2">
+                        <!-- 字段名 -->
+                        <div>
+                          <div class="flex items-center gap-2 mb-1">
+                            <input
+                              v-model="currentField.name"
+                              type="text"
+                              placeholder="字段名"
+                              class="flex-1 px-2 py-1 text-[11px] border border-gray-300 dark:border-[#3A3A3C] rounded bg-white dark:bg-[#1C1C1E] text-primary dark:text-white focus:ring-1 focus:ring-brand-green focus:border-transparent"
+                            />
+                            <select
+                              v-model="currentField.type"
+                              class="px-2 py-1 text-[11px] border border-gray-300 dark:border-[#3A3A3C] rounded bg-white dark:bg-[#1C1C1E] text-primary dark:text-white focus:ring-1 focus:ring-brand-green"
+                            >
+                              <option value="string">string</option>
+                              <option value="number">number</option>
+                              <option value="boolean">boolean</option>
+                              <option value="array">array</option>
+                              <option value="object">object</option>
+                            </select>
+                          </div>
+                        </div>
+
+                        <!-- 描述 -->
+                        <input
+                          v-model="currentField.description"
+                          type="text"
+                          placeholder="添加描述"
+                          class="w-full px-2 py-1 text-[11px] border border-gray-300 dark:border-[#3A3A3C] rounded bg-white dark:bg-[#1C1C1E] text-primary dark:text-white focus:ring-1 focus:ring-brand-green focus:border-transparent"
+                        />
+
+                        <!-- 字符串验证 -->
+                        <div v-if="currentField.type === 'string'">
+                          <label class="block text-[10px] text-gray-600 dark:text-gray-400 mb-1">字符串验证</label>
+                          <div class="text-[11px] font-semibold text-primary dark:text-white mb-1">Enum</div>
+                          <textarea
+                            v-model="currentField.enum"
+                            rows="3"
+                            placeholder="abcd, 1, 1.5, etc."
+                            class="w-full px-2 py-1 text-[10px] border border-gray-300 dark:border-[#3A3A3C] rounded bg-white dark:bg-[#1C1C1E] text-primary dark:text-white focus:ring-1 focus:ring-brand-green focus:border-transparent resize-none"
+                          ></textarea>
+                        </div>
+
+                        <!-- 操作按钮 -->
+                        <div class="flex items-center justify-between pt-2">
+                          <label class="flex items-center gap-1 cursor-pointer">
+                            <input
+                              v-model="currentField.required"
+                              type="checkbox"
+                              class="w-3 h-3 text-brand-green border-gray-300 rounded focus:ring-brand-green"
+                            />
+                            <span class="text-[10px] text-gray-600 dark:text-gray-400">必填</span>
+                          </label>
+                          <div class="flex items-center gap-2">
+                            <button
+                              @click="cancelFieldEdit"
+                              class="px-3 py-1 text-[11px] text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200"
+                            >
+                              取消
+                            </button>
+                            <button
+                              @click="saveField"
+                              class="px-3 py-1 text-[11px] bg-blue-600 text-white rounded hover:bg-blue-700"
+                            >
+                              保存
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+
+                      <!-- 添加字段按钮 -->
+                      <button
+                        v-if="!showFieldEditor"
+                        @click="addField"
+                        class="w-full flex items-center justify-center gap-1 py-2 text-[11px] text-blue-600 hover:text-blue-700 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded transition"
+                      >
+                        <fa :icon="['fas', 'plus-circle']" class="text-xs" />
+                        添加字段
+                      </button>
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
 
             <!-- JSON Preview Tab -->
-            <div v-else class="h-full flex flex-col overflow-hidden">
+            <div v-else-if="analysisConfig.tab === 'json'" class="h-full flex flex-col overflow-hidden">
               <!-- Editor Header -->
               <div class="flex items-center justify-between px-4 py-3 border-b border-gray-200 dark:border-[#3A3A3C]">
                 <span class="text-sm font-semibold text-gray-700 dark:text-gray-300">JSON 配置预览</span>
@@ -5551,7 +6184,7 @@ watch(activeTab, (newTab) => {
                   <button class="text-gray-400 hover:text-primary dark:hover:text-gray-200 transition" title="格式化">
                     <fa :icon="['fas', 'indent']" class="text-sm" />
                   </button>
-                  <button class="text-gray-400 hover:text-primary dark:hover:text-gray-200 transition" title="复制">
+                  <button @click="copyJsonToClipboard" class="text-gray-400 hover:text-primary dark:hover:text-gray-200 transition" title="复制">
                     <fa :icon="['fas', 'copy']" class="text-sm" />
                   </button>
                 </div>
