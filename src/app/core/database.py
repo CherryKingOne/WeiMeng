@@ -37,7 +37,7 @@ async def init_db():
     """Initialize database tables"""
     async with engine.begin() as conn:
         # Import all models here to ensure they are registered
-        from app.models import user, script, verification_code, chat
+        from app.models import user, script, verification_code, chat, shot
         # Attempt lightweight in-place migrations for BIGINT columns
         try:
             await conn.execute(text("ALTER TABLE script_libraries ALTER COLUMN id TYPE BIGINT"))

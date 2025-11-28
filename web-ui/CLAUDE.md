@@ -102,13 +102,17 @@ npm run preview
 
 ## 工作室视图 (src/views/StudioDrama.vue)
 
-工作室是短剧制作界面,包含完整视频制作工作流的四个主要标签:
+工作室是短剧制作界面,包含完整视频制作工作流的七个主要标签:
 
 **标签系统**: `activeTab` ref 在以下标签间切换:
 - `'script'` - 剧本创作和上传
 - `'characters'` - 角色管理和一致性
 - `'storyboard'` - AI 分镜生成
 - `'video'` - 视频编辑时间轴
+- `'files'` - 剧本文件管理
+- `'video-assets'` - 视频素材管理
+- `'audio-assets'` - 音频素材管理
+- `'novel-analysis'` - 章节分析配置
 
 **剧本标签** (`activeTab === 'script'`):
 - 通过 `scriptMode` ref 三种模式:'selection'、'upload'、'write'
@@ -174,6 +178,19 @@ npm run preview
 - 媒体: `mediaIsDragging` 用于视频标签拖动状态,`mediaFileInput` ref
 - 向导状态: `extractStep`(1-7),`selectAll` 用于批量选择,`roleEditing`/`roleDetailsOpen` reactive 对象
 - 风格选择: `styleKind`/`sceneStyleKind`('2d'/'live'),`selectedCharacterStyle`/`selectedSceneStyle`
+
+**章节分析标签** (`activeTab === 'novel-analysis'`):
+- 分析配置模态框,包含四个子标签:
+  - `'visual'` - 风格配置(2D Anime/Realistic)和语言选择(English/Chinese)
+  - `'prompt'` - 提示词配置,支持预设/自定义两种类型
+    - 预设提示词: 用于剧本分析,提取角色、场景、情节、对话等信息
+    - 自定义提示词: 用户自定义的系统提示词
+  - `'variables'` - 输出变量配置(Beta 功能,开发中)
+    - 结构化输出字段管理,支持层级关系
+    - 字段类型: string, number, boolean, array, object
+  - `'json'` - JSON 预览,显示处理结果(默认为空)
+- `analysisConfig` ref 存储配置: style, language, promptType, tab, systemPrompt 等
+- 预设提示词通过 `getPresetPrompt()` 函数生成,匹配分析结果的输出格式
 
 **关键模式**:
 - 使用 DOM 测量和镜像 div 技术的光标定位 AI 对话框
