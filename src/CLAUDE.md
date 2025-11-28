@@ -13,8 +13,14 @@ WeiMeng (唯梦/微梦) is an AI-assisted drama and video production platform th
 ### Prerequisites
 
 - Python 3.9+
-- PostgreSQL 15+
+- PostgreSQL 15+ (or use Docker Compose)
 - MinIO (or use Docker Compose)
+
+To start PostgreSQL and MinIO using Docker:
+```bash
+docker-compose up -d
+```
+This starts PostgreSQL on port 5432 and MinIO on port 9000 (admin UI on 9001).
 
 ### Backend (from `src/` directory)
 

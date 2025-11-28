@@ -223,7 +223,7 @@ async def chat_completions(
                 full_response = ""
                 try:
                     # 获取流
-                    async for chunk in chat_service.chat_stream(history, query):
+                    async for chunk in chat_service.chat_stream(history, query, request.system_prompt):
                         full_response += chunk
                         # SSE 格式推流
                         yield f"data: {json.dumps({'content': chunk}, ensure_ascii=False)}\n\n"
@@ -248,7 +248,7 @@ async def chat_completions(
         else:
             try:
                 # 获取完整回复
-                response_text = await chat_service.chat_invoke(history, query)
+                response_text = await chat_service.chat_invoke(history, query, request.system_prompt)
 
                 # 保存 AI 回复
                 await db_save_message(db, session_id, "assistant", response_text)

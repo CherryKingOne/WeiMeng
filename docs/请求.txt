@@ -253,6 +253,29 @@ curl -X POST http://0.0.0.0:7767/api/v3/chat/completions \
 
 
 
+带有系统提示词的对话：
+curl -X POST http://0.0.0.0:7767/api/v3/chat/completions \
+  -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJjaGVycnlfMDUwNjA3QDE2My5jb20iLCJleHAiOjE3NjY1NjA5MDZ9.LpVZZyHLemOQDXrMWDcjxsAqo7Qas_JK7QdcFi7pIAE" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "config_id": "wm63405339065589127630",
+    "messages": [
+      {
+        "role": "user",
+        "content": "你是谁"
+      }
+    ],
+    "system_prompt": "你叫欧尼亚",
+    "stream": false,
+    "temperature": 0.7,
+    "thinking_mode": true
+  }'
+
+
+
+
+
+
 配置全局使用模型
 curl -X POST "http://0.0.0.0:7767/api/v3/chat/default-model" \
   -H "Content-Type: application/json" \

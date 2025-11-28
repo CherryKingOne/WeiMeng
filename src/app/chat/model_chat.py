@@ -38,23 +38,23 @@ class ModelChatService:
             streaming=True  # 默认支持流式
         )
 
-    def _prepare_messages(self, history: List[Dict[str, str]], current_query: str) -> List[Any]:
+    def _prepare_messages(self, history: List[Dict[str, str]], current_query: str, system_prompt: str = None) -> List[Any]:
         """
         构建 LangChain 消息对象列表
 
         Args:
             history: 历史消息列表
             current_query: 当前用户提问
+            system_prompt: 自定义系统提示词（可选）
 
         Returns:
             LangChain 消息对象列表
         """
         messages = []
 
-        # 1. 如果开启思考模式，注入系统提示词
-        if self.thinking_mode:
-            messages.append(SystemMessage(
-                content="""你现在处于深度思考模式。请按照以下格式回答：
+        # 思考模式的引导提示词
+        thinking_prompt = """
+请按照以下格式回答：
 
 1. 首先在 <think> 和 </think> 标签中进行详细的逻辑推理和思考过程
 2. 然后在标签外给出最终的答案
@@ -70,9 +70,26 @@ class ModelChatService:
 这里是最终答案。
 
 请严格遵循这个格式，将所有推理过程放在 <think></think> 标签内。"""
-            ))
 
-        # 2. 转换历史记录
+        # 1. 根据不同情况组合系统提示词
+        final_system_prompt = None
+
+        if system_prompt and self.thinking_mode:
+            # 情况1: 有系统提示词 + 开启思考模式 -> 拼接两者
+            final_system_prompt = f"{system_prompt}\n\n{thinking_prompt}"
+        elif system_prompt and not self.thinking_mode:
+            # 情况2: 有系统提示词 + 未开启思考模式 -> 只使用系统提示词
+            final_system_prompt = system_prompt
+        elif not system_prompt and self.thinking_mode:
+            # 情况3: 无系统提示词 + 开启思考模式 -> 只使用思考模式提示词
+            final_system_prompt = f"你现在处于深度思考模式。{thinking_prompt}"
+        # 情况4: 无系统提示词 + 未开启思考模式 -> 不添加系统提示词
+
+        # 2. 如果有最终的系统提示词，添加到消息列表
+        if final_system_prompt:
+            messages.append(SystemMessage(content=final_system_prompt))
+
+        # 3. 转换历史记录
         for msg in history:
             if msg['role'] == 'user':
                 messages.append(HumanMessage(content=msg['content']))
@@ -81,37 +98,39 @@ class ModelChatService:
             elif msg['role'] == 'system':
                 messages.append(SystemMessage(content=msg['content']))
 
-        # 3. 添加当前用户提问
+        # 4. 添加当前用户提问
         messages.append(HumanMessage(content=current_query))
         return messages
 
-    async def chat_stream(self, history: List[Dict], query: str) -> Generator:
+    async def chat_stream(self, history: List[Dict], query: str, system_prompt: str = None) -> Generator:
         """
         流式对话生成器
 
         Args:
             history: 历史消息列表
             query: 当前用户提问
+            system_prompt: 自定义系统提示词（可选）
 
         Yields:
             生成的文本片段
         """
-        messages = self._prepare_messages(history, query)
+        messages = self._prepare_messages(history, query, system_prompt)
         async for chunk in self.llm.astream(messages):
             if chunk.content:
                 yield chunk.content
 
-    async def chat_invoke(self, history: List[Dict], query: str) -> str:
+    async def chat_invoke(self, history: List[Dict], query: str, system_prompt: str = None) -> str:
         """
         非流式直接对话
 
         Args:
             history: 历史消息列表
             query: 当前用户提问
+            system_prompt: 自定义系统提示词（可选）
 
         Returns:
             完整的回复内容
         """
-        messages = self._prepare_messages(history, query)
+        messages = self._prepare_messages(history, query, system_prompt)
         response = await self.llm.ainvoke(messages)
         return response.content

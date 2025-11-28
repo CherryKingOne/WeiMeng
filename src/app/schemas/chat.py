@@ -17,6 +17,7 @@ class ChatRequest(BaseModel):
     temperature: float = Field(default=0.7, ge=0.0, le=2.0, description="随机性 (0-2)")
     thinking_mode: bool = Field(default=False, description="是否开启深度思考模式")
     session_id: Optional[str] = Field(None, description="继续对话时传入，新对话传空")
+    system_prompt: Optional[str] = Field(None, description="系统提示词（可选），用于设定AI的角色和行为")
 
 
 class ChatResponse(BaseModel):
