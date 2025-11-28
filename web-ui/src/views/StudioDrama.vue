@@ -112,6 +112,94 @@ const analysisError = ref('')
 // System Prompt
 const showSystemPromptModal = ref(false)
 const systemPrompt = ref('')
+const systemPromptType = ref('preset') // 'preset' or 'custom'
+const presetSystemPrompt = `# Role: AIGC 影视级分镜导演 & 提示词专家
+
+## Profile
+你是一位拥有丰富经验的影视动画导演，擅长将文字小说转化为高质量的 AIGC 视频分镜脚本。你精通镜头语言、视觉叙事、节奏把控，并熟练掌握 Midjourney (文生图) 和 Runway/Pika (图生视频) 的提示词编写技巧。
+
+## Task
+你的任务是将用户提供的【小说章节文本】，改编并输出为一份**高度详细、时长达标**的【AIGC 视频分镜头脚本表格】。
+
+## Rules & Constraints (核心要求)
+
+1.  **时长强制拓展 (Time Dilation)**:
+    *   **核心目标**：2000字左右的文本必须转化为**不低于 20-23 分钟**的视频内容。
+    *   **拓展原则**：严禁流水账。原文的一句话（如"两人打了起来"），你必须将其拆解为 10-20 个分镜（起势、特写、光效、慢动作、周围环境反应、破坏效果等）。
+    *   **内容配比**：**40% 还原原著剧情，60% 原创视觉填充**。你需要脑补环境渲染、人物微表情、无台词的意境空镜、战斗特效细节等。
+
+2.  **人物与美术设定 (Pre-Production)**:
+    *   在输出表格前，必须先提取并构思人物形象（外貌、衣着、配饰）、场景风格、光影基调。
+
+3.  **镜头语言 (Cinematography)**:
+    *   灵活使用景别（远景、全景、中景、特写、大特写）。
+    *   丰富的运镜（推、拉、摇、移、跟、升降、希区柯克变焦等）。
+    *   **打斗/高潮戏**：必须通过多角度回放、慢动作（Bullet time）、粒子特效特写来拉长时长并增强视觉冲击力。
+
+4.  **提示词编写 (Prompt Engineering)**:
+    *   **文生图 (MJ/SD)**：必须包含主体、环境、光照、风格（如 Cyberpunk, Xianxia, Unreal Engine 5 render, 8k, Cinematic lighting）、构图词。
+    *   **图生视频 (Runway/SVD)**：必须包含具体的运动指令（Pan right, Zoom in, Slow motion, Explosion effects）。
+
+5.  **视觉风格设定 (Art Style)**:
+    *   **2D 日漫动漫风格**：采用日式动画美学，包括：
+        *   人物特征：大眼睛、精致五官、动态发型、流畅线条
+        *   色彩处理：饱和度高、赛璐璐阴影、高光明确
+        *   画面质感：anime style, 2D animation, Japanese anime aesthetic, cel shading
+        *   参考风格：鬼灭之刃、进击的巨人、咒术回战等主流日漫
+    *   **国漫风格参考**：
+        *   可参考《一人之下》的视觉风格：写实与夸张结合、中国传统元素融合、武侠动作设计
+        *   关键词：Chinese anime style, martial arts aesthetic, traditional Chinese elements
+
+## Workflow (工作流程)
+
+请严格按照以下步骤进行思考和输出：
+
+### <Phase_1: Analysis> (分析与设定)
+在生成表格前，先输出一段 markdown 分析：
+*   **人物设定卡**：列出登场人物的详细视觉特征（发色、发型、服饰材质、随身武器/道具）。
+*   **场景氛围**：定义本章的主要色调、光影风格（如：阴郁的蓝调、热血的橙红光效）。
+*   **时长估算策略**：简述你将如何把本章内容拓展到目标时长（例如：增加 3 分钟的环境空镜，5 分钟的打斗慢镜头解析）。
+
+### <Phase_2: Storyboard_Generation> (脚本生成)
+按照用户指定的表格格式输出。
+
+**表格填写指南：**
+*   **时常**：每个镜头的时长需合理，打斗动作可设置为 2s-3s，环境渲染可设置为 5s-8s。
+*   **画面内容**：不仅仅复述小说，要描写画面构成（例："镜头低角度仰拍，主角的靴子踏碎地面的水洼，水花四溅，背景是燃烧的废墟"）。
+*   **文生图提示词**：英文编写，结构为 \`(Subject description), (Environment), (Lighting), (Style modifiers), (Technical params)\`。
+*   **图生视频提示词**：英文编写，侧重动作幅度描述。
+
+## Output Format (输出格式)
+
+**⚠️ 重要：必须严格按照以下表格格式输出，不得遗漏任何列，不得修改列的顺序和名称！**
+
+请严格使用以下 Markdown 表格格式：
+
+### [小说标题/章节] - AIGC 深度分镜脚本
+
+**(在此处先输出 Phase 1 的人物与场景设定分析)**
+
+| 镜号 | 景别 | 运镜 | 画面内容 | 音频 | 时长 | 备注 | 文生图提示词 | 图生视频提示词 | 生成图片 | 生成视频 | 画面描述 |
+| :---: | :---: | :---: | :--- | :--- | :---: | :--- | :--- | :--- | :--- | :--- | :--- |
+| **01** | [景别] | [运镜] | [画面内容] | [音频] | [时长] | [备注] | **正向：** [English Prompts...]<br><br>**反向：** (low quality:1.4), deformed, ugly... | **正向：** [Motion Prompts...]<br><br>**反向：** static, blurred... | | | |
+| **02** | [景别] | [运镜] | [画面内容] | [音频] | [时长] | [备注] | **正向：** [English Prompts...]<br><br>**反向：** (low quality:1.4), deformed, ugly... | **正向：** [Motion Prompts...]<br><br>**反向：** static, blurred... | | | |
+| ... | ... | ... | ... | ... | ... | ... | ... | ... | | | |
+
+**表格列说明（必须包含所有12列）：**
+1. **镜号**：分镜编号（01, 02, 03...）
+2. **景别**：远景/全景/中景/特写/大特写
+3. **运镜**：推/拉/摇/移/跟/升降/固定等
+4. **画面内容**：详细的画面描述
+5. **音频**：对白/音效/背景音乐
+6. **时长**：该镜头时长（如 3s, 5s）
+7. **备注**：补充说明
+8. **文生图提示词**：包含正向和反向提示词
+9. **图生视频提示词**：包含正向和反向提示词
+10. **生成图片**：留空（用于后续填充）
+11. **生成视频**：留空（用于后续填充）
+12. **画面描述**：留空（用于后续填充）
+
+---`
 
 // Result Preview Modal
 const showResultPreviewModal = ref(false)
@@ -426,16 +514,10 @@ const videoUploadFiles = ref([])
 const showAIConfigMenu = ref(false)
 const aiConfig = ref({
   model: 'gpt-4',
-  streamingOutput: false,
-  temperature: { enabled: true, value: 0 },
-  topP: { enabled: true, value: 1 },
-  presencePenalty: { enabled: true, value: 0 },
-  frequencyPenalty: { enabled: true, value: 0 },
-  maxTokens: { enabled: true, value: 512 },
+  streamingOutput: true,
+  temperature: { enabled: true, value: 0.3 },
   reasoningMode: { enabled: false },
-  reasoningLimit: { enabled: false, value: 4096 },
-  seed: { enabled: false, value: 0 },
-  responseFormat: { enabled: false, value: 'text' }
+  reasoningLimit: { enabled: false, value: 4096 }
 })
 
 const showPresetMenu = ref(false)
@@ -2070,8 +2152,12 @@ const runAnalysis = async () => {
       thinking_mode: aiConfig.value.reasoningMode.enabled
     }
 
-    // Add system prompt if provided
-    if (systemPrompt.value && systemPrompt.value.trim()) {
+    // Add system prompt based on type
+    if (systemPromptType.value === 'preset') {
+      // Use preset system prompt
+      requestBody.system_prompt = presetSystemPrompt
+    } else if (systemPromptType.value === 'custom' && systemPrompt.value && systemPrompt.value.trim()) {
+      // Use custom system prompt only if it's not empty
       requestBody.system_prompt = systemPrompt.value.trim()
     }
 
@@ -2079,17 +2165,8 @@ const runAnalysis = async () => {
     if (aiConfig.value.temperature.enabled) {
       requestBody.temperature = aiConfig.value.temperature.value
     }
-    if (aiConfig.value.topP.enabled) {
-      requestBody.top_p = aiConfig.value.topP.value
-    }
-    if (aiConfig.value.presencePenalty.enabled) {
-      requestBody.presence_penalty = aiConfig.value.presencePenalty.value
-    }
-    if (aiConfig.value.frequencyPenalty.enabled) {
-      requestBody.frequency_penalty = aiConfig.value.frequencyPenalty.value
-    }
-    if (aiConfig.value.maxTokens.enabled) {
-      requestBody.max_tokens = aiConfig.value.maxTokens.value
+    if (aiConfig.value.reasoningLimit.enabled) {
+      requestBody.reasoning_limit = aiConfig.value.reasoningLimit.value
     }
 
     console.log('【运行分析】请求参数:', requestBody)
@@ -2685,162 +2762,6 @@ watch(activeTab, (newTab) => {
                 />
               </div>
 
-              <!-- Top P -->
-              <div class="space-y-2">
-                <div class="flex items-center justify-between">
-                  <div class="flex items-center gap-2">
-                    <div
-                      @click="aiConfig.topP.enabled = !aiConfig.topP.enabled; onConfigChange()"
-                      class="w-8 h-4 rounded-full relative cursor-pointer transition-colors"
-                      :class="aiConfig.topP.enabled ? 'bg-brand-green' : 'bg-gray-200 dark:bg-gray-700'"
-                    >
-                      <div
-                        class="absolute top-0.5 left-0.5 w-3 h-3 bg-white rounded-full transition-transform shadow-sm"
-                        :class="aiConfig.topP.enabled ? 'translate-x-4' : ''"
-                      ></div>
-                    </div>
-                    <span class="text-sm text-gray-700 dark:text-gray-300">Top P</span>
-                    <fa :icon="['fas', 'circle-info']" class="text-gray-300 text-xs cursor-help" title="核采样" />
-                  </div>
-                  <input
-                    type="number"
-                    v-model.number="aiConfig.topP.value"
-                    @input="onConfigChange"
-                    class="w-16 px-2 py-1 text-xs border border-gray-200 dark:border-[#3A3A3C] rounded bg-gray-50 dark:bg-[#1C1C1E] text-right"
-                    :disabled="!aiConfig.topP.enabled"
-                  />
-                </div>
-                <input
-                  type="range"
-                  min="0"
-                  max="1"
-                  step="0.01"
-                  v-model.number="aiConfig.topP.value"
-                  @input="onConfigChange"
-                  class="w-full h-1 rounded-lg appearance-none cursor-pointer [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-3 [&::-webkit-slider-thumb]:h-3 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:shadow-sm [&::-webkit-slider-thumb]:transition-colors"
-                  :disabled="!aiConfig.topP.enabled"
-                  :class="aiConfig.topP.enabled ? '[&::-webkit-slider-thumb]:bg-brand-green' : '[&::-webkit-slider-thumb]:bg-gray-300 opacity-50'"
-                  :style="getSliderStyle(aiConfig.topP.value, 0, 1, aiConfig.topP.enabled)"
-                />
-              </div>
-
-              <!-- Presence Penalty -->
-              <div class="space-y-2">
-                <div class="flex items-center justify-between">
-                  <div class="flex items-center gap-2">
-                    <div
-                      @click="aiConfig.presencePenalty.enabled = !aiConfig.presencePenalty.enabled; onConfigChange()"
-                      class="w-8 h-4 rounded-full relative cursor-pointer transition-colors"
-                      :class="aiConfig.presencePenalty.enabled ? 'bg-brand-green' : 'bg-gray-200 dark:bg-gray-700'"
-                    >
-                      <div
-                        class="absolute top-0.5 left-0.5 w-3 h-3 bg-white rounded-full transition-transform shadow-sm"
-                        :class="aiConfig.presencePenalty.enabled ? 'translate-x-4' : ''"
-                      ></div>
-                    </div>
-                    <span class="text-sm text-gray-700 dark:text-gray-300">存在惩罚</span>
-                    <fa :icon="['fas', 'circle-info']" class="text-gray-300 text-xs cursor-help" />
-                  </div>
-                  <input
-                    type="number"
-                    v-model.number="aiConfig.presencePenalty.value"
-                    @input="onConfigChange"
-                    class="w-16 px-2 py-1 text-xs border border-gray-200 dark:border-[#3A3A3C] rounded bg-gray-50 dark:bg-[#1C1C1E] text-right"
-                    :disabled="!aiConfig.presencePenalty.enabled"
-                  />
-                </div>
-                <input
-                  type="range"
-                  min="0"
-                  max="1"
-                  step="0.1"
-                  v-model.number="aiConfig.presencePenalty.value"
-                  @input="onConfigChange"
-                  class="w-full h-1 rounded-lg appearance-none cursor-pointer [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-3 [&::-webkit-slider-thumb]:h-3 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:shadow-sm [&::-webkit-slider-thumb]:transition-colors"
-                  :disabled="!aiConfig.presencePenalty.enabled"
-                  :class="aiConfig.presencePenalty.enabled ? '[&::-webkit-slider-thumb]:bg-brand-green' : '[&::-webkit-slider-thumb]:bg-gray-300 opacity-50'"
-                  :style="getSliderStyle(aiConfig.presencePenalty.value, 0, 1, aiConfig.presencePenalty.enabled)"
-                />
-              </div>
-
-              <!-- Frequency Penalty -->
-              <div class="space-y-2">
-                <div class="flex items-center justify-between">
-                  <div class="flex items-center gap-2">
-                    <div
-                      @click="aiConfig.frequencyPenalty.enabled = !aiConfig.frequencyPenalty.enabled; onConfigChange()"
-                      class="w-8 h-4 rounded-full relative cursor-pointer transition-colors"
-                      :class="aiConfig.frequencyPenalty.enabled ? 'bg-brand-green' : 'bg-gray-200 dark:bg-gray-700'"
-                    >
-                      <div
-                        class="absolute top-0.5 left-0.5 w-3 h-3 bg-white rounded-full transition-transform shadow-sm"
-                        :class="aiConfig.frequencyPenalty.enabled ? 'translate-x-4' : ''"
-                      ></div>
-                    </div>
-                    <span class="text-sm text-gray-700 dark:text-gray-300">频率惩罚</span>
-                    <fa :icon="['fas', 'circle-info']" class="text-gray-300 text-xs cursor-help" />
-                  </div>
-                  <input
-                    type="number"
-                    v-model.number="aiConfig.frequencyPenalty.value"
-                    @input="onConfigChange"
-                    class="w-16 px-2 py-1 text-xs border border-gray-200 dark:border-[#3A3A3C] rounded bg-gray-50 dark:bg-[#1C1C1E] text-right"
-                    :disabled="!aiConfig.frequencyPenalty.enabled"
-                  />
-                </div>
-                <input
-                  type="range"
-                  min="0"
-                  max="1"
-                  step="0.1"
-                  v-model.number="aiConfig.frequencyPenalty.value"
-                  @input="onConfigChange"
-                  class="w-full h-1 rounded-lg appearance-none cursor-pointer [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-3 [&::-webkit-slider-thumb]:h-3 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:shadow-sm [&::-webkit-slider-thumb]:transition-colors"
-                  :disabled="!aiConfig.frequencyPenalty.enabled"
-                  :class="aiConfig.frequencyPenalty.enabled ? '[&::-webkit-slider-thumb]:bg-brand-green' : '[&::-webkit-slider-thumb]:bg-gray-300 opacity-50'"
-                  :style="getSliderStyle(aiConfig.frequencyPenalty.value, 0, 1, aiConfig.frequencyPenalty.enabled)"
-                />
-              </div>
-
-              <!-- Max Tokens -->
-              <div class="space-y-2">
-                <div class="flex items-center justify-between">
-                  <div class="flex items-center gap-2">
-                    <div
-                      @click="aiConfig.maxTokens.enabled = !aiConfig.maxTokens.enabled; onConfigChange()"
-                      class="w-8 h-4 rounded-full relative cursor-pointer transition-colors"
-                      :class="aiConfig.maxTokens.enabled ? 'bg-brand-green' : 'bg-gray-200 dark:bg-gray-700'"
-                    >
-                      <div
-                        class="absolute top-0.5 left-0.5 w-3 h-3 bg-white rounded-full transition-transform shadow-sm"
-                        :class="aiConfig.maxTokens.enabled ? 'translate-x-4' : ''"
-                      ></div>
-                    </div>
-                    <span class="text-sm text-gray-700 dark:text-gray-300">最大标记</span>
-                    <fa :icon="['fas', 'circle-info']" class="text-gray-300 text-xs cursor-help" />
-                  </div>
-                  <input
-                    type="number"
-                    v-model.number="aiConfig.maxTokens.value"
-                    @input="onConfigChange"
-                    class="w-16 px-2 py-1 text-xs border border-gray-200 dark:border-[#3A3A3C] rounded bg-gray-50 dark:bg-[#1C1C1E] text-right"
-                    :disabled="!aiConfig.maxTokens.enabled"
-                  />
-                </div>
-                <input
-                  type="range"
-                  min="1"
-                  max="4096"
-                  step="1"
-                  v-model.number="aiConfig.maxTokens.value"
-                  @input="onConfigChange"
-                  class="w-full h-1 rounded-lg appearance-none cursor-pointer [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-3 [&::-webkit-slider-thumb]:h-3 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:shadow-sm [&::-webkit-slider-thumb]:transition-colors"
-                  :disabled="!aiConfig.maxTokens.enabled"
-                  :class="aiConfig.maxTokens.enabled ? '[&::-webkit-slider-thumb]:bg-brand-green' : '[&::-webkit-slider-thumb]:bg-gray-300 opacity-50'"
-                  :style="getSliderStyle(aiConfig.maxTokens.value, 1, 4096, aiConfig.maxTokens.enabled)"
-                />
-              </div>
-
               <!-- Reasoning Mode -->
               <div class="flex items-center justify-between">
                 <div class="flex items-center gap-2">
@@ -2896,58 +2817,6 @@ watch(activeTab, (newTab) => {
                   :disabled="!aiConfig.reasoningLimit.enabled"
                   :style="getSliderStyle(aiConfig.reasoningLimit.value, 1, 8192, aiConfig.reasoningLimit.enabled)"
                 />
-              </div>
-
-              <!-- Seed -->
-              <div class="flex items-center justify-between">
-                <div class="flex items-center gap-2">
-                  <div
-                    @click="aiConfig.seed.enabled = !aiConfig.seed.enabled; onConfigChange()"
-                    class="w-8 h-4 rounded-full relative cursor-pointer transition-colors"
-                    :class="aiConfig.seed.enabled ? 'bg-brand-green' : 'bg-gray-200 dark:bg-gray-700'"
-                  >
-                    <div
-                      class="absolute top-0.5 left-0.5 w-3 h-3 bg-white rounded-full transition-transform shadow-sm"
-                      :class="aiConfig.seed.enabled ? 'translate-x-4' : ''"
-                    ></div>
-                  </div>
-                  <span class="text-sm text-gray-700 dark:text-gray-300">种子</span>
-                  <fa :icon="['fas', 'circle-info']" class="text-gray-300 text-xs cursor-help" />
-                </div>
-                <input
-                  type="number"
-                  v-model.number="aiConfig.seed.value"
-                  @input="onConfigChange"
-                  class="w-24 px-2 py-1 text-xs border border-gray-200 dark:border-[#3A3A3C] rounded bg-gray-50 dark:bg-[#1C1C1E] text-right"
-                  :disabled="!aiConfig.seed.enabled"
-                />
-              </div>
-
-              <!-- Response Format -->
-              <div class="flex items-center justify-between">
-                <div class="flex items-center gap-2">
-                  <div
-                    @click="aiConfig.responseFormat.enabled = !aiConfig.responseFormat.enabled; onConfigChange()"
-                    class="w-8 h-4 rounded-full relative cursor-pointer transition-colors"
-                    :class="aiConfig.responseFormat.enabled ? 'bg-brand-green' : 'bg-gray-200 dark:bg-gray-700'"
-                  >
-                    <div
-                      class="absolute top-0.5 left-0.5 w-3 h-3 bg-white rounded-full transition-transform shadow-sm"
-                      :class="aiConfig.responseFormat.enabled ? 'translate-x-4' : ''"
-                    ></div>
-                  </div>
-                  <span class="text-sm text-gray-700 dark:text-gray-300">回复格式</span>
-                  <fa :icon="['fas', 'circle-info']" class="text-gray-300 text-xs cursor-help" />
-                </div>
-                <select
-                  v-model="aiConfig.responseFormat.value"
-                  @change="onConfigChange"
-                  class="w-24 px-2 py-1 text-xs border border-gray-200 dark:border-[#3A3A3C] rounded bg-gray-50 dark:bg-[#1C1C1E]"
-                  :disabled="!aiConfig.responseFormat.enabled"
-                >
-                  <option value="text">text</option>
-                  <option value="json_object">json_object</option>
-                </select>
               </div>
             </div>
           </div>
@@ -4649,7 +4518,7 @@ watch(activeTab, (newTab) => {
         @click="showSystemPromptModal = false"
       >
         <div
-          class="bg-white dark:bg-[#2C2C2E] rounded-xl shadow-2xl w-full max-w-2xl overflow-hidden"
+          class="bg-white dark:bg-[#2C2C2E] rounded-xl shadow-2xl w-full max-w-5xl overflow-hidden"
           @click.stop
         >
           <!-- Header -->
@@ -4673,18 +4542,70 @@ watch(activeTab, (newTab) => {
 
           <!-- Content -->
           <div class="p-6">
-            <textarea
-              v-model="systemPrompt"
-              placeholder="例如：你是一个专业的 UI 设计师，擅长现代化的界面设计..."
-              class="w-full h-64 px-4 py-3 border border-gray-200 dark:border-[#3A3A3C] rounded-lg bg-white dark:bg-[#1C1C1E] text-primary dark:text-gray-200 placeholder-gray-400 dark:placeholder-gray-500 resize-none focus:outline-none focus:ring-2 focus:ring-brand-green/20 focus:border-brand-green transition"
-            ></textarea>
+            <!-- Type Selector -->
+            <div class="flex items-center gap-6 mb-4">
+              <label
+                @click="systemPromptType = 'preset'"
+                class="flex items-center gap-2 cursor-pointer group"
+              >
+                <div class="flex items-center justify-center w-5 h-5 rounded-full border-2 transition"
+                  :class="systemPromptType === 'preset'
+                    ? 'border-brand-green'
+                    : 'border-gray-300 dark:border-gray-600 group-hover:border-gray-400'"
+                >
+                  <div v-if="systemPromptType === 'preset'" class="w-3 h-3 rounded-full bg-brand-green"></div>
+                </div>
+                <span class="text-sm font-medium text-gray-700 dark:text-gray-300 group-hover:text-gray-900 dark:group-hover:text-gray-100 transition">预设</span>
+              </label>
+
+              <label
+                @click="systemPromptType = 'custom'"
+                class="flex items-center gap-2 cursor-pointer group"
+              >
+                <div class="flex items-center justify-center w-5 h-5 rounded-full border-2 transition"
+                  :class="systemPromptType === 'custom'
+                    ? 'border-brand-green'
+                    : 'border-gray-300 dark:border-gray-600 group-hover:border-gray-400'"
+                >
+                  <div v-if="systemPromptType === 'custom'" class="w-3 h-3 rounded-full bg-brand-green"></div>
+                </div>
+                <span class="text-sm font-medium text-gray-700 dark:text-gray-300 group-hover:text-gray-900 dark:group-hover:text-gray-100 transition">自定义</span>
+              </label>
+            </div>
+
+            <!-- Preset View (Read-only with Markdown rendering) -->
+            <div v-if="systemPromptType === 'preset'">
+              <div class="relative">
+                <div
+                  class="w-full h-[32rem] px-4 py-3 border border-gray-200 dark:border-[#3A3A3C] rounded-lg bg-gray-50 dark:bg-[#1C1C1E] overflow-y-auto markdown-content"
+                  v-html="marked.parse(presetSystemPrompt)"
+                ></div>
+                <div class="absolute top-3 right-3 px-2 py-1 bg-gray-200 dark:bg-[#3A3A3C] rounded text-xs font-medium text-gray-600 dark:text-gray-400">
+                  只读
+                </div>
+              </div>
+            </div>
+
+            <!-- Custom View (Editable) -->
+            <div v-else>
+              <textarea
+                v-model="systemPrompt"
+                placeholder="例如：你是一个专业的 UI 设计师，擅长现代化的界面设计..."
+                class="w-full h-[32rem] px-4 py-3 border border-gray-200 dark:border-[#3A3A3C] rounded-lg bg-white dark:bg-[#1C1C1E] text-primary dark:text-gray-200 placeholder-gray-400 dark:placeholder-gray-500 resize-none focus:outline-none focus:ring-2 focus:ring-brand-green/20 focus:border-brand-green transition"
+              ></textarea>
+            </div>
 
             <div class="mt-4 p-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
               <div class="flex items-start gap-2">
                 <fa :icon="['fas', 'circle-info']" class="text-blue-500 mt-0.5 text-sm" />
                 <div class="flex-1">
                   <p class="text-xs text-blue-700 dark:text-blue-300">
-                    系统提示词会在每次对话时发送给 AI，用于定义 AI 的角色、专业领域和回答风格。留空则使用模型的默认行为。
+                    <span v-if="systemPromptType === 'preset'">
+                      预设提示词专为小说章节分析优化，提供最佳的分析效果。
+                    </span>
+                    <span v-else>
+                      自定义提示词会在每次对话时发送给 AI，用于定义 AI 的角色、专业领域和回答风格。
+                    </span>
                   </p>
                 </div>
               </div>
@@ -5378,5 +5299,100 @@ textarea::-webkit-scrollbar-thumb:hover {
 .toast-leave-to {
   opacity: 0;
   transform: translateX(100px);
+}
+
+/* System Prompt Modal Markdown Styles */
+.markdown-content :deep(h1) {
+  font-size: 1.5rem;
+  font-weight: bold;
+  margin-top: 1.5rem;
+  margin-bottom: 1rem;
+  color: #1f2937;
+}
+
+.dark .markdown-content :deep(h1) {
+  color: #f3f4f6;
+}
+
+.markdown-content :deep(h2) {
+  font-size: 1.25rem;
+  font-weight: bold;
+  margin-top: 1.5rem;
+  margin-bottom: 0.75rem;
+  color: #374151;
+}
+
+.dark .markdown-content :deep(h2) {
+  color: #e5e7eb;
+}
+
+.markdown-content :deep(h3) {
+  font-size: 1.125rem;
+  font-weight: 600;
+  margin-top: 1.25rem;
+  margin-bottom: 0.5rem;
+  color: #4b5563;
+}
+
+.dark .markdown-content :deep(h3) {
+  color: #d1d5db;
+}
+
+.markdown-content :deep(p) {
+  margin-top: 0.75rem;
+  margin-bottom: 0.75rem;
+  line-height: 1.6;
+}
+
+.markdown-content :deep(ul),
+.markdown-content :deep(ol) {
+  margin-top: 0.75rem;
+  margin-bottom: 0.75rem;
+  padding-left: 1.5rem;
+}
+
+.markdown-content :deep(li) {
+  margin-top: 0.5rem;
+  margin-bottom: 0.5rem;
+  line-height: 1.6;
+}
+
+.markdown-content :deep(ul ul),
+.markdown-content :deep(ol ul),
+.markdown-content :deep(ul ol),
+.markdown-content :deep(ol ol) {
+  margin-top: 0.5rem;
+  margin-bottom: 0.5rem;
+}
+
+.markdown-content :deep(code) {
+  background-color: #f3f4f6;
+  padding: 0.125rem 0.25rem;
+  border-radius: 0.25rem;
+  font-size: 0.875rem;
+  font-family: monospace;
+}
+
+.dark .markdown-content :deep(code) {
+  background-color: #374151;
+}
+
+.markdown-content :deep(strong) {
+  font-weight: 600;
+  color: #111827;
+}
+
+.dark .markdown-content :deep(strong) {
+  color: #f9fafb;
+}
+
+.markdown-content :deep(hr) {
+  margin-top: 1.5rem;
+  margin-bottom: 1.5rem;
+  border-color: #e5e7eb;
+}
+
+.dark .markdown-content :deep(hr) {
+  border-color: #4b5563;
 }
 </style>
