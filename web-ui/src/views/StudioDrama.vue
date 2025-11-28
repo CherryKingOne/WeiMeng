@@ -502,6 +502,7 @@ const videoUploadFiles = ref([])
 const showAIConfigMenu = ref(false)
 const aiConfig = ref({
   model: 'gpt-4',
+  streamingOutput: false,
   temperature: { enabled: true, value: 0 },
   topP: { enabled: true, value: 1 },
   presencePenalty: { enabled: true, value: 0 },
@@ -2150,6 +2151,7 @@ const analysisConfig = ref({
   tab: 'json', // 'visual', 'prompt', 'variables', or 'json'
   systemPrompt: '', // 系统提示词
   outputVariables: '', // 输出变量
+  streamingOutput: false, // 流式输出开关
   structuredOutput: false, // 结构化输出开关
   structuredOutputConfigured: false, // 结构化输出是否已配置
   structuredFields: [] // 结构化输出字段列表
@@ -2921,6 +2923,26 @@ watch(activeTab, (newTab) => {
                     <fa :icon="['fas', preset.icon]" :class="preset.color" class="text-xs w-4" />
                     <span class="text-sm text-gray-700 dark:text-gray-200">{{ preset.label }}</span>
                   </button>
+                </div>
+              </div>
+
+              <!-- Streaming Output -->
+              <div class="space-y-2">
+                <div class="flex items-center justify-between">
+                  <div class="flex items-center gap-2">
+                    <div
+                      @click="aiConfig.streamingOutput = !aiConfig.streamingOutput; onConfigChange()"
+                      class="w-8 h-4 rounded-full relative cursor-pointer transition-colors"
+                      :class="aiConfig.streamingOutput ? 'bg-brand-green' : 'bg-gray-200 dark:bg-gray-700'"
+                    >
+                      <div
+                        class="absolute top-0.5 left-0.5 w-3 h-3 bg-white rounded-full transition-transform shadow-sm"
+                        :class="aiConfig.streamingOutput ? 'translate-x-4' : ''"
+                      ></div>
+                    </div>
+                    <span class="text-sm text-gray-700 dark:text-gray-300">流式输出</span>
+                    <fa :icon="['fas', 'circle-info']" class="text-gray-300 text-xs cursor-help" title="启用流式响应" />
+                  </div>
                 </div>
               </div>
 
@@ -5832,6 +5854,20 @@ watch(activeTab, (newTab) => {
                     <h4 class="text-sm font-bold text-primary dark:text-white">输出变量</h4>
                     <button class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300">
                       <fa :icon="['fas', 'circle-question']" class="text-[10px]" />
+                    </button>
+                  </div>
+                  <div class="flex items-center gap-1.5">
+                    <fa :icon="['fas', 'triangle-exclamation']" class="text-orange-500 text-xs" />
+                    <span class="text-[11px] text-gray-600 dark:text-gray-400">流式输出</span>
+                    <button
+                      @click="analysisConfig.streamingOutput = !analysisConfig.streamingOutput"
+                      class="relative inline-flex h-4 w-8 items-center rounded-full transition-colors"
+                      :class="analysisConfig.streamingOutput ? 'bg-blue-600' : 'bg-gray-300 dark:bg-gray-600'"
+                    >
+                      <span
+                        class="inline-block h-2.5 w-2.5 transform rounded-full bg-white transition-transform"
+                        :class="analysisConfig.streamingOutput ? 'translate-x-4' : 'translate-x-1'"
+                      ></span>
                     </button>
                   </div>
                   <div class="flex items-center gap-1.5">
