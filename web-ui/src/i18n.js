@@ -32,7 +32,13 @@ const messages = {
       password_rule: 'At least 8 characters',
       sending: 'Sending...',
       seconds: 's',
-      invalid: 'Invalid email or password'
+      invalid: 'Invalid email or password',
+      email_invalid: 'Please enter a valid email',
+      code_invalid: 'Please enter a 6-digit code',
+      signup_failed: 'Registration failed',
+      login_success: 'Login successful',
+      signup_success: 'Registration successful, please login',
+      send_code_failed: 'Failed to send verification code'
     },
     header: {
       features: 'Features',
@@ -431,7 +437,13 @@ const messages = {
       password_rule: '至少 8 个字符',
       sending: '发送中...',
       seconds: '秒',
-      invalid: '邮箱或密码不正确'
+      invalid: '邮箱或密码不正确',
+      email_invalid: '请输入有效邮箱',
+      code_invalid: '请输入 6 位验证码',
+      signup_failed: '注册失败',
+      login_success: '登录成功',
+      signup_success: '注册成功，请登录',
+      send_code_failed: '发送验证码失败'
     },
     header: {
       features: '特性',

@@ -2,6 +2,15 @@
 import { ref, onMounted, onBeforeUnmount, computed, reactive, watch } from 'vue'
 import JSZip from 'jszip'
 import { useRoute, useRouter } from 'vue-router'
+import { marked } from 'marked'
+
+// Configure marked options
+marked.setOptions({
+  breaks: true,
+  gfm: true,
+  headerIds: true,
+  mangle: false
+})
 
 const route = useRoute()
 const router = useRouter()
@@ -89,113 +98,28 @@ const tabs = [
 const scriptContent = ref('[场景] 豪华办公室，白天\n顾北辰：（冷冷地）这份设计稿重做。\n苏晚晚：（坚定地）我会重新来过。\n旁白：两人的眼神交错，空气凝固。\nJohn: You should reconsider.\nMary: I won\'t.')
 
 // Novel Analysis Data
-const novelChapters = ref([
-  {
-    id: 'demo-chapter-1',
-    fileId: 'demo',
-    title: '示例章节：霸道总裁爱上我',
-    content: '第一章 初遇\n\n顾北辰坐在豪华的办公室里，冷冷地看着手中的文件。落地窗外，S市的繁华景象尽收眼底，但他眼中只有冰冷。\n\n"这份设计稿重做。"他随手将文件扔在桌上，发出"啪"的一声脆响。\n\n站在办公桌前的苏晚晚身体微微一颤，但她很快挺直了背脊，眼神坚定地看着眼前的男人。\n\n"顾总，我认为这个设计完全符合您的要求。它不仅仅是一个商业项目，更是一种艺术的表达。"苏晚晚的声音虽然不大，但字字铿锵。\n\n顾北辰抬起头，深邃的目光落在苏晚晚身上。这个女人，竟然敢反驳他？\n\n"艺术？"顾北辰嗤笑一声，站起身，一步步走向苏晚晚，强大的气场瞬间笼罩了她，"在商言商，我要的是利润，不是你所谓的艺术。"\n\n两人对视，空气仿佛凝固。就在这时，办公室的门被推开，林雨萱走了进来。\n\n"北辰哥哥，还在忙吗？"林雨萱声音甜美，眼神却在扫过苏晚晚时闪过一丝嫉妒。\n\n苏晚晚深吸一口气，收起桌上的文件，"既然顾总不满意，我会重新修改。告辞。"说完，她转身离去，背影倔强而孤独。',
-    preview: '第一章 初遇\n\n顾北辰坐在豪华的办公室里，冷冷地看着手中的文件...',
-    analyzed: true,
-    loading: false
-  }
-])
+const novelChapters = ref([])
 const loadingChapters = ref(false)
 
 const selectedChapter = ref(null)
 const analysisTab = ref('characters') // 'characters', 'scenes', 'plots', 'dialogues'
-const analyzing = ref(false)
 
-const analysisResults = ref({
-  // 示例数据 - 展示AI分析结果的格式
-  'demo-chapter-1': {
-    characters: [
-      {
-        id: 1,
-        name: '顾北辰',
-        role: '男主角 / 霸道总裁',
-        desc: '冷峻高傲,商业帝国的掌舵者,外表冷漠内心炽热,对苏晚晚情有独钟'
-      },
-      {
-        id: 2,
-        name: '苏晚晚',
-        role: '女主角 / 设计师',
-        desc: '独立坚强的设计师,才华横溢但命运坎坷,在困境中不断成长'
-      },
-      {
-        id: 3,
-        name: '林雨萱',
-        role: '女配角 / 竞争对手',
-        desc: '顾北辰的青梅竹马,嫉妒苏晚晚,多次设计陷害女主'
-      }
-    ],
-    scenes: [
-      {
-        id: 1,
-        name: '豪华办公室',
-        desc: '现代化的总裁办公室,落地窗外是城市天际线,室内装饰简约奢华,冷色调为主'
-      },
-      {
-        id: 2,
-        name: '设计工作室',
-        desc: '充满创意氛围的开放式工作空间,设计稿和样品散落各处,温暖的灯光'
-      },
-      {
-        id: 3,
-        name: '高档餐厅',
-        desc: '优雅的法式餐厅,水晶吊灯,白色桌布,浪漫的烛光晚餐氛围'
-      }
-    ],
-    plots: [
-      {
-        id: 1,
-        point: '苏晚晚的设计稿被顾北辰严厉批评,她决心证明自己的实力'
-      },
-      {
-        id: 2,
-        point: '林雨萱暗中破坏苏晚晚的设计方案,导致项目出现问题'
-      },
-      {
-        id: 3,
-        point: '顾北辰发现真相,开始重新审视苏晚晚,两人关系出现转机'
-      },
-      {
-        id: 4,
-        point: '苏晚晚在压力下完成了惊艳的设计,赢得了顾北辰的认可'
-      },
-      {
-        id: 5,
-        point: '两人在项目庆功宴上,情感关系有了微妙的变化'
-      }
-    ],
-    dialogues: [
-      {
-        id: 1,
-        speaker: '顾北辰',
-        content: '这份设计稿完全不符合我的要求,重做!'
-      },
-      {
-        id: 2,
-        speaker: '苏晚晚',
-        content: '顾总,我会证明给你看,我的设计绝对不会让你失望。'
-      },
-      {
-        id: 3,
-        speaker: '林雨萱',
-        content: '晚晚,北辰哥哥对你要求这么严格,你还是放弃吧。'
-      },
-      {
-        id: 4,
-        speaker: '苏晚晚',
-        content: '我不会放弃的,这是我的梦想。'
-      },
-      {
-        id: 5,
-        speaker: '顾北辰',
-        content: '你的设计...很出色,我之前误会你了。'
-      }
-    ]
-  }
+// Analysis Result
+const analysisResult = ref('')
+const isAnalyzing = ref(false)
+const analysisError = ref('')
+
+// System Prompt
+const showSystemPromptModal = ref(false)
+const systemPrompt = ref('')
+
+// Result Preview Modal
+const showResultPreviewModal = ref(false)
+
+// Rendered Markdown
+const renderedMarkdown = computed(() => {
+  if (!analysisResult.value) return ''
+  return marked.parse(analysisResult.value)
 })
 
 const storyboards = ref([
@@ -2016,17 +1940,7 @@ const loadNovelChapters = async () => {
       // 如果是 404，说明是新创建的剧本库，还没有文件，这是正常的
       if (response.status === 404) {
         console.log('【章节加载】新剧本库，暂无文件')
-        // 只显示示例章节
-        const demoChapter = {
-          id: 'demo-chapter-1',
-          fileId: 'demo',
-          title: '示例章节：霸道总裁爱上我',
-          content: '第一章 初遇\n\n顾北辰坐在豪华的办公室里，冷冷地看着手中的文件。落地窗外，S市的繁华景象尽收眼底，但他眼中只有冰冷。\n\n"这份设计稿重做。"他随手将文件扔在桌上，发出"啪"的一声脆响。\n\n站在办公桌前的苏晚晚身体微微一颤，但她很快挺直了背脊，眼神坚定地看着眼前的男人。\n\n"顾总，我认为这个设计完全符合您的要求。它不仅仅是一个商业项目，更是一种艺术的表达。"苏晚晚的声音虽然不大，但字字铿锵。\n\n顾北辰抬起头，深邃的目光落在苏晚晚身上。这个女人，竟然敢反驳他？\n\n"艺术？"顾北辰嗤笑一声，站起身，一步步走向苏晚晚，强大的气场瞬间笼罩了她，"在商言商，我要的是利润，不是你所谓的艺术。"\n\n两人对视，空气仿佛凝固。就在这时，办公室的门被推开，林雨萱走了进来。\n\n"北辰哥哥，还在忙吗？"林雨萱声音甜美，眼神却在扫过苏晚晚时闪过一丝嫉妒。\n\n苏晚晚深吸一口气，收起桌上的文件，"既然顾总不满意，我会重新修改。告辞。"说完，她转身离去，背影倔强而孤独。',
-          preview: '第一章 初遇\n\n顾北辰坐在豪华的办公室里，冷冷地看着手中的文件...',
-          analyzed: true,
-          loading: false
-        }
-        novelChapters.value = [demoChapter]
+        novelChapters.value = []
         return
       }
       // 其他错误才抛出
@@ -2044,22 +1958,10 @@ const loadNovelChapters = async () => {
       title: file.filename,
       content: '',  // Will be loaded on demand
       preview: '',  // Will be loaded on demand
-      analyzed: false,
       loading: false
     }))
 
-    // Add demo chapter
-    const demoChapter = {
-      id: 'demo-chapter-1',
-      fileId: 'demo',
-      title: '示例章节：霸道总裁爱上我',
-      content: '第一章 初遇\n\n顾北辰坐在豪华的办公室里，冷冷地看着手中的文件。落地窗外，S市的繁华景象尽收眼底，但他眼中只有冰冷。\n\n"这份设计稿重做。"他随手将文件扔在桌上，发出"啪"的一声脆响。\n\n站在办公桌前的苏晚晚身体微微一颤，但她很快挺直了背脊，眼神坚定地看着眼前的男人。\n\n"顾总，我认为这个设计完全符合您的要求。它不仅仅是一个商业项目，更是一种艺术的表达。"苏晚晚的声音虽然不大，但字字铿锵。\n\n顾北辰抬起头，深邃的目光落在苏晚晚身上。这个女人，竟然敢反驳他？\n\n"艺术？"顾北辰嗤笑一声，站起身，一步步走向苏晚晚，强大的气场瞬间笼罩了她，"在商言商，我要的是利润，不是你所谓的艺术。"\n\n两人对视，空气仿佛凝固。就在这时，办公室的门被推开，林雨萱走了进来。\n\n"北辰哥哥，还在忙吗？"林雨萱声音甜美，眼神却在扫过苏晚晚时闪过一丝嫉妒。\n\n苏晚晚深吸一口气，收起桌上的文件，"既然顾总不满意，我会重新修改。告辞。"说完，她转身离去，背影倔强而孤独。',
-      preview: '第一章 初遇\n\n顾北辰坐在豪华的办公室里，冷冷地看着手中的文件...',
-      analyzed: true,
-      loading: false
-    }
-
-    novelChapters.value = [demoChapter, ...apiChapters]
+    novelChapters.value = apiChapters
 
     // Load preview for each chapter (first 50 chars)
     for (const chapter of novelChapters.value) {
@@ -2135,343 +2037,130 @@ const selectChapter = (chapter) => {
   }
 }
 
-const analyzeChapter = (chapterId) => {
-  if (!chapterId) return
-  targetChapterId.value = chapterId
-  showAnalysisModal.value = true
-}
-
-// Analysis Configuration Modal
-const showAnalysisModal = ref(false)
-const targetChapterId = ref(null)
-const analysisConfig = ref({
-  style: '2D Anime', // '2D Anime' or 'Realistic'
-  language: 'Chinese', // 'English' or 'Chinese'
-  promptType: 'preset', // 'preset' or 'custom' - 提示词类型
-  tab: 'json', // 'visual', 'prompt', 'variables', or 'json'
-  systemPrompt: '', // 系统提示词
-  outputVariables: '', // 输出变量
-  streamingOutput: false, // 流式输出开关
-  structuredOutput: false, // 结构化输出开关
-  structuredOutputConfigured: false, // 结构化输出是否已配置
-  structuredFields: [] // 结构化输出字段列表
-})
-const showStyleTooltip = ref(null) // null, '2d', or 'realistic'
-const showFieldEditor = ref(false) // 是否显示字段编辑器
-const currentField = ref({
-  name: '',
-  type: 'string',
-  description: '',
-  required: false,
-  enum: ''
-})
-const editingParentIndex = ref(null) // 正在编辑子字段的父字段索引
-const expandedFields = ref([]) // 展开的字段索引列表
-
-// 配置结构化输出
-const configureStructuredOutput = () => {
-  analysisConfig.value.structuredOutputConfigured = true
-}
-
-// 添加字段
-const addField = () => {
-  showFieldEditor.value = true
-  editingParentIndex.value = null
-  currentField.value = {
-    name: '',
-    type: 'string',
-    description: '',
-    required: false,
-    enum: ''
-  }
-}
-
-// 添加子字段
-const addChildField = (parentIndex) => {
-  editingParentIndex.value = parentIndex
-  showFieldEditor.value = true
-  currentField.value = {
-    name: '',
-    type: 'string',
-    description: '',
-    required: false,
-    enum: ''
-  }
-  // 自动展开父字段
-  if (!expandedFields.value.includes(parentIndex)) {
-    expandedFields.value.push(parentIndex)
-  }
-}
-
-// 切换字段展开/折叠
-const toggleFieldExpand = (index) => {
-  const idx = expandedFields.value.indexOf(index)
-  if (idx > -1) {
-    expandedFields.value.splice(idx, 1)
-  } else {
-    expandedFields.value.push(index)
-  }
-}
-
-// 保存字段
-const saveField = () => {
-  if (!currentField.value.name.trim()) return
-
-  const newField = {
-    ...currentField.value,
-    children: []
+// Run Analysis with AI
+const runAnalysis = async () => {
+  if (!selectedChapter.value || !selectedChapter.value.content) {
+    showToastMessage('请先选择章节并加载内容', 'error')
+    return
   }
 
-  if (editingParentIndex.value !== null) {
-    // 添加为子字段
-    if (!analysisConfig.value.structuredFields[editingParentIndex.value].children) {
-      analysisConfig.value.structuredFields[editingParentIndex.value].children = []
-    }
-    analysisConfig.value.structuredFields[editingParentIndex.value].children.push(newField)
-  } else {
-    // 添加为顶级字段
-    analysisConfig.value.structuredFields.push(newField)
+  if (!currentModel.value) {
+    showToastMessage('请先选择模型', 'error')
+    return
   }
 
-  showFieldEditor.value = false
-  editingParentIndex.value = null
-  currentField.value = {
-    name: '',
-    type: 'string',
-    description: '',
-    required: false,
-    enum: ''
-  }
-}
-
-// 取消编辑字段
-const cancelFieldEdit = () => {
-  showFieldEditor.value = false
-  currentField.value = {
-    name: '',
-    type: 'string',
-    description: '',
-    required: false,
-    enum: ''
-  }
-}
-
-// 删除字段
-const deleteField = (index) => {
-  analysisConfig.value.structuredFields.splice(index, 1)
-}
-
-// 获取预设提示词
-const getPresetPrompt = () => {
-  return `你是一个专业的剧本分析师，擅长从剧本中提取关键信息。
-
-请分析提供的剧本内容，并按照以下JSON格式输出分析结果：
-
-{
-  "characters": [
-    {
-      "name": "角色名称",
-      "role": "角色定位（如：男主角/霸道总裁）",
-      "description": "角色性格和特征描述"
-    }
-  ],
-  "scenes": [
-    {
-      "name": "场景名称",
-      "location": "场景位置",
-      "description": "场景详细描述，包括环境、氛围、光线等"
-    }
-  ],
-  "plots": [
-    {
-      "sequence": 1,
-      "summary": "情节概要",
-      "description": "情节详细描述"
-    }
-  ],
-  "dialogues": [
-    {
-      "character": "角色名称",
-      "content": "对话内容",
-      "emotion": "情感状态"
-    }
-  ]
-}
-
-要求：
-1. 准确识别所有主要角色及其关系
-2. 详细描述每个场景的视觉元素
-3. 按时间顺序梳理情节发展
-4. 提取关键对话及其情感色彩
-5. 输出必须是有效的JSON格式`
-}
-
-// 应用提示词模板
-const applyPromptTemplate = (templateType) => {
-  const templates = {
-    anime: `你是一个专业的短剧分镜师，擅长将文字剧本转换为二次元动漫风格的视觉画面描述。
-
-请根据剧本内容，生成详细的分镜描述，要求：
-1. 画面风格：二次元动漫风格，色彩鲜艳，线条清晰
-2. 人物表现：表情生动，动作夸张，符合动漫特征
-3. 场景描述：详细描述场景环境、光线、氛围
-4. 镜头语言：明确镜头角度、景别、运动方式
-5. 情感传达：通过画面元素传达角色情感和剧情张力`,
-
-    realistic: `你是一个专业的短剧分镜师，擅长将文字剧本转换为真人写实风格的视觉画面描述。
-
-请根据剧本内容，生成详细的分镜描述，要求：
-1. 画面风格：真人写实风格，自然光线，真实质感
-2. 人物表现：自然的表情和动作，符合真实人物特征
-3. 场景描述：详细描述现实场景环境、光线、氛围
-4. 镜头语言：明确镜头角度、景别、运动方式
-5. 情感传达：通过细腻的画面细节传达角色情感`,
-
-    fantasy: `你是一个专业的短剧分镜师，擅长将文字剧本转换为奇幻风格的视觉画面描述。
-
-请根据剧本内容，生成详细的分镜描述，要求：
-1. 画面风格：奇幻艺术风格，魔法氛围，史诗场景
-2. 人物表现：神秘的角色形象，魔法特效，奇幻服饰
-3. 场景描述：详细描述奇幻世界环境、魔法光效、神秘氛围
-4. 镜头语言：明确镜头角度、景别、运动方式
-5. 情感传达：通过奇幻元素和氛围营造传达剧情张力`,
-
-    scifi: `你是一个专业的短剧分镜师，擅长将文字剧本转换为科幻风格的视觉画面描述。
-
-请根据剧本内容，生成详细的分镜描述，要求：
-1. 画面风格：科幻风格，未来感，高科技元素
-2. 人物表现：科技装备，未来服饰，赛博朋克美学
-3. 场景描述：详细描述未来科技环境、霓虹灯光、科幻氛围
-4. 镜头语言：明确镜头角度、景别、运动方式
-5. 情感传达：通过科技元素和未来感营造剧情氛围`
-  }
-
-  const template = templates[templateType]
-  if (template) {
-    analysisConfig.value.systemPrompt = template
-    showToastMessage('模板已应用', 'success')
-  }
-}
-
-const confirmAnalysis = async () => {
-  if (!targetChapterId.value || !selectedChapter.value) return
-
-  showAnalysisModal.value = false
-  analyzing.value = true
+  isAnalyzing.value = true
+  analysisError.value = ''
+  analysisResult.value = ''
 
   try {
     const token = localStorage.getItem('accessToken')
-    const fileId = targetChapterId.value.toString()
+    const userInput = selectedChapter.value.content
 
-    // Check if project exists and delete it
-    try {
-      await fetch(`${API_BASE}/api/v1/scriptwriting/projects/${fileId}`, {
-        method: 'DELETE',
-        headers: { 'Authorization': `Bearer ${token}` }
-      })
-    } catch (e) {
-      // Ignore delete errors (project may not exist)
+    // Build request body
+    const requestBody = {
+      config_id: currentModel.value.config_id,
+      messages: [
+        {
+          role: 'user',
+          content: userInput
+        }
+      ],
+      stream: aiConfig.value.streamingOutput,
+      thinking_mode: aiConfig.value.reasoningMode.enabled
     }
 
-    const requestData = {
-      file_info: {
-        file_id: fileId,
-        file_name: selectedChapter.value.title,
-        total_word_count: selectedChapter.value.content.length,
-        script_generation_time: new Date().toISOString()
-      },
-      global_config: {
-        visual_style: analysisConfig.value.style,
-        context_usage_count: 10
-      },
-      script_shot_list: selectedChapter.value.content.split('\n\n').filter(p => p.trim()).map((paragraph, index) => ({
-        shot_number: index + 1,
-        original_text: paragraph.trim(),
-        type: paragraph.includes('：') || paragraph.includes(':') ? "dialogue" : "narration/action",
-        duration: "3.5s",
-        video_url: "",
-        character_info: { character_name: "", gender: "", appearance_description: "" },
-        visual_content: {
-          scene_content: "", shot_size: "medium", camera_movement: "fixed",
-          front_image_url: "", back_image_url: "", side_image_url: "",
-          text_to_image_prompt: { CN: { positive_prompt: "", negative_prompt: "" }, English: { positive_prompt: "", negative_prompt: "" } },
-          image_to_video_prompt: { CN: { positive_prompt: "", negative_prompt: "" }, English: { positive_prompt: "", negative_prompt: "" } }
-        },
-        audio_info: { dialogue_content: "", voice_over: "", voice_emotion: "", sound_effects: "" },
-        context_summary: ""
-      }))
+    // Add system prompt if provided
+    if (systemPrompt.value && systemPrompt.value.trim()) {
+      requestBody.system_prompt = systemPrompt.value.trim()
     }
 
-    const response = await fetch(`${API_BASE}/api/v1/scriptwriting/projects`, {
+    // Add optional parameters
+    if (aiConfig.value.temperature.enabled) {
+      requestBody.temperature = aiConfig.value.temperature.value
+    }
+    if (aiConfig.value.topP.enabled) {
+      requestBody.top_p = aiConfig.value.topP.value
+    }
+    if (aiConfig.value.presencePenalty.enabled) {
+      requestBody.presence_penalty = aiConfig.value.presencePenalty.value
+    }
+    if (aiConfig.value.frequencyPenalty.enabled) {
+      requestBody.frequency_penalty = aiConfig.value.frequencyPenalty.value
+    }
+    if (aiConfig.value.maxTokens.enabled) {
+      requestBody.max_tokens = aiConfig.value.maxTokens.value
+    }
+
+    console.log('【运行分析】请求参数:', requestBody)
+
+    const response = await fetch(`${API_BASE}/api/v3/chat/completions`, {
       method: 'POST',
       headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token}`
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json'
       },
-      body: JSON.stringify(requestData)
+      body: JSON.stringify(requestBody)
     })
 
     if (!response.ok) {
-      if (response.status === 401) {
-        router.push('/login')
-        return
+      throw new Error(`API 请求失败: ${response.status}`)
+    }
+
+    // Handle streaming response
+    if (aiConfig.value.streamingOutput) {
+      const reader = response.body.getReader()
+      const decoder = new TextDecoder()
+
+      while (true) {
+        const { done, value } = await reader.read()
+        if (done) break
+
+        const chunk = decoder.decode(value, { stream: true })
+        const lines = chunk.split('\n')
+
+        for (const line of lines) {
+          if (line.startsWith('data: ')) {
+            const data = line.slice(6).trim()
+            if (data === '[DONE]') continue
+
+            try {
+              const json = JSON.parse(data)
+              // Support both formats: {"content": "..."} and {"choices": [{"delta": {"content": "..."}}]}
+              let content = ''
+              if (json.content) {
+                // Direct content format
+                content = json.content
+              } else if (json.choices && json.choices[0] && json.choices[0].delta) {
+                // OpenAI format
+                content = json.choices[0].delta.content || ''
+              }
+
+              if (content) {
+                analysisResult.value += content
+                console.log('【流式输出】接收内容:', content)
+              }
+            } catch (e) {
+              console.warn('解析流式数据失败:', e, '原始数据:', data)
+            }
+          }
+        }
       }
-      throw new Error('创建剧本失败')
+    } else {
+      // Handle non-streaming response
+      const data = await response.json()
+      if (data.choices && data.choices[0] && data.choices[0].message) {
+        analysisResult.value = data.choices[0].message.content
+      }
     }
 
-    const chapter = novelChapters.value.find(c => c.id === targetChapterId.value)
-    if (chapter) {
-      chapter.analyzed = true
-    }
-
-    showToastMessage('剧本创建成功', 'success')
+    showToastMessage('分析完成', 'success')
   } catch (error) {
-    console.error('Analysis error:', error)
-    showToastMessage(error.message || '创建剧本失败', 'error')
+    console.error('【运行分析】错误:', error)
+    analysisError.value = error.message
+    showToastMessage('分析失败: ' + error.message, 'error')
   } finally {
-    analyzing.value = false
-    targetChapterId.value = null
-  }
-}
-
-const showJsonPreview = () => {
-  // Placeholder for JSON preview functionality
-  const previewData = {
-    chapterId: targetChapterId.value,
-    config: analysisConfig.value,
-    timestamp: new Date().toISOString()
-  }
-  alert(JSON.stringify(previewData, null, 2))
-}
-
-const currentAnalysis = computed(() => {
-  if (!selectedChapter.value) return null
-  return analysisResults.value[selectedChapter.value.id]
-})
-
-// Generate JSON data for preview
-const jsonPreviewData = computed(() => {
-  // 默认返回空对象
-  return {}
-})
-
-const coloredJsonPreview = computed(() => {
-  return JSON.stringify(jsonPreviewData.value, null, 2)
-    .replace(/"([^"]+)":/g, '<span class="text-red-600 dark:text-red-400">"$1"</span>:')
-    .replace(/: "([^"]*)"/g, ': <span class="text-green-600 dark:text-green-400">"$1"</span>')
-    .replace(/: (\d+)/g, ': <span class="text-blue-600 dark:text-blue-400">$1</span>')
-    .replace(/: (true|false|null)/g, ': <span class="text-purple-600 dark:text-purple-400">$1</span>')
-})
-
-// Copy JSON to clipboard
-const copyJsonToClipboard = async () => {
-  try {
-    const jsonString = JSON.stringify(jsonPreviewData.value, null, 2)
-    await navigator.clipboard.writeText(jsonString)
-    showToastMessage('JSON 已复制到剪贴板', 'success')
-  } catch (error) {
-    console.error('复制失败:', error)
-    showToastMessage('复制失败', 'error')
+    isAnalyzing.value = false
   }
 }
 
@@ -2795,9 +2484,20 @@ watch(activeTab, (newTab) => {
       </div>
 
       <div class="flex items-center gap-3">
+        <!-- System Prompt Button -->
+        <button
+          @click="showSystemPromptModal = true"
+          class="flex items-center gap-2 px-3 py-1.5 bg-white dark:bg-[#2C2C2E] border border-gray-200 dark:border-[#3A3A3C] rounded-lg shadow-sm hover:bg-gray-50 dark:hover:bg-[#3A3A3C]/80 transition"
+          :class="systemPrompt ? 'border-brand-green text-brand-green' : 'text-gray-700 dark:text-gray-200'"
+        >
+          <fa :icon="['fas', 'file-lines']" :class="systemPrompt ? 'text-brand-green' : 'text-gray-500'" />
+          <span class="text-sm font-medium">系统提示词</span>
+          <span v-if="systemPrompt" class="px-1.5 py-0.5 text-[10px] font-bold bg-brand-green/10 text-brand-green rounded">已设置</span>
+        </button>
+
         <!-- AI Model Selector -->
         <div class="relative">
-          <div 
+          <div
             @click.stop="toggleAIConfigMenu"
             class="flex items-center gap-2 px-3 py-1.5 bg-white dark:bg-[#2C2C2E] border border-gray-200 dark:border-[#3A3A3C] rounded-lg shadow-sm cursor-pointer hover:bg-gray-50 dark:hover:bg-[#3A3A3C]/80 transition group"
             :class="showAIConfigMenu ? 'ring-2 ring-brand-green/20 border-brand-green' : ''"
@@ -3257,8 +2957,16 @@ watch(activeTab, (newTab) => {
         <button class="p-2 text-secondary hover:text-primary dark:text-gray-400 dark:hover:text-white transition" @click="toggleTheme">
           <fa :icon="['fas', theme === 'dark' ? 'sun' : 'moon']" />
         </button>
-        <button class="px-4 py-1.5 bg-black text-white dark:bg-white dark:text-black rounded-md text-sm font-medium hover:opacity-80 transition">
-          导出
+        <button
+          @click="runAnalysis"
+          :disabled="isAnalyzing || !selectedChapter || !currentModel"
+          class="px-4 py-1.5 bg-black text-white dark:bg-white dark:text-black rounded-md text-sm font-medium hover:opacity-80 transition disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          <span v-if="isAnalyzing" class="flex items-center gap-2">
+            <fa :icon="['fas', 'circle-dot']" class="animate-spin" />
+            运行中...
+          </span>
+          <span v-else>运行</span>
         </button>
       </div>
     </header>
@@ -3923,7 +3631,6 @@ watch(activeTab, (newTab) => {
               >
                 <div class="flex items-center justify-between mb-1">
                   <span class="font-medium text-sm">{{ chapter.title }}</span>
-                  <fa v-if="chapter.analyzed" :icon="['fas', 'check-circle']" class="text-brand-green text-xs" />
                 </div>
                 <p class="text-xs text-secondary dark:text-gray-400 line-clamp-2">{{ chapter.preview || '加载中...' }}</p>
               </button>
@@ -3939,30 +3646,6 @@ watch(activeTab, (newTab) => {
             <div v-else>
               <div class="flex items-center justify-between mb-4">
                 <h2 class="text-2xl font-bold text-primary dark:text-gray-200">{{ selectedChapter.title }}</h2>
-                <div class="flex items-center gap-2">
-                  <button
-                    @click="analyzeChapter(selectedChapter.id)"
-                    :disabled="analyzing || selectedChapter.analyzed"
-                    class="px-4 py-2 rounded-lg text-sm font-medium transition"
-                    :class="selectedChapter.analyzed
-                      ? 'bg-gray-100 dark:bg-[#3A3A3C] text-gray-400 cursor-not-allowed'
-                      : 'bg-brand-green text-white hover:bg-brand-green/90'"
-                  >
-                    <fa v-if="analyzing" :icon="['fas', 'circle-dot']" class="mr-2 animate-spin" />
-                    <fa v-else-if="selectedChapter.analyzed" :icon="['fas', 'check']" class="mr-2" />
-                    <fa v-else :icon="['fas', 'wand-magic-sparkles']" class="mr-2" />
-                    {{ analyzing ? '分析中...' : selectedChapter.analyzed ? '已分析' : '分析章节' }}
-                  </button>
-                  <button
-                    v-if="selectedChapter.analyzed"
-                    @click="selectedChapter.analyzed = false; analyzeChapter(selectedChapter.id)"
-                    :disabled="analyzing"
-                    class="px-4 py-2 rounded-lg text-sm font-medium transition bg-white dark:bg-[#2C2C2E] border border-brand-green text-brand-green hover:bg-brand-green hover:text-white"
-                  >
-                    <fa :icon="['fas', 'rotate']" class="mr-2" />
-                    重新分析
-                  </button>
-                </div>
               </div>
               <div class="prose dark:prose-invert max-w-none">
                 <div v-if="selectedChapter.loading" class="flex items-center justify-center py-12">
@@ -3977,113 +3660,51 @@ watch(activeTab, (newTab) => {
 
           <!-- Right Sidebar: Analysis Results -->
           <div class="w-96 flex-shrink-0 bg-white dark:bg-[#2C2C2E] rounded-xl border border-gray-200 dark:border-[#3A3A3C] overflow-hidden flex flex-col">
-            <div class="p-4 border-b border-gray-200 dark:border-[#3A3A3C]">
-              <h2 class="text-lg font-bold text-primary dark:text-gray-200">分析结果</h2>
+            <div class="p-4 border-b border-gray-200 dark:border-[#3A3A3C] flex items-center justify-between">
+              <h2 class="text-lg font-bold text-primary dark:text-gray-200">运行结果</h2>
+              <button
+                v-if="analysisResult.length > 0"
+                @click="showResultPreviewModal = true"
+                class="p-2 hover:bg-gray-100 dark:hover:bg-[#3A3A3C] rounded-lg transition"
+                title="全屏查看"
+              >
+                <fa :icon="['fas', 'arrow-up-right-from-square']" class="text-gray-500 dark:text-gray-400" />
+              </button>
             </div>
-            
-            <div v-if="!currentAnalysis" class="flex-1 flex flex-col items-center justify-center text-secondary dark:text-gray-400 p-6">
+
+            <!-- Loading State (only show when no content yet) -->
+            <div v-if="isAnalyzing && !analysisResult" class="flex-1 flex flex-col items-center justify-center text-secondary dark:text-gray-400 p-6">
+              <fa :icon="['fas', 'circle-dot']" class="text-5xl mb-3 text-brand-green animate-spin" />
+              <p class="text-sm text-center">AI 正在分析中...</p>
+            </div>
+
+            <!-- Error State -->
+            <div v-else-if="analysisError && !analysisResult" class="flex-1 p-6">
+              <div class="p-4 rounded-lg bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800">
+                <div class="flex items-start gap-2">
+                  <fa :icon="['fas', 'triangle-exclamation']" class="text-red-500 mt-0.5" />
+                  <div class="flex-1">
+                    <h4 class="font-bold text-sm text-red-700 dark:text-red-400 mb-1">运行失败</h4>
+                    <p class="text-xs text-red-600 dark:text-red-300">{{ analysisError }}</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Empty State -->
+            <div v-else-if="!analysisResult && !isAnalyzing" class="flex-1 flex flex-col items-center justify-center text-secondary dark:text-gray-400 p-6">
               <fa :icon="['fas', 'circle-info']" class="text-5xl mb-3 opacity-30" />
-              <p class="text-sm text-center">选择已分析的章节<br/>查看分析结果</p>
+              <p class="text-sm text-center">点击"运行"按钮<br/>开始 AI 分析</p>
             </div>
-            
-            <div v-else class="flex-1 overflow-y-auto">
-              <!-- Analysis Tabs -->
-              <div class="flex border-b border-gray-200 dark:border-[#3A3A3C] sticky top-0 bg-white dark:bg-[#2C2C2E] z-10">
-                <button
-                  @click="analysisTab = 'characters'"
-                  class="flex-1 px-3 py-2 text-sm font-medium transition border-b-2"
-                  :class="analysisTab === 'characters' 
-                    ? 'border-brand-green text-brand-green' 
-                    : 'border-transparent text-secondary dark:text-gray-400 hover:text-primary dark:hover:text-gray-200'"
-                >
-                  角色
-                </button>
-                <button
-                  @click="analysisTab = 'scenes'"
-                  class="flex-1 px-3 py-2 text-sm font-medium transition border-b-2"
-                  :class="analysisTab === 'scenes' 
-                    ? 'border-brand-green text-brand-green' 
-                    : 'border-transparent text-secondary dark:text-gray-400 hover:text-primary dark:hover:text-gray-200'"
-                >
-                  场景
-                </button>
-                <button
-                  @click="analysisTab = 'plots'"
-                  class="flex-1 px-3 py-2 text-sm font-medium transition border-b-2"
-                  :class="analysisTab === 'plots' 
-                    ? 'border-brand-green text-brand-green' 
-                    : 'border-transparent text-secondary dark:text-gray-400 hover:text-primary dark:hover:text-gray-200'"
-                >
-                  情节
-                </button>
-                <button
-                  @click="analysisTab = 'dialogues'"
-                  class="flex-1 px-3 py-2 text-sm font-medium transition border-b-2"
-                  :class="analysisTab === 'dialogues' 
-                    ? 'border-brand-green text-brand-green' 
-                    : 'border-transparent text-secondary dark:text-gray-400 hover:text-primary dark:hover:text-gray-200'"
-                >
-                  对话
-                </button>
-              </div>
 
-              <!-- Characters Tab -->
-              <div v-if="analysisTab === 'characters'" class="p-4 space-y-3">
-                <div v-for="char in currentAnalysis.characters" :key="char.id" class="p-3 rounded-lg bg-gray-50 dark:bg-[#1C1C1E] border border-gray-200 dark:border-[#3A3A3C]">
-                  <div class="flex items-start gap-2">
-                    <div class="w-8 h-8 rounded-full bg-brand-green/20 flex items-center justify-center flex-shrink-0">
-                      <fa :icon="['fas', 'user']" class="text-brand-green text-sm" />
-                    </div>
-                    <div class="flex-1 min-w-0">
-                      <h4 class="font-bold text-sm text-primary dark:text-gray-200">{{ char.name }}</h4>
-                      <p class="text-xs text-brand-green mb-1">{{ char.role }}</p>
-                      <p class="text-xs text-secondary dark:text-gray-400">{{ char.desc }}</p>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              <!-- Scenes Tab -->
-              <div v-if="analysisTab === 'scenes'" class="p-4 space-y-3">
-                <div v-for="scene in currentAnalysis.scenes" :key="scene.id" class="p-3 rounded-lg bg-gray-50 dark:bg-[#1C1C1E] border border-gray-200 dark:border-[#3A3A3C]">
-                  <div class="flex items-start gap-2">
-                    <div class="w-8 h-8 rounded-full bg-purple-500/20 flex items-center justify-center flex-shrink-0">
-                      <fa :icon="['fas', 'image']" class="text-purple-500 text-sm" />
-                    </div>
-                    <div class="flex-1 min-w-0">
-                      <h4 class="font-bold text-sm text-primary dark:text-gray-200">{{ scene.name }}</h4>
-                      <p class="text-xs text-secondary dark:text-gray-400 mt-1">{{ scene.desc }}</p>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              <!-- Plots Tab -->
-              <div v-if="analysisTab === 'plots'" class="p-4 space-y-3">
-                <div v-for="(plot, index) in currentAnalysis.plots" :key="plot.id" class="p-3 rounded-lg bg-gray-50 dark:bg-[#1C1C1E] border border-gray-200 dark:border-[#3A3A3C]">
-                  <div class="flex items-start gap-2">
-                    <div class="w-8 h-8 rounded-full bg-orange-500/20 flex items-center justify-center flex-shrink-0">
-                      <span class="text-orange-500 text-xs font-bold">{{ index + 1 }}</span>
-                    </div>
-                    <div class="flex-1 min-w-0">
-                      <p class="text-sm text-primary dark:text-gray-200">{{ plot.point }}</p>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              <!-- Dialogues Tab -->
-              <div v-if="analysisTab === 'dialogues'" class="p-4 space-y-3">
-                <div v-for="dialogue in currentAnalysis.dialogues" :key="dialogue.id" class="p-3 rounded-lg bg-gray-50 dark:bg-[#1C1C1E] border border-gray-200 dark:border-[#3A3A3C]">
-                  <div class="flex items-start gap-2">
-                    <div class="w-8 h-8 rounded-full bg-teal-500/20 flex items-center justify-center flex-shrink-0">
-                      <fa :icon="['fas', 'comment-dots']" class="text-teal-500 text-sm" />
-                    </div>
-                    <div class="flex-1 min-w-0">
-                      <h4 class="font-bold text-xs text-brand-green mb-1">{{ dialogue.speaker }}</h4>
-                      <p class="text-sm text-primary dark:text-gray-200">"{{ dialogue.content }}"</p>
-                    </div>
-                  </div>
+            <!-- Result Display (with streaming indicator) -->
+            <div v-else class="flex-1 overflow-y-auto p-6">
+              <div class="prose prose-sm dark:prose-invert max-w-none prose-headings:font-bold prose-h1:text-2xl prose-h2:text-xl prose-h3:text-lg prose-table:text-xs prose-pre:bg-gray-100 dark:prose-pre:bg-gray-800 prose-code:text-brand-green prose-code:bg-gray-100 dark:prose-code:bg-gray-800 prose-code:px-1 prose-code:py-0.5 prose-code:rounded markdown-content">
+                <div v-html="renderedMarkdown"></div>
+                <!-- Streaming indicator -->
+                <div v-if="isAnalyzing" class="flex items-center gap-2 mt-3 text-brand-green not-prose">
+                  <fa :icon="['fas', 'circle-dot']" class="animate-pulse text-xs" />
+                  <span class="text-xs">正在生成中...</span>
                 </div>
               </div>
             </div>
@@ -4980,6 +4601,115 @@ watch(activeTab, (newTab) => {
       </div>
     </teleport>
 
+    <!-- Result Preview Modal -->
+    <teleport to="body">
+      <div
+        v-if="showResultPreviewModal"
+        class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4"
+        @click="showResultPreviewModal = false"
+      >
+        <div
+          class="bg-white dark:bg-[#2C2C2E] rounded-xl shadow-2xl w-full max-w-6xl h-[90vh] overflow-hidden flex flex-col"
+          @click.stop
+        >
+          <!-- Header -->
+          <div class="flex items-center justify-between px-6 py-4 border-b border-gray-200 dark:border-[#3A3A3C]">
+            <div class="flex items-center gap-3">
+              <div class="w-10 h-10 rounded-lg bg-brand-green/10 flex items-center justify-center">
+                <fa :icon="['fas', 'file-lines']" class="text-brand-green text-lg" />
+              </div>
+              <div>
+                <h3 class="text-lg font-bold text-primary dark:text-gray-200">运行结果</h3>
+                <p class="text-xs text-secondary dark:text-gray-400">AI 生成的完整内容</p>
+              </div>
+            </div>
+            <button
+              @click="showResultPreviewModal = false"
+              class="p-2 hover:bg-gray-100 dark:hover:bg-[#3A3A3C] rounded-lg transition"
+            >
+              <fa :icon="['fas', 'xmark']" class="text-gray-400" />
+            </button>
+          </div>
+
+          <!-- Content -->
+          <div class="flex-1 overflow-y-auto p-8">
+            <div class="prose prose-sm dark:prose-invert max-w-none prose-headings:font-bold prose-h1:text-2xl prose-h2:text-xl prose-h3:text-lg prose-table:text-xs prose-pre:bg-gray-100 dark:prose-pre:bg-gray-800 prose-code:text-brand-green prose-code:bg-gray-100 dark:prose-code:bg-gray-800 prose-code:px-1 prose-code:py-0.5 prose-code:rounded markdown-content">
+              <div v-html="renderedMarkdown"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </teleport>
+
+    <!-- System Prompt Modal -->
+    <teleport to="body">
+      <div
+        v-if="showSystemPromptModal"
+        class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4"
+        @click="showSystemPromptModal = false"
+      >
+        <div
+          class="bg-white dark:bg-[#2C2C2E] rounded-xl shadow-2xl w-full max-w-2xl overflow-hidden"
+          @click.stop
+        >
+          <!-- Header -->
+          <div class="flex items-center justify-between px-6 py-4 border-b border-gray-200 dark:border-[#3A3A3C]">
+            <div class="flex items-center gap-3">
+              <div class="w-10 h-10 rounded-lg bg-brand-green/10 flex items-center justify-center">
+                <fa :icon="['fas', 'file-lines']" class="text-brand-green text-lg" />
+              </div>
+              <div>
+                <h3 class="text-lg font-bold text-primary dark:text-gray-200">系统提示词</h3>
+                <p class="text-xs text-secondary dark:text-gray-400">设置 AI 的角色和行为规范</p>
+              </div>
+            </div>
+            <button
+              @click="showSystemPromptModal = false"
+              class="p-2 hover:bg-gray-100 dark:hover:bg-[#3A3A3C] rounded-lg transition"
+            >
+              <fa :icon="['fas', 'xmark']" class="text-gray-400" />
+            </button>
+          </div>
+
+          <!-- Content -->
+          <div class="p-6">
+            <textarea
+              v-model="systemPrompt"
+              placeholder="例如：你是一个专业的 UI 设计师，擅长现代化的界面设计..."
+              class="w-full h-64 px-4 py-3 border border-gray-200 dark:border-[#3A3A3C] rounded-lg bg-white dark:bg-[#1C1C1E] text-primary dark:text-gray-200 placeholder-gray-400 dark:placeholder-gray-500 resize-none focus:outline-none focus:ring-2 focus:ring-brand-green/20 focus:border-brand-green transition"
+            ></textarea>
+
+            <div class="mt-4 p-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
+              <div class="flex items-start gap-2">
+                <fa :icon="['fas', 'circle-info']" class="text-blue-500 mt-0.5 text-sm" />
+                <div class="flex-1">
+                  <p class="text-xs text-blue-700 dark:text-blue-300">
+                    系统提示词会在每次对话时发送给 AI，用于定义 AI 的角色、专业领域和回答风格。留空则使用模型的默认行为。
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Footer -->
+          <div class="flex items-center justify-end gap-3 px-6 py-4 border-t border-gray-200 dark:border-[#3A3A3C] bg-gray-50 dark:bg-[#1C1C1E]">
+            <button
+              @click="systemPrompt = ''; showSystemPromptModal = false"
+              class="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-[#2C2C2E] rounded-lg transition"
+            >
+              清空
+            </button>
+            <button
+              @click="showSystemPromptModal = false"
+              class="px-4 py-2 text-sm font-medium bg-brand-green text-white rounded-lg hover:bg-brand-green-dark transition"
+            >
+              确定
+            </button>
+          </div>
+        </div>
+      </div>
+    </teleport>
+
     <!-- Toast Notification -->
     <teleport to="body">
       <transition name="toast">
@@ -5576,229 +5306,51 @@ watch(activeTab, (newTab) => {
       </div>
     </teleport>
 
-    <!-- Analysis Configuration Modal -->
-    <teleport to="body">
-      <div v-if="showAnalysisModal" class="fixed inset-0 z-50 flex items-center justify-center p-4">
-        <div class="absolute inset-0 bg-black/50 backdrop-blur-sm" @click="showAnalysisModal = false"></div>
-        <div class="relative bg-white dark:bg-[#2C2C2E] rounded-xl shadow-2xl w-full max-w-5xl h-[700px] flex flex-col overflow-hidden animate-fade-in-up">
-          
-          <!-- 1. Header -->
-          <div class="px-6 py-4 flex justify-between items-center border-b border-gray-100 dark:border-[#3A3A3C]">
-            <h3 class="text-lg font-bold text-primary dark:text-white">分析配置</h3>
-            <button @click="showAnalysisModal = false" class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 transition">
-              <fa :icon="['fas', 'xmark']" class="text-lg" />
-            </button>
-          </div>
-
-          <!-- 2. Toolbar / Tabs -->
-          <div class="px-6 py-3 flex items-center justify-between border-b border-gray-100 dark:border-[#3A3A3C] bg-white dark:bg-[#2C2C2E]">
-            <div class="flex items-center gap-2 bg-gray-100 dark:bg-[#3A3A3C] p-1 rounded-lg">
-              <button
-                @click="analysisConfig.tab = 'visual'"
-                class="px-3 py-1.5 text-sm font-medium rounded-md transition flex items-center gap-2"
-                :class="analysisConfig.tab === 'visual'
-                  ? 'bg-white dark:bg-[#2C2C2E] text-primary dark:text-white shadow-sm'
-                  : 'text-secondary dark:text-gray-400 hover:text-primary dark:hover:text-gray-200'"
-              >
-                <fa :icon="['fas', 'wand-magic-sparkles']" />
-                风格配置
-              </button>
-              <button
-                @click="analysisConfig.tab = 'json'"
-                class="px-3 py-1.5 text-sm font-medium rounded-md transition flex items-center gap-2"
-                :class="analysisConfig.tab === 'json'
-                  ? 'bg-white dark:bg-[#2C2C2E] text-primary dark:text-white shadow-sm'
-                  : 'text-secondary dark:text-gray-400 hover:text-primary dark:hover:text-gray-200'"
-              >
-                <fa :icon="['fas', 'code']" />
-                JSON 预览
-              </button>
-            </div>
-
-            <!-- Optional Right Side Actions -->
-            <div v-if="analysisConfig.tab === 'json'" class="flex items-center gap-3">
-              <button class="text-xs text-brand-green hover:text-brand-green-dark flex items-center gap-1">
-                <fa :icon="['fas', 'file-import']" />
-                从 JSON 导入
-              </button>
-            </div>
-          </div>
-          
-          <!-- 3. Content Area -->
-          <div class="flex-1 bg-white dark:bg-[#2C2C2E] p-6 overflow-hidden relative">
-
-            <!-- Visual Config Tab -->
-            <div v-if="analysisConfig.tab === 'visual'" class="h-full overflow-y-auto">
-              <div class="max-w-2xl">
-                <h4 class="text-base font-bold text-primary dark:text-white mb-6">风格选择</h4>
-                <div class="flex items-center gap-6">
-                  <!-- 2D 动漫风 -->
-                  <label class="flex items-center gap-3 cursor-pointer group">
-                    <div class="relative flex items-center">
-                      <input
-                        type="radio"
-                        name="style"
-                        value="2D Anime"
-                        v-model="analysisConfig.style"
-                        class="w-5 h-5 text-brand-green border-gray-300 dark:border-gray-600 focus:ring-0 focus:outline-none cursor-pointer accent-brand-green"
-                      />
-                    </div>
-                    <span class="text-base font-medium text-primary dark:text-white group-hover:text-brand-green transition">
-                      2D 动漫风
-                    </span>
-                    <div class="relative">
-                      <button
-                        type="button"
-                        @mouseenter="showStyleTooltip = '2d'"
-                        @mouseleave="showStyleTooltip = null"
-                        class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition focus:outline-none"
-                        @click.prevent
-                      >
-                        <fa :icon="['fas', 'circle-question']" class="text-sm" />
-                      </button>
-                      <!-- Tooltip -->
-                      <div
-                        v-if="showStyleTooltip === '2d'"
-                        class="absolute left-6 top-1/2 -translate-y-1/2 z-50 w-64 px-3 py-2 text-sm text-white bg-gray-900 dark:bg-gray-800 rounded-lg shadow-lg"
-                      >
-                        <div class="relative">
-                          适合二次元、轻小说风格
-                          <!-- Arrow -->
-                          <div class="absolute right-full top-1/2 -translate-y-1/2 border-8 border-transparent border-r-gray-900 dark:border-r-gray-800"></div>
-                        </div>
-                      </div>
-                    </div>
-                  </label>
-
-                  <!-- 真人写实风 -->
-                  <label class="flex items-center gap-3 cursor-pointer group">
-                    <div class="relative flex items-center">
-                      <input
-                        type="radio"
-                        name="style"
-                        value="Realistic"
-                        v-model="analysisConfig.style"
-                        class="w-5 h-5 text-brand-green border-gray-300 dark:border-gray-600 focus:ring-0 focus:outline-none cursor-pointer accent-brand-green"
-                      />
-                    </div>
-                    <span class="text-base font-medium text-primary dark:text-white group-hover:text-brand-green transition">
-                      真人写实风
-                    </span>
-                    <div class="relative">
-                      <button
-                        type="button"
-                        @mouseenter="showStyleTooltip = 'realistic'"
-                        @mouseleave="showStyleTooltip = null"
-                        class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition focus:outline-none"
-                        @click.prevent
-                      >
-                        <fa :icon="['fas', 'circle-question']" class="text-sm" />
-                      </button>
-                      <!-- Tooltip -->
-                      <div
-                        v-if="showStyleTooltip === 'realistic'"
-                        class="absolute left-6 top-1/2 -translate-y-1/2 z-50 w-64 px-3 py-2 text-sm text-white bg-gray-900 dark:bg-gray-800 rounded-lg shadow-lg"
-                      >
-                        <div class="relative">
-                          适合都市、职场、悬疑风格
-                          <!-- Arrow -->
-                          <div class="absolute right-full top-1/2 -translate-y-1/2 border-8 border-transparent border-r-gray-900 dark:border-r-gray-800"></div>
-                        </div>
-                      </div>
-                    </div>
-                  </label>
-                </div>
-
-                <!-- 语言选择 -->
-                <h4 class="text-base font-bold text-primary dark:text-white mb-6 mt-8">语言</h4>
-                <div class="flex items-center gap-6">
-                  <!-- English -->
-                  <label class="flex items-center gap-3 cursor-pointer group">
-                    <div class="relative flex items-center">
-                      <input
-                        type="radio"
-                        name="language"
-                        value="English"
-                        v-model="analysisConfig.language"
-                        class="w-5 h-5 text-brand-green border-gray-300 dark:border-gray-600 focus:ring-0 focus:outline-none cursor-pointer accent-brand-green"
-                      />
-                    </div>
-                    <span class="text-base font-medium text-primary dark:text-white group-hover:text-brand-green transition">
-                      English
-                    </span>
-                  </label>
-
-                  <!-- 中文 -->
-                  <label class="flex items-center gap-3 cursor-pointer group">
-                    <div class="relative flex items-center">
-                      <input
-                        type="radio"
-                        name="language"
-                        value="Chinese"
-                        v-model="analysisConfig.language"
-                        class="w-5 h-5 text-brand-green border-gray-300 dark:border-gray-600 focus:ring-0 focus:outline-none cursor-pointer accent-brand-green"
-                      />
-                    </div>
-                    <span class="text-base font-medium text-primary dark:text-white group-hover:text-brand-green transition">
-                      中文
-                    </span>
-                  </label>
-                </div>
-              </div>
-            </div>
-
-            <!-- JSON Preview Tab -->
-            <div v-else-if="analysisConfig.tab === 'json'" class="h-full flex flex-col overflow-hidden">
-              <!-- Editor Header -->
-              <div class="flex items-center justify-between px-4 py-3 border-b border-gray-200 dark:border-[#3A3A3C]">
-                <span class="text-sm font-semibold text-gray-700 dark:text-gray-300">JSON 配置预览</span>
-                <div class="flex items-center gap-3">
-                  <button class="text-gray-400 hover:text-primary dark:hover:text-gray-200 transition" title="格式化">
-                    <fa :icon="['fas', 'indent']" class="text-sm" />
-                  </button>
-                  <button @click="copyJsonToClipboard" class="text-gray-400 hover:text-primary dark:hover:text-gray-200 transition" title="复制">
-                    <fa :icon="['fas', 'copy']" class="text-sm" />
-                  </button>
-                </div>
-              </div>
-
-              <!-- Editor Content -->
-              <div class="flex-1 overflow-auto bg-[#F8F9FA] dark:bg-[#1A1A1A] p-4">
-                <pre class="font-mono text-sm text-gray-800 dark:text-gray-300" v-html="coloredJsonPreview"></pre>
-              </div>
-            </div>
-          </div>
-
-          <!-- 4. Footer -->
-          <div class="px-6 py-4 border-t border-gray-100 dark:border-[#3A3A3C] flex justify-between items-center bg-white dark:bg-[#2C2C2E]">
-            <a href="#" class="text-xs text-blue-500 hover:underline flex items-center gap-1">
-              <fa :icon="['fas', 'circle-info']" />
-              了解有关分析配置的更多信息
-            </a>
-            <div class="flex items-center gap-3">
-              <button 
-                @click="showAnalysisModal = false"
-                class="px-4 py-2 rounded-lg border border-gray-200 dark:border-[#3A3A3C] text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-[#3A3A3C] transition font-medium text-sm"
-              >
-                取消
-              </button>
-              <button 
-                @click="confirmAnalysis"
-                class="px-6 py-2 rounded-lg bg-brand-green text-white hover:bg-brand-green-dark transition font-medium text-sm shadow-lg shadow-brand-green/20"
-              >
-                保存并分析
-              </button>
-            </div>
-          </div>
-          
-        </div>
-      </div>
-    </teleport>
   </div>
 </template>
 
 
 <style scoped>
+/* Markdown table styles */
+.markdown-content :deep(table) {
+  border-collapse: collapse;
+  width: 100%;
+  margin: 1rem 0;
+}
+
+.markdown-content :deep(table thead) {
+  background-color: #f3f4f6;
+}
+
+.dark .markdown-content :deep(table thead) {
+  background-color: #374151;
+}
+
+.markdown-content :deep(table th),
+.markdown-content :deep(table td) {
+  border: 1px solid #d1d5db;
+  padding: 0.5rem 0.75rem;
+  text-align: left;
+}
+
+.dark .markdown-content :deep(table th),
+.dark .markdown-content :deep(table td) {
+  border-color: #4b5563;
+}
+
+.markdown-content :deep(table th) {
+  font-weight: 600;
+  font-size: 0.75rem;
+}
+
+.markdown-content :deep(table tbody tr:hover) {
+  background-color: #f9fafb;
+}
+
+.dark .markdown-content :deep(table tbody tr:hover) {
+  background-color: #1f2937;
+}
+
 /* Custom scrollbar for script editor */
 textarea::-webkit-scrollbar {
   width: 8px;

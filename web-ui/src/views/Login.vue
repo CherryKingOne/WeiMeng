@@ -110,7 +110,7 @@ const onLoginSubmit = async () => {
       if (data?.access_token) localStorage.setItem('accessToken', data.access_token)
       if (data?.user_id) localStorage.setItem('userId', data.user_id)
     } catch {}
-    openToast('登录成功', 'success')
+    openToast(t('auth.login_success'), 'success')
     router.push('/workspace')
   } catch (e) {
     loginError.value = t('auth.invalid')
@@ -128,9 +128,9 @@ const onSignupSubmit = async () => {
   const emailValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)
   const codeValid = /^\d{6}$/.test(codeStr)
   const passValid = password && password.length >= 8
-  if (!emailValid) { signupError.value = '请输入有效邮箱'; return }
-  if (!codeValid) { signupError.value = '请输入 6 位验证码'; return }
-  if (!passValid) { signupError.value = '密码至少 8 个字符'; return }
+  if (!emailValid) { signupError.value = t('auth.email_invalid'); return }
+  if (!codeValid) { signupError.value = t('auth.code_invalid'); return }
+  if (!passValid) { signupError.value = t('auth.password_rule'); return }
   registering.value = true
   try {
     const res = await fetch(`${API_BASE}/api/v1/auth/register`, {
@@ -139,7 +139,7 @@ const onSignupSubmit = async () => {
       body: JSON.stringify({ email, password, code: codeStr })
     })
     if (!res.ok) {
-      let msg = '注册失败'
+      let msg = t('auth.signup_failed')
       try {
         const data = await res.json()
         msg = data?.detail || msg
@@ -148,11 +148,11 @@ const onSignupSubmit = async () => {
       return
     }
     await res.json().catch(() => null)
-    openToast('注册成功，请登录', 'success')
+    openToast(t('auth.signup_success'), 'success')
     switchTab('login')
     loginEmail.value = email
   } catch (e) {
-    signupError.value = '注册失败'
+    signupError.value = t('auth.signup_failed')
   } finally {
     registering.value = false
   }
@@ -184,7 +184,7 @@ const sendCode = async () => {
     }, 1000)
   } catch (e) {
     sending.value = false
-    alert('发送验证码失败')
+    alert(t('auth.send_code_failed'))
   }
 }
 </script>

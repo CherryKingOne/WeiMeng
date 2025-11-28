@@ -9,10 +9,10 @@ docker run --name minio \
   server /data --console-address ":9001"
 
 
-  docker run -id --name=postgresql \
-  -p 5432:5432 \
-  -e POSTGRES_USER=weimeng \
-  -e POSTGRES_PASSWORD=weimeng \
-  -e POSTGRES_DB=weimeng \
-  -e LANG=C.UTF-8 \
-  postgres:17.5
+docker run -id --name=postgresql \
+-p 5432:5432 \
+-e POSTGRES_USER=weimeng \
+-e POSTGRES_PASSWORD=weimeng \
+-e POSTGRES_DB=weimeng \
+-e LANG=C.UTF-8 \
+postgres:17.5

@@ -453,17 +453,22 @@ const closeSystemModelSettings = () => {
   showSystemModelSettings.value = false
 }
 const saveSystemModelSettings = async () => {
-  console.log('[保存模型配置] 开始保存')
+  console.log('[保存模型配置] ========== 开始保存 ==========')
   try {
     const token = localStorage.getItem('accessToken')
+    console.log('[保存模型配置] Token 存在:', !!token)
+    console.log('[保存模型配置] Token 长度:', token ? token.length : 0)
+    console.log('[保存模型配置] Token 前20字符:', token ? token.substring(0, 20) + '...' : 'null')
+
     if (!token) {
-      console.warn('[保存模型配置] 未找到 token')
+      console.warn('[保存模型配置] ❌ 未找到 token')
       openToast('请先登录', 'error')
       return
     }
 
     // 使用固定的 config_id，或者从用户配置中获取
     const configId = 'wm63405339065589127630'
+    console.log('[保存模型配置] Config ID:', configId)
 
     // 构建请求体
     const requestBody = {
@@ -477,8 +482,10 @@ const saveSystemModelSettings = async () => {
       image_model: imageModel.value || null
     }
 
-    console.log('[保存模型配置] 请求体:', requestBody)
-    console.log('[保存模型配置] 请求 URL:', `${API_BASE}/api/v3/chat/default-model`)
+    console.log('[保存模型配置] 📦 请求体:', JSON.stringify(requestBody, null, 2))
+    console.log('[保存模型配置] 🌐 请求 URL:', `${API_BASE}/api/v3/chat/default-model`)
+    console.log('[保存模型配置] 📋 请求方法: POST')
+    console.log('[保存模型配置] 📋 Content-Type: application/json')
 
     const response = await fetch(
       `${API_BASE}/api/v3/chat/default-model`,
@@ -493,36 +500,92 @@ const saveSystemModelSettings = async () => {
       }
     )
 
-    console.log('[保存模型配置] 响应状态:', response.status)
+    console.log('[保存模型配置] ========== 响应信息 ==========')
+    console.log('[保存模型配置] 📊 响应状态码:', response.status)
+    console.log('[保存模型配置] 📊 响应状态文本:', response.statusText)
+    console.log('[保存模型配置] 📊 响应 OK:', response.ok)
+    console.log('[保存模型配置] 📊 响应 Headers:', Object.fromEntries(response.headers.entries()))
 
     if (response.status === 401) {
-      console.warn('[保存模型配置] 未授权，跳转到登录页')
+      console.warn('[保存模型配置] ❌ 401 未授权，跳转到登录页')
       router.push('/login')
       return
     }
 
-    if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}))
-      console.error('[保存模型配置] 保存失败:', errorData)
-      openToast(errorData.message || '保存失败', 'error')
+    if (response.status === 403) {
+      console.error('[保存模型配置] ❌ 403 禁止访问')
+      console.error('[保存模型配置] 可能原因:')
+      console.error('  1. Token 无效或已过期')
+      console.error('  2. 用户没有权限访问此接口')
+      console.error('  3. Config ID 不属于当前用户')
+      console.error('  4. 后端权限验证失败')
+      const errorText = await response.text()
+      console.error('[保存模型配置] 错误响应体:', errorText)
+      try {
+        const errorData = JSON.parse(errorText)
+        console.error('[保存模型配置] 错误数据:', errorData)
+        openToast(errorData.message || errorData.detail || '没有权限执行此操作', 'error')
+      } catch (e) {
+        openToast('没有权限执行此操作 (403)', 'error')
+      }
       return
     }
 
-    const result = await response.json()
-    console.log('[保存模型配置] 响应数据:', result)
+    if (response.status === 404) {
+      console.error('[保存模型配置] ❌ 404 未找到')
+      console.error('[保存模型配置] 可能原因:')
+      console.error('  1. API 路径不存在')
+      console.error('  2. Config ID 不存在')
+      console.error('  3. 后端路由配置错误')
+      const errorText = await response.text()
+      console.error('[保存模型配置] 错误响应体:', errorText)
+      try {
+        const errorData = JSON.parse(errorText)
+        console.error('[保存模型配置] 错误数据:', errorData)
+        openToast(errorData.message || errorData.detail || '配置不存在', 'error')
+      } catch (e) {
+        openToast('配置不存在 (404)', 'error')
+      }
+      return
+    }
+
+    if (!response.ok) {
+      console.error('[保存模型配置] ❌ 请求失败，状态码:', response.status)
+      const errorText = await response.text()
+      console.error('[保存模型配置] 错误响应体:', errorText)
+      try {
+        const errorData = JSON.parse(errorText)
+        console.error('[保存模型配置] 错误数据:', errorData)
+        openToast(errorData.message || errorData.detail || '保存失败', 'error')
+      } catch (e) {
+        openToast(`保存失败 (${response.status})`, 'error')
+      }
+      return
+    }
+
+    const responseText = await response.text()
+    console.log('[保存模型配置] 📥 原始响应体:', responseText)
+
+    const result = JSON.parse(responseText)
+    console.log('[保存模型配置] 📥 解析后的响应数据:', result)
 
     if (result.code === 200 || result.success) {
-      console.log('[保存模型配置] 保存成功')
+      console.log('[保存模型配置] ✅ 保存成功')
       openToast('系统模型设置已保存')
       closeSystemModelSettings()
     } else {
-      console.error('[保存模型配置] 保存失败，返回错误:', result.message)
+      console.error('[保存模型配置] ❌ 保存失败，返回错误:', result.message)
       openToast(result.message || '保存失败', 'error')
     }
   } catch (error) {
-    console.error('[保存模型配置] 保存异常:', error)
+    console.error('[保存模型配置] ========== 异常信息 ==========')
+    console.error('[保存模型配置] ❌ 保存异常:', error)
+    console.error('[保存模型配置] 错误类型:', error.constructor.name)
+    console.error('[保存模型配置] 错误消息:', error.message)
+    console.error('[保存模型配置] 错误堆栈:', error.stack)
     openToast('保存失败，请稍后重试', 'error')
   }
+  console.log('[保存模型配置] ========== 结束 ==========')
 }
 const showApiKeyConfig = ref(false)
 const apiKeyForm = ref({

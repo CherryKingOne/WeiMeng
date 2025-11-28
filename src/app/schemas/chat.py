@@ -24,7 +24,7 @@ class ChatResponse(BaseModel):
     """聊天响应模型"""
     code: int = 200
     msg: str = "success"
-    data: dict
+    data: Optional[dict] = None
     meta: Optional[dict] = None
 
 

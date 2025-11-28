@@ -180,11 +180,11 @@ curl -X POST \
 查询模型配置列表
 curl -X GET \
   "http://127.0.0.1:7767/api/v2/model_config/list?page=1&page_size=10&keyword=" \
-  -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJjaGVycnlfMDUwNjA3QDE2My5jb20iLCJleHAiOjE3NjY1NjA5MDZ9.LpVZZyHLemOQDXrMWDcjxsAqo7Qas_JK7QdcFi7pIAE"
+  -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJjaGVycnlfMDUwNjA3QDE2My5jb20iLCJleHAiOjE3NjY5MzYxMzR9.MLceGdkb98krToPw5jxULKLuHvxKs5MUbxwLStTn1tY"
 
 查询指定模型
 curl -X GET \
-  "http://127.0.0.1:7767/api/v2/model_config/list?page=1&page_size=10&config_id=wm63405339065589127630" \
+  "http://127.0.0.1:7767/api/v2/model_config/list?page=1&page_size=10&config_id=wm41677837845605802886" \
   -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJjaGVycnlfMDUwNjA3QDE2My5jb20iLCJleHAiOjE3NjY1NjA5MDZ9.LpVZZyHLemOQDXrMWDcjxsAqo7Qas_JK7QdcFi7pIAE"
 
 查询类型模型
@@ -222,7 +222,7 @@ curl -X POST http://0.0.0.0:7767/api/v3/chat/completions \
   -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJjaGVycnlfMDUwNjA3QDE2My5jb20iLCJleHAiOjE3NjY1NjA5MDZ9.LpVZZyHLemOQDXrMWDcjxsAqo7Qas_JK7QdcFi7pIAE" \
   -H "Content-Type: application/json" \
   -d '{
-    "config_id": "wm63405339065589127630",
+    "config_id": "wm60764126848720490839",
     "messages": [
       {
         "role": "user",
@@ -280,9 +280,9 @@ curl -X POST http://0.0.0.0:7767/api/v3/chat/completions \
 curl -X POST "http://0.0.0.0:7767/api/v3/chat/default-model" \
   -H "Content-Type: application/json" \
   -H "Accept: application/json" \
-  -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJjaGVycnlfMDUwNjA3QDE2My5jb20iLCJleHAiOjE3NjY1NjA5MDZ9.LpVZZyHLemOQDXrMWDcjxsAqo7Qas_JK7QdcFi7pIAE" \
+  -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJjaGVycnlfMDUwNjA3QDE2My5jb20iLCJleHAiOjE3NjY5MzYxMzR9.MLceGdkb98krToPw5jxULKLuHvxKs5MUbxwLStTn1tY" \
   -d '{
-    "config_id": "wm63405339065589127630",
+    "config_id": "wm41677837845605802886",
     "model_type": "LLM"
   }'
 

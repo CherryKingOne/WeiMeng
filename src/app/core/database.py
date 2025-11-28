@@ -35,45 +35,65 @@ async def get_db() -> AsyncSession:
 
 async def init_db():
     """Initialize database tables"""
+    # Import all models here to ensure they are registered
+    from app.models import user, script, verification_code, chat, shot
+    
+    # First, create all tables
     async with engine.begin() as conn:
-        # Import all models here to ensure they are registered
-        from app.models import user, script, verification_code, chat, shot
-        # Attempt lightweight in-place migrations for BIGINT columns
-        try:
-            await conn.execute(text("ALTER TABLE script_libraries ALTER COLUMN id TYPE BIGINT"))
-        except Exception:
-            pass
-        try:
-            await conn.execute(text("ALTER TABLE script_files ALTER COLUMN library_id TYPE BIGINT"))
-        except Exception:
-            pass
-        try:
-            await conn.execute(text("ALTER TABLE script_files ALTER COLUMN id TYPE BIGINT"))
-        except Exception:
-            pass
-        # Add type column to script_libraries if it doesn't exist
-        try:
-            await conn.execute(text("ALTER TABLE script_libraries ADD COLUMN IF NOT EXISTS type VARCHAR NOT NULL DEFAULT 'novel'"))
-        except Exception:
-            pass
-
-        # Add model_type column to model_configs if it doesn't exist
-        try:
-            await conn.execute(text("ALTER TABLE model_configs ADD COLUMN IF NOT EXISTS model_type VARCHAR(50) NOT NULL DEFAULT 'LLM'"))
-        except Exception:
-            pass
-
-        # Add default_models column to users if it doesn't exist (JSONB type)
-        try:
-            await conn.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS default_models JSONB"))
-        except Exception:
-            pass
-
-        # Add local_model_config_id column to script_libraries if it doesn't exist
-        try:
-            await conn.execute(text("ALTER TABLE script_libraries ADD COLUMN IF NOT EXISTS local_model_config_id VARCHAR(64)"))
-        except Exception:
-            pass
-
-        # Create all tables
         await conn.run_sync(Base.metadata.create_all)
+    
+    # Then, run migrations in separate transactions to avoid transaction abort issues
+    async with AsyncSessionLocal() as session:
+        try:
+            # Attempt lightweight in-place migrations for BIGINT columns
+            try:
+                await session.execute(text("ALTER TABLE script_libraries ALTER COLUMN id TYPE BIGINT"))
+                await session.commit()
+            except Exception:
+                await session.rollback()
+            
+            try:
+                await session.execute(text("ALTER TABLE script_files ALTER COLUMN library_id TYPE BIGINT"))
+                await session.commit()
+            except Exception:
+                await session.rollback()
+                
+            try:
+                await session.execute(text("ALTER TABLE script_files ALTER COLUMN id TYPE BIGINT"))
+                await session.commit()
+            except Exception:
+                await session.rollback()
+            
+            # Add type column to script_libraries if it doesn't exist
+            try:
+                await session.execute(text("ALTER TABLE script_libraries ADD COLUMN IF NOT EXISTS type VARCHAR NOT NULL DEFAULT 'novel'"))
+                await session.commit()
+            except Exception:
+                await session.rollback()
+
+            # Add model_type column to model_configs if it doesn't exist
+            try:
+                await session.execute(text("ALTER TABLE model_configs ADD COLUMN IF NOT EXISTS model_type VARCHAR(50) NOT NULL DEFAULT 'LLM'"))
+                await session.commit()
+            except Exception:
+                await session.rollback()
+
+            # Add default_models column to users if it doesn't exist (JSONB type)
+            try:
+                await session.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS default_models JSONB"))
+                await session.commit()
+            except Exception:
+                await session.rollback()
+
+            # Add local_model_config_id column to script_libraries if it doesn't exist
+            try:
+                await session.execute(text("ALTER TABLE script_libraries ADD COLUMN IF NOT EXISTS local_model_config_id VARCHAR(64)"))
+                await session.commit()
+            except Exception:
+                await session.rollback()
+                
+        except Exception as e:
+            print(f"Database migration error: {e}")
+            await session.rollback()
+        finally:
+            await session.close()
