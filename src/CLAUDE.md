@@ -133,10 +133,29 @@ LLM_MODEL_NAME=gpt-4
 
 **Model Configuration System**: Multi-tenant model management with security:
 - `ModelConfig` model (`app/models/model_config.py:6`): Stores LLM and AI model configurations per tenant
-- Supports multiple model types: LLM, Rerank, Text Embedding, Speech2text, TTS, Video, Image
+- Supports multiple model types: LLM, Rerank, Text Embedding, Speech2text, TTS, VIDEO_GENERATION, IMAGE_GENERATION
 - API keys are encrypted using AES-256-CBC before storage (`app/utils/encryption.py`)
 - Soft deletion pattern with `is_deleted` flag
 - Custom ID generation using `generate_wm_id()` for unique 22-character identifiers
+- Users can set default models per type (stored in `User.default_models` JSONB field)
+- Script libraries can override global defaults with library-specific model configurations
+
+**AI Media Generation System**: Async task-based generation for images and videos:
+- **Image Generation** (`POST /api/v3/chat/images/generations`): Synchronous text-to-image generation
+  - Requires `IMAGE_GENERATION` model type configuration
+  - Supports parameters: prompt, size, quality, style, n (number of images)
+  - Returns generated image URLs immediately
+- **Video Generation** (`POST /api/v3/chat/videos`): Asynchronous text-to-video and image-to-video
+  - Requires `VIDEO_GENERATION` model type configuration
+  - Supports text-to-video (prompt only) and image-to-video (prompt + input_reference)
+  - Size constraints: only 1280x720 or 720x1280 supported
+  - Returns task_id for async status tracking
+  - Task info saved to `VideoTask` model (`app/models/chat.py:82`) with user_id, config_id, and status
+- **Video Task Query** (`GET /api/v3/chat/videos/{task_id}`): Check video generation status
+  - Retrieves config_id from database based on task_id (no need to pass config_id)
+  - Automatically updates task status in database
+  - Handles different URL field names (url/video_url) from various APIs
+  - Task statuses: queued, in_progress, completed, failed
 
 ### Configuration
 
@@ -155,7 +174,12 @@ Routes are organized under `/api/v1/`, `/api/v2/`, and `/api/v3/`:
   - `scriptwriting.py`: Scriptwriting project and shot management (detailed shot system)
   - `media.py`: AI media generation endpoints (placeholder for future implementation)
 - **v2**: `model_config.py`: Model configuration management with encrypted API keys
-- **v3**: `chat.py`: AI chat endpoints with LLM integration
+- **v3**: `chat.py`: AI chat, image generation, and video generation endpoints
+  - Chat completions with streaming support
+  - Session and message management
+  - Default model configuration (global and library-specific)
+  - Image generation (`POST /images/generations`)
+  - Video generation (`POST /videos`, `GET /videos/{task_id}`)
 
 ### Prompt System
 

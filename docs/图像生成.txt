@@ -99,14 +99,14 @@ curl -X POST "http://127.0.0.1:7767/api/v3/chat/videos" \
   -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJjaGVycnlfMDUwNjA3QDE2My5jb20iLCJleHAiOjE3NjY1NjA5MDZ9.LpVZZyHLemOQDXrMWDcjxsAqo7Qas_JK7QdcFi7pIAE" \
   -d '{
   "config_id": "wm05241547194206937828",
-  "prompt": "string"
+  "prompt": "猫追小狗"
 }'
 
 
 
 
   
-curl -X GET "http://127.0.0.1:7767/api/v3/chat/videos/qvideo-1381278422-1764432965524175370" \
+curl -X GET "http://127.0.0.1:7767/api/v3/chat/videos/cgt-20251130005830-gnjnw" \
   -H "Accept: application/json" \
   -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJjaGVycnlfMDUwNjA3QDE2My5jb20iLCJleHAiOjE3NjY1NjA5MDZ9.LpVZZyHLemOQDXrMWDcjxsAqo7Qas_JK7QdcFi7pIAE"
 

@@ -86,12 +86,24 @@ class ImageGenerationRequest(BaseModel):
 
 
 class VideoGenerationRequest(BaseModel):
-    """视频生成请求模型（支持文生视频和图生视频）"""
+    """视频生成请求模型（支持文生视频和图生视频）
+
+    支持两种格式：
+    1. OpenAI/七牛格式：使用 prompt 字段
+    2. 火山引擎格式：使用 content 数组
+    """
     config_id: str = Field(..., description="模型配置ID（必填）")
-    prompt: str = Field(..., description="视频生成提示词")
-    input_reference: Optional[str] = Field(None, description="参考图片URL（图生视频时必填）")
+
+    # OpenAI/七牛格式字段
+    prompt: Optional[str] = Field(None, description="视频生成提示词（OpenAI格式）")
+    input_reference: Optional[str] = Field(None, description="参考图片URL（图生视频时使用）")
     seconds: Optional[str] = Field(None, description="视频时长（秒），如 '4'")
     size: Optional[str] = Field(None, description="视频尺寸，支持 1280x720 或 720x1280")
+
+    # 火山引擎格式字段
+    content: Optional[List[dict]] = Field(None, description="视频生成内容数组（火山引擎格式）")
+    callback_url: Optional[str] = Field(None, description="回调通知地址（火山引擎格式）")
+    return_last_frame: Optional[bool] = Field(None, description="是否返回尾帧图像（火山引擎格式）")
 
 
 class VideoTaskQueryResponse(BaseModel):

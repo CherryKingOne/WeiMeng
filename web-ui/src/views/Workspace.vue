@@ -331,9 +331,8 @@ const loadDefaultModelConfig = async () => {
       return null
     }
 
-    // 使用固定的 config_id，或者从用户配置中获取
-    const configId = 'wm63405339065589127630'
-    const url = `${API_BASE}/api/v3/chat/default-model?config_id=${configId}`
+    // 不传递 config_id,让后端根据当前用户自动获取
+    const url = `${API_BASE}/api/v3/chat/default-model`
 
     console.log('[默认模型配置] 开始加载:', url)
 
@@ -349,6 +348,12 @@ const loadDefaultModelConfig = async () => {
     if (response.status === 401) {
       console.warn('[默认模型配置] 未授权，跳转到登录页')
       router.push('/login')
+      return null
+    }
+
+    // 404 表示用户还没有配置,这是正常情况
+    if (response.status === 404) {
+      console.log('[默认模型配置] 用户尚未配置默认模型')
       return null
     }
 
@@ -468,8 +473,6 @@ const saveSystemModelSettings = async () => {
   try {
     const token = localStorage.getItem('accessToken')
     console.log('[保存模型配置] Token 存在:', !!token)
-    console.log('[保存模型配置] Token 长度:', token ? token.length : 0)
-    console.log('[保存模型配置] Token 前20字符:', token ? token.substring(0, 20) + '...' : 'null')
 
     if (!token) {
       console.warn('[保存模型配置] ❌ 未找到 token')
@@ -477,13 +480,8 @@ const saveSystemModelSettings = async () => {
       return
     }
 
-    // 使用固定的 config_id，或者从用户配置中获取
-    const configId = 'wm63405339065589127630'
-    console.log('[保存模型配置] Config ID:', configId)
-
-    // 构建请求体
+    // 构建请求体 - 不再包含 config_id,让后端根据当前用户自动处理
     const requestBody = {
-      config_id: configId,
       chat_model: systemReasoningModel.value || null,
       embedding_model: embeddingModel.value || null,
       rerank_model: rerankModel.value || null,
@@ -495,8 +493,6 @@ const saveSystemModelSettings = async () => {
 
     console.log('[保存模型配置] 📦 请求体:', JSON.stringify(requestBody, null, 2))
     console.log('[保存模型配置] 🌐 请求 URL:', `${API_BASE}/api/v3/chat/default-model`)
-    console.log('[保存模型配置] 📋 请求方法: POST')
-    console.log('[保存模型配置] 📋 Content-Type: application/json')
 
     const response = await fetch(
       `${API_BASE}/api/v3/chat/default-model`,
@@ -511,11 +507,7 @@ const saveSystemModelSettings = async () => {
       }
     )
 
-    console.log('[保存模型配置] ========== 响应信息 ==========')
     console.log('[保存模型配置] 📊 响应状态码:', response.status)
-    console.log('[保存模型配置] 📊 响应状态文本:', response.statusText)
-    console.log('[保存模型配置] 📊 响应 OK:', response.ok)
-    console.log('[保存模型配置] 📊 响应 Headers:', Object.fromEntries(response.headers.entries()))
 
     if (response.status === 401) {
       console.warn('[保存模型配置] ❌ 401 未授权，跳转到登录页')
@@ -523,45 +515,7 @@ const saveSystemModelSettings = async () => {
       return
     }
 
-    if (response.status === 403) {
-      console.error('[保存模型配置] ❌ 403 禁止访问')
-      console.error('[保存模型配置] 可能原因:')
-      console.error('  1. Token 无效或已过期')
-      console.error('  2. 用户没有权限访问此接口')
-      console.error('  3. Config ID 不属于当前用户')
-      console.error('  4. 后端权限验证失败')
-      const errorText = await response.text()
-      console.error('[保存模型配置] 错误响应体:', errorText)
-      try {
-        const errorData = JSON.parse(errorText)
-        console.error('[保存模型配置] 错误数据:', errorData)
-        openToast(errorData.message || errorData.detail || '没有权限执行此操作', 'error')
-      } catch (e) {
-        openToast('没有权限执行此操作 (403)', 'error')
-      }
-      return
-    }
-
-    if (response.status === 404) {
-      console.error('[保存模型配置] ❌ 404 未找到')
-      console.error('[保存模型配置] 可能原因:')
-      console.error('  1. API 路径不存在')
-      console.error('  2. Config ID 不存在')
-      console.error('  3. 后端路由配置错误')
-      const errorText = await response.text()
-      console.error('[保存模型配置] 错误响应体:', errorText)
-      try {
-        const errorData = JSON.parse(errorText)
-        console.error('[保存模型配置] 错误数据:', errorData)
-        openToast(errorData.message || errorData.detail || '配置不存在', 'error')
-      } catch (e) {
-        openToast('配置不存在 (404)', 'error')
-      }
-      return
-    }
-
     if (!response.ok) {
-      console.error('[保存模型配置] ❌ 请求失败，状态码:', response.status)
       const errorText = await response.text()
       console.error('[保存模型配置] 错误响应体:', errorText)
       try {

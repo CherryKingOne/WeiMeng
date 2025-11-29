@@ -978,36 +978,94 @@ async def generate_video(
                 detail=f"Model type mismatch: expected VIDEO_GENERATION, but got {model_config.model_type}"
             )
 
-        # 构建请求参数
+        # 根据 base_url 判断使用哪种 API 格式
         base_url = config['base_url'].rstrip('/')
-        if base_url.endswith('/videos'):
+        is_volcengine_api = '/api/v3/contents/generations/tasks' in base_url
+
+        # 构建请求 URL
+        if is_volcengine_api:
+            # 火山引擎 API
             api_url = base_url
         else:
-            api_url = f"{base_url}/videos"
+            # OpenAI/七牛 API
+            if base_url.endswith('/videos'):
+                api_url = base_url
+            else:
+                api_url = f"{base_url}/videos"
 
         headers = {
             "Authorization": f"Bearer {config['api_key']}",
             "Content-Type": "application/json"
         }
 
-        payload = {
-            "model": config['model_name'],
-            "prompt": request.prompt
-        }
-
-        # 添加可选参数
-        if request.input_reference:
-            payload["input_reference"] = request.input_reference
-        if request.seconds:
-            payload["seconds"] = request.seconds
-        if request.size:
-            # 验证尺寸格式
-            if request.size not in ["1280x720", "720x1280"]:
+        # 构建请求体
+        if is_volcengine_api:
+            # 火山引擎格式：必须使用 content 数组
+            if request.content:
+                # 用户提供了 content 数组
+                payload = {
+                    "model": config['model_name'],
+                    "content": request.content
+                }
+                # 用于保存到数据库的 prompt（从 content 中提取）
+                prompt_for_db = ""
+                for item in request.content:
+                    if item.get("type") == "text":
+                        prompt_for_db = item.get("text", "")
+                        break
+            elif request.prompt:
+                # 用户提供了 prompt，自动转换为 content 格式
+                content_array = [{"type": "text", "text": request.prompt}]
+                # 如果有图片参考，添加到 content
+                if request.input_reference:
+                    content_array.append({
+                        "type": "image_url",
+                        "image_url": {"url": request.input_reference}
+                    })
+                payload = {
+                    "model": config['model_name'],
+                    "content": content_array
+                }
+                prompt_for_db = request.prompt
+            else:
                 raise HTTPException(
                     status_code=400,
-                    detail="Size must be either 1280x720 or 720x1280"
+                    detail="Either 'prompt' or 'content' is required for Volcengine API"
                 )
-            payload["size"] = request.size
+
+            # 添加火山引擎可选参数
+            if request.callback_url:
+                payload["callback_url"] = request.callback_url
+            if request.return_last_frame is not None:
+                payload["return_last_frame"] = request.return_last_frame
+        else:
+            # OpenAI/七牛格式
+            if not request.prompt:
+                raise HTTPException(
+                    status_code=400,
+                    detail="prompt is required for OpenAI/Qiniu format"
+                )
+
+            payload = {
+                "model": config['model_name'],
+                "prompt": request.prompt
+            }
+
+            # 添加 OpenAI/七牛可选参数
+            if request.input_reference:
+                payload["input_reference"] = request.input_reference
+            if request.seconds:
+                payload["seconds"] = request.seconds
+            if request.size:
+                # 验证尺寸格式
+                if request.size not in ["1280x720", "720x1280"]:
+                    raise HTTPException(
+                        status_code=400,
+                        detail="Size must be either 1280x720 or 720x1280"
+                    )
+                payload["size"] = request.size
+
+            prompt_for_db = request.prompt
 
         # 调用视频生成API
         async with httpx.AsyncClient(timeout=120.0) as client:
@@ -1023,7 +1081,7 @@ async def generate_video(
                 user_id=current_user.id,
                 config_id=config_id,
                 model_name=config['model_name'],
-                prompt=request.prompt,
+                prompt=prompt_for_db,
                 status=result_data.get("status", "queued")
             )
             db.add(video_task)
@@ -1112,11 +1170,18 @@ async def query_video_task(
         if not config:
             raise HTTPException(status_code=404, detail="Video model config not found or access denied")
 
-        # 构建查询URL
+        # 构建查询URL - 自动判断是火山引擎还是 OpenAI/七牛格式
         base_url = config['base_url'].rstrip('/')
-        if base_url.endswith('/videos'):
+
+        # 判断是否为火山引擎格式（包含 /api/v3/contents/generations/tasks）
+        if '/api/v3/contents/generations/tasks' in base_url:
+            # 火山引擎格式
+            api_url = f"{base_url}/{task_id}"
+        elif base_url.endswith('/videos'):
+            # OpenAI/七牛格式（已包含 /videos）
             api_url = f"{base_url}/{task_id}"
         else:
+            # OpenAI/七牛格式（需要添加 /videos）
             api_url = f"{base_url}/videos/{task_id}"
 
         headers = {
@@ -1135,18 +1200,41 @@ async def query_video_task(
             video_task.status = current_status
             await db.commit()
 
-        # 处理返回数据，兼容不同的字段名
-        task_result = result_data.get("task_result")
-        if task_result and "videos" in task_result:
-            # 标准化视频URL字段，确保 url 和 video_url 都存在且有值
-            for video in task_result["videos"]:
-                # 获取实际的视频URL（优先使用url，其次video_url）
-                actual_url = video.get("url") or video.get("video_url")
+        # 处理返回数据，兼容不同的 API 格式
+        # 1. OpenAI/七牛格式：使用 task_result.videos
+        # 2. 火山引擎格式：使用 content.video_url
 
-                if actual_url:
-                    # 确保两个字段都有值
-                    video["url"] = actual_url
-                    video["video_url"] = actual_url
+        task_result = None
+        content = result_data.get("content")
+
+        # 检查是否为火山引擎格式（有 content 字段）
+        if content and isinstance(content, dict):
+            # 火山引擎格式：转换为统一的 task_result 格式
+            video_url = content.get("video_url")
+            if video_url:
+                task_result = {
+                    "videos": [{
+                        "id": result_data.get("id"),
+                        "url": video_url,
+                        "video_url": video_url,
+                        "duration": result_data.get("duration"),
+                        "resolution": result_data.get("resolution"),
+                        "ratio": result_data.get("ratio")
+                    }]
+                }
+        else:
+            # OpenAI/七牛格式：使用原有的 task_result
+            task_result = result_data.get("task_result")
+            if task_result and "videos" in task_result:
+                # 标准化视频URL字段，确保 url 和 video_url 都存在且有值
+                for video in task_result["videos"]:
+                    # 获取实际的视频URL（优先使用url，其次video_url）
+                    actual_url = video.get("url") or video.get("video_url")
+
+                    if actual_url:
+                        # 确保两个字段都有值
+                        video["url"] = actual_url
+                        video["video_url"] = actual_url
 
         return ChatResponse(
             code=200,
@@ -1161,8 +1249,12 @@ async def query_video_task(
                 "completed_at": result_data.get("completed_at"),
                 "expires_at": result_data.get("expires_at"),
                 "seconds": result_data.get("seconds"),
+                "duration": result_data.get("duration"),
                 "size": result_data.get("size"),
-                "task_result": task_result
+                "resolution": result_data.get("resolution"),
+                "ratio": result_data.get("ratio"),
+                "task_result": task_result,
+                "error": result_data.get("error")  # 火山引擎失败时的错误信息
             }
         )
 

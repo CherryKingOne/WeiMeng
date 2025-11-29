@@ -717,12 +717,12 @@ const generateImage = async (shot, w, h) => {
       } else {
         console.warn(`[图片生成] 镜号 ${shot.id}: 响应中没有尺寸信息,将通过加载图片检测实际尺寸`)
 
-        // 通过加载图片来检测实际尺寸
+        // 通过加载图片来检测实际尺寸,设置5秒超时
         try {
           const img = new Image()
           img.crossOrigin = 'anonymous'
 
-          await new Promise((resolve, reject) => {
+          const loadPromise = new Promise((resolve, reject) => {
             img.onload = () => {
               actualWidth = img.naturalWidth
               actualHeight = img.naturalHeight
@@ -730,14 +730,25 @@ const generateImage = async (shot, w, h) => {
               console.log(`[图片生成] 镜号 ${shot.id}: 通过加载图片检测到实际尺寸: ${actualSize}`)
               resolve()
             }
-            img.onerror = () => {
-              console.warn(`[图片生成] 镜号 ${shot.id}: 无法加载图片检测尺寸,使用请求尺寸: ${actualSize}`)
+            img.onerror = (error) => {
+              console.warn(`[图片生成] 镜号 ${shot.id}: 图片加载失败,使用请求尺寸: ${actualSize}`)
               resolve() // 即使失败也继续,使用请求的尺寸
             }
             img.src = imageUrl
           })
+
+          // 添加5秒超时
+          const timeoutPromise = new Promise((resolve) => {
+            setTimeout(() => {
+              console.warn(`[图片生成] 镜号 ${shot.id}: 图片加载超时(5秒),使用请求尺寸: ${actualSize}`)
+              resolve()
+            }, 5000)
+          })
+
+          // 等待加载完成或超时
+          await Promise.race([loadPromise, timeoutPromise])
         } catch (error) {
-          console.warn(`[图片生成] 镜号 ${shot.id}: 检测图片尺寸失败:`, error)
+          console.warn(`[图片生成] 镜号 ${shot.id}: 检测图片尺寸异常:`, error)
         }
       }
 
@@ -765,7 +776,7 @@ const generateImage = async (shot, w, h) => {
   }
 }
 
-const generateVideo = async (shot, w, h, duration = '4') => {
+const generateVideo = async (shot, w, h, duration = '4', ratio = null, resolution = null) => {
   // 直接使用已经解析好的 videoPrompt 字段
   let prompt = shot.videoPrompt
 
@@ -819,6 +830,9 @@ const generateVideo = async (shot, w, h, duration = '4') => {
     return
   }
 
+  // 检测是否为字节跳动模型
+  const isDoubao = isDoubaoModel(selectedVideoModel.value)
+
   // 标记为生成中
   shot.generatingVideo = true
 
@@ -839,28 +853,38 @@ const generateVideo = async (shot, w, h, duration = '4') => {
       return
     }
 
-    // 使用图片生成时保存的尺寸,确保图片和视频尺寸一致
-    const size = shot.imageSize || `${w}x${h}` || '1280x720'
-    const videoWidth = shot.imageWidth || w
-    const videoHeight = shot.imageHeight || h
-
     console.log(`[视频生成] ========== 开始生成 ==========`)
     console.log(`[视频生成] 镜号: ${shot.id}`)
     console.log(`[视频生成] 提示词: ${prompt}`)
-    console.log(`[视频生成] 尺寸: ${size} (使用图片尺寸)`)
-    console.log(`[视频生成] 图片尺寸: ${shot.imageWidth}x${shot.imageHeight}`)
-    console.log(`[视频生成] 时长: ${duration}秒`)
     console.log(`[视频生成] 模型: ${selectedVideoModel.value}`)
+    console.log(`[视频生成] 模型类型: ${isDoubao ? '字节跳动' : '通用'}`)
     console.log(`[视频生成] Config ID: ${videoModel.config_id}`)
-    console.log(`[视频生成] 模型类型: ${videoModel.model_type}`)
-    console.log(`[视频生成] Base URL: ${videoModel.base_url}`)
 
-    const requestBody = {
-      config_id: videoModel.config_id,
-      prompt: prompt,
-      input_reference: shot.img,  // 使用已生成的图片作为参考
-      seconds: duration,  // 视频时长
-      size: size
+    // 构建请求体 - 根据模型类型使用不同的格式
+    let requestBody
+
+    if (isDoubao) {
+      // 字节跳动格式: 使用 ratio + resolution + duration
+      requestBody = {
+        config_id: videoModel.config_id,
+        prompt: prompt,
+        input_reference: shot.img,
+        ratio: ratio || '16:9',
+        resolution: resolution || '720p',
+        duration: parseInt(duration)
+      }
+      console.log(`[视频生成] 字节跳动格式 - Ratio: ${ratio}, Resolution: ${resolution}, Duration: ${duration}秒`)
+    } else {
+      // 通用格式: 使用 width x height + seconds
+      const size = shot.imageSize || `${w}x${h}` || '1280x720'
+      requestBody = {
+        config_id: videoModel.config_id,
+        prompt: prompt,
+        input_reference: shot.img,
+        seconds: duration,
+        size: size
+      }
+      console.log(`[视频生成] 通用格式 - Size: ${size}, Duration: ${duration}秒`)
     }
 
     console.log(`[视频生成] 镜号 ${shot.id}: 请求体:`, JSON.stringify(requestBody, null, 2))
@@ -967,7 +991,7 @@ const pollVideoTask = async (shot, taskId, token) => {
       if (data.code === 200 && data.data) {
         const status = data.data.status
 
-        if (status === 'completed') {
+        if (status === 'succeeded' || status === 'completed') {
           // 任务完成，提取视频URL
           const taskResult = data.data.task_result
           if (taskResult && taskResult.videos && taskResult.videos.length > 0) {
@@ -1131,28 +1155,75 @@ const sizeModalShotId = ref(null)
 const selectedRatio = ref('16:9')
 const selectedDuration = ref('4') // 视频时长选择
 
-// 图片和视频生成都只支持两个尺寸
+// 检测是否为字节跳动的 doubao 模型
+const isDoubaoModel = (modelName) => {
+  if (!modelName) return false
+  const name = modelName.toLowerCase()
+  return name.includes('doubao') || name.includes('seedance')
+}
+
+// 图片生成尺寸选项 - 通用格式
 const imageRatioOptions = [
   { key: '16:9', w: 1280, h: 720 },
   { key: '9:16', w: 720, h: 1280 }
 ]
 
-// 视频生成使用相同的尺寸选项
-const videoRatioOptions = [
+// 字节跳动视频生成尺寸选项 - 使用 ratio + resolution 格式
+const doubaoVideoRatioOptions = [
+  { key: '16:9', ratio: '16:9', resolution: '720p', label: '16:9 (720p)' },
+  { key: '16:9-1080p', ratio: '16:9', resolution: '1080p', label: '16:9 (1080p)' },
+  { key: '4:3', ratio: '4:3', resolution: '720p', label: '4:3 (720p)' },
+  { key: '1:1', ratio: '1:1', resolution: '720p', label: '1:1 (720p)' },
+  { key: '3:4', ratio: '3:4', resolution: '720p', label: '3:4 (720p)' },
+  { key: '9:16', ratio: '9:16', resolution: '720p', label: '9:16 (720p)' },
+  { key: '9:16-1080p', ratio: '9:16', resolution: '1080p', label: '9:16 (1080p)' },
+  { key: '21:9', ratio: '21:9', resolution: '720p', label: '21:9 (720p)' }
+]
+
+// 通用视频生成尺寸选项 - 使用 width x height 格式
+const genericVideoRatioOptions = [
   { key: '16:9', w: 1280, h: 720 },
   { key: '9:16', w: 720, h: 1280 }
 ]
 
-// 视频时长选项
-const videoDurationOptions = [
+// 字节跳动视频时长选项 (2-12秒)
+const doubaoVideoDurationOptions = [
+  { value: '2', label: '2秒' },
+  { value: '4', label: '4秒' },
+  { value: '5', label: '5秒' },
+  { value: '6', label: '6秒' },
+  { value: '8', label: '8秒' },
+  { value: '10', label: '10秒' },
+  { value: '12', label: '12秒' }
+]
+
+// 通用视频时长选项
+const genericVideoDurationOptions = [
   { value: '4', label: '4秒' },
   { value: '8', label: '8秒' },
   { value: '12', label: '12秒' }
 ]
 
-// 根据当前操作类型返回对应的尺寸选项
+// 根据当前操作类型和选择的模型返回对应的尺寸选项
 const ratioOptions = computed(() => {
-  return sizeModalAction.value === 'video' ? videoRatioOptions : imageRatioOptions
+  console.log('[尺寸选项] 计算 ratioOptions')
+  console.log('[尺寸选项] sizeModalAction:', sizeModalAction.value)
+  console.log('[尺寸选项] selectedVideoModel:', selectedVideoModel.value)
+
+  if (sizeModalAction.value === 'image') {
+    return imageRatioOptions
+  } else {
+    // 视频生成:根据模型类型返回不同的选项
+    const isDoubao = isDoubaoModel(selectedVideoModel.value)
+    console.log('[尺寸选项] 是否为字节跳动模型:', isDoubao)
+    return isDoubao ? doubaoVideoRatioOptions : genericVideoRatioOptions
+  }
+})
+
+// 根据选择的模型返回对应的时长选项
+const videoDurationOptions = computed(() => {
+  const isDoubao = isDoubaoModel(selectedVideoModel.value)
+  return isDoubao ? doubaoVideoDurationOptions : genericVideoDurationOptions
 })
 
 const sizeInfoVisible = ref(false)
@@ -1174,9 +1245,10 @@ const openSizeModalBatch = (action) => {
   showSizeModal.value = true
 }
 const applySizeSelection = () => {
-  const opts = sizeModalAction.value === 'video' ? videoRatioOptions : imageRatioOptions
+  const opts = ratioOptions.value
   const opt = opts.find(r => r.key === selectedRatio.value)
   if (!opt) { showSizeModal.value = false; return }
+
   if (sizeModalAction.value === 'image') {
     if (sizeModalMode.value === 'batch') {
       storyboards.value.forEach(s => generateImage(s, opt.w, opt.h))
@@ -1185,13 +1257,31 @@ const applySizeSelection = () => {
       if (s) generateImage(s, opt.w, opt.h)
     }
   } else {
-    // 视频生成需要传递时长参数
+    // 视频生成需要传递时长参数和尺寸信息
     const duration = selectedDuration.value
+    const isDoubao = isDoubaoModel(selectedVideoModel.value)
+
     if (sizeModalMode.value === 'batch') {
-      storyboards.value.forEach(s => generateVideo(s, opt.w, opt.h, duration))
+      storyboards.value.forEach(s => {
+        if (isDoubao) {
+          // 字节跳动格式: 传递 ratio, resolution, duration
+          generateVideo(s, null, null, duration, opt.ratio, opt.resolution)
+        } else {
+          // 通用格式: 传递 width, height, duration
+          generateVideo(s, opt.w, opt.h, duration)
+        }
+      })
     } else {
       const s = getShotById(sizeModalShotId.value)
-      if (s) generateVideo(s, opt.w, opt.h, duration)
+      if (s) {
+        if (isDoubao) {
+          // 字节跳动格式: 传递 ratio, resolution, duration
+          generateVideo(s, null, null, duration, opt.ratio, opt.resolution)
+        } else {
+          // 通用格式: 传递 width, height, duration
+          generateVideo(s, opt.w, opt.h, duration)
+        }
+      }
     }
   }
   showSizeModal.value = false
@@ -4988,9 +5078,10 @@ watch(activeTab, (newTab) => {
                           </thead>
                           <tbody>
                             <tr v-for="opt in ratioOptions" :key="opt.key" class="border-t dark:border-[#3A3A3C]">
-                              <td class="px-3 py-1.5">{{ opt.key }}</td>
+                              <td class="px-3 py-1.5">{{ opt.label || opt.key }}</td>
                               <td class="px-3 py-1.5">
-                                <span class="px-2 py-1 rounded bg-gray-100 dark:bg-[#3A3A3C] text-[11px] font-medium">{{ opt.w }}x{{ opt.h }}</span>
+                                <span v-if="opt.w && opt.h" class="px-2 py-1 rounded bg-gray-100 dark:bg-[#3A3A3C] text-[11px] font-medium">{{ opt.w }}x{{ opt.h }}</span>
+                                <span v-else class="px-2 py-1 rounded bg-gray-100 dark:bg-[#3A3A3C] text-[11px] font-medium">{{ opt.ratio }} @ {{ opt.resolution }}</span>
                               </td>
                             </tr>
                           </tbody>
@@ -5010,8 +5101,9 @@ watch(activeTab, (newTab) => {
                           class="px-3 py-2 rounded-lg border text-sm dark:border-[#3A3A3C] hover:bg-gray-50 dark:hover:bg-[#3A3A3C]"
                           :class="selectedRatio===opt.key ? 'border-brand-green ring-2 ring-brand-green' : ''"
                         >
-                          <div class="font-medium">{{ opt.key }}</div>
-                          <div class="text-xs text-secondary">{{ opt.w }}x{{ opt.h }}</div>
+                          <div class="font-medium">{{ opt.label || opt.key }}</div>
+                          <div v-if="opt.w && opt.h" class="text-xs text-secondary">{{ opt.w }}x{{ opt.h }}</div>
+                          <div v-else class="text-xs text-secondary">{{ opt.resolution }}</div>
                         </button>
                       </div>
                     </div>
