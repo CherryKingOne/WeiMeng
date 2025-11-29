@@ -73,3 +73,37 @@ class SetLibraryLocalModelRequest(BaseModel):
     """设置剧本库局部模型请求"""
     config_id: str = Field(..., description="模型配置ID")
     model_type: Optional[str] = Field(None, description="模型类型（可选），用于验证或记录")
+
+
+class ImageGenerationRequest(BaseModel):
+    """文生图请求模型"""
+    config_id: str = Field(..., description="模型配置ID（必填）")
+    prompt: str = Field(..., description="图像生成提示词")
+    size: Optional[str] = Field(None, description="图像尺寸，如 1024x1024, 512x512 等（可选）")
+    n: Optional[int] = Field(None, ge=1, le=10, description="生成图像数量（可选）")
+    quality: Optional[str] = Field(None, description="图像质量: standard 或 hd（可选）")
+    style: Optional[str] = Field(None, description="图像风格: vivid 或 natural（可选）")
+
+
+class VideoGenerationRequest(BaseModel):
+    """视频生成请求模型（支持文生视频和图生视频）"""
+    config_id: str = Field(..., description="模型配置ID（必填）")
+    prompt: str = Field(..., description="视频生成提示词")
+    input_reference: Optional[str] = Field(None, description="参考图片URL（图生视频时必填）")
+    seconds: Optional[str] = Field(None, description="视频时长（秒），如 '4'")
+    size: Optional[str] = Field(None, description="视频尺寸，支持 1280x720 或 720x1280")
+
+
+class VideoTaskQueryResponse(BaseModel):
+    """视频任务查询响应"""
+    id: str
+    object: str
+    model: str
+    status: str
+    created_at: int
+    updated_at: int
+    completed_at: Optional[int] = None
+    expires_at: Optional[int] = None
+    seconds: Optional[str] = None
+    size: Optional[str] = None
+    task_result: Optional[dict] = None

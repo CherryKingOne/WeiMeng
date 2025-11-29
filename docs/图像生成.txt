@@ -1,0 +1,120 @@
+curl -X POST "https://agentrouter.org/v1/images/generations" \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer sk-o69EaYlJmV41B4NdOAyZU6W6Jnbcwh3c2te0UL3Y6j9W3KJU" \
+  -d '{
+    "model": "gemini-3-pro-preview",
+    "prompt": "一只可爱的小狐狸在森林里看书",
+    "size": "1024x1024",
+    "stream": true
+  }'
+
+
+# 图像生产
+curl -X POST "http://0.0.0.0:7767/api/v3/chat/images/generations" \
+  -H "Content-Type: application/json" \
+  -H "Accept: application/json" \
+  -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJjaGVycnlfMDUwNjA3QDE2My5jb20iLCJleHAiOjE3NjY1NjA5MDZ9.LpVZZyHLemOQDXrMWDcjxsAqo7Qas_JK7QdcFi7pIAE" \
+  -d '{
+    "config_id": "wm86879825922921230104",
+    "prompt": "anime style, close-up of a 10-year-old boy's face (Han Li), dark skin, ordinary but determined eyes, looking upwards, lying on a bed, morning light from above, detailed facial features, cinematic lighting, Japanese anime aesthetic, earthy color palette",
+    "size": "1024x1024"
+  }'
+
+
+
+
+# 文生视频
+curl "https://openai.qiniu.com/v1/videos" \
+    -H "Content-Type: application/json" \
+    -H "Authorization: Bearer sk-8fe8d207232f3cbe7ef0193a9227456620333336809463c607dec1a087132448" \
+    -d '{
+        "model": "sora-2",
+        "prompt": "镜头缓慢推进，画面中的场景逐渐生动起来，光影流动，充满动感"
+    }'
+
+# 图生视频（创建视频生成任务）
+curl "https://openai.qiniu.com/v1/videos" \
+    -H "Content-Type: application/json" \
+    -H "Authorization: Bearer sk-8fe8d207232f3cbe7ef0193a9227456620333336809463c607dec1a087132448" \
+    -d '{
+        "model": "sora-2",
+        "prompt": "镜头缓慢推进，画面中的场景逐渐生动起来，光影流动，充满动感",
+        "input_reference": "https://example.com/reference-image.jpg",
+        "seconds": "4",
+        "size": "1280x720" #只能支持1280x720，或者720x1280  有个点要注意，如果报错，这里需要输出日志是图片尺寸与输出视频尺寸不匹配
+    }'
+返回结果：
+{
+  "id": "qvideo-user123-1234567890123456790",
+  "object": "video",
+  "model": "sora-2",
+  "status": "queued",
+  "created_at": 1234567890,
+  "updated_at": 1234567890
+}
+
+# 查询任务
+curl "https://openai.qiniu.com/v1/videos/wm92056094780093760579" \
+  -H "Authorization: Bearer sk-8fe8d207232f3cbe7ef0193a9227456620333336809463c607dec1a087132448"
+
+
+## 返回结果（处理中）：
+{
+  "id": "qvideo-user123-1234567890123456789",
+  "object": "video",
+  "model": "sora-2",
+  "status": "in_progress",
+  "created_at": 1234567890,
+  "updated_at": 1234567895
+}
+
+## 返回结果（已完成）：
+{
+  "id": "qvideo-user123-1234567890123456789",
+  "object": "video",
+  "model": "sora-2",
+  "status": "completed",
+  "created_at": 1234567890,
+  "updated_at": 1234567920,
+  "completed_at": 1234567920,
+  "expires_at": 1234654320,
+  "seconds": "4",
+  "size": "1280x720",
+  "task_result": {
+    "videos": [
+      {
+        "id": "qvideo-user123-1234567890123456789-1",
+        "url": "https://kodo.qiniu.com/videos/generated-video.mp4",
+        "duration": "4"
+      }
+    ]
+  }
+}
+有的返回生成视频的url可能是url或者video_url这种字段
+
+
+
+curl -X POST "http://127.0.0.1:7767/api/v3/chat/videos" \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJjaGVycnlfMDUwNjA3QDE2My5jb20iLCJleHAiOjE3NjY1NjA5MDZ9.LpVZZyHLemOQDXrMWDcjxsAqo7Qas_JK7QdcFi7pIAE" \
+  -d '{
+  "config_id": "wm05241547194206937828",
+  "prompt": "string"
+}'
+
+
+
+
+  
+curl -X GET "http://127.0.0.1:7767/api/v3/chat/videos/qvideo-1381278422-1764432965524175370" \
+  -H "Accept: application/json" \
+  -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJjaGVycnlfMDUwNjA3QDE2My5jb20iLCJleHAiOjE3NjY1NjA5MDZ9.LpVZZyHLemOQDXrMWDcjxsAqo7Qas_JK7QdcFi7pIAE"
+
+
+# 查询模型配置列表
+curl -X GET \
+  "http://127.0.0.1:7767/api/v2/model_config/list?page=1&page_size=10&keyword=" \
+  -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJjaGVycnlfMDUwNjA3QDE2My5jb20iLCJleHAiOjE3NjY5MzYxMzR9.MLceGdkb98krToPw5jxULKLuHvxKs5MUbxwLStTn1tY"
+
+# 字节
+wm05241547194206937828

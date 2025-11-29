@@ -7,17 +7,17 @@ from enum import Enum
 class ModelType(str, Enum):
     """模型类型枚举"""
     LLM = "LLM"
-    RERANK = "Rerank"
-    TEXT_EMBEDDING = "Text Embedding"
-    SPEECH2TEXT = "Speech2text"
+    RERANK = "RERANK"
+    TEXT_EMBEDDING = "TEXT_EMBEDDING"
+    SPEECH2TEXT = "SPEECH2TEXT"
     TTS = "TTS"
-    VIDEO = "Video"
-    IMAGE = "Image"
+    IMAGE_GENERATION = "IMAGE_GENERATION"
+    VIDEO_GENERATION = "VIDEO_GENERATION"
 
 
 class ModelConfigCreate(BaseModel):
     model_name: str = Field(..., description="模型名称")
-    model_type: ModelType = Field(..., description="模型类型: LLM, Rerank, Text Embedding, Speech2text, TTS, Video, Image")
+    model_type: ModelType = Field(..., description="模型类型: LLM, RERANK, TEXT_EMBEDDING, SPEECH2TEXT, TTS, IMAGE_GENERATION, VIDEO_GENERATION")
     base_url: str = Field(..., description="基础URL")
     api_key: str = Field(..., description="API密钥")
     description: Optional[str] = Field(None, description="备注信息")
@@ -25,7 +25,7 @@ class ModelConfigCreate(BaseModel):
 
 class ModelConfigUpdate(BaseModel):
     model_name: Optional[str] = Field(None, description="模型名称")
-    model_type: Optional[ModelType] = Field(None, description="模型类型: LLM, Rerank, Text Embedding, Speech2text, TTS, Video, Image")
+    model_type: Optional[ModelType] = Field(None, description="模型类型: LLM, RERANK, TEXT_EMBEDDING, SPEECH2TEXT, TTS, IMAGE_GENERATION, VIDEO_GENERATION")
     base_url: Optional[str] = Field(None, description="基础URL")
     api_key: Optional[str] = Field(None, description="API密钥")
     description: Optional[str] = Field(None, description="备注信息")

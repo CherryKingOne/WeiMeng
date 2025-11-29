@@ -12,8 +12,8 @@ from app.core.database import get_db
 from app.api.deps import get_current_user
 from app.models.user import User
 from app.models.model_config import ModelConfig
-from app.models.chat import ChatSession, ChatMessage, ChatRequestTask, ChatError
-from app.schemas.chat import ChatRequest, ChatResponse, SessionListResponse, MessageListResponse, SetDefaultModelRequest, SetLibraryLocalModelRequest
+from app.models.chat import ChatSession, ChatMessage, ChatRequestTask, ChatError, VideoTask
+from app.schemas.chat import ChatRequest, ChatResponse, SessionListResponse, MessageListResponse, SetDefaultModelRequest, SetLibraryLocalModelRequest, ImageGenerationRequest, VideoGenerationRequest
 from app.chat.model_chat import ModelChatService
 from app.utils.encryption import decrypt_key
 
@@ -823,3 +823,362 @@ async def get_library_effective_model(
             "model_name": None
         }
     )
+
+
+# --- Image Generation ---
+
+@router.post("/images/generations", response_model=ChatResponse)
+async def generate_image(
+    request: ImageGenerationRequest,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
+):
+    """
+    文生图接口 - 根据文本提示词生成图像
+
+    需要指定图像生成模型配置ID（config_id必填）
+    """
+    import httpx
+
+    start_time = time.time()
+    config_id = request.config_id
+
+    try:
+        # 获取模型配置
+        config = await db_get_model_config(db, config_id, current_user.id)
+        if not config:
+            raise HTTPException(status_code=404, detail="Config ID not found or access denied")
+
+        # 验证模型类型
+        result = await db.execute(
+            select(ModelConfig).where(
+                ModelConfig.id == config_id,
+                ModelConfig.tenant_id == current_user.id,
+                ModelConfig.is_deleted == False
+            )
+        )
+        model_config = result.scalars().first()
+
+        if model_config and model_config.model_type != "IMAGE_GENERATION":
+            raise HTTPException(
+                status_code=400,
+                detail=f"Model type mismatch: expected IMAGE_GENERATION, but got {model_config.model_type}"
+            )
+
+        # 构建请求参数
+        # 如果 base_url 已经包含完整路径，直接使用；否则添加 /images/generations
+        base_url = config['base_url'].rstrip('/')
+        if base_url.endswith('/images/generations'):
+            api_url = base_url
+        else:
+            api_url = f"{base_url}/images/generations"
+
+        headers = {
+            "Authorization": f"Bearer {config['api_key']}",
+            "Content-Type": "application/json"
+        }
+
+        payload = {
+            "model": config['model_name'],
+            "prompt": request.prompt
+        }
+
+        # 只添加非空的可选参数
+        if request.size is not None:
+            payload["size"] = request.size
+        if request.n is not None:
+            payload["n"] = request.n
+        if request.quality is not None:
+            payload["quality"] = request.quality
+        if request.style is not None:
+            payload["style"] = request.style
+
+        # 调用图像生成API
+        async with httpx.AsyncClient(timeout=120.0) as client:
+            response = await client.post(api_url, json=payload, headers=headers)
+            response.raise_for_status()
+            result_data = response.json()
+
+        duration_ms = int((time.time() - start_time) * 1000)
+
+        return ChatResponse(
+            code=200,
+            msg="Image generated successfully",
+            data={
+                "images": result_data.get("data", []),
+                "model": config['model_name'],
+                "prompt": request.prompt,
+                "size": request.size
+            },
+            meta={
+                "duration_ms": duration_ms
+            }
+        )
+
+    except httpx.HTTPStatusError as e:
+        error_detail = e.response.text if hasattr(e.response, 'text') else str(e)
+        raise HTTPException(
+            status_code=e.response.status_code,
+            detail=f"Image generation API error: {error_detail}"
+        )
+    except httpx.RequestError as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Request error: {str(e)}"
+        )
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Image generation error: {str(e)}"
+        )
+
+
+# --- Video Generation ---
+
+@router.post("/videos", response_model=ChatResponse)
+async def generate_video(
+    request: VideoGenerationRequest,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
+):
+    """
+    视频生成接口 - 支持文生视频和图生视频
+
+    文生视频：只需提供 prompt
+    图生视频：需要提供 prompt 和 input_reference（参考图片URL）
+
+    注意：
+    - size 只支持 1280x720 或 720x1280
+    - 如果图片尺寸与输出视频尺寸不匹配会报错
+    """
+    import httpx
+
+    start_time = time.time()
+    config_id = request.config_id
+
+    try:
+        # 获取模型配置
+        config = await db_get_model_config(db, config_id, current_user.id)
+        if not config:
+            raise HTTPException(status_code=404, detail="Config ID not found or access denied")
+
+        # 验证模型类型
+        result = await db.execute(
+            select(ModelConfig).where(
+                ModelConfig.id == config_id,
+                ModelConfig.tenant_id == current_user.id,
+                ModelConfig.is_deleted == False
+            )
+        )
+        model_config = result.scalars().first()
+
+        if model_config and model_config.model_type != "VIDEO_GENERATION":
+            raise HTTPException(
+                status_code=400,
+                detail=f"Model type mismatch: expected VIDEO_GENERATION, but got {model_config.model_type}"
+            )
+
+        # 构建请求参数
+        base_url = config['base_url'].rstrip('/')
+        if base_url.endswith('/videos'):
+            api_url = base_url
+        else:
+            api_url = f"{base_url}/videos"
+
+        headers = {
+            "Authorization": f"Bearer {config['api_key']}",
+            "Content-Type": "application/json"
+        }
+
+        payload = {
+            "model": config['model_name'],
+            "prompt": request.prompt
+        }
+
+        # 添加可选参数
+        if request.input_reference:
+            payload["input_reference"] = request.input_reference
+        if request.seconds:
+            payload["seconds"] = request.seconds
+        if request.size:
+            # 验证尺寸格式
+            if request.size not in ["1280x720", "720x1280"]:
+                raise HTTPException(
+                    status_code=400,
+                    detail="Size must be either 1280x720 or 720x1280"
+                )
+            payload["size"] = request.size
+
+        # 调用视频生成API
+        async with httpx.AsyncClient(timeout=120.0) as client:
+            response = await client.post(api_url, json=payload, headers=headers)
+            response.raise_for_status()
+            result_data = response.json()
+
+        # 保存任务信息到数据库
+        task_id = result_data.get("id")
+        if task_id:
+            video_task = VideoTask(
+                task_id=task_id,
+                user_id=current_user.id,
+                config_id=config_id,
+                model_name=config['model_name'],
+                prompt=request.prompt,
+                status=result_data.get("status", "queued")
+            )
+            db.add(video_task)
+            await db.commit()
+
+        duration_ms = int((time.time() - start_time) * 1000)
+
+        return ChatResponse(
+            code=200,
+            msg="Video generation task created successfully",
+            data={
+                "task_id": result_data.get("id"),
+                "status": result_data.get("status"),
+                "model": result_data.get("model"),
+                "created_at": result_data.get("created_at"),
+                "updated_at": result_data.get("updated_at"),
+                "object": result_data.get("object")
+            },
+            meta={
+                "duration_ms": duration_ms,
+                "note": "Use GET /videos/{task_id} to query task status"
+            }
+        )
+
+    except httpx.HTTPStatusError as e:
+        error_detail = e.response.text if hasattr(e.response, 'text') else str(e)
+        # 检查是否是图片尺寸不匹配的错误
+        if "尺寸" in error_detail or "size" in error_detail.lower() or "dimension" in error_detail.lower():
+            print(f"[ERROR] Image size mismatch with video output size: {error_detail}")
+        raise HTTPException(
+            status_code=e.response.status_code,
+            detail=f"Video generation API error: {error_detail}"
+        )
+    except httpx.RequestError as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Request error: {str(e)}"
+        )
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Video generation error: {str(e)}"
+        )
+
+
+@router.get("/videos/{task_id}", response_model=ChatResponse)
+async def query_video_task(
+    task_id: str,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
+):
+    """
+    查询视频生成任务状态
+
+    参数：
+    - task_id: 视频任务ID（路径参数），即创建任务时返回的 id
+
+    状态说明：
+    - queued: 排队中
+    - in_progress: 处理中
+    - completed: 已完成（会返回视频URL）
+    - failed: 失败
+
+    注意：返回的视频URL字段可能是 url、video_url 等不同名称
+    """
+    import httpx
+
+    try:
+        # 从数据库查询任务信息，获取对应的 config_id
+        result = await db.execute(
+            select(VideoTask).where(
+                VideoTask.task_id == task_id,
+                VideoTask.user_id == current_user.id
+            )
+        )
+        video_task = result.scalars().first()
+
+        if not video_task:
+            raise HTTPException(
+                status_code=404,
+                detail="Video task not found or access denied"
+            )
+
+        # 获取模型配置
+        config = await db_get_model_config(db, video_task.config_id, current_user.id)
+        if not config:
+            raise HTTPException(status_code=404, detail="Video model config not found or access denied")
+
+        # 构建查询URL
+        base_url = config['base_url'].rstrip('/')
+        if base_url.endswith('/videos'):
+            api_url = f"{base_url}/{task_id}"
+        else:
+            api_url = f"{base_url}/videos/{task_id}"
+
+        headers = {
+            "Authorization": f"Bearer {config['api_key']}"
+        }
+
+        # 查询任务状态
+        async with httpx.AsyncClient(timeout=30.0) as client:
+            response = await client.get(api_url, headers=headers)
+            response.raise_for_status()
+            result_data = response.json()
+
+        # 更新数据库中的任务状态
+        current_status = result_data.get("status")
+        if current_status and current_status != video_task.status:
+            video_task.status = current_status
+            await db.commit()
+
+        # 处理返回数据，兼容不同的字段名
+        task_result = result_data.get("task_result")
+        if task_result and "videos" in task_result:
+            # 标准化视频URL字段，确保 url 和 video_url 都存在且有值
+            for video in task_result["videos"]:
+                # 获取实际的视频URL（优先使用url，其次video_url）
+                actual_url = video.get("url") or video.get("video_url")
+
+                if actual_url:
+                    # 确保两个字段都有值
+                    video["url"] = actual_url
+                    video["video_url"] = actual_url
+
+        return ChatResponse(
+            code=200,
+            msg="success",
+            data={
+                "id": result_data.get("id"),
+                "object": result_data.get("object"),
+                "model": result_data.get("model"),
+                "status": result_data.get("status"),
+                "created_at": result_data.get("created_at"),
+                "updated_at": result_data.get("updated_at"),
+                "completed_at": result_data.get("completed_at"),
+                "expires_at": result_data.get("expires_at"),
+                "seconds": result_data.get("seconds"),
+                "size": result_data.get("size"),
+                "task_result": task_result
+            }
+        )
+
+    except httpx.HTTPStatusError as e:
+        error_detail = e.response.text if hasattr(e.response, 'text') else str(e)
+        raise HTTPException(
+            status_code=e.response.status_code,
+            detail=f"Video task query API error: {error_detail}"
+        )
+    except httpx.RequestError as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Request error: {str(e)}"
+        )
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Video task query error: {str(e)}"
+        )

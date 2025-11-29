@@ -3,6 +3,7 @@ import { ref, onMounted, onBeforeUnmount, computed, reactive, watch } from 'vue'
 import JSZip from 'jszip'
 import { useRoute, useRouter } from 'vue-router'
 import { marked } from 'marked'
+import ModelSelector from '@/components/ModelSelector.vue'
 
 // Configure marked options
 marked.setOptions({
@@ -496,28 +497,56 @@ const parseStoryboardContent = (jsonText) => {
     }
 
     // Transform backend data to display format
-    storyboards.value = data.shots.map(shot => ({
-      id: shot.id,
-      scene: shot.visualContent ? shot.visualContent.substring(0, 50) + '...' : '未命名场景',
-      size: shot.shotType || '未指定',
-      shot: shot.cameraMove || '未指定',
-      duration: shot.duration ? `${shot.duration}s` : '0s',
-      desc: shot.description || shot.visualContent || '无描述',
-      dialogue: shot.audio || '无对白',
-      sound: shot.audio || '无音效',
-      imagePrompt: shot.text2imgPrompt ?
-        (Array.isArray(shot.text2imgPrompt.positive) ? shot.text2imgPrompt.positive.join(', ') : JSON.stringify(shot.text2imgPrompt)) :
-        '无提示词',
-      videoPrompt: shot.img2videoPrompt ?
-        (Array.isArray(shot.img2videoPrompt.positive) ? shot.img2videoPrompt.positive.join(', ') : JSON.stringify(shot.img2videoPrompt)) :
-        '无提示词',
-      generatedImage: !!shot.generatedImage,
-      generatedVideo: !!shot.generatedVideo,
-      notes: shot.remark || '无备注',
-      img: shot.generatedImage || `https://placehold.co/300x200/333/FFF?text=Scene+${shot.id}`,
-      // Keep original data for reference
-      originalData: shot
-    }))
+    storyboards.value = data.shots.map(shot => {
+      // 解析图片提示词
+      let imagePrompt = '无提示词'
+      if (shot.text2imgPrompt) {
+        if (Array.isArray(shot.text2imgPrompt.positive)) {
+          imagePrompt = shot.text2imgPrompt.positive.join(', ')
+        } else if (typeof shot.text2imgPrompt === 'string') {
+          imagePrompt = shot.text2imgPrompt
+        } else {
+          imagePrompt = JSON.stringify(shot.text2imgPrompt)
+        }
+      } else if (shot.visualContent) {
+        // 如果没有专门的提示词,使用视觉内容作为备用
+        imagePrompt = shot.visualContent
+      } else if (shot.description) {
+        // 如果连视觉内容都没有,使用描述
+        imagePrompt = shot.description
+      }
+
+      // 解析视频提示词
+      let videoPrompt = '无提示词'
+      if (shot.img2videoPrompt) {
+        if (Array.isArray(shot.img2videoPrompt.positive)) {
+          videoPrompt = shot.img2videoPrompt.positive.join(', ')
+        } else if (typeof shot.img2videoPrompt === 'string') {
+          videoPrompt = shot.img2videoPrompt
+        } else {
+          videoPrompt = JSON.stringify(shot.img2videoPrompt)
+        }
+      }
+
+      return {
+        id: shot.id,
+        scene: shot.visualContent ? shot.visualContent.substring(0, 50) + '...' : '未命名场景',
+        size: shot.shotType || '未指定',
+        shot: shot.cameraMove || '未指定',
+        duration: shot.duration ? `${shot.duration}s` : '0s',
+        desc: shot.description || shot.visualContent || '无描述',
+        dialogue: shot.audio || '无对白',
+        sound: shot.audio || '无音效',
+        imagePrompt: imagePrompt,
+        videoPrompt: videoPrompt,
+        generatedImage: !!shot.generatedImage,
+        generatedVideo: !!shot.generatedVideo,
+        notes: shot.remark || '无备注',
+        img: shot.generatedImage || `https://placehold.co/300x200/333/FFF?text=Scene+${shot.id}`,
+        // Keep original data for reference
+        originalData: shot
+      }
+    })
 
     console.log('【分镜解析】成功解析', storyboards.value.length, '个镜头')
   } catch (error) {
@@ -528,18 +557,506 @@ const parseStoryboardContent = (jsonText) => {
 }
 const storyboardView = ref('detail') // 'compact' | 'detail'
 
-const generateImage = (shot, w, h) => {
-  shot.generatedImage = true
-  if (w && h) {
-    shot.img = `https://placehold.co/${w}x${h}/2f8f2f/FFF?text=Image+Generated`
+const generateImage = async (shot, w, h) => {
+  // 直接使用已经解析好的 imagePrompt 字段
+  let prompt = shot.imagePrompt
+
+  console.log(`[图片生成] 镜号 ${shot.id}: 原始提示词数据:`, {
+    imagePrompt: shot.imagePrompt,
+    originalData: shot.originalData?.text2imgPrompt,
+    visualContent: shot.originalData?.visualContent,
+    description: shot.originalData?.description
+  })
+
+  // 如果提示词为"无提示词"，尝试使用备用字段
+  if (!prompt || prompt === '无提示词') {
+    // 尝试从原始数据中获取备用提示词
+    if (shot.originalData?.visualContent) {
+      prompt = shot.originalData.visualContent
+      console.log(`[图片生成] 镜号 ${shot.id}: 使用 visualContent 作为提示词`)
+    } else if (shot.originalData?.description) {
+      prompt = shot.originalData.description
+      console.log(`[图片生成] 镜号 ${shot.id}: 使用 description 作为提示词`)
+    } else if (shot.desc && shot.desc !== '无描述') {
+      prompt = shot.desc
+      console.log(`[图片生成] 镜号 ${shot.id}: 使用 desc 作为提示词`)
+    }
+  }
+
+  // 最终检查：如果还是没有有效的提示词，显示错误
+  if (!prompt || prompt === '无提示词') {
+    console.error(`[图片生成] 镜号 ${shot.id}: 没有任何可用的提示词，无法生成图片`)
+    showToastMessage(`镜号 ${shot.id} 没有可用的提示词，无法生成图片`, 'error')
     return
   }
-  if (shot.img) return
-  shot.img = 'https://placehold.co/300x200/2f8f2f/FFF?text=Image+Generated'
+
+  // 获取选中的图像模型配置 ID
+  if (!selectedImageModel.value) {
+    console.error(`[图片生成] 镜号 ${shot.id}: 未选择图像模型`)
+    showToastMessage('请先选择图像生成模型', 'error')
+    return
+  }
+
+  // 查找模型的 config_id
+  const imageModel = availableImageModels.value.find(m => m.model_name === selectedImageModel.value)
+
+  console.log(`[图片生成] 镜号 ${shot.id}: 查找模型配置`)
+  console.log(`[图片生成] 选中的模型名称: ${selectedImageModel.value}`)
+  console.log(`[图片生成] 可用的图像模型列表:`, availableImageModels.value)
+  console.log(`[图片生成] 找到的模型配置:`, imageModel)
+
+  if (!imageModel || !imageModel.config_id) {
+    console.error(`[图片生成] 镜号 ${shot.id}: 未找到模型配置 ID`)
+    showToastMessage('模型配置错误，请重新选择', 'error')
+    return
+  }
+
+  // 构建尺寸字符串
+  const size = w && h ? `${w}x${h}` : '1024x1024'
+
+  console.log(`[图片生成] ========== 开始生成 ==========`)
+  console.log(`[图片生成] 镜号: ${shot.id}`)
+  console.log(`[图片生成] 提示词: ${prompt}`)
+  console.log(`[图片生成] 尺寸: ${size}`)
+  console.log(`[图片生成] 模型: ${selectedImageModel.value}`)
+  console.log(`[图片生成] Config ID: ${imageModel.config_id}`)
+  console.log(`[图片生成] 模型类型: ${imageModel.model_type}`)
+  console.log(`[图片生成] Base URL: ${imageModel.base_url}`)
+
+  // 标记为生成中
+  shot.generatingImage = true
+
+  try {
+    const token = localStorage.getItem('accessToken')
+    if (!token) {
+      console.error(`[图片生成] 镜号 ${shot.id}: 未找到 token`)
+      showToastMessage('请先登录', 'error')
+      return
+    }
+
+    const requestBody = {
+      config_id: imageModel.config_id,
+      prompt: prompt,
+      size: size
+    }
+
+    console.log(`[图片生成] 镜号 ${shot.id}: 请求体:`, JSON.stringify(requestBody, null, 2))
+
+    const response = await fetch(`${API_BASE}/api/v3/chat/images/generations`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+        'Authorization': `Bearer ${token}`
+      },
+      body: JSON.stringify(requestBody)
+    })
+
+    console.log(`[图片生成] 镜号 ${shot.id}: 响应状态:`, response.status)
+
+    if (response.status === 401) {
+      console.error(`[图片生成] 镜号 ${shot.id}: 未授权`)
+      router.push('/login')
+      return
+    }
+
+    if (!response.ok) {
+      let errorText = await response.text()
+      console.error(`[图片生成] 镜号 ${shot.id}: 请求失败:`, errorText)
+
+      // 尝试解析错误信息
+      try {
+        const errorJson = JSON.parse(errorText)
+        if (errorJson.detail) {
+          errorText = errorJson.detail
+        }
+      } catch (e) {
+        // 如果不是 JSON,使用原始文本
+      }
+
+      // 显示更详细的错误信息
+      if (response.status === 403) {
+        showToastMessage(`权限错误: ${errorText}`, 'error')
+      } else if (response.status === 400) {
+        showToastMessage(`参数错误: ${errorText}`, 'error')
+      } else {
+        showToastMessage(`图片生成失败 (${response.status}): ${errorText}`, 'error')
+      }
+      return
+    }
+
+    const data = await response.json()
+    console.log(`[图片生成] 镜号 ${shot.id}: 响应数据:`, data)
+
+    if (data.code === 200 && data.data && data.data.images && data.data.images.length > 0) {
+      const imageData = data.data.images[0]
+      const imageUrl = imageData.url
+
+      console.log(`[图片生成] 镜号 ${shot.id}: ✅ 生成成功!`)
+      console.log(`[图片生成] 镜号 ${shot.id}: 图片 URL: ${imageUrl}`)
+      console.log(`[图片生成] 镜号 ${shot.id}: 图片对象:`, imageData)
+      console.log(`[图片生成] 镜号 ${shot.id}: 耗时: ${data.meta?.duration_ms}ms`)
+
+      // 尝试从响应中获取实际的图片尺寸
+      let actualWidth = w
+      let actualHeight = h
+      let actualSize = size
+
+      // 检查响应中是否包含实际尺寸信息
+      if (imageData.width && imageData.height) {
+        actualWidth = imageData.width
+        actualHeight = imageData.height
+        actualSize = `${actualWidth}x${actualHeight}`
+        console.log(`[图片生成] 镜号 ${shot.id}: 从响应获取实际尺寸: ${actualSize}`)
+      } else if (imageData.size) {
+        actualSize = imageData.size
+        const [w, h] = actualSize.split('x').map(Number)
+        actualWidth = w
+        actualHeight = h
+        console.log(`[图片生成] 镜号 ${shot.id}: 从响应获取实际尺寸: ${actualSize}`)
+      } else {
+        console.warn(`[图片生成] 镜号 ${shot.id}: 响应中没有尺寸信息,将通过加载图片检测实际尺寸`)
+
+        // 通过加载图片来检测实际尺寸
+        try {
+          const img = new Image()
+          img.crossOrigin = 'anonymous'
+
+          await new Promise((resolve, reject) => {
+            img.onload = () => {
+              actualWidth = img.naturalWidth
+              actualHeight = img.naturalHeight
+              actualSize = `${actualWidth}x${actualHeight}`
+              console.log(`[图片生成] 镜号 ${shot.id}: 通过加载图片检测到实际尺寸: ${actualSize}`)
+              resolve()
+            }
+            img.onerror = () => {
+              console.warn(`[图片生成] 镜号 ${shot.id}: 无法加载图片检测尺寸,使用请求尺寸: ${actualSize}`)
+              resolve() // 即使失败也继续,使用请求的尺寸
+            }
+            img.src = imageUrl
+          })
+        } catch (error) {
+          console.warn(`[图片生成] 镜号 ${shot.id}: 检测图片尺寸失败:`, error)
+        }
+      }
+
+      // 只更新当前镜头的图片
+      shot.img = imageUrl
+      shot.generatedImage = true
+      shot.generatingImage = false
+      // 保存实际的图片尺寸,供视频生成时使用
+      shot.imageSize = actualSize
+      shot.imageWidth = actualWidth
+      shot.imageHeight = actualHeight
+
+      console.log(`[图片生成] 镜号 ${shot.id}: 保存的尺寸信息: ${actualWidth}x${actualHeight}`)
+      showToastMessage(`镜号 ${shot.id} 图片生成成功`, 'success')
+    } else {
+      console.error(`[图片生成] 镜号 ${shot.id}: 响应格式错误:`, data)
+      showToastMessage('图片生成失败: 响应格式错误', 'error')
+    }
+  } catch (error) {
+    console.error(`[图片生成] 镜号 ${shot.id}: 异常:`, error)
+    showToastMessage(`图片生成失败: ${error.message}`, 'error')
+  } finally {
+    shot.generatingImage = false
+    console.log(`[图片生成] ========== 结束 ==========`)
+  }
 }
 
-const generateVideo = (shot) => {
-  shot.generatedVideo = true
+const generateVideo = async (shot, w, h, duration = '4') => {
+  // 直接使用已经解析好的 videoPrompt 字段
+  let prompt = shot.videoPrompt
+
+  console.log(`[视频生成] 镜号 ${shot.id}: 原始提示词数据:`, {
+    videoPrompt: shot.videoPrompt,
+    originalData: shot.originalData?.img2videoPrompt,
+    visualContent: shot.originalData?.visualContent,
+    description: shot.originalData?.description
+  })
+
+  // 如果提示词为"无提示词"，尝试使用备用字段
+  if (!prompt || prompt === '无提示词') {
+    // 尝试从原始数据中获取备用提示词
+    if (shot.originalData?.visualContent) {
+      prompt = shot.originalData.visualContent
+      console.log(`[视频生成] 镜号 ${shot.id}: 使用 visualContent 作为提示词`)
+    } else if (shot.originalData?.description) {
+      prompt = shot.originalData.description
+      console.log(`[视频生成] 镜号 ${shot.id}: 使用 description 作为提示词`)
+    } else if (shot.desc && shot.desc !== '无描述') {
+      prompt = shot.desc
+      console.log(`[视频生成] 镜号 ${shot.id}: 使用 desc 作为提示词`)
+    }
+  }
+
+  // 最终检查：如果还是没有有效的提示词，显示错误
+  if (!prompt || prompt === '无提示词') {
+    console.error(`[视频生成] 镜号 ${shot.id}: 没有任何可用的提示词，无法生成视频`)
+    showToastMessage(`镜号 ${shot.id} 没有可用的提示词，无法生成视频`, 'error')
+    return
+  }
+
+  // 获取选中的视频模型配置 ID
+  if (!selectedVideoModel.value) {
+    console.error(`[视频生成] 镜号 ${shot.id}: 未选择视频模型`)
+    showToastMessage('请先选择视频生成模型', 'error')
+    return
+  }
+
+  // 查找模型的 config_id
+  const videoModel = availableVideoModels.value.find(m => m.model_name === selectedVideoModel.value)
+
+  console.log(`[视频生成] 镜号 ${shot.id}: 查找模型配置`)
+  console.log(`[视频生成] 选中的模型名称: ${selectedVideoModel.value}`)
+  console.log(`[视频生成] 可用的视频模型列表:`, availableVideoModels.value)
+  console.log(`[视频生成] 找到的模型配置:`, videoModel)
+
+  if (!videoModel || !videoModel.config_id) {
+    console.error(`[视频生成] 镜号 ${shot.id}: 未找到模型配置 ID`)
+    showToastMessage('模型配置错误，请重新选择', 'error')
+    return
+  }
+
+  // 标记为生成中
+  shot.generatingVideo = true
+
+  try {
+    const token = localStorage.getItem('accessToken')
+    if (!token) {
+      console.error(`[视频生成] 镜号 ${shot.id}: 未找到 token`)
+      showToastMessage('请先登录', 'error')
+      shot.generatingVideo = false
+      return
+    }
+
+    // 检查是否有已生成的图片作为参考
+    if (!shot.img || !shot.generatedImage) {
+      console.error(`[视频生成] 镜号 ${shot.id}: 需要先生成图片`)
+      showToastMessage(`镜号 ${shot.id} 需要先生成图片才能生成视频`, 'error')
+      shot.generatingVideo = false
+      return
+    }
+
+    // 使用图片生成时保存的尺寸,确保图片和视频尺寸一致
+    const size = shot.imageSize || `${w}x${h}` || '1280x720'
+    const videoWidth = shot.imageWidth || w
+    const videoHeight = shot.imageHeight || h
+
+    console.log(`[视频生成] ========== 开始生成 ==========`)
+    console.log(`[视频生成] 镜号: ${shot.id}`)
+    console.log(`[视频生成] 提示词: ${prompt}`)
+    console.log(`[视频生成] 尺寸: ${size} (使用图片尺寸)`)
+    console.log(`[视频生成] 图片尺寸: ${shot.imageWidth}x${shot.imageHeight}`)
+    console.log(`[视频生成] 时长: ${duration}秒`)
+    console.log(`[视频生成] 模型: ${selectedVideoModel.value}`)
+    console.log(`[视频生成] Config ID: ${videoModel.config_id}`)
+    console.log(`[视频生成] 模型类型: ${videoModel.model_type}`)
+    console.log(`[视频生成] Base URL: ${videoModel.base_url}`)
+
+    const requestBody = {
+      config_id: videoModel.config_id,
+      prompt: prompt,
+      input_reference: shot.img,  // 使用已生成的图片作为参考
+      seconds: duration,  // 视频时长
+      size: size
+    }
+
+    console.log(`[视频生成] 镜号 ${shot.id}: 请求体:`, JSON.stringify(requestBody, null, 2))
+
+    const response = await fetch(`${API_BASE}/api/v3/chat/videos`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+        'Authorization': `Bearer ${token}`
+      },
+      body: JSON.stringify(requestBody)
+    })
+
+    console.log(`[视频生成] 镜号 ${shot.id}: 响应状态:`, response.status)
+
+    if (response.status === 401) {
+      console.error(`[视频生成] 镜号 ${shot.id}: 未授权`)
+      router.push('/login')
+      return
+    }
+
+    if (!response.ok) {
+      let errorText = await response.text()
+      console.error(`[视频生成] 镜号 ${shot.id}: 请求失败:`, errorText)
+
+      // 尝试解析错误信息
+      try {
+        const errorJson = JSON.parse(errorText)
+        if (errorJson.detail) {
+          errorText = errorJson.detail
+        }
+      } catch (e) {
+        // 如果不是 JSON,使用原始文本
+      }
+
+      // 显示更详细的错误信息
+      if (response.status === 403) {
+        showToastMessage(`权限错误: ${errorText}`, 'error')
+      } else if (response.status === 400) {
+        showToastMessage(`参数错误: ${errorText}`, 'error')
+      } else {
+        showToastMessage(`视频生成失败 (${response.status}): ${errorText}`, 'error')
+      }
+      return
+    }
+
+    const data = await response.json()
+    console.log(`[视频生成] 镜号 ${shot.id}: 响应数据:`, data)
+
+    // 检查是否返回了 task_id (字段名是 task_id 而不是 id)
+    if (data.code === 200 && data.data && data.data.task_id) {
+      const taskId = data.data.task_id
+      console.log(`[视频生成] 镜号 ${shot.id}: 获得任务ID: ${taskId}`)
+      console.log(`[视频生成] 镜号 ${shot.id}: 开始轮询任务状态...`)
+
+      // 开始轮询任务状态
+      await pollVideoTask(shot, taskId, token)
+    } else {
+      console.error(`[视频生成] 镜号 ${shot.id}: 响应格式错误，未获得任务ID:`, data)
+      showToastMessage('视频生成失败: 未获得任务ID', 'error')
+      shot.generatingVideo = false
+    }
+  } catch (error) {
+    console.error(`[视频生成] 镜号 ${shot.id}: 异常:`, error)
+    showToastMessage(`视频生成失败: ${error.message}`, 'error')
+    shot.generatingVideo = false
+  }
+}
+
+// 轮询视频生成任务状态
+const pollVideoTask = async (shot, taskId, token) => {
+  const maxAttempts = 60 // 最多轮询60次
+  const pollInterval = 5000 // 每5秒轮询一次
+  let attempts = 0
+
+  const checkStatus = async () => {
+    attempts++
+    console.log(`[视频轮询] 镜号 ${shot.id}: 第 ${attempts} 次检查任务状态...`)
+
+    try {
+      const response = await fetch(`${API_BASE}/api/v3/chat/videos/${taskId}`, {
+        method: 'GET',
+        headers: {
+          'Accept': 'application/json',
+          'Authorization': `Bearer ${token}`
+        }
+      })
+
+      if (!response.ok) {
+        console.error(`[视频轮询] 镜号 ${shot.id}: 查询失败:`, response.status)
+        if (attempts < maxAttempts) {
+          setTimeout(checkStatus, pollInterval)
+        } else {
+          showToastMessage(`镜号 ${shot.id} 视频生成超时`, 'error')
+          shot.generatingVideo = false
+        }
+        return
+      }
+
+      const data = await response.json()
+      console.log(`[视频轮询] 镜号 ${shot.id}: 任务状态:`, data.data?.status)
+
+      if (data.code === 200 && data.data) {
+        const status = data.data.status
+
+        if (status === 'completed') {
+          // 任务完成，提取视频URL
+          const taskResult = data.data.task_result
+          if (taskResult && taskResult.videos && taskResult.videos.length > 0) {
+            const video = taskResult.videos[0]
+            const videoUrl = video.video_url || video.url
+
+            if (videoUrl) {
+              console.log(`[视频轮询] 镜号 ${shot.id}: ✅ 生成成功!`)
+              console.log(`[视频轮询] 镜号 ${shot.id}: 视频 URL: ${videoUrl}`)
+
+              // 更新视频 URL
+              shot.videoUrl = videoUrl
+              shot.generatedVideo = true
+              shot.generatingVideo = false
+
+              showToastMessage(`镜号 ${shot.id} 视频生成成功`, 'success')
+              console.log(`[视频生成] ========== 结束 ==========`)
+            } else {
+              console.error(`[视频轮询] 镜号 ${shot.id}: 未找到视频URL`)
+              showToastMessage(`镜号 ${shot.id} 视频生成失败: 未找到视频URL`, 'error')
+              shot.generatingVideo = false
+            }
+          } else {
+            console.error(`[视频轮询] 镜号 ${shot.id}: 响应中没有视频数据`)
+            showToastMessage(`镜号 ${shot.id} 视频生成失败: 没有视频数据`, 'error')
+            shot.generatingVideo = false
+          }
+        } else if (status === 'failed' || status === 'error') {
+          // 任务失败,提取错误信息
+          const errorInfo = data.data.error
+          let errorMessage = '未知错误'
+
+          if (errorInfo) {
+            if (errorInfo.message) {
+              errorMessage = errorInfo.message
+            } else if (typeof errorInfo === 'string') {
+              errorMessage = errorInfo
+            }
+            console.error(`[视频轮询] 镜号 ${shot.id}: 任务失败`)
+            console.error(`[视频轮询] 错误代码: ${errorInfo.code || 'N/A'}`)
+            console.error(`[视频轮询] 错误信息: ${errorMessage}`)
+            console.error(`[视频轮询] 完整错误对象:`, errorInfo)
+          } else {
+            console.error(`[视频轮询] 镜号 ${shot.id}: 任务失败,无错误详情`)
+          }
+
+          // 显示友好的错误提示
+          if (errorMessage.includes('must match the requested width and height')) {
+            showToastMessage(`镜号 ${shot.id} 视频生成失败: 图片尺寸不匹配`, 'error')
+          } else {
+            showToastMessage(`镜号 ${shot.id} 视频生成失败: ${errorMessage}`, 'error')
+          }
+
+          shot.generatingVideo = false
+          console.log(`[视频生成] ========== 结束 ==========`)
+        } else {
+          // 任务还在进行中，继续轮询
+          if (attempts < maxAttempts) {
+            console.log(`[视频轮询] 镜号 ${shot.id}: 任务进行中，${pollInterval/1000}秒后再次检查...`)
+            setTimeout(checkStatus, pollInterval)
+          } else {
+            console.error(`[视频轮询] 镜号 ${shot.id}: 轮询超时`)
+            showToastMessage(`镜号 ${shot.id} 视频生成超时`, 'error')
+            shot.generatingVideo = false
+            console.log(`[视频生成] ========== 结束 ==========`)
+          }
+        }
+      } else {
+        console.error(`[视频轮询] 镜号 ${shot.id}: 响应格式错误:`, data)
+        if (attempts < maxAttempts) {
+          setTimeout(checkStatus, pollInterval)
+        } else {
+          showToastMessage(`镜号 ${shot.id} 视频生成失败`, 'error')
+          shot.generatingVideo = false
+        }
+      }
+    } catch (error) {
+      console.error(`[视频轮询] 镜号 ${shot.id}: 异常:`, error)
+      if (attempts < maxAttempts) {
+        setTimeout(checkStatus, pollInterval)
+      } else {
+        showToastMessage(`镜号 ${shot.id} 视频生成失败: ${error.message}`, 'error')
+        shot.generatingVideo = false
+      }
+    }
+  }
+
+  // 开始第一次检查
+  checkStatus()
 }
 
 const removeShot = (id) => {
@@ -569,36 +1086,96 @@ const toggleActionMenu = (id, ev) => {
 const closeActionMenu = () => { openActionMenuId.value = null }
 const getShotById = (id) => storyboards.value.find(s => s.id === id)
 
+// Image preview modal
+const showImagePreview = ref(false)
+const previewImageUrl = ref('')
+const previewImageShot = ref(null)
+
+const openImagePreview = (shot) => {
+  if (shot.img && shot.generatedImage) {
+    previewImageUrl.value = shot.img
+    previewImageShot.value = shot
+    showImagePreview.value = true
+  }
+}
+
+const closeImagePreview = () => {
+  showImagePreview.value = false
+  previewImageUrl.value = ''
+  previewImageShot.value = null
+}
+
+// Video preview modal
+const showVideoPreview = ref(false)
+const previewVideoUrl = ref('')
+const previewVideoShot = ref(null)
+
+const openVideoPreview = (shot) => {
+  if (shot.videoUrl && shot.generatedVideo) {
+    previewVideoUrl.value = shot.videoUrl
+    previewVideoShot.value = shot
+    showVideoPreview.value = true
+  }
+}
+
+const closeVideoPreview = () => {
+  showVideoPreview.value = false
+  previewVideoUrl.value = ''
+  previewVideoShot.value = null
+}
+
 const showSizeModal = ref(false)
 const sizeModalMode = ref('single')
 const sizeModalAction = ref('image')
 const sizeModalShotId = ref(null)
-const selectedRatio = ref('1:1')
-const ratioOptions = [
-  { key: '1:1', w: 2048, h: 2048 },
-  { key: '4:3', w: 2304, h: 1728 },
-  { key: '3:4', w: 1728, h: 2304 },
-  { key: '16:9', w: 2560, h: 1440 },
-  { key: '9:16', w: 1440, h: 2560 },
-  { key: '3:2', w: 2496, h: 1664 },
-  { key: '2:3', w: 1664, h: 2496 },
-  { key: '21:9', w: 3024, h: 1296 }
+const selectedRatio = ref('16:9')
+const selectedDuration = ref('4') // 视频时长选择
+
+// 图片和视频生成都只支持两个尺寸
+const imageRatioOptions = [
+  { key: '16:9', w: 1280, h: 720 },
+  { key: '9:16', w: 720, h: 1280 }
 ]
+
+// 视频生成使用相同的尺寸选项
+const videoRatioOptions = [
+  { key: '16:9', w: 1280, h: 720 },
+  { key: '9:16', w: 720, h: 1280 }
+]
+
+// 视频时长选项
+const videoDurationOptions = [
+  { value: '4', label: '4秒' },
+  { value: '8', label: '8秒' },
+  { value: '12', label: '12秒' }
+]
+
+// 根据当前操作类型返回对应的尺寸选项
+const ratioOptions = computed(() => {
+  return sizeModalAction.value === 'video' ? videoRatioOptions : imageRatioOptions
+})
+
 const sizeInfoVisible = ref(false)
 const openSizeModalForShot = (shot, action) => {
   sizeModalMode.value = 'single'
   sizeModalAction.value = action
   sizeModalShotId.value = shot.id
+  // 根据操作类型设置默认选中的尺寸
+  selectedRatio.value = action === 'video' ? '16:9' : '1:1'
+  selectedDuration.value = '4' // 默认4秒
   showSizeModal.value = true
 }
 const openSizeModalBatch = (action) => {
   sizeModalMode.value = 'batch'
   sizeModalAction.value = action
   sizeModalShotId.value = null
+  // 根据操作类型设置默认选中的尺寸
+  selectedRatio.value = action === 'video' ? '16:9' : '1:1'
   showSizeModal.value = true
 }
 const applySizeSelection = () => {
-  const opt = ratioOptions.find(r => r.key === selectedRatio.value)
+  const opts = sizeModalAction.value === 'video' ? videoRatioOptions : imageRatioOptions
+  const opt = opts.find(r => r.key === selectedRatio.value)
   if (!opt) { showSizeModal.value = false; return }
   if (sizeModalAction.value === 'image') {
     if (sizeModalMode.value === 'batch') {
@@ -608,11 +1185,13 @@ const applySizeSelection = () => {
       if (s) generateImage(s, opt.w, opt.h)
     }
   } else {
+    // 视频生成需要传递时长参数
+    const duration = selectedDuration.value
     if (sizeModalMode.value === 'batch') {
-      storyboards.value.forEach(s => generateVideo(s, opt.w, opt.h))
+      storyboards.value.forEach(s => generateVideo(s, opt.w, opt.h, duration))
     } else {
       const s = getShotById(sizeModalShotId.value)
-      if (s) generateVideo(s, opt.w, opt.h)
+      if (s) generateVideo(s, opt.w, opt.h, duration)
     }
   }
   showSizeModal.value = false
@@ -884,6 +1463,33 @@ const modelSearchQuery = ref('')
 const loadingModels = ref(false)
 
 const availableModels = ref([])
+const availableImageModels = ref([])
+const availableVideoModels = ref([])
+const selectedImageModel = ref('')
+const selectedVideoModel = ref('')
+const showImageModelSelector = ref(false)
+const showVideoModelSelector = ref(false)
+
+// Get provider icon helper function
+const getProviderIcon = (modelName) => {
+  if (!modelName) return 'https://unpkg.com/@lobehub/icons-static-png@latest/light/openai.png'
+
+  const name = modelName.toLowerCase()
+  if (name.includes('gpt') || name.includes('openai')) {
+    return 'https://unpkg.com/@lobehub/icons-static-png@latest/light/openai.png'
+  } else if (name.includes('claude') || name.includes('anthropic')) {
+    return 'https://unpkg.com/@lobehub/icons-static-png@latest/light/anthropic.png'
+  } else if (name.includes('qwen') || name.includes('tongyi')) {
+    return 'https://unpkg.com/@lobehub/icons-static-png@latest/light/qwen.png'
+  } else if (name.includes('glm') || name.includes('zhipu')) {
+    return 'https://unpkg.com/@lobehub/icons-static-png@latest/light/zhipu.png'
+  } else if (name.includes('deepseek')) {
+    return 'https://unpkg.com/@lobehub/icons-static-png@latest/light/deepseek.png'
+  } else if (name.includes('gemini') || name.includes('google')) {
+    return 'https://unpkg.com/@lobehub/icons-static-png@latest/light/google.png'
+  }
+  return 'https://unpkg.com/@lobehub/icons-static-png@latest/light/openai.png'
+}
 
 // Fetch models from API
 const fetchModels = async () => {
@@ -892,7 +1498,7 @@ const fetchModels = async () => {
   try {
     const token = localStorage.getItem('accessToken')
     console.log('[ModelSelector] Token retrieved:', token ? 'Yes' : 'No')
-    
+
     const url = `${API_BASE}/api/v2/model_config/list?page=1&page_size=100&model_type=LLM`
     console.log('[ModelSelector] Request URL:', url)
     
@@ -951,6 +1557,86 @@ const fetchModels = async () => {
   }
 }
 
+// Fetch image models from API
+const fetchImageModels = async () => {
+  console.log('[ImageModels] Starting to fetch image models...')
+  try {
+    const token = localStorage.getItem('accessToken')
+    if (!token) return
+
+    const url = `${API_BASE}/api/v2/model_config/list?page=1&page_size=100&model_type=IMAGE_GENERATION`
+    console.log('[ImageModels] Request URL:', url)
+
+    const response = await fetch(url, {
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Accept': 'application/json'
+      }
+    })
+
+    if (response.status === 401) {
+      router.push('/login')
+      return
+    }
+
+    if (!response.ok) return
+
+    const data = await response.json()
+    console.log('[ImageModels] Response data:', data)
+
+    if (data.code === 200 && data.data && data.data.list) {
+      availableImageModels.value = data.data.list
+      // Auto-select first model if none selected
+      if (!selectedImageModel.value && data.data.list.length > 0) {
+        selectedImageModel.value = data.data.list[0].model_name
+      }
+      console.log('[ImageModels] Models loaded:', data.data.list.length)
+    }
+  } catch (error) {
+    console.error('[ImageModels] Error fetching models:', error)
+  }
+}
+
+// Fetch video models from API
+const fetchVideoModels = async () => {
+  console.log('[VideoModels] Starting to fetch video models...')
+  try {
+    const token = localStorage.getItem('accessToken')
+    if (!token) return
+
+    const url = `${API_BASE}/api/v2/model_config/list?page=1&page_size=100&model_type=VIDEO_GENERATION`
+    console.log('[VideoModels] Request URL:', url)
+
+    const response = await fetch(url, {
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Accept': 'application/json'
+      }
+    })
+
+    if (response.status === 401) {
+      router.push('/login')
+      return
+    }
+
+    if (!response.ok) return
+
+    const data = await response.json()
+    console.log('[VideoModels] Response data:', data)
+
+    if (data.code === 200 && data.data && data.data.list) {
+      availableVideoModels.value = data.data.list
+      // Auto-select first model if none selected
+      if (!selectedVideoModel.value && data.data.list.length > 0) {
+        selectedVideoModel.value = data.data.list[0].model_name
+      }
+      console.log('[VideoModels] Models loaded:', data.data.list.length)
+    }
+  } catch (error) {
+    console.error('[VideoModels] Error fetching models:', error)
+  }
+}
+
 const filteredModels = computed(() => {
   if (!modelSearchQuery.value) return availableModels.value
   const query = modelSearchQuery.value.toLowerCase()
@@ -961,7 +1647,7 @@ const filteredModels = computed(() => {
 })
 
 const currentModel = computed(() => {
-  return availableModels.value.find(m => m.id === aiConfig.value.model) || 
+  return availableModels.value.find(m => m.id === aiConfig.value.model) ||
          (availableModels.value.length > 0 ? availableModels.value[0] : { name: aiConfig.value.model, icon: 'robot', color: 'text-gray-500' })
 })
 
@@ -1475,30 +2161,30 @@ const loadMediaFiles = async () => {
   }
 }
 
-// Video Preview Modal
-const showVideoPreview = ref(false)
-const currentVideoPreview = ref(null)
-const videoPreviewTab = ref('structure')
+// Media Library Video Preview Modal
+const showMediaVideoPreview = ref(false)
+const currentMediaVideoPreview = ref(null)
+const mediaVideoPreviewTab = ref('structure')
 
-const openVideoPreview = (media) => {
-  currentVideoPreview.value = media
-  showVideoPreview.value = true
+const openMediaVideoPreview = (media) => {
+  currentMediaVideoPreview.value = media
+  showMediaVideoPreview.value = true
 }
 
-const closeVideoPreview = () => {
-  showVideoPreview.value = false
-  currentVideoPreview.value = null
-  videoPreviewTab.value = 'structure'
+const closeMediaVideoPreview = () => {
+  showMediaVideoPreview.value = false
+  currentMediaVideoPreview.value = null
+  mediaVideoPreviewTab.value = 'structure'
 }
 
 const exportVideoJson = () => {
-  if (!currentVideoPreview.value) return
-  const json = JSON.stringify(currentVideoPreview.value, null, 2)
+  if (!currentMediaVideoPreview.value) return
+  const json = JSON.stringify(currentMediaVideoPreview.value, null, 2)
   const blob = new Blob([json], { type: 'application/json' })
   const url = URL.createObjectURL(blob)
   const a = document.createElement('a')
   a.href = url
-  a.download = `${currentVideoPreview.value.label || 'video'}.json`
+  a.download = `${currentMediaVideoPreview.value.label || 'video'}.json`
   a.click()
   URL.revokeObjectURL(url)
 }
@@ -1506,13 +2192,14 @@ const exportVideoJson = () => {
 const regenerateImage = (shot) => {
   shot.generatedImage = false
   shot.img = ''
-  generateImage(shot)
   openActionMenuId.value = null
+  openSizeModalForShot(shot, 'image')
 }
 const regenerateVideo = (shot) => {
   shot.generatedVideo = false
-  generateVideo(shot)
+  shot.videoUrl = ''
   openActionMenuId.value = null
+  openSizeModalForShot(shot, 'video')
 }
 
 const exportStoryboardTable = () => {
@@ -2869,6 +3556,8 @@ onMounted(async () => {
   // Load models first, then load effective model
   await fetchModels()  // Load available models list
   await loadEffectiveModel()  // Load effective model (local first, then global)
+  await fetchImageModels()  // Load image generation models
+  await fetchVideoModels()  // Load video generation models
 
   // Auto-select first chapter for novel analysis (after chapters are loaded or tab switched)
   watch([novelChapters, activeTab], ([chapters, tab]) => {
@@ -4136,7 +4825,27 @@ watch(activeTab, (newTab) => {
                 <button @click="storyboardView='detail'" class="px-3 py-1.5 text-sm rounded border bg-white dark:bg-[#2C2C2E] dark:border-[#3A3A3C] text-secondary hover:border-gray-300" :class="storyboardView==='detail' ? 'border-gray-500' : ''">详情</button>
               </div>
             </div>
-            <div class="flex gap-1">
+            <div class="flex gap-2 items-center">
+              <!-- Image Model Selector -->
+              <div class="relative compact-model-selector">
+                <ModelSelector
+                  v-model="selectedImageModel"
+                  :models="availableImageModels"
+                  :get-provider-icon="getProviderIcon"
+                  placeholder="图像模型"
+                />
+              </div>
+
+              <!-- Video Model Selector -->
+              <div class="relative compact-model-selector">
+                <ModelSelector
+                  v-model="selectedVideoModel"
+                  :models="availableVideoModels"
+                  :get-provider-icon="getProviderIcon"
+                  placeholder="视频模型"
+                />
+              </div>
+
               <button @click="openSizeModalBatch('image')" class="px-3 py-1.5 bg-white dark:bg-[#2C2C2E] border border-gray-200 dark:border-[#3A3A3C] rounded-lg text-sm hover:bg-gray-50 dark:hover:bg-[#3A3A3C] transition">
                 一键生成图片
               </button>
@@ -4217,13 +4926,26 @@ watch(activeTab, (newTab) => {
                   </td>
                   <td class="px-2 py-2">
                     <div class="w-28 h-16 bg-gray-100 dark:bg-[#3A3A3C] rounded flex items-center justify-center overflow-hidden mx-auto">
-                      <img v-if="shot.generatedImage && shot.img" :src="shot.img" class="w-full h-full object-cover" alt="图片预览">
+                      <img v-if="shot.generatedImage && shot.img" :src="shot.img" class="w-full h-full object-cover cursor-pointer hover:opacity-80 transition-opacity" alt="图片预览" @click="openImagePreview(shot)">
+                      <div v-else-if="shot.generatingImage" class="flex items-center gap-2 text-xs text-gray-600 dark:text-gray-400">
+                        <fa :icon="['fas','spinner']" spin class="text-brand-green" />
+                        <span>生成中...</span>
+                      </div>
                       <button v-else @click="openSizeModalForShot(shot, 'image')" class="px-2 py-1 text-xs rounded bg-brand-green text-white hover:bg-brand-green-dark whitespace-nowrap">生成图片</button>
                     </div>
                   </td>
                   <td class="px-2 py-2">
                     <div class="w-28 h-16 bg-gray-100 dark:bg-[#3A3A3C] rounded flex items-center justify-center overflow-hidden mx-auto">
-                      <div v-if="shot.generatedVideo" class="text-xs text-secondary dark:text-gray-300">已生成</div>
+                      <div v-if="shot.generatedVideo && shot.videoUrl" @click="openVideoPreview(shot)" class="relative w-full h-full cursor-pointer group">
+                        <video :src="shot.videoUrl" class="w-full h-full object-cover" muted></video>
+                        <div class="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                          <fa :icon="['fas','play']" class="text-white text-2xl" />
+                        </div>
+                      </div>
+                      <div v-else-if="shot.generatingVideo" class="flex items-center gap-2 text-xs text-gray-600 dark:text-gray-400">
+                        <fa :icon="['fas','spinner']" spin class="text-brand-green" />
+                        <span>生成中...</span>
+                      </div>
                       <button v-else @click="openSizeModalForShot(shot, 'video')" class="px-2 py-1 text-xs rounded bg-brand-green text-white hover:bg-brand-green-dark whitespace-nowrap">生成视频</button>
                     </div>
                   </td>
@@ -4277,23 +4999,71 @@ watch(activeTab, (newTab) => {
                     </div>
                   </div>
                   <div class="px-6 py-5 space-y-4">
-                    <div class="grid grid-cols-3 gap-3">
-                      <button
-                        v-for="opt in ratioOptions"
-                        :key="opt.key"
-                        @click="selectedRatio = opt.key"
-                        class="px-3 py-2 rounded-lg border text-sm dark:border-[#3A3A3C] hover:bg-gray-50 dark:hover:bg-[#3A3A3C]"
-                        :class="selectedRatio===opt.key ? 'border-brand-green ring-2 ring-brand-green' : ''"
-                      >
-                        <div class="font-medium">{{ opt.key }}</div>
-                        <div class="text-xs text-secondary">{{ opt.w }}x{{ opt.h }}</div>
-                      </button>
+                    <!-- 尺寸选择 -->
+                    <div>
+                      <label class="block text-sm font-medium mb-2">选择尺寸</label>
+                      <div class="grid grid-cols-3 gap-3">
+                        <button
+                          v-for="opt in ratioOptions"
+                          :key="opt.key"
+                          @click="selectedRatio = opt.key"
+                          class="px-3 py-2 rounded-lg border text-sm dark:border-[#3A3A3C] hover:bg-gray-50 dark:hover:bg-[#3A3A3C]"
+                          :class="selectedRatio===opt.key ? 'border-brand-green ring-2 ring-brand-green' : ''"
+                        >
+                          <div class="font-medium">{{ opt.key }}</div>
+                          <div class="text-xs text-secondary">{{ opt.w }}x{{ opt.h }}</div>
+                        </button>
+                      </div>
+                    </div>
+
+                    <!-- 时长选择 (仅视频生成时显示) -->
+                    <div v-if="sizeModalAction === 'video'">
+                      <label class="block text-sm font-medium mb-2">选择时长</label>
+                      <div class="grid grid-cols-3 gap-3">
+                        <button
+                          v-for="opt in videoDurationOptions"
+                          :key="opt.value"
+                          @click="selectedDuration = opt.value"
+                          class="px-3 py-2 rounded-lg border text-sm dark:border-[#3A3A3C] hover:bg-gray-50 dark:hover:bg-[#3A3A3C]"
+                          :class="selectedDuration===opt.value ? 'border-brand-green ring-2 ring-brand-green' : ''"
+                        >
+                          <div class="font-medium">{{ opt.label }}</div>
+                        </button>
+                      </div>
                     </div>
                   </div>
                   <div class="flex items-center justify-end gap-3 px-6 py-4 border-t border-gray-200 dark:border-[#3A3A3C]">
                     <button @click="showSizeModal=false" class="px-3 py-1.5 rounded-lg border bg-white dark:bg-[#2C2C2E] dark:border-[#3A3A3C] text-sm">取消</button>
                     <button @click="applySizeSelection" class="px-3 py-1.5 rounded-lg bg-brand-green text-white text-sm">确定</button>
                   </div>
+                </div>
+              </div>
+            </teleport>
+            <!-- Image Preview Modal -->
+            <teleport to="body">
+              <div v-if="showImagePreview" class="fixed inset-0 z-[60] flex items-center justify-center bg-black/90" @click="closeImagePreview">
+                <!-- Close button - fixed position -->
+                <button @click="closeImagePreview" class="fixed top-4 right-4 z-[70] w-12 h-12 flex items-center justify-center rounded-full bg-white/20 hover:bg-white/30 text-white transition-colors backdrop-blur-sm">
+                  <fa :icon="['fas','xmark']" class="text-2xl" />
+                </button>
+
+                <!-- Image only -->
+                <div class="relative max-w-[95vw] max-h-[95vh]" @click.stop>
+                  <img :src="previewImageUrl" class="max-w-full max-h-[95vh] w-auto h-auto rounded-lg shadow-2xl" alt="图片预览">
+                </div>
+              </div>
+            </teleport>
+            <!-- Video Preview Modal -->
+            <teleport to="body">
+              <div v-if="showVideoPreview" class="fixed inset-0 z-[60] flex items-center justify-center bg-black/90" @click="closeVideoPreview">
+                <!-- Close button - fixed position -->
+                <button @click="closeVideoPreview" class="fixed top-4 right-4 z-[70] w-12 h-12 flex items-center justify-center rounded-full bg-white/20 hover:bg-white/30 text-white transition-colors backdrop-blur-sm">
+                  <fa :icon="['fas','xmark']" class="text-2xl" />
+                </button>
+
+                <!-- Video player -->
+                <div class="relative max-w-[95vw] max-h-[95vh]" @click.stop>
+                  <video :src="previewVideoUrl" class="max-w-full max-h-[95vh] w-auto h-auto rounded-lg shadow-2xl" controls autoplay loop></video>
                 </div>
               </div>
             </teleport>
@@ -5602,7 +6372,7 @@ watch(activeTab, (newTab) => {
     <!-- Video Preview Modal -->
     <teleport to="body">
       <div 
-        v-if="showVideoPreview && currentVideoPreview"
+        v-if="showMediaVideoPreview && currentVideoPreview"
         class="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4"
         @click="closeVideoPreview"
       >
@@ -5626,12 +6396,12 @@ watch(activeTab, (newTab) => {
             <!-- Left: Video Player -->
             <div class="flex-1 bg-black flex items-center justify-center p-6">
               <video
-                :src="currentVideoPreview.src"
+                :src="currentMediaVideoPreview.src"
                 controls
                 preload="metadata"
                 class="w-full h-full max-h-[70vh] rounded-lg"
-                @error="(e) => console.error('Video load error:', e, 'URL:', currentVideoPreview.src)"
-                @loadedmetadata="() => console.log('Video loaded:', currentVideoPreview.src)"
+                @error="(e) => console.error('Video load error:', e, 'URL:', currentMediaVideoPreview.src)"
+                @loadedmetadata="() => console.log('Video loaded:', currentMediaVideoPreview.src)"
               >
                 您的浏览器不支持视频播放
               </video>
@@ -5642,16 +6412,16 @@ watch(activeTab, (newTab) => {
               <!-- Tabs -->
               <div class="flex items-center gap-2 px-4 py-3 border-b border-gray-200 dark:border-[#3A3A3C]">
                 <button 
-                  @click="videoPreviewTab = 'structure'"
+                  @click="mediaVideoPreviewTab = 'structure'"
                   class="px-3 py-1.5 text-sm rounded-lg transition"
-                  :class="videoPreviewTab === 'structure' ? 'bg-brand-green text-white' : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-[#3A3A3C]'"
+                  :class="mediaVideoPreviewTab === 'structure' ? 'bg-brand-green text-white' : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-[#3A3A3C]'"
                 >
                   结构化列表
                 </button>
                 <button 
-                  @click="videoPreviewTab = 'json'"
+                  @click="mediaVideoPreviewTab = 'json'"
                   class="px-3 py-1.5 text-sm rounded-lg transition"
-                  :class="videoPreviewTab === 'json' ? 'bg-brand-green text-white' : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-[#3A3A3C]'"
+                  :class="mediaVideoPreviewTab === 'json' ? 'bg-brand-green text-white' : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-[#3A3A3C]'"
                 >
                   json预览
                 </button>
@@ -5666,11 +6436,11 @@ watch(activeTab, (newTab) => {
               <!-- Tab Content -->
               <div class="flex-1 overflow-y-auto p-4">
                 <!-- Structure Tab -->
-                <div v-if="videoPreviewTab === 'structure'" class="space-y-3">
+                <div v-if="mediaVideoPreviewTab === 'structure'" class="space-y-3">
                   <!-- Row 1: Video Name -->
                   <div class="bg-gray-50 dark:bg-[#3A3A3C] rounded-lg p-3">
                     <div class="text-xs text-gray-500 dark:text-gray-400 mb-1">视频名称</div>
-                    <div class="text-sm font-medium text-gray-900 dark:text-white">{{ currentVideoPreview.label }}</div>
+                    <div class="text-sm font-medium text-gray-900 dark:text-white">{{ currentMediaVideoPreview.label }}</div>
                   </div>
                   
                   <!-- Row 2: Scene Tags -->
@@ -5678,7 +6448,7 @@ watch(activeTab, (newTab) => {
                     <div class="text-xs text-gray-500 dark:text-gray-400 mb-2">画面和场景关键词</div>
                     <div class="flex flex-wrap gap-1.5">
                       <span 
-                        v-for="(tag, index) in currentVideoPreview.sceneTags || []" 
+                        v-for="(tag, index) in currentMediaVideoPreview.sceneTags || []" 
                         :key="index"
                         class="px-2 py-1 text-xs rounded-md bg-brand-green/10 text-brand-green dark:bg-brand-green/20 dark:text-brand-green-light"
                       >
@@ -5691,7 +6461,7 @@ watch(activeTab, (newTab) => {
                   <div class="bg-gray-50 dark:bg-[#3A3A3C] rounded-lg p-3">
                     <div class="text-xs text-gray-500 dark:text-gray-400 mb-1">音频转文本</div>
                     <div class="text-sm text-gray-700 dark:text-gray-300 leading-relaxed">
-                      {{ currentVideoPreview.videoText || '暂无音频文本' }}
+                      {{ currentMediaVideoPreview.videoText || '暂无音频文本' }}
                     </div>
                   </div>
                   
@@ -5699,7 +6469,7 @@ watch(activeTab, (newTab) => {
                   <div class="bg-gray-50 dark:bg-[#3A3A3C] rounded-lg p-3">
                     <div class="text-xs text-gray-500 dark:text-gray-400 mb-1">视频总结描述</div>
                     <div class="text-sm text-gray-700 dark:text-gray-300 leading-relaxed">
-                      {{ currentVideoPreview.summary || '暂无描述' }}
+                      {{ currentMediaVideoPreview.summary || '暂无描述' }}
                     </div>
                   </div>
                   
@@ -5710,42 +6480,42 @@ watch(activeTab, (newTab) => {
                       <div class="grid grid-cols-2 gap-2 text-xs">
                         <div>
                           <span class="text-gray-500 dark:text-gray-400">时长:</span>
-                          <span class="ml-1 text-gray-900 dark:text-white font-medium">{{ currentVideoPreview.duration || '未知' }}</span>
+                          <span class="ml-1 text-gray-900 dark:text-white font-medium">{{ currentMediaVideoPreview.duration || '未知' }}</span>
                         </div>
                         <div>
                           <span class="text-gray-500 dark:text-gray-400">分辨率:</span>
-                          <span class="ml-1 text-gray-900 dark:text-white font-medium">{{ currentVideoPreview.resolution || '未知' }}</span>
+                          <span class="ml-1 text-gray-900 dark:text-white font-medium">{{ currentMediaVideoPreview.resolution || '未知' }}</span>
                         </div>
                         <div>
                           <span class="text-gray-500 dark:text-gray-400">比例:</span>
-                          <span class="ml-1 text-gray-900 dark:text-white font-medium">{{ currentVideoPreview.aspectRatio || '未知' }}</span>
+                          <span class="ml-1 text-gray-900 dark:text-white font-medium">{{ currentMediaVideoPreview.aspectRatio || '未知' }}</span>
                         </div>
                         <div>
                           <span class="text-gray-500 dark:text-gray-400">帧率:</span>
-                          <span class="ml-1 text-gray-900 dark:text-white font-medium">{{ currentVideoPreview.frameRate || '未知' }}</span>
+                          <span class="ml-1 text-gray-900 dark:text-white font-medium">{{ currentMediaVideoPreview.frameRate || '未知' }}</span>
                         </div>
                         <div>
                           <span class="text-gray-500 dark:text-gray-400">类型:</span>
-                          <span class="ml-1 text-gray-900 dark:text-white font-medium">{{ currentVideoPreview.type.toUpperCase() }}</span>
+                          <span class="ml-1 text-gray-900 dark:text-white font-medium">{{ currentMediaVideoPreview.type.toUpperCase() }}</span>
                         </div>
                         <div>
                           <span class="text-gray-500 dark:text-gray-400">大小:</span>
-                          <span class="ml-1 text-gray-900 dark:text-white font-medium">{{ currentVideoPreview.size || '未知' }}</span>
+                          <span class="ml-1 text-gray-900 dark:text-white font-medium">{{ currentMediaVideoPreview.size || '未知' }}</span>
                         </div>
                       </div>
                       <div class="pt-2 border-t border-gray-200 dark:border-[#48484A]">
                         <div class="text-xs mb-1">
                           <span class="text-gray-500 dark:text-gray-400">文件名:</span>
-                          <span class="ml-1 text-gray-900 dark:text-white font-mono text-[11px]">{{ currentVideoPreview.label }}</span>
+                          <span class="ml-1 text-gray-900 dark:text-white font-mono text-[11px]">{{ currentMediaVideoPreview.label }}</span>
                         </div>
                         <div class="text-xs mb-1">
                           <span class="text-gray-500 dark:text-gray-400">UUID:</span>
-                          <span class="ml-1 text-gray-900 dark:text-white font-mono text-[11px]">{{ currentVideoPreview.uuid || '未知' }}</span>
+                          <span class="ml-1 text-gray-900 dark:text-white font-mono text-[11px]">{{ currentMediaVideoPreview.uuid || '未知' }}</span>
                         </div>
                         <div class="text-xs">
                           <span class="text-gray-500 dark:text-gray-400">短链:</span>
-                          <a :href="currentVideoPreview.shortUrl" target="_blank" class="ml-1 text-brand-green hover:underline font-mono text-[11px]">
-                            {{ currentVideoPreview.shortUrl || currentVideoPreview.src }}
+                          <a :href="currentMediaVideoPreview.shortUrl" target="_blank" class="ml-1 text-brand-green hover:underline font-mono text-[11px]">
+                            {{ currentMediaVideoPreview.shortUrl || currentMediaVideoPreview.src }}
                           </a>
                         </div>
                       </div>
@@ -5754,8 +6524,8 @@ watch(activeTab, (newTab) => {
                 </div>
 
                 <!-- JSON Tab -->
-                <div v-else-if="videoPreviewTab === 'json'" class="bg-gray-900 rounded-lg p-4 overflow-x-auto">
-                  <pre class="text-xs text-green-400 font-mono">{{ JSON.stringify(currentVideoPreview, null, 2) }}</pre>
+                <div v-else-if="mediaVideoPreviewTab === 'json'" class="bg-gray-900 rounded-lg p-4 overflow-x-auto">
+                  <pre class="text-xs text-green-400 font-mono">{{ JSON.stringify(currentMediaVideoPreview, null, 2) }}</pre>
                 </div>
               </div>
             </div>
@@ -6135,5 +6905,41 @@ textarea::-webkit-scrollbar-thumb:hover {
 
 .dark .markdown-content :deep(hr) {
   border-color: #4b5563;
+}
+
+/* Compact Model Selector Styles - Only for storyboard section */
+.compact-model-selector :deep(> div > button) {
+  padding: 0.25rem 0.5rem !important;
+  font-size: 0.75rem !important;
+  min-width: 150px;
+  max-width: 200px;
+  background-color: white !important;
+  border: 1px solid #e5e7eb !important;
+}
+
+.dark .compact-model-selector :deep(> div > button) {
+  background-color: #2C2C2E !important;
+  border-color: #3A3A3C !important;
+}
+
+.compact-model-selector :deep(> div > button):hover {
+  background-color: #f9fafb !important;
+}
+
+.dark .compact-model-selector :deep(> div > button):hover {
+  background-color: #3A3A3C !important;
+}
+
+.compact-model-selector :deep(> div > button .absolute.left-3) {
+  left: 0.5rem !important;
+}
+
+.compact-model-selector :deep(> div > button .absolute.right-3) {
+  right: 0.5rem !important;
+}
+
+.compact-model-selector :deep(> div > button span) {
+  padding-left: 1.75rem !important;
+  padding-right: 1.25rem !important;
 }
 </style>

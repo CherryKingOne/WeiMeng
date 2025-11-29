@@ -370,9 +370,20 @@ const loadAllModelConfigurations = async () => {
   console.log('[模型配置] 开始加载所有模型配置')
   loadingModels.value = true
   try {
+    // Map frontend keys to backend model_type values
+    const typeMapping = {
+      'LLM': 'LLM',
+      'Embedding': 'TEXT_EMBEDDING',
+      'Rerank': 'RERANK',
+      'STT': 'SPEECH2TEXT',
+      'TTS': 'TTS',
+      'Video': 'VIDEO_GENERATION',
+      'Image': 'IMAGE_GENERATION'
+    }
+
     const types = ['LLM', 'Embedding', 'Rerank', 'STT', 'TTS', 'Video', 'Image']
     const results = await Promise.all(
-      types.map(type => loadModelConfigurations(type))
+      types.map(type => loadModelConfigurations(typeMapping[type]))
     )
 
     types.forEach((type, index) => {
@@ -2483,15 +2494,17 @@ const loadLibraries = async () => {
       <teleport to="body">
         <div v-if="showSystemModelSettings" class="fixed inset-0 z-50 flex items-center justify-center">
           <div class="absolute inset-0 bg-black/30 backdrop-blur-md" @click="closeSystemModelSettings"></div>
-          <div class="relative w-full max-w-lg bg-white rounded-2xl shadow-2xl border border-gray-200 overflow-hidden dark:bg-[#2C2C2E] dark:border-[#3A3A3C]">
-            <div class="p-6">
-              <div class="flex items-center justify-between mb-6">
+          <div class="relative w-full max-w-lg bg-white rounded-2xl shadow-2xl border border-gray-200 dark:bg-[#2C2C2E] dark:border-[#3A3A3C] max-h-[90vh] flex flex-col">
+            <div class="p-6 border-b border-gray-200 dark:border-[#3A3A3C] flex-shrink-0">
+              <div class="flex items-center justify-between">
                  <h3 class="text-lg font-bold text-primary dark:text-white">系统模型设置</h3>
                  <button class="px-3 py-1.5 rounded-md border text-sm hover:bg-gray-100 dark:border-[#3A3A3C] dark:hover:bg-[#3A3A3C]" @click="closeSystemModelSettings">
                     关闭
                  </button>
               </div>
+            </div>
 
+            <div class="p-6 overflow-y-auto flex-1">
               <div class="space-y-5">
                  <!-- System Reasoning -->
                  <div>
@@ -2669,8 +2682,10 @@ const loadLibraries = async () => {
                    </div>
                  </div>
               </div>
+            </div>
 
-              <div class="flex justify-end gap-3 mt-8">
+            <div class="p-6 border-t border-gray-200 dark:border-[#3A3A3C] flex-shrink-0">
+              <div class="flex justify-end gap-3">
                 <button class="px-4 py-2 rounded-lg border border-gray-300 text-secondary hover:bg-gray-100 dark:border-[#3A3A3C] dark:text-gray-300 dark:hover:bg-[#3A3A3C]" @click="closeSystemModelSettings">取消</button>
                 <button class="px-6 py-2 rounded-lg bg-blue-600 text-white hover:bg-blue-700 font-medium" @click="saveSystemModelSettings">保存</button>
               </div>
@@ -2710,7 +2725,8 @@ const loadLibraries = async () => {
                      <option value="RERANK">RERANK</option>
                      <option value="SPEECH2TEXT">SPEECH2TEXT</option>
                      <option value="TTS">TTS</option>
-                     <option value="MODERATION">MODERATION</option>
+                     <option value="IMAGE_GENERATION">IMAGE GENERATION</option>
+                     <option value="VIDEO_GENERATION">VIDEO GENERATION</option>
                    </select>
                  </div>
 
