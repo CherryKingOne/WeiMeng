@@ -90,7 +90,14 @@ async def init_db():
                 await session.commit()
             except Exception:
                 await session.rollback()
-                
+
+            # Add file_size column to script_files if it doesn't exist
+            try:
+                await session.execute(text("ALTER TABLE script_files ADD COLUMN IF NOT EXISTS file_size BIGINT"))
+                await session.commit()
+            except Exception:
+                await session.rollback()
+
         except Exception as e:
             print(f"Database migration error: {e}")
             await session.rollback()

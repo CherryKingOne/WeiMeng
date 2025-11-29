@@ -84,7 +84,12 @@ const formatLastSaved = computed(() => {
   }
 })
 
-const activeTab = ref('files')
+// 从 localStorage 恢复上次的标签页，如果没有则默认为 'files'
+const activeTab = ref(
+  typeof localStorage !== 'undefined'
+    ? localStorage.getItem('studioActiveTab') || 'files'
+    : 'files'
+)
 
 // 提示条状态
 const showBanner = ref(false)
@@ -141,6 +146,11 @@ const switchTab = (tabId) => {
   // 正常切换标签
   activeTab.value = tabId
   showBanner.value = false
+
+  // 保存当前标签页到 localStorage
+  if (typeof localStorage !== 'undefined') {
+    localStorage.setItem('studioActiveTab', tabId)
+  }
 }
 
 // 切换发布管理子标签页
@@ -161,6 +171,7 @@ const analysisTab = ref('characters') // 'characters', 'scenes', 'plots', 'dialo
 const analysisResult = ref('')
 const isAnalyzing = ref(false)
 const analysisError = ref('')
+const resultContainer = ref(null)
 
 // System Prompt
 const showSystemPromptModal = ref(false)
@@ -437,6 +448,7 @@ const storyboardShots = ref([]) // List of shots with metadata
 const selectedShot = ref(null) // Currently selected shot
 const storyboards = ref([]) // Parsed storyboard shots from selected shot
 const isLoadingStoryboards = ref(false)
+const showAllShotsModal = ref(false) // Modal to show all shots
 
 // Load storyboard shots from backend
 const loadStoryboardScripts = async () => {
@@ -2964,10 +2976,6 @@ const loadExistingFiles = async () => {
     // Convert backend files to the same format as uploaded files
     if (Array.isArray(files)) {
       files.forEach(backendFile => {
-        // Calculate file size from URL if available
-        let fileSize = 0
-        // Since backend doesn't provide file_size, we'll fetch it or show as unknown
-
         const fileData = reactive({
           fileId: backendFile.id, // Already a string after regex replacement
           fileName: backendFile.filename, // Backend uses 'filename' not 'file_name'
@@ -2975,7 +2983,7 @@ const loadExistingFiles = async () => {
           fileType: backendFile.file_type,
           file: {
             name: backendFile.filename,
-            size: fileSize // Will be 0 if not available
+            size: backendFile.file_size || 0 // Use file_size from backend
           },
           progress: 'completed',
           uploadProgress: 100,
@@ -3311,6 +3319,13 @@ const runAnalysis = async () => {
               if (content) {
                 analysisResult.value += content
                 console.log('【流式输出】接收内容:', content)
+
+                // Auto-scroll to bottom when new content arrives
+                nextTick(() => {
+                  if (resultContainer.value) {
+                    resultContainer.value.scrollTop = resultContainer.value.scrollHeight
+                  }
+                })
               }
             } catch (e) {
               console.warn('解析流式数据失败:', e, '原始数据:', data)
@@ -4077,12 +4092,22 @@ watch(activeTab, (newTab) => {
             </button>
           </div>
 
+          <!-- Info Banner -->
+          <div class="mb-6 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4 flex items-start gap-3">
+            <fa :icon="['fas', 'info-circle']" class="text-blue-500 dark:text-blue-400 text-lg mt-0.5 flex-shrink-0" />
+            <div class="flex-1">
+              <p class="text-sm text-blue-800 dark:text-blue-300">
+                <span class="font-medium">提示：</span>如果是小说，建议将每一章作为单独的文本文件上传，这样可以更好地进行章节管理和处理。
+              </p>
+            </div>
+          </div>
+
           <!-- Hidden file input -->
-          <input 
+          <input
             ref="fileInput"
-            type="file" 
+            type="file"
             multiple
-            class="hidden" 
+            class="hidden"
             accept=".txt,.md,.doc,.docx,.csv,.xlsx,.pdf"
             @change="handleFileSelect"
           >
@@ -4534,8 +4559,15 @@ watch(activeTab, (newTab) => {
               <p class="text-sm text-center">点击"运行"按钮<br/>开始 AI 分析</p>
             </div>
 
+            <!-- Loading State -->
+            <div v-else-if="isAnalyzing && !analysisResult" class="flex-1 flex flex-col items-center justify-center text-brand-green p-6">
+              <fa :icon="['fas', 'circle-notch']" class="text-5xl mb-3 animate-spin" />
+              <p class="text-sm text-center font-medium">AI 正在生成中...</p>
+              <p class="text-xs text-secondary dark:text-gray-400 mt-2">请稍候，正在分析章节内容</p>
+            </div>
+
             <!-- Result Display (with streaming indicator) -->
-            <div v-else class="flex-1 overflow-y-auto p-6">
+            <div v-else ref="resultContainer" class="flex-1 overflow-y-auto p-6">
               <!-- Markdown View -->
               <div v-if="resultViewMode === 'markdown'" class="prose prose-sm dark:prose-invert max-w-none prose-headings:font-bold prose-h1:text-2xl prose-h2:text-xl prose-h3:text-lg prose-table:text-xs prose-pre:bg-gray-100 dark:prose-pre:bg-gray-800 prose-code:text-brand-green prose-code:bg-gray-100 dark:prose-code:bg-gray-800 prose-code:px-1 prose-code:py-0.5 prose-code:rounded markdown-content">
                 <div v-html="renderedMarkdown"></div>
@@ -4659,14 +4691,24 @@ watch(activeTab, (newTab) => {
           <div class="mb-4 bg-white dark:bg-[#2C2C2E] rounded-lg border border-gray-200 dark:border-[#3A3A3C] p-4">
             <div class="flex items-center justify-between mb-3">
               <h3 class="text-sm font-semibold text-gray-700 dark:text-gray-300">选择剧本</h3>
-              <button
-                @click="loadStoryboardScripts"
-                :disabled="isLoadingStoryboards"
-                class="text-xs text-brand-green hover:text-brand-green-dark disabled:opacity-50"
-              >
-                <fa :icon="['fas', 'sync-alt']" :class="{'animate-spin': isLoadingStoryboards}" class="mr-1" />
-                刷新
-              </button>
+              <div class="flex items-center gap-2">
+                <button
+                  @click="loadStoryboardScripts"
+                  :disabled="isLoadingStoryboards"
+                  class="text-xs text-brand-green hover:text-brand-green-dark disabled:opacity-50"
+                >
+                  <fa :icon="['fas', 'sync-alt']" :class="{'animate-spin': isLoadingStoryboards}" class="mr-1" />
+                  刷新
+                </button>
+                <button
+                  v-show="!isLoadingStoryboards && storyboardShots && storyboardShots.length > 3"
+                  @click="showAllShotsModal = true"
+                  class="text-xs text-brand-green hover:text-brand-green-dark flex items-center gap-1"
+                >
+                  <fa :icon="['fas', 'expand']" />
+                  展开 ({{ storyboardShots.length }})
+                </button>
+              </div>
             </div>
 
             <!-- Loading State -->
@@ -4682,10 +4724,10 @@ watch(activeTab, (newTab) => {
               <p class="text-xs text-gray-400 dark:text-gray-500 mt-1">请先在"小说拆解"标签页生成分镜数据</p>
             </div>
 
-            <!-- Shot List -->
+            <!-- Shot List (Limited to 3 items) -->
             <div v-else class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
               <div
-                v-for="shot in storyboardShots"
+                v-for="shot in storyboardShots.slice(0, 3)"
                 :key="shot.shot_uuid"
                 @click="selectShot(shot)"
                 class="p-3 rounded-lg border cursor-pointer transition"
@@ -4714,6 +4756,72 @@ watch(activeTab, (newTab) => {
               </div>
             </div>
           </div>
+
+          <!-- All Shots Modal -->
+          <teleport to="body">
+            <div
+              v-if="showAllShotsModal"
+              class="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"
+              @click.self="showAllShotsModal = false"
+            >
+              <div class="bg-white dark:bg-[#2C2C2E] rounded-xl shadow-2xl max-w-4xl w-full max-h-[80vh] flex flex-col">
+                <!-- Modal Header -->
+                <div class="flex items-center justify-between p-4 border-b border-gray-200 dark:border-[#3A3A3C]">
+                  <h3 class="text-lg font-bold text-gray-900 dark:text-white">所有剧本文件</h3>
+                  <button
+                    @click="showAllShotsModal = false"
+                    class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 transition"
+                  >
+                    <fa :icon="['fas', 'times']" class="text-xl" />
+                  </button>
+                </div>
+
+                <!-- Modal Content -->
+                <div class="flex-1 overflow-y-auto p-4">
+                  <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                    <div
+                      v-for="shot in storyboardShots"
+                      :key="shot.shot_uuid"
+                      @click="selectShot(shot); showAllShotsModal = false"
+                      class="p-3 rounded-lg border cursor-pointer transition"
+                      :class="selectedShot?.shot_uuid === shot.shot_uuid
+                        ? 'border-brand-green bg-brand-green/5 dark:bg-brand-green/10'
+                        : 'border-gray-200 dark:border-[#3A3A3C] hover:border-gray-300 dark:hover:border-gray-500'"
+                    >
+                      <div class="flex items-start justify-between mb-2">
+                        <div class="flex-1">
+                          <h4 class="text-sm font-medium text-gray-900 dark:text-gray-100 line-clamp-1">
+                            {{ shot.filename || `剧本 #${shot.script_id}` }}
+                          </h4>
+                          <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                            {{ new Date(shot.created_at).toLocaleString('zh-CN') }}
+                          </p>
+                        </div>
+                        <fa
+                          v-if="selectedShot?.shot_uuid === shot.shot_uuid"
+                          :icon="['fas', 'check-circle']"
+                          class="text-brand-green flex-shrink-0 ml-2"
+                        />
+                      </div>
+                      <div class="flex items-center gap-2 text-xs text-gray-500 dark:text-gray-400">
+                        <span>ID: {{ shot.shot_uuid.substring(0, 8) }}...</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Modal Footer -->
+                <div class="flex items-center justify-end gap-2 p-4 border-t border-gray-200 dark:border-[#3A3A3C]">
+                  <button
+                    @click="showAllShotsModal = false"
+                    class="px-4 py-2 text-sm text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition"
+                  >
+                    关闭
+                  </button>
+                </div>
+              </div>
+            </div>
+          </teleport>
 
           <div class="flex items-center justify-between mb-6">
             <div class="flex items-center gap-4">

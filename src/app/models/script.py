@@ -31,6 +31,7 @@ class ScriptFile(Base):
     minio_object_key = Column(String, nullable=False)  # Minio 中的完整 Key
     content_summary = Column(Text, nullable=True)  # 剧本摘要或生成的内容
     file_type = Column(String, default="text")  # text, image, video
+    file_size = Column(BigInteger, nullable=True)  # 文件大小（字节）
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
     library = relationship("ScriptLibrary", back_populates="files")

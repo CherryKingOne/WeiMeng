@@ -41,6 +41,7 @@ class FileResponse(FileBase):
     file_url: Optional[str]
     minio_object_key: str
     content_summary: Optional[str]
+    file_size: Optional[int] = Field(None, description="文件大小（字节）")
     created_at: datetime
 
     class Config:

@@ -85,6 +85,15 @@ class MinioService:
             print(f"MinIO get file content error: {e}")
             raise e
 
+    def get_file_size(self, object_name: str) -> int:
+        """Get file size from MinIO (in bytes)"""
+        try:
+            stat = self.client.stat_object(self.bucket, object_name)
+            return stat.size
+        except Exception as e:
+            print(f"MinIO get file size error: {e}")
+            return 0
+
 
 # Global instance
 minio_client = MinioService()

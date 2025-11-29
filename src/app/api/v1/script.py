@@ -65,10 +65,17 @@ async def list_libraries(
 @router.get("/libraries/{lib_id}", response_model=LibraryWithFiles)
 async def get_library(
     lib_id: int,
+    fetch_size: bool = True,  # 是否从 MinIO 获取缺失的文件大小
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
-    """Get library details with files"""
+    """
+    Get library details with files
+
+    Args:
+        lib_id: Library ID
+        fetch_size: If True, fetch missing file sizes from MinIO (slower but more accurate)
+    """
     result = await db.execute(
         select(ScriptLibrary)
         .options(selectinload(ScriptLibrary.files))
@@ -78,10 +85,28 @@ async def get_library(
         )
     )
     library = result.scalars().first()
-    
+
     if not library:
         raise HTTPException(status_code=404, detail="Library not found")
-    
+
+    # 如果需要，从 MinIO 获取缺失的文件大小
+    if fetch_size and library.files:
+        updated = False
+        for file_obj in library.files:
+            if file_obj.file_size is None:
+                # 从 MinIO 获取文件大小
+                size = minio_client.get_file_size(file_obj.minio_object_key)
+                if size > 0:
+                    file_obj.file_size = size
+                    updated = True
+
+        # 批量更新数据库
+        if updated:
+            await db.commit()
+            # 刷新对象以获取最新数据
+            for file_obj in library.files:
+                await db.refresh(file_obj)
+
     return library
 
 
@@ -137,17 +162,18 @@ async def upload_file_to_library(
 
     # 2. Upload to MinIO - Determine file type and subfolder
     file_content = await file.read()
+    file_size = len(file_content)  # 获取文件大小（字节）
     filename_lower = file.filename.lower()
     content_type = file.content_type or "application/octet-stream"
-    
+
     import os
     _, ext = os.path.splitext(filename_lower)
-    
+
     # Define file type categories and extensions
     image_exts = {".png", ".jpg", ".jpeg", ".gif", ".bmp", ".webp", ".svg", ".ico"}
     video_exts = {".mp4", ".avi", ".mov", ".mkv", ".flv", ".wmv", ".webm", ".m4v", ".mpeg", ".mpg"}
     audio_exts = {".mp3", ".wav", ".aac", ".flac", ".ogg", ".m4a", ".wma", ".opus"}
-    
+
     # Determine file type and subfolder
     if content_type.startswith("image/") or ext in image_exts:
         file_type = "image"
@@ -161,7 +187,7 @@ async def upload_file_to_library(
     else:
         file_type = "text"
         subfolder = "text"
-    
+
     # Construct object key and upload
     object_key = f"{lib.minio_folder_path}{subfolder}/{file.filename}"
     file_url = minio_client.upload_file(file_content, object_key, content_type)
@@ -178,12 +204,13 @@ async def upload_file_to_library(
         filename=file.filename,
         file_url=file_url,
         minio_object_key=object_key,
-        file_type=file_type
+        file_type=file_type,
+        file_size=file_size  # 保存文件大小
     )
     db.add(new_file)
     await db.commit()
     await db.refresh(new_file)
-    
+
     return new_file
 
 
@@ -192,18 +219,20 @@ async def upload_file_to_library(
 async def list_files(
     lib_id: int,
     file_type: str = None,  # Optional filter: "video", "audio", "image", "text"
+    fetch_size: bool = True,  # 是否从 MinIO 获取缺失的文件大小
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
     """
-    List all files in a library
-    
+    List all files in a library with file size information
+
     Args:
         lib_id: Library ID
         file_type: Optional filter by file type ("video", "audio", "image", "text")
-    
+        fetch_size: If True, fetch missing file sizes from MinIO (slower but more accurate)
+
     Returns:
-        List of files, optionally filtered by type
+        List of files with size information, optionally filtered by type
     """
     # Check library exists and belongs to user
     result = await db.execute(
@@ -213,28 +242,46 @@ async def list_files(
         )
     )
     lib = result.scalars().first()
-    
+
     if not lib:
         raise HTTPException(status_code=404, detail="Library not found")
-    
+
     # Build query for files
     query = select(ScriptFile).where(ScriptFile.library_id == lib_id)
-    
+
     # Apply file type filter if specified
     if file_type:
         # Validate file_type parameter
         valid_types = ["video", "audio", "image", "text"]
         if file_type not in valid_types:
             raise HTTPException(
-                status_code=400, 
+                status_code=400,
                 detail=f"Invalid file_type. Must be one of: {', '.join(valid_types)}"
             )
         query = query.where(ScriptFile.file_type == file_type)
-    
+
     # Execute query
     result = await db.execute(query)
     files = result.scalars().all()
-    
+
+    # 如果需要，从 MinIO 获取缺失的文件大小
+    if fetch_size:
+        updated = False
+        for file_obj in files:
+            if file_obj.file_size is None:
+                # 从 MinIO 获取文件大小
+                size = minio_client.get_file_size(file_obj.minio_object_key)
+                if size > 0:
+                    file_obj.file_size = size
+                    updated = True
+
+        # 批量更新数据库
+        if updated:
+            await db.commit()
+            # 刷新对象以获取最新数据
+            for file_obj in files:
+                await db.refresh(file_obj)
+
     return files
 
 
