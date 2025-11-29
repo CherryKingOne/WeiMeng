@@ -295,20 +295,43 @@ const presetSystemPrompt = `# Role: AIGC 影视级分镜导演 & 提示词专家
 // Result Preview Modal
 const showResultPreviewModal = ref(false)
 
+// JSON Preview Modal
+const showJsonPreview = ref(false)
+
 // View Mode Toggle (JSON or Table)
 const resultViewMode = ref('markdown') // 'markdown' or 'table'
+
+// Storyboard Save State
+const isSavingStoryboard = ref(false)
+const saveStoryboardError = ref('')
 
 // Parse JSON from analysis result
 const parsedJsonData = computed(() => {
   if (!analysisResult.value) return null
 
   try {
-    // Try to extract JSON from markdown code blocks
-    const jsonMatch = analysisResult.value.match(/```json\s*([\s\S]*?)\s*```/)
-    if (jsonMatch) {
-      const parsed = JSON.parse(jsonMatch[1])
-      console.log('【JSON解析】成功解析 JSON:', parsed)
-      return parsed
+    // Try to extract JSON from markdown code blocks (greedy match to get the largest JSON block)
+    const jsonMatch = analysisResult.value.match(/```json\s*([\s\S]*?)\s*```/g)
+    if (jsonMatch && jsonMatch.length > 0) {
+      // Try each matched code block, starting from the largest one
+      const blocks = jsonMatch.map(block => block.replace(/```json\s*|\s*```/g, '').trim())
+
+      // Sort by length (largest first) to prioritize complete JSON objects
+      blocks.sort((a, b) => b.length - a.length)
+
+      for (const block of blocks) {
+        try {
+          const parsed = JSON.parse(block)
+          // Check if it has the expected structure (shots array)
+          if (parsed && typeof parsed === 'object') {
+            console.log('【JSON解析】成功解析 JSON 代码块:', parsed)
+            return parsed
+          }
+        } catch (e) {
+          // Try next block
+          continue
+        }
+      }
     }
 
     // Try to parse the entire result as JSON
@@ -317,9 +340,37 @@ const parsedJsonData = computed(() => {
     return parsed
   } catch (e) {
     console.log('【JSON解析】无法解析 JSON:', e)
-    console.log('【JSON解析】原始内容:', analysisResult.value.substring(0, 500))
+    console.log('【JSON解析】原始内容前500字符:', analysisResult.value.substring(0, 500))
+    console.log('【JSON解析】找到的代码块数量:', (analysisResult.value.match(/```json/g) || []).length)
     return null
   }
+})
+
+// Syntax highlight JSON
+const highlightedJson = computed(() => {
+  if (!parsedJsonData.value) return ''
+
+  const json = JSON.stringify(parsedJsonData.value, null, 2)
+
+  return json
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/("(\\u[a-zA-Z0-9]{4}|\\[^u]|[^\\"])*"(\s*:)?|\b(true|false|null)\b|-?\d+(?:\.\d*)?(?:[eE][+\-]?\d+)?)/g, (match) => {
+      let cls = 'text-orange-500' // number
+      if (/^"/.test(match)) {
+        if (/:$/.test(match)) {
+          cls = 'text-blue-600 dark:text-blue-400' // key
+        } else {
+          cls = 'text-green-600 dark:text-green-400' // string
+        }
+      } else if (/true|false/.test(match)) {
+        cls = 'text-purple-600 dark:text-purple-400' // boolean
+      } else if (/null/.test(match)) {
+        cls = 'text-red-600 dark:text-red-400' // null
+      }
+      return `<span class="${cls}">${match}</span>`
+    })
 })
 
 // Rendered Markdown
@@ -2359,6 +2410,91 @@ const runAnalysis = async () => {
   }
 }
 
+// Save Storyboard to Backend
+const saveStoryboard = async () => {
+  console.log('【保存分镜】开始执行')
+  console.log('【保存分镜】parsedJsonData:', parsedJsonData.value)
+  console.log('【保存分镜】projectId:', projectId)
+  console.log('【保存分镜】selectedChapter:', selectedChapter.value)
+
+  if (!parsedJsonData.value) {
+    showToastMessage('没有可保存的分镜数据', 'error')
+    return
+  }
+
+  if (!parsedJsonData.value.shots || parsedJsonData.value.shots.length === 0) {
+    showToastMessage('分镜数据中没有镜头信息', 'error')
+    return
+  }
+
+  if (!projectId) {
+    showToastMessage('缺少剧本库 ID', 'error')
+    return
+  }
+
+  if (!selectedChapter.value || !selectedChapter.value.id) {
+    showToastMessage('请先选择章节', 'error')
+    return
+  }
+
+  isSavingStoryboard.value = true
+  saveStoryboardError.value = ''
+
+  try {
+    const token = localStorage.getItem('accessToken')
+
+    // Use fileId or id (both are the same, but keep as string for large integers)
+    const fileId = selectedChapter.value.fileId || selectedChapter.value.id
+
+    console.log('【保存分镜】调试信息:', {
+      projectId,
+      projectIdType: typeof projectId,
+      fileId,
+      fileIdType: typeof fileId,
+      selectedChapter: selectedChapter.value
+    })
+
+    // Prepare request body for /api/v4/shot endpoint
+    // Convert the entire JSON data to a string for the text field
+    const requestBody = {
+      library_id: String(projectId),
+      script_id: String(fileId),
+      text: JSON.stringify(parsedJsonData.value, null, 2)
+    }
+
+    console.log('【保存分镜】请求参数:', requestBody)
+
+    const response = await fetch(`${API_BASE}/api/v4/shot`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json',
+        'Accept': 'application/json'
+      },
+      body: JSON.stringify(requestBody)
+    })
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}))
+      throw new Error(errorData.detail || errorData.message || `保存失败: ${response.status}`)
+    }
+
+    const result = await response.json()
+    console.log('【保存分镜】成功:', result)
+
+    showToastMessage('分镜数据保存成功！', 'success')
+
+    // Close JSON preview modal if open
+    showJsonPreview.value = false
+  } catch (error) {
+    console.error('【保存分镜】错误:', error)
+    saveStoryboardError.value = error.message
+    showToastMessage('保存失败: ' + error.message, 'error')
+  } finally {
+    isSavingStoryboard.value = false
+  }
+}
+
 // Extract characters from script
 const showExtractWizard = ref(false)
 const extractStep = ref(1)
@@ -3807,6 +3943,18 @@ watch(activeTab, (newTab) => {
                   </table>
                 </div>
 
+                  <!-- Action Buttons -->
+                  <div class="flex items-center justify-end gap-2 mt-4">
+                    <button
+                      @click="saveStoryboard"
+                      :disabled="isSavingStoryboard"
+                      class="px-4 py-2 bg-brand-green text-white rounded-lg text-sm font-medium hover:bg-brand-green-dark transition disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      <fa :icon="isSavingStoryboard ? ['fas', 'circle-notch'] : ['fas', 'check']" :class="{'animate-spin': isSavingStoryboard}" class="mr-1.5" />
+                      {{ isSavingStoryboard ? '保存中...' : '应用到分镜' }}
+                    </button>
+                  </div>
+
                   <!-- Streaming indicator -->
                   <div v-if="isAnalyzing" class="flex items-center gap-2 mt-3 text-brand-green">
                     <fa :icon="['fas', 'circle-dot']" class="animate-pulse text-xs" />
@@ -4763,13 +4911,23 @@ watch(activeTab, (newTab) => {
                   表格
                 </button>
               </div>
-              <button
-                v-if="resultViewMode === 'table' && parsedJsonData && parsedJsonData.shots"
-                class="px-4 py-1.5 bg-brand-green text-white rounded-lg text-xs font-medium hover:bg-brand-green-dark transition"
-              >
-                <fa :icon="['fas', 'check']" class="mr-1.5" />
-                应用
-              </button>
+              <div v-if="resultViewMode === 'table' && parsedJsonData && parsedJsonData.shots" class="flex items-center gap-2">
+                <button
+                  @click="showJsonPreview = true"
+                  class="px-4 py-1.5 bg-gray-100 dark:bg-[#3A3A3C] text-gray-700 dark:text-gray-300 rounded-lg text-xs font-medium hover:bg-gray-200 dark:hover:bg-[#4A4A4C] transition"
+                >
+                  <fa :icon="['fas', 'code']" class="mr-1.5" />
+                  JSON预览
+                </button>
+                <button
+                  @click="saveStoryboard"
+                  :disabled="isSavingStoryboard"
+                  class="px-4 py-1.5 bg-brand-green text-white rounded-lg text-xs font-medium hover:bg-brand-green-dark transition disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  <fa :icon="isSavingStoryboard ? ['fas', 'circle-notch'] : ['fas', 'check']" :class="{'animate-spin': isSavingStoryboard}" class="mr-1.5" />
+                  {{ isSavingStoryboard ? '保存中...' : '应用' }}
+                </button>
+              </div>
             </div>
           </div>
 
@@ -4865,6 +5023,61 @@ watch(activeTab, (newTab) => {
                 </div>
               </div>
             </div>
+          </div>
+        </div>
+      </div>
+    </teleport>
+
+    <!-- JSON Preview Modal -->
+    <teleport to="body">
+      <div
+        v-if="showJsonPreview"
+        class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4"
+        @click="showJsonPreview = false"
+      >
+        <div
+          class="bg-white dark:bg-[#2C2C2E] rounded-xl shadow-2xl w-full max-w-4xl h-[80vh] overflow-hidden flex flex-col"
+          @click.stop
+        >
+          <!-- Header -->
+          <div class="flex items-center justify-between px-6 py-4 border-b border-gray-200 dark:border-[#3A3A3C]">
+            <div class="flex items-center gap-3">
+              <div class="w-10 h-10 rounded-lg bg-purple-500/10 flex items-center justify-center">
+                <fa :icon="['fas', 'code']" class="text-purple-500 text-lg" />
+              </div>
+              <div>
+                <h3 class="text-lg font-bold text-primary dark:text-gray-200">JSON 数据预览</h3>
+                <p class="text-xs text-secondary dark:text-gray-400">查看原始 JSON 格式数据</p>
+              </div>
+            </div>
+            <button
+              @click="showJsonPreview = false"
+              class="p-2 hover:bg-gray-100 dark:hover:bg-[#3A3A3C] rounded-lg transition"
+            >
+              <fa :icon="['fas', 'xmark']" class="text-gray-400" />
+            </button>
+          </div>
+
+          <!-- Content -->
+          <div class="flex-1 overflow-y-auto p-6">
+            <pre class="bg-gray-50 dark:bg-[#1C1C1E] rounded-lg p-4 text-xs font-mono overflow-x-auto" v-html="highlightedJson"></pre>
+          </div>
+
+          <!-- Footer -->
+          <div class="flex items-center justify-end gap-3 px-6 py-4 border-t border-gray-200 dark:border-[#3A3A3C] bg-gray-50 dark:bg-[#1C1C1E]">
+            <button
+              @click="() => { navigator.clipboard.writeText(JSON.stringify(parsedJsonData, null, 2)); showJsonPreview = false }"
+              class="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-[#2C2C2E] rounded-lg transition"
+            >
+              <fa :icon="['fas', 'copy']" class="mr-2" />
+              复制
+            </button>
+            <button
+              @click="showJsonPreview = false"
+              class="px-4 py-2 text-sm font-medium bg-brand-green text-white rounded-lg hover:bg-brand-green-dark transition"
+            >
+              关闭
+            </button>
           </div>
         </div>
       </div>

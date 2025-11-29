@@ -35,8 +35,7 @@ async def get_db() -> AsyncSession:
 
 async def init_db():
     """Initialize database tables"""
-    # Import all models here to ensure they are registered
-    from app.models import user, script, verification_code, chat, shot
+    from app.models import user, script, verification_code, chat, model_config, scriptwriting, shot_text
     
     # First, create all tables
     async with engine.begin() as conn:

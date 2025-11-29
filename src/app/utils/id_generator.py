@@ -1,5 +1,6 @@
 import random
 import string
+import time
 
 def generate_user_id() -> str:
     """
@@ -22,3 +23,8 @@ def generate_numeric_uuid18() -> str:
     first = random.choice("123456789")
     rest = "".join(random.choices(string.digits, k=17))
     return first + rest
+
+def generate_numeric_uuid20() -> str:
+    ts = str(int(time.time() * 1000))
+    rand = "".join(random.choices(string.digits, k=7))
+    return ts + rand

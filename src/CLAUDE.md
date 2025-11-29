@@ -120,7 +120,7 @@ LLM_MODEL_NAME=gpt-4
 - Files are organized as `{library_name}/{filename}` in MinIO
 - Supports cascade deletion: deleting a library removes all associated files from both database and MinIO
 
-**Scriptwriting Project System**: Detailed storyboard management for video production:
+**Scriptwriting Project System**: Detailed shot management for video production:
 - `ScriptwritingProject` model (`app/models/scriptwriting.py:8`): Represents a complete script project with metadata (file_id, visual_style, word count, generation time)
 - `ScriptwritingShot` model (`app/models/scriptwriting.py:24`): Individual shots/scenes with comprehensive details:
   - Character information (name, gender, appearance)
@@ -148,12 +148,14 @@ All settings are managed through `app/core/config.py` using Pydantic Settings. T
 
 ### API Structure
 
-Routes are organized under `/api/v1/` and `/api/v2/` with the following modules:
-- `auth.py`: User registration, login, profile management
-- `script.py`: Script library and file management (CRUD operations)
-- `scriptwriting.py`: Scriptwriting project and shot management (detailed storyboard system)
-- `media.py`: AI media generation endpoints (placeholder for future implementation)
-- `model_config.py` (v2): Model configuration management with encrypted API keys
+Routes are organized under `/api/v1/`, `/api/v2/`, and `/api/v3/`:
+- **v1**: Core functionality
+  - `auth.py`: User registration, login, profile management
+  - `script.py`: Script library and file management (CRUD operations)
+  - `scriptwriting.py`: Scriptwriting project and shot management (detailed shot system)
+  - `media.py`: AI media generation endpoints (placeholder for future implementation)
+- **v2**: `model_config.py`: Model configuration management with encrypted API keys
+- **v3**: `chat.py`: AI chat endpoints with LLM integration
 
 ### Prompt System
 

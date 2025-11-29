@@ -5,10 +5,10 @@ from pathlib import Path
 def load_prompt(filename: str) -> str:
     """
     Load prompt content from markdown file in prompts directory
-    
+
     Args:
-        filename: Name of the prompt file (e.g., 'storyboard_prompt.md')
-    
+        filename: Name of the prompt file (e.g., 'script_prompt.md')
+
     Returns:
         Content of the prompt file
     """

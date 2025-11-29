@@ -10,11 +10,11 @@ from app.core.database import init_db
 # Import routers
 from app.api.v1 import auth, script, media, scriptwriting, model_config
 from app.api.v3 import chat
-from app.api.v4 import shot
+from app.api.v4 import shot as shot_v4
 
 app = FastAPI(
     title=settings.PROJECT_NAME,
-    description="AI Script Engine - Backend API for AI-powered script and storyboard generation",
+    description="AI Script Engine - Backend API for AI-powered script generation",
     version="1.0.0"
 )
 
@@ -34,7 +34,7 @@ app.include_router(media.router, prefix="/api/v1/media", tags=["AI Media"])
 app.include_router(scriptwriting.router, prefix="/api/v1/scriptwriting", tags=["Scriptwriting"])
 app.include_router(model_config.router, prefix="/api/v2/model_config", tags=["Model Config"])
 app.include_router(chat.router, prefix="/api/v3/chat", tags=["AI Chat"])
-app.include_router(shot.router, prefix="/api/v4/shot", tags=["Shot Management"])
+app.include_router(shot_v4.router, prefix="/api/v4/shot", tags=["Shot"])
 
 
 @app.get("/")
