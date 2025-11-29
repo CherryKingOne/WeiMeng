@@ -379,56 +379,153 @@ const renderedMarkdown = computed(() => {
   return marked.parse(analysisResult.value)
 })
 
-const storyboards = ref([
-  {
-    id: 1,
-    scene: '办公室/白天',
-    size: '中景',
-    shot: '固定',
-    duration: '4s',
-    desc: '顾北辰坐在办公室，眉头紧锁',
-    dialogue: '旁白：气氛紧张',
-    sound: '环境音轻微',
-    imagePrompt: '冷色调办公室，中景，居中构图',
-    videoPrompt: '固定镜头，4秒，中景，缓慢节奏',
-    generatedImage: false,
-    generatedVideo: false,
-    notes: '构图居中，冷色调',
-    img: 'https://placehold.co/300x200/333/FFF?text=Scene+1'
-  },
-  {
-    id: 2,
-    scene: '办公室门口/白天',
-    size: '近景',
-    shot: '推镜',
-    duration: '3s',
-    desc: '苏晚晚推门而入，神色慌张',
-    dialogue: '苏晚晚：总监……',
-    sound: '门声、脚步声',
-    imagePrompt: '门口近景，人物慌张表情，跟随入场',
-    videoPrompt: '推镜进入，3秒，人物入场镜头',
-    generatedImage: false,
-    generatedVideo: false,
-    notes: '镜头跟随入场',
-    img: 'https://placehold.co/300x200/444/FFF?text=Scene+2'
-  },
-  {
-    id: 3,
-    scene: '办公室/白天',
-    size: '双人近景',
-    shot: '摇镜',
-    duration: '5s',
-    desc: '两人对视，气氛凝固',
-    dialogue: '无对白，眼神交锋',
-    sound: '低沉配乐进入',
-    imagePrompt: '双人近景，对视，压迫感，慢摇',
-    videoPrompt: '摇镜强调压迫感，5秒，低沉配乐',
-    generatedImage: false,
-    generatedVideo: false,
-    notes: '慢摇强调压迫感',
-    img: 'https://placehold.co/300x200/555/FFF?text=Scene+3'
+// Storyboard data - loaded from backend
+const storyboardShots = ref([]) // List of shots with metadata
+const selectedShot = ref(null) // Currently selected shot
+const storyboards = ref([]) // Parsed storyboard shots from selected shot
+const isLoadingStoryboards = ref(false)
+
+// Load storyboard shots from backend
+const loadStoryboardScripts = async () => {
+  if (!projectId) return
+
+  try {
+    isLoadingStoryboards.value = true
+    const token = localStorage.getItem('accessToken')
+
+    const response = await fetch(`${API_BASE}/api/v4/shot/list?library_id=${projectId}`, {
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Accept': 'application/json'
+      }
+    })
+
+    if (!response.ok) {
+      if (response.status === 404) {
+        console.log('【分镜加载】没有找到分镜数据')
+        storyboardShots.value = []
+        return
+      }
+      throw new Error(`加载失败: ${response.status}`)
+    }
+
+    const result = await response.json()
+    console.log('【分镜加载】成功:', result)
+
+    if (result.code === 200 && result.data) {
+      storyboardShots.value = result.data
+
+      // Auto-select first shot if available
+      if (storyboardShots.value.length > 0 && !selectedShot.value) {
+        selectShot(storyboardShots.value[0])
+      }
+    }
+  } catch (error) {
+    console.error('【分镜加载】错误:', error)
+    showToastMessage('加载分镜列表失败: ' + error.message, 'error')
+  } finally {
+    isLoadingStoryboards.value = false
   }
-])
+}
+
+// Select a shot and load its content
+const selectShot = async (shot) => {
+  // If clicking the same shot, deselect it and clear storyboards
+  if (selectedShot.value?.shot_uuid === shot.shot_uuid) {
+    selectedShot.value = null
+    storyboards.value = []
+    console.log('【分镜选择】取消选择')
+    return
+  }
+
+  // Otherwise, select the new shot and load its content
+  selectedShot.value = shot
+  await loadShotContent(shot.shot_uuid)
+}
+
+// Load shot content by UUID
+const loadShotContent = async (shotUuid) => {
+  if (!shotUuid) return
+
+  try {
+    const token = localStorage.getItem('accessToken')
+
+    const response = await fetch(`${API_BASE}/api/v4/shot?shot_uuid=${shotUuid}`, {
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Accept': 'application/json'
+      }
+    })
+
+    if (!response.ok) {
+      throw new Error(`加载失败: ${response.status}`)
+    }
+
+    const result = await response.json()
+    console.log('【分镜内容加载】成功:', result)
+
+    if (result.code === 200 && result.data) {
+      // Backend returns 'content' field (alias for 'text')
+      const contentText = result.data.content || result.data.text
+      if (contentText) {
+        parseStoryboardContent(contentText)
+      } else {
+        console.log('【分镜内容加载】没有内容数据')
+        storyboards.value = []
+      }
+    } else {
+      console.log('【分镜内容加载】没有内容数据')
+      storyboards.value = []
+    }
+  } catch (error) {
+    console.error('【分镜内容加载】错误:', error)
+    showToastMessage('加载分镜内容失败: ' + error.message, 'error')
+    storyboards.value = []
+  }
+}
+
+// Parse storyboard JSON content into display format
+const parseStoryboardContent = (jsonText) => {
+  try {
+    const data = JSON.parse(jsonText)
+
+    if (!data.shots || !Array.isArray(data.shots)) {
+      console.warn('【分镜解析】没有找到 shots 数组')
+      storyboards.value = []
+      return
+    }
+
+    // Transform backend data to display format
+    storyboards.value = data.shots.map(shot => ({
+      id: shot.id,
+      scene: shot.visualContent ? shot.visualContent.substring(0, 50) + '...' : '未命名场景',
+      size: shot.shotType || '未指定',
+      shot: shot.cameraMove || '未指定',
+      duration: shot.duration ? `${shot.duration}s` : '0s',
+      desc: shot.description || shot.visualContent || '无描述',
+      dialogue: shot.audio || '无对白',
+      sound: shot.audio || '无音效',
+      imagePrompt: shot.text2imgPrompt ?
+        (Array.isArray(shot.text2imgPrompt.positive) ? shot.text2imgPrompt.positive.join(', ') : JSON.stringify(shot.text2imgPrompt)) :
+        '无提示词',
+      videoPrompt: shot.img2videoPrompt ?
+        (Array.isArray(shot.img2videoPrompt.positive) ? shot.img2videoPrompt.positive.join(', ') : JSON.stringify(shot.img2videoPrompt)) :
+        '无提示词',
+      generatedImage: !!shot.generatedImage,
+      generatedVideo: !!shot.generatedVideo,
+      notes: shot.remark || '无备注',
+      img: shot.generatedImage || `https://placehold.co/300x200/333/FFF?text=Scene+${shot.id}`,
+      // Keep original data for reference
+      originalData: shot
+    }))
+
+    console.log('【分镜解析】成功解析', storyboards.value.length, '个镜头')
+  } catch (error) {
+    console.error('【分镜解析】错误:', error)
+    showToastMessage('解析分镜数据失败: ' + error.message, 'error')
+    storyboards.value = []
+  }
+}
 const storyboardView = ref('detail') // 'compact' | 'detail'
 
 const generateImage = (shot, w, h) => {
@@ -2767,6 +2864,7 @@ onMounted(async () => {
   loadExistingFiles()
   loadMediaFiles()  // Load existing video files from backend
   loadNovelChapters()  // Load novel chapters for analysis
+  loadStoryboardScripts()  // Load storyboard scripts from backend
 
   // Load models first, then load effective model
   await fetchModels()  // Load available models list
@@ -2793,6 +2891,8 @@ onBeforeUnmount(() => {
 watch(activeTab, (newTab) => {
   if (newTab === 'files') {
     loadExistingFiles()
+  } else if (newTab === 'storyboard') {
+    loadStoryboardScripts()
   }
 })
 </script>
@@ -3968,6 +4068,66 @@ watch(activeTab, (newTab) => {
 
         <!-- Storyboard View -->
         <div v-else-if="activeTab === 'storyboard'" class="mx-auto w-full px-2 lg:px-4">
+          <!-- Script Selector -->
+          <div class="mb-4 bg-white dark:bg-[#2C2C2E] rounded-lg border border-gray-200 dark:border-[#3A3A3C] p-4">
+            <div class="flex items-center justify-between mb-3">
+              <h3 class="text-sm font-semibold text-gray-700 dark:text-gray-300">选择剧本</h3>
+              <button
+                @click="loadStoryboardScripts"
+                :disabled="isLoadingStoryboards"
+                class="text-xs text-brand-green hover:text-brand-green-dark disabled:opacity-50"
+              >
+                <fa :icon="['fas', 'sync-alt']" :class="{'animate-spin': isLoadingStoryboards}" class="mr-1" />
+                刷新
+              </button>
+            </div>
+
+            <!-- Loading State -->
+            <div v-if="isLoadingStoryboards" class="flex items-center justify-center py-8">
+              <fa :icon="['fas', 'circle-notch']" class="animate-spin text-brand-green text-2xl" />
+              <span class="ml-2 text-sm text-gray-500">加载中...</span>
+            </div>
+
+            <!-- Empty State -->
+            <div v-else-if="storyboardShots.length === 0" class="text-center py-8">
+              <fa :icon="['fas', 'film']" class="text-4xl text-gray-300 dark:text-gray-600 mb-2" />
+              <p class="text-sm text-gray-500 dark:text-gray-400">暂无分镜数据</p>
+              <p class="text-xs text-gray-400 dark:text-gray-500 mt-1">请先在"小说拆解"标签页生成分镜数据</p>
+            </div>
+
+            <!-- Shot List -->
+            <div v-else class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+              <div
+                v-for="shot in storyboardShots"
+                :key="shot.shot_uuid"
+                @click="selectShot(shot)"
+                class="p-3 rounded-lg border cursor-pointer transition"
+                :class="selectedShot?.shot_uuid === shot.shot_uuid
+                  ? 'border-brand-green bg-brand-green/5 dark:bg-brand-green/10'
+                  : 'border-gray-200 dark:border-[#3A3A3C] hover:border-gray-300 dark:hover:border-gray-500'"
+              >
+                <div class="flex items-start justify-between mb-2">
+                  <div class="flex-1">
+                    <h4 class="text-sm font-medium text-gray-900 dark:text-gray-100 line-clamp-1">
+                      {{ shot.filename || `剧本 #${shot.script_id}` }}
+                    </h4>
+                    <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                      {{ new Date(shot.created_at).toLocaleString('zh-CN') }}
+                    </p>
+                  </div>
+                  <fa
+                    v-if="selectedShot?.shot_uuid === shot.shot_uuid"
+                    :icon="['fas', 'check-circle']"
+                    class="text-brand-green flex-shrink-0 ml-2"
+                  />
+                </div>
+                <div class="flex items-center gap-2 text-xs text-gray-500 dark:text-gray-400">
+                  <span>ID: {{ shot.shot_uuid.substring(0, 8) }}...</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
           <div class="flex items-center justify-between mb-6">
             <div class="flex items-center gap-4">
               <h2 class="text-xl font-bold">分镜预览</h2>
@@ -4012,54 +4172,62 @@ watch(activeTab, (newTab) => {
             </div>
           </div>
           <div v-else class="bg-white dark:bg-[#2C2C2E] rounded-xl border border-gray-200 dark:border-[#3A3A3C] overflow-x-auto overflow-y-visible">
-            <table class="min-w-[1600px] text-sm">
+            <table class="min-w-[2400px] text-xs">
               <thead>
                 <tr class="text-left bg-gray-50 dark:bg-[#1C1C1E]">
-                  <th class="px-3 py-1.5 border-b dark:border-[#3A3A3C]">镜号</th>
-                  <th class="px-3 py-1.5 border-b dark:border-[#3A3A3C]">场景</th>
-                  <th class="px-3 py-1.5 border-b dark:border-[#3A3A3C]">景别</th>
-                  <th class="px-3 py-1.5 border-b dark:border-[#3A3A3C]">镜头</th>
-                  <th class="px-3 py-1.5 border-b dark:border-[#3A3A3C]">时长</th>
-                  <th class="px-3 py-1.5 border-b dark:border-[#3A3A3C]">画面描述</th>
-                  <th class="px-3 py-1.5 border-b dark:border-[#3A3A3C]">对白/旁白</th>
-                  <th class="px-3 py-1.5 border-b dark:border-[#3A3A3C]">音效/音乐</th>
-                  <th class="px-3 py-1.5 border-b dark:border-[#3A3A3C]">图片提示词</th>
-                  <th class="px-3 py-1.5 border-b dark:border-[#3A3A3C]">视频提示词</th>
-                  <th class="px-3 py-1.5 border-b dark:border-[#3A3A3C]">生成图片</th>
-                  <th class="px-3 py-1.5 border-b dark:border-[#3A3A3C]">生成视频</th>
-                  <th class="px-3 py-1.5 border-b dark:border-[#3A3A3C] w-44">操作</th>
-                  <th class="px-3 py-1.5 border-b dark:border-[#3A3A3C]">备注</th>
+                  <th class="px-2 py-2 border-b dark:border-[#3A3A3C] w-12 text-center">镜号</th>
+                  <th class="px-2 py-2 border-b dark:border-[#3A3A3C] w-32">场景</th>
+                  <th class="px-2 py-2 border-b dark:border-[#3A3A3C] w-20 text-center">景别</th>
+                  <th class="px-2 py-2 border-b dark:border-[#3A3A3C] w-20 text-center">镜头</th>
+                  <th class="px-2 py-2 border-b dark:border-[#3A3A3C] w-16 text-center">时长</th>
+                  <th class="px-2 py-2 border-b dark:border-[#3A3A3C] w-48">画面描述</th>
+                  <th class="px-2 py-2 border-b dark:border-[#3A3A3C] w-40">对白/旁白</th>
+                  <th class="px-2 py-2 border-b dark:border-[#3A3A3C] w-40">音效/音乐</th>
+                  <th class="px-2 py-2 border-b dark:border-[#3A3A3C] w-64">图片提示词</th>
+                  <th class="px-2 py-2 border-b dark:border-[#3A3A3C] w-64">视频提示词</th>
+                  <th class="px-2 py-2 border-b dark:border-[#3A3A3C] w-32 text-center">生成图片</th>
+                  <th class="px-2 py-2 border-b dark:border-[#3A3A3C] w-32 text-center">生成视频</th>
+                  <th class="px-2 py-2 border-b dark:border-[#3A3A3C] w-32 text-center">操作</th>
+                  <th class="px-2 py-2 border-b dark:border-[#3A3A3C] w-40">备注</th>
                 </tr>
               </thead>
               <tbody>
-                <tr v-for="shot in storyboards" :key="shot.id" class="border-t dark:border-[#3A3A3C]">
-                  <td class="px-3 py-1.5">{{ shot.id }}</td>
-                  <td class="px-3 py-1.5">{{ shot.scene }}</td>
-                  <td class="px-3 py-1.5">{{ shot.size }}</td>
-                  <td class="px-3 py-1.5">{{ shot.shot }}</td>
-                  <td class="px-3 py-1.5">{{ shot.duration }}</td>
-                  <td class="px-3 py-1.5">{{ shot.desc }}</td>
-                  <td class="px-3 py-1.5">{{ shot.dialogue }}</td>
-                  <td class="px-3 py-1.5">{{ shot.sound }}</td>
-                  <td class="px-3 py-1.5">
-                    <div class="text-sm text-primary dark:text-gray-200 whitespace-pre-wrap">{{ shot.imagePrompt }}</div>
+                <tr v-for="shot in storyboards" :key="shot.id" class="border-t dark:border-[#3A3A3C] hover:bg-gray-50 dark:hover:bg-[#1C1C1E]">
+                  <td class="px-2 py-2 text-center">{{ shot.id }}</td>
+                  <td class="px-2 py-2">
+                    <div class="line-clamp-3">{{ shot.scene }}</div>
                   </td>
-                  <td class="px-3 py-1.5">
-                    <div class="text-sm text-primary dark:text-gray-200 whitespace-pre-wrap">{{ shot.videoPrompt }}</div>
+                  <td class="px-2 py-2 text-center">{{ shot.size }}</td>
+                  <td class="px-2 py-2 text-center">{{ shot.shot }}</td>
+                  <td class="px-2 py-2 text-center">{{ shot.duration }}</td>
+                  <td class="px-2 py-2">
+                    <div class="line-clamp-4">{{ shot.desc }}</div>
                   </td>
-                  <td class="px-3 py-1.5">
-                    <div class="w-32 h-20 bg-gray-100 dark:bg-[#3A3A3C] rounded flex items-center justify-center overflow-hidden">
+                  <td class="px-2 py-2">
+                    <div class="line-clamp-3">{{ shot.dialogue }}</div>
+                  </td>
+                  <td class="px-2 py-2">
+                    <div class="line-clamp-3">{{ shot.sound }}</div>
+                  </td>
+                  <td class="px-2 py-2">
+                    <div class="text-gray-600 dark:text-gray-400 whitespace-pre-wrap break-words">{{ shot.imagePrompt }}</div>
+                  </td>
+                  <td class="px-2 py-2">
+                    <div class="text-gray-600 dark:text-gray-400 whitespace-pre-wrap break-words">{{ shot.videoPrompt }}</div>
+                  </td>
+                  <td class="px-2 py-2">
+                    <div class="w-28 h-16 bg-gray-100 dark:bg-[#3A3A3C] rounded flex items-center justify-center overflow-hidden mx-auto">
                       <img v-if="shot.generatedImage && shot.img" :src="shot.img" class="w-full h-full object-cover" alt="图片预览">
-                      <button v-else @click="openSizeModalForShot(shot, 'image')" class="px-3 py-1 text-xs rounded bg-brand-green text-white hover:bg-brand-green-dark">生成图片</button>
+                      <button v-else @click="openSizeModalForShot(shot, 'image')" class="px-2 py-1 text-xs rounded bg-brand-green text-white hover:bg-brand-green-dark whitespace-nowrap">生成图片</button>
                     </div>
                   </td>
-                  <td class="px-3 py-1.5">
-                    <div class="w-32 h-20 bg-gray-100 dark:bg-[#3A3A3C] rounded flex items-center justify-center overflow-hidden">
+                  <td class="px-2 py-2">
+                    <div class="w-28 h-16 bg-gray-100 dark:bg-[#3A3A3C] rounded flex items-center justify-center overflow-hidden mx-auto">
                       <div v-if="shot.generatedVideo" class="text-xs text-secondary dark:text-gray-300">已生成</div>
-                      <button v-else @click="openSizeModalForShot(shot, 'video')" class="px-3 py-1 text-xs rounded bg-brand-green text-white hover:bg-brand-green-dark">生成视频</button>
+                      <button v-else @click="openSizeModalForShot(shot, 'video')" class="px-2 py-1 text-xs rounded bg-brand-green text-white hover:bg-brand-green-dark whitespace-nowrap">生成视频</button>
                     </div>
                   </td>
-                  <td class="px-3 py-1.5 w-44">
+                  <td class="px-2 py-2">
                     <div class="relative inline-block">
                       <button @click="toggleActionMenu(shot.id, $event)" class="px-2 py-1 text-xs rounded border bg-white dark:bg-[#2C2C2E] dark:border-[#3A3A3C] hover:bg-gray-50 dark:hover:bg-[#3A3A3C]">
                         重新生成

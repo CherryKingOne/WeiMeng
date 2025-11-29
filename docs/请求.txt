@@ -313,32 +313,3 @@ curl -X POST "http://0.0.0.0:7767/api/v3/chat/libraries/6250527834723381/local-m
 
 
 
-
-# 存储：
-curl -X POST "http://0.0.0.0:7767/api/v4/storyboard/save" \
-  -H "Content-Type: application/json" \
-  -H "Accept: application/json" \
-  -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJjaGVycnlfMDUwNjA3QDE2My5jb20iLCJleHAiOjE3NjY1NjA5MDZ9.LpVZZyHLemOQDXrMWDcjxsAqo7Qas_JK7QdcFi7pIAE" \
-  -d '{
-    "library_id": 6948056647078163,
-    "file_id": 677394541522160059,
-    "script_name": "我的分镜头脚本V1",
-    "script_json_data": {
-      "visual_style": "电影级写实",
-      "shots": [
-        {
-          "shot_num": 1,
-          "content": "全景：主角站在海边远眺",
-          "duration": 3
-        },
-        {
-          "shot_num": 2,
-          "content": "特写：主角手中的旧照片",
-          "duration": 2
-        }
-      ],
-      "description": "这是一个关于回忆的短片分镜"
-    },
-    "tags": ["短片", "回忆", "海边"],
-    "memo": "初始版本，包含2个核心镜头"
-  }'
