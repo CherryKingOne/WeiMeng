@@ -84,17 +84,69 @@ const formatLastSaved = computed(() => {
   }
 })
 
-const activeTab = ref('script')
-const scriptMode = ref('selection') // 'selection', 'write', 'upload'
+const activeTab = ref('files')
+
+// 提示条状态
+const showBanner = ref(false)
+const bannerMessage = ref('')
+const bannerType = ref('info') // 'info', 'warning', 'error', 'success'
+
 const tabs = [
-  { id: 'script', label: '剧本创作', icon: 'book' },
   { id: 'files', label: '剧本文件管理', icon: 'folder' },
-  { id: 'videoAssets', label: '视频素材管理', icon: 'film' },
-  { id: 'audioAssets', label: '音频素材管理', icon: 'music' },
   { id: 'novelAnalysis', label: '小说拆解', icon: 'book-open' },
   { id: 'storyboard', label: '分镜生成', icon: 'clapperboard' },
-  { id: 'video', label: '视频剪辑', icon: 'scissors', badge: 'Beta' }
+  { id: 'videoAssets', label: '视频素材管理', icon: 'film', badge: 'Beta' },
+  { id: 'audioAssets', label: '音频素材管理', icon: 'music', badge: 'Beta' },
+  { id: 'video', label: '视频剪辑', icon: 'scissors', badge: 'Beta' },
+  { id: 'publish', label: '多平台管理', icon: 'share-nodes', badge: 'Beta' }
 ]
+
+// 发布管理子标签页状态
+const publishSubTab = ref('overview') // 'overview', 'platforms', 'messages', 'violations', 'aiService', 'competitors'
+
+// 切换标签页时的处理
+const switchTab = (tabId) => {
+  // 如果切换到视频剪辑标签,显示开发中提示,不切换标签
+  if (tabId === 'video') {
+    showBanner.value = true
+    bannerMessage.value = '自动化剪辑Agent正在开发中，暂时无法使用'
+    bannerType.value = 'warning'
+    return // 阻止标签切换
+  }
+
+  // 如果切换到视频素材管理标签,显示开发中提示,不切换标签
+  if (tabId === 'videoAssets') {
+    showBanner.value = true
+    bannerMessage.value = '视频素材管理功能配合视频剪辑使用，正在开发中'
+    bannerType.value = 'warning'
+    return // 阻止标签切换
+  }
+
+  // 如果切换到音频素材管理标签,显示开发中提示,不切换标签
+  if (tabId === 'audioAssets') {
+    showBanner.value = true
+    bannerMessage.value = '音频素材管理功能配合视频剪辑使用，正在开发中'
+    bannerType.value = 'warning'
+    return // 阻止标签切换
+  }
+
+  // 如果切换到多平台发布管理标签,显示开发中提示,不切换标签
+  if (tabId === 'publish') {
+    showBanner.value = true
+    bannerMessage.value = '多平台发布管理功能正在开发中，暂时无法使用'
+    bannerType.value = 'warning'
+    return // 阻止标签切换
+  }
+
+  // 正常切换标签
+  activeTab.value = tabId
+  showBanner.value = false
+}
+
+// 切换发布管理子标签页
+const switchPublishSubTab = (subTab) => {
+  publishSubTab.value = subTab
+}
 
 const scriptContent = ref('[场景] 豪华办公室，白天\n顾北辰：（冷冷地）这份设计稿重做。\n苏晚晚：（坚定地）我会重新来过。\n旁白：两人的眼神交错，空气凝固。\nJohn: You should reconsider.\nMary: I won\'t.')
 
@@ -3687,7 +3739,6 @@ watch(activeTab, (newTab) => {
         <div class="flex flex-col">
           <h1 class="text-sm font-bold flex items-center gap-2">
             {{ libraryInfo.name }}
-            <span class="px-1.5 py-0.5 rounded text-[10px] bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-500">剧本创作中</span>
           </h1>
           <span class="text-xs text-secondary dark:text-gray-500">上次保存: {{ formatLastSaved }}</span>
         </div>
@@ -3977,287 +4028,44 @@ watch(activeTab, (newTab) => {
       <!-- Sidebar -->
       <aside class="w-52 bg-white dark:bg-[#2C2C2E] border-r border-gray-200 dark:border-[#3A3A3C] flex flex-col shrink-0">
         <nav class="p-2 space-y-1">
-          <button
+          <div
             v-for="tab in tabs"
             :key="tab.id"
-            @click="activeTab = tab.id"
-            class="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors"
-            :class="activeTab === tab.id
-              ? 'bg-brand-green/10 text-brand-green dark:bg-brand-green/20'
-              : 'text-secondary hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-[#3A3A3C]'"
+            class="relative group"
           >
-            <fa :icon="['fas', tab.icon]" class="w-4" />
-            {{ tab.label }}
-            <span v-if="tab.badge" class="ml-auto px-1.5 py-0.5 rounded text-[10px] bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400">{{ tab.badge }}</span>
-          </button>
+            <button
+              @click="switchTab(tab.id)"
+              class="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors"
+              :class="activeTab === tab.id
+                ? 'bg-brand-green/10 text-brand-green dark:bg-brand-green/20'
+                : 'text-secondary hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-[#3A3A3C]'"
+            >
+              <fa :icon="['fas', tab.icon]" class="w-4" />
+              {{ tab.label }}
+              <span v-if="tab.badge" class="ml-auto px-1.5 py-0.5 rounded text-[10px] bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400">{{ tab.badge }}</span>
+            </button>
+            <!-- Tooltip for Beta features -->
+            <div
+              v-if="tab.badge"
+              class="absolute left-full ml-2 top-1/2 -translate-y-1/2 px-3 py-2 bg-gray-900 dark:bg-gray-700 text-white text-xs rounded-lg shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 whitespace-nowrap z-50 pointer-events-none"
+            >
+              <div class="relative">
+                <template v-if="tab.id === 'video'">自动化剪辑Agent正在开发中</template>
+                <template v-else-if="tab.id === 'videoAssets'">视频素材管理配合视频剪辑使用，正在开发中</template>
+                <template v-else-if="tab.id === 'audioAssets'">音频素材管理配合视频剪辑使用，正在开发中</template>
+                <template v-else-if="tab.id === 'publish'">多平台发布管理功能正在开发中</template>
+                <!-- Arrow -->
+                <div class="absolute right-full top-1/2 -translate-y-1/2 border-4 border-transparent border-r-gray-900 dark:border-r-gray-700"></div>
+              </div>
+            </div>
+          </div>
         </nav>
       </aside>
 
       <!-- Main Content -->
       <main class="flex-1 overflow-y-auto bg-gray-50 dark:bg-[#1C1C1E] p-6">
-        <!-- Script View -->
-        <div v-if="activeTab === 'script'" class="h-full flex flex-col">
-          <!-- Script Mode Selection -->
-          <div v-if="scriptMode === 'selection'" class="flex-1 flex items-center justify-center p-8">
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-4xl w-full">
-              <!-- Upload Option -->
-              <button 
-                @click="scriptMode = 'upload'"
-                class="group relative flex flex-col items-center justify-center p-12 bg-white dark:bg-[#2C2C2E] rounded-2xl border-2 border-dashed border-gray-300 dark:border-[#3A3A3C] hover:border-brand-green dark:hover:border-brand-green transition-all duration-300 hover:shadow-xl"
-              >
-                <div class="w-20 h-20 rounded-full bg-brand-green/10 flex items-center justify-center mb-6 group-hover:scale-110 transition-transform duration-300">
-                  <fa :icon="['fas', 'cloud-arrow-up']" class="text-3xl text-brand-green" />
-                </div>
-                <h3 class="text-2xl font-bold text-primary dark:text-white mb-3">上传小说/故事</h3>
-                <p class="text-secondary dark:text-gray-400 text-center leading-relaxed">
-                  支持 PDF, Word, TXT 格式<br>
-                  AI 自动提取角色与场景
-                </p>
-              </button>
-
-              <!-- Write Option -->
-              <button 
-                @click="scriptMode = 'write'"
-                class="group relative flex flex-col items-center justify-center p-12 bg-white dark:bg-[#2C2C2E] rounded-2xl border-2 border-gray-200 dark:border-[#3A3A3C] hover:border-brand-green dark:hover:border-brand-green transition-all duration-300 hover:shadow-xl"
-              >
-                <div class="w-20 h-20 rounded-full bg-brand-green/10 flex items-center justify-center mb-6 group-hover:scale-110 transition-transform duration-300">
-                  <fa :icon="['fas', 'pen-nib']" class="text-3xl text-brand-green" />
-                </div>
-                <h3 class="text-2xl font-bold text-primary dark:text-white mb-3">编写故事剧本</h3>
-                <p class="text-secondary dark:text-gray-400 text-center leading-relaxed">
-                  使用专业剧本编辑器<br>
-                  AI 辅助续写与润色
-                </p>
-              </button>
-            </div>
-          </div>
-
-          <!-- Upload View -->
-          <div v-else-if="scriptMode === 'upload'" class="max-w-5xl mx-auto w-full">
-            <!-- Tab Buttons -->
-            <div class="flex items-center justify-center gap-4 mb-8">
-              <button 
-                class="px-8 py-3 rounded-full border-2 font-medium transition-all"
-                :class="scriptMode === 'upload' ? 'border-red-500 text-red-500 bg-white dark:bg-[#2C2C2E]' : 'border-gray-300 dark:border-[#3A3A3C] text-gray-500 dark:text-gray-400'"
-              >
-                上传文件
-              </button>
-              <button 
-                @click="scriptMode = 'write'"
-                class="px-8 py-3 rounded-full border-2 font-medium transition-all"
-                :class="scriptMode === 'write' ? 'border-red-500 text-red-500 bg-white dark:bg-[#2C2C2E]' : 'border-gray-300 dark:border-[#3A3A3C] text-gray-500 dark:text-gray-400 hover:border-gray-400'"
-              >
-                剧本创造
-              </button>
-            </div>
-
-            <!-- Hidden file input -->
-            <input 
-              ref="fileInput"
-              type="file" 
-              multiple
-              class="hidden" 
-              accept=".txt,.md,.doc,.docx,.csv,.xlsx,.pdf"
-              @change="handleFileSelect"
-            >
-            
-            <!-- Upload area -->
-            <div 
-              class="border-2 border-dashed rounded-xl p-12 flex flex-col items-center justify-center text-center transition-all cursor-pointer mb-6"
-              :class="isDragging 
-                ? 'border-brand-green bg-brand-green/5 dark:bg-brand-green/10' 
-                : 'border-gray-300 dark:border-[#3A3A3C] hover:bg-gray-50 dark:hover:bg-[#3A3A3C]/30'"
-              @click="triggerFileInput"
-              @dragover="handleDragOver"
-              @dragleave="handleDragLeave"
-              @drop="handleUploadDrop"
-            >
-              <fa :icon="['fas', 'file-import']" class="text-4xl mb-4" :class="isDragging ? 'text-brand-green' : 'text-gray-300 dark:text-gray-600'" />
-              <p class="text-lg font-medium text-primary dark:text-white mb-2">
-                {{ isDragging ? '释放以上传文件' : '点击或拖拽文件到此处' }}
-              </p>
-              <p class="text-sm text-secondary dark:text-gray-400">支持 .txt, .md, .doc, .docx, .csv, .xlsx, .pdf (最大 10MB)</p>
-            </div>
-            
-            <!-- Uploaded Files List -->
-            <div v-if="uploadedFiles.length > 0" class="bg-white dark:bg-[#2C2C2E] rounded-xl border border-gray-200 dark:border-[#3A3A3C] overflow-hidden">
-              <!-- Header Row -->
-              <div class="flex items-center gap-4 px-6 py-3 bg-gray-50 dark:bg-[#3A3A3C]/50 border-b border-gray-200 dark:border-[#3A3A3C]">
-                <div class="flex items-center gap-3">
-                  <input 
-                    type="checkbox" 
-                    :checked="fileListSelectAll"
-                    @change="toggleFileSelectAll"
-                    class="w-4 h-4 rounded border-gray-300 text-brand-green focus:ring-brand-green"
-                  >
-                  <span class="text-sm font-medium text-gray-700 dark:text-gray-300">文件列表</span>
-                </div>
-                <div class="ml-auto flex items-center gap-2" v-if="uploadedFiles.some(f => f.selected)">
-                  <button 
-                    @click="openBatchDeleteConfirm"
-                    class="text-xs text-red-500 hover:text-red-600 font-medium px-2 py-1 rounded hover:bg-red-50 dark:hover:bg-red-900/20 transition"
-                  >
-                    批量删除
-                  </button>
-                </div>
-              </div>
-
-              <!-- File List -->
-              <div class="p-4 space-y-3">
-                <div
-                  v-for="(fileData, index) in uploadedFiles"
-                  :key="index"
-                  class="flex items-center gap-4 px-6 py-4 bg-white dark:bg-[#2C2C2E] rounded-xl border-2 shadow-sm transition-all"
-                  :class="[
-                    fileData.selected ? 'border-brand-green bg-brand-green/5' : 'border-gray-100 dark:border-[#3A3A3C]',
-                    fileData.progress === 'completed' ? '' : fileData.progress === 'error' ? 'border-red-500' : 'border-blue-500'
-                  ]"
-                  @click="toggleFileSelection(index)"
-                >
-                  <!-- Checkbox -->
-                  <div class="flex-shrink-0" @click.stop>
-                    <input 
-                      type="checkbox" 
-                      v-model="fileData.selected"
-                      @change="fileListSelectAll = uploadedFiles.every(f => f.selected)"
-                      class="w-4 h-4 rounded border-gray-300 text-brand-green focus:ring-brand-green"
-                    >
-                  </div>
-
-                  <!-- File Icon -->
-                  <div class="flex-shrink-0">
-                    <fa :icon="['fas', 'file']" class="text-2xl"
-                      :class="fileData.progress === 'completed' ? 'text-brand-green' : fileData.progress === 'error' ? 'text-red-500' : 'text-blue-500'" />
-                  </div>
-
-                  <!-- File Info -->
-                  <div class="flex-1 min-w-0">
-                    <p class="text-sm font-medium text-gray-900 dark:text-white truncate mb-1">{{ fileData.file.name }}</p>
-                    <div class="flex items-center gap-2">
-                      <p class="text-xs text-gray-500 dark:text-gray-400">{{ (fileData.file.size / 1024).toFixed(2) }} KB</p>
-                      <span class="text-gray-300 dark:text-gray-600">•</span>
-                      <p class="text-xs"
-                        :class="fileData.progress === 'completed' ? 'text-brand-green' : fileData.progress === 'error' ? 'text-red-500' : 'text-blue-500'">
-                        {{ fileData.progress === 'completed' ? '上传完成' : fileData.progress === 'error' ? '上传失败' : `上传中 ${fileData.uploadProgress}%` }}
-                      </p>
-                    </div>
-                    <!-- Progress Bar -->
-                    <div v-if="fileData.progress === 'uploading'" class="mt-2 w-full bg-gray-200 dark:bg-gray-700 rounded-full h-1.5">
-                      <div class="bg-blue-500 h-1.5 rounded-full transition-all duration-300" :style="{ width: fileData.uploadProgress + '%' }"></div>
-                    </div>
-                  </div>
-
-                  <!-- Delete Button -->
-                  <button
-                    @click.stop="removeFile(index)"
-                    class="flex-shrink-0 px-4 py-2 rounded-lg border border-gray-300 dark:border-[#3A3A3C] text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-[#3A3A3C] transition-colors"
-                  >
-                    <fa :icon="['fas', 'trash']" class="text-sm" />
-                  </button>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <!-- Write View (Existing) -->
-          <div v-else-if="scriptMode === 'write'" class="max-w-4xl mx-auto w-full bg-white dark:bg-[#2C2C2E] rounded-xl shadow-sm border border-gray-200 dark:border-[#3A3A3C] min-h-[800px] p-8 relative">
-            <div class="mb-6 flex items-center justify-between">
-              <div class="flex items-center gap-4">
-                <button @click="scriptMode = 'selection'" class="text-secondary hover:text-primary dark:text-gray-400 dark:hover:text-white transition">
-                  <fa :icon="['fas', 'arrow-left']" />
-                </button>
-                <h2 class="text-lg font-bold">第一集：初遇</h2>
-              </div>
-              <button class="text-sm text-brand-green hover:underline" @click="openAiDialog">
-                <fa :icon="['fas', 'magic']" class="mr-1" /> AI 续写
-              </button>
-            </div>
-            <textarea 
-              ref="scriptTextarea"
-              v-model="scriptContent"
-              class="w-full h-full min-h-[600px] resize-none outline-none bg-transparent text-lg leading-relaxed text-gray-800 dark:text-gray-200 placeholder-gray-300 dark:placeholder-gray-600"
-              placeholder="在此处开始创作剧本...&#10;例如：&#10;[场景] 豪华办公室，白天&#10;[人物] 顾北辰，苏晚晚&#10;顾北辰：（冷冷地）这份设计稿重做。"
-            ></textarea>
-
-            <!-- AI Continuation Dialog -->
-            <div 
-              v-if="showAiDialog"
-              :style="aiDialogStyle"
-              class="absolute z-50 w-[500px] bg-white dark:bg-[#1E1E1E] rounded-xl shadow-2xl border border-gray-200 dark:border-[#3A3A3C] overflow-hidden animate-in fade-in zoom-in duration-200"
-            >
-              <div class="p-3">
-                <!-- Input Area -->
-                <div class="relative">
-                  <input 
-                    v-if="aiState !== 'review'"
-                    id="ai-input"
-                    v-model="aiInput"
-                    type="text" 
-                    class="w-full bg-gray-50 dark:bg-[#2C2C2E] border border-gray-200 dark:border-[#3A3A3C] rounded-lg py-2.5 pl-4 pr-12 text-sm text-gray-900 dark:text-white focus:outline-none focus:border-brand-green placeholder-gray-400 dark:placeholder-gray-500"
-                    :placeholder="aiState === 'generating' ? '思考中...' : '输入提示词，例如：顾北辰生气了...'"
-                    :readonly="aiState === 'generating'"
-                    @keydown.esc="closeAiDialog"
-                    @keydown.enter="startGeneration"
-                  >
-                  <div v-else class="w-full bg-gray-50 dark:bg-[#2C2C2E] border border-gray-200 dark:border-[#3A3A3C] rounded-lg p-4 text-sm text-gray-800 dark:text-white leading-relaxed">
-                    {{ generatedContent }}
-                  </div>
-
-                  <!-- Action Button (Idle/Generating) -->
-                  <button 
-                    v-if="aiState !== 'review'"
-                    class="absolute right-2 top-1/2 -translate-y-1/2 w-8 h-8 rounded-lg flex items-center justify-center transition-all"
-                    :class="aiState === 'generating' ? 'bg-[#3B82F6] hover:bg-[#2563EB]' : 'bg-[#3B82F6] hover:bg-[#2563EB]'"
-                    @click="aiState === 'generating' ? stopGeneration() : startGeneration()"
-                  >
-                    <!-- Stop Icon (Square) -->
-                    <svg v-if="aiState === 'generating'" width="12" height="12" viewBox="0 0 24 24" fill="currentColor" class="text-white">
-                      <rect x="4" y="4" width="16" height="16" rx="2" />
-                    </svg>
-                    <!-- Send Icon (Arrow Up) -->
-                    <svg v-else width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" class="text-white">
-                      <line x1="12" y1="19" x2="12" y2="5"></line>
-                      <polyline points="5 12 12 5 19 12"></polyline>
-                    </svg>
-                  </button>
-                </div>
-
-                <!-- Review Toolbar -->
-                <div v-if="aiState === 'review'" class="mt-3 flex items-center justify-between px-1">
-                  <div class="flex items-center gap-2">
-                    <button class="px-3 py-1.5 bg-brand-green text-white text-xs font-medium rounded-md hover:bg-brand-green/90 transition-colors" @click="acceptGeneration">
-                      接受 <span class="ml-1 opacity-60">⌘⏎</span>
-                    </button>
-                    <button class="px-3 py-1.5 bg-gray-100 text-gray-600 dark:bg-[#3A3A3C] dark:text-gray-300 text-xs font-medium rounded-md hover:bg-gray-200 dark:hover:bg-[#48484A] transition-colors" @click="rejectGeneration">
-                      拒绝 <span class="ml-1 opacity-60">Esc</span>
-                    </button>
-                  </div>
-                  
-                  <div class="flex items-center gap-2">
-                    <button class="p-1.5 text-gray-400 hover:text-gray-600 dark:hover:text-white transition-colors" @click="startGeneration">
-                      <fa :icon="['fas', 'rotate']" />
-                    </button>
-                    <div class="w-px h-4 bg-gray-200 dark:bg-[#3A3A3C]"></div>
-                    <button class="p-1.5 text-gray-400 hover:text-gray-600 dark:hover:text-white transition-colors">
-                      <fa :icon="['fas', 'thumbs-up']" />
-                    </button>
-                    <button class="p-1.5 text-gray-400 hover:text-gray-600 dark:hover:text-white transition-colors">
-                      <fa :icon="['fas', 'thumbs-down']" />
-                    </button>
-                  </div>
-                </div>
-
-                <!-- Helper Text (Idle only) -->
-                <div v-if="aiState === 'idle'" class="mt-2 flex items-center justify-between text-xs text-gray-500 px-1">
-                  <span>按 "↑↓" 查看历史输入，按 "ESC" 关闭</span>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-
         <!-- Files View (Script File Management) -->
-        <div v-else-if="activeTab === 'files'" class="max-w-6xl mx-auto">
+        <div v-if="activeTab === 'files'" class="max-w-6xl mx-auto">
           <div class="flex items-center justify-between mb-6">
             <h2 class="text-xl font-bold">剧本文件管理</h2>
             <button 
@@ -5252,6 +5060,641 @@ watch(activeTab, (newTab) => {
               </div>
             </div>
           </section>
+        </div>
+
+        <!-- Publish Management View -->
+        <div v-else-if="activeTab === 'publish'" class="h-full flex flex-col">
+          <!-- Top Navigation Tabs -->
+          <div class="bg-white dark:bg-[#2C2C2E] border-b border-gray-200 dark:border-[#3A3A3C] mb-6">
+            <div class="flex items-center gap-1 px-6">
+              <button
+                @click="switchPublishSubTab('overview')"
+                class="px-4 py-3 text-sm font-medium border-b-2 transition-colors"
+                :class="publishSubTab === 'overview'
+                  ? 'border-brand-green text-brand-green'
+                  : 'border-transparent text-secondary hover:text-primary dark:text-gray-400 dark:hover:text-white'"
+              >
+                数据概览
+              </button>
+              <button
+                @click="switchPublishSubTab('platforms')"
+                class="px-4 py-3 text-sm font-medium border-b-2 transition-colors"
+                :class="publishSubTab === 'platforms'
+                  ? 'border-brand-green text-brand-green'
+                  : 'border-transparent text-secondary hover:text-primary dark:text-gray-400 dark:hover:text-white'"
+              >
+                平台管理
+              </button>
+              <button
+                @click="switchPublishSubTab('messages')"
+                class="px-4 py-3 text-sm font-medium border-b-2 transition-colors"
+                :class="publishSubTab === 'messages'
+                  ? 'border-brand-green text-brand-green'
+                  : 'border-transparent text-secondary hover:text-primary dark:text-gray-400 dark:hover:text-white'"
+              >
+                消息中心
+              </button>
+              <button
+                @click="switchPublishSubTab('violations')"
+                class="px-4 py-3 text-sm font-medium border-b-2 transition-colors"
+                :class="publishSubTab === 'violations'
+                  ? 'border-brand-green text-brand-green'
+                  : 'border-transparent text-secondary hover:text-primary dark:text-gray-400 dark:hover:text-white'"
+              >
+                违禁管理
+              </button>
+              <button
+                @click="switchPublishSubTab('aiService')"
+                class="px-4 py-3 text-sm font-medium border-b-2 transition-colors"
+                :class="publishSubTab === 'aiService'
+                  ? 'border-brand-green text-brand-green'
+                  : 'border-transparent text-secondary hover:text-primary dark:text-gray-400 dark:hover:text-white'"
+              >
+                AI 客服
+              </button>
+              <button
+                @click="switchPublishSubTab('competitors')"
+                class="px-4 py-3 text-sm font-medium border-b-2 transition-colors"
+                :class="publishSubTab === 'competitors'
+                  ? 'border-brand-green text-brand-green'
+                  : 'border-transparent text-secondary hover:text-primary dark:text-gray-400 dark:hover:text-white'"
+              >
+                竞品分析
+              </button>
+            </div>
+          </div>
+
+          <!-- Content Area -->
+          <div class="flex-1 overflow-y-auto px-6">
+            <!-- Data Overview Tab -->
+            <div v-if="publishSubTab === 'overview'">
+            <!-- Key Metrics Cards -->
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+              <!-- Total Views -->
+              <div class="bg-white dark:bg-[#2C2C2E] rounded-lg border border-gray-200 dark:border-[#3A3A3C] p-4">
+                <div class="flex items-center justify-between mb-2">
+                  <span class="text-sm text-secondary dark:text-gray-400">总播放量</span>
+                  <fa :icon="['fas', 'eye']" class="text-blue-500" />
+                </div>
+                <div class="text-2xl font-bold text-primary dark:text-white mb-1">0</div>
+                <div class="flex items-center gap-1 text-xs">
+                  <span class="text-green-500">+0%</span>
+                  <span class="text-secondary dark:text-gray-400">较昨日</span>
+                </div>
+              </div>
+
+              <!-- Total Likes -->
+              <div class="bg-white dark:bg-[#2C2C2E] rounded-lg border border-gray-200 dark:border-[#3A3A3C] p-4">
+                <div class="flex items-center justify-between mb-2">
+                  <span class="text-sm text-secondary dark:text-gray-400">总点赞数</span>
+                  <fa :icon="['fas', 'heart']" class="text-red-500" />
+                </div>
+                <div class="text-2xl font-bold text-primary dark:text-white mb-1">0</div>
+                <div class="flex items-center gap-1 text-xs">
+                  <span class="text-green-500">+0%</span>
+                  <span class="text-secondary dark:text-gray-400">较昨日</span>
+                </div>
+              </div>
+
+              <!-- Total Comments -->
+              <div class="bg-white dark:bg-[#2C2C2E] rounded-lg border border-gray-200 dark:border-[#3A3A3C] p-4">
+                <div class="flex items-center justify-between mb-2">
+                  <span class="text-sm text-secondary dark:text-gray-400">总评论数</span>
+                  <fa :icon="['fas', 'comment']" class="text-yellow-500" />
+                </div>
+                <div class="text-2xl font-bold text-primary dark:text-white mb-1">0</div>
+                <div class="flex items-center gap-1 text-xs">
+                  <span class="text-green-500">+0%</span>
+                  <span class="text-secondary dark:text-gray-400">较昨日</span>
+                </div>
+              </div>
+
+              <!-- Total Shares -->
+              <div class="bg-white dark:bg-[#2C2C2E] rounded-lg border border-gray-200 dark:border-[#3A3A3C] p-4">
+                <div class="flex items-center justify-between mb-2">
+                  <span class="text-sm text-secondary dark:text-gray-400">总分享数</span>
+                  <fa :icon="['fas', 'share']" class="text-purple-500" />
+                </div>
+                <div class="text-2xl font-bold text-primary dark:text-white mb-1">0</div>
+                <div class="flex items-center gap-1 text-xs">
+                  <span class="text-green-500">+0%</span>
+                  <span class="text-secondary dark:text-gray-400">较昨日</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Platform Status & AI Analysis -->
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
+              <!-- Platform Status -->
+              <div class="lg:col-span-2 bg-white dark:bg-[#2C2C2E] rounded-lg border border-gray-200 dark:border-[#3A3A3C] p-6">
+                <div class="flex items-center justify-between mb-4">
+                  <h3 class="text-lg font-bold text-primary dark:text-white">平台连接状态</h3>
+                  <button class="text-sm text-brand-green hover:text-brand-green/80">管理平台</button>
+                </div>
+                <div class="grid grid-cols-2 md:grid-cols-3 gap-3">
+                  <!-- Platform Status Items -->
+                  <div class="flex items-center gap-2 p-3 bg-gray-50 dark:bg-[#1C1C1E] rounded-lg">
+                    <div class="w-8 h-8 rounded bg-black flex items-center justify-center flex-shrink-0">
+                      <span class="text-white text-xs font-bold">抖</span>
+                    </div>
+                    <div class="flex-1 min-w-0">
+                      <div class="text-sm font-medium text-primary dark:text-white truncate">抖音</div>
+                      <div class="text-xs text-red-500">未连接</div>
+                    </div>
+                  </div>
+
+                  <div class="flex items-center gap-2 p-3 bg-gray-50 dark:bg-[#1C1C1E] rounded-lg">
+                    <div class="w-8 h-8 rounded bg-gradient-to-br from-orange-500 to-red-500 flex items-center justify-center flex-shrink-0">
+                      <span class="text-white text-xs font-bold">快</span>
+                    </div>
+                    <div class="flex-1 min-w-0">
+                      <div class="text-sm font-medium text-primary dark:text-white truncate">快手</div>
+                      <div class="text-xs text-red-500">未连接</div>
+                    </div>
+                  </div>
+
+                  <div class="flex items-center gap-2 p-3 bg-gray-50 dark:bg-[#1C1C1E] rounded-lg">
+                    <div class="w-8 h-8 rounded bg-gradient-to-br from-red-500 to-pink-500 flex items-center justify-center flex-shrink-0">
+                      <span class="text-white text-xs font-bold">小</span>
+                    </div>
+                    <div class="flex-1 min-w-0">
+                      <div class="text-sm font-medium text-primary dark:text-white truncate">小红书</div>
+                      <div class="text-xs text-red-500">未连接</div>
+                    </div>
+                  </div>
+
+                  <div class="flex items-center gap-2 p-3 bg-gray-50 dark:bg-[#1C1C1E] rounded-lg">
+                    <div class="w-8 h-8 rounded bg-gradient-to-br from-pink-400 to-blue-400 flex items-center justify-center flex-shrink-0">
+                      <span class="text-white text-xs font-bold">B</span>
+                    </div>
+                    <div class="flex-1 min-w-0">
+                      <div class="text-sm font-medium text-primary dark:text-white truncate">哔哩哔哩</div>
+                      <div class="text-xs text-red-500">未连接</div>
+                    </div>
+                  </div>
+
+                  <div class="flex items-center gap-2 p-3 bg-gray-50 dark:bg-[#1C1C1E] rounded-lg">
+                    <div class="w-8 h-8 rounded bg-green-500 flex items-center justify-center flex-shrink-0">
+                      <span class="text-white text-xs font-bold">视</span>
+                    </div>
+                    <div class="flex-1 min-w-0">
+                      <div class="text-sm font-medium text-primary dark:text-white truncate">视频号</div>
+                      <div class="text-xs text-red-500">未连接</div>
+                    </div>
+                  </div>
+
+                  <div class="flex items-center gap-2 p-3 bg-gray-50 dark:bg-[#1C1C1E] rounded-lg">
+                    <div class="w-8 h-8 rounded bg-red-600 flex items-center justify-center flex-shrink-0">
+                      <span class="text-white text-xs font-bold">YT</span>
+                    </div>
+                    <div class="flex-1 min-w-0">
+                      <div class="text-sm font-medium text-primary dark:text-white truncate">YouTube</div>
+                      <div class="text-xs text-red-500">未连接</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- AI Analysis Assistant -->
+              <div class="bg-white dark:bg-[#2C2C2E] rounded-lg border border-gray-200 dark:border-[#3A3A3C] p-6">
+                <div class="flex items-center gap-2 mb-4">
+                  <fa :icon="['fas', 'robot']" class="text-brand-green text-lg" />
+                  <h3 class="text-lg font-bold text-primary dark:text-white">AI 分析管家</h3>
+                </div>
+                <div class="space-y-3">
+                  <div class="flex items-center justify-between p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
+                    <span class="text-sm text-primary dark:text-white">数据观测</span>
+                    <span class="text-xs px-2 py-1 rounded-full bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-400">实时</span>
+                  </div>
+                  <div class="flex items-center justify-between p-3 bg-purple-50 dark:bg-purple-900/20 rounded-lg">
+                    <span class="text-sm text-primary dark:text-white">智能建议</span>
+                    <span class="text-xs px-2 py-1 rounded-full bg-purple-100 text-purple-700 dark:bg-purple-900/40 dark:text-purple-400">Beta</span>
+                  </div>
+                  <div class="flex items-center justify-between p-3 bg-green-50 dark:bg-green-900/20 rounded-lg">
+                    <span class="text-sm text-primary dark:text-white">趋势预测</span>
+                    <span class="text-xs px-2 py-1 rounded-full bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-400">AI</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Recent Activities & Quick Actions -->
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <!-- Recent Activities -->
+              <div class="bg-white dark:bg-[#2C2C2E] rounded-lg border border-gray-200 dark:border-[#3A3A3C] p-6">
+                <h3 class="text-lg font-bold text-primary dark:text-white mb-4">最近动态</h3>
+                <div class="text-center py-8">
+                  <fa :icon="['fas', 'inbox']" class="text-4xl text-gray-300 dark:text-gray-600 mb-2" />
+                  <p class="text-sm text-secondary dark:text-gray-400">暂无动态</p>
+                </div>
+              </div>
+
+              <!-- Quick Actions -->
+              <div class="bg-white dark:bg-[#2C2C2E] rounded-lg border border-gray-200 dark:border-[#3A3A3C] p-6">
+                <h3 class="text-lg font-bold text-primary dark:text-white mb-4">快捷操作</h3>
+                <div class="grid grid-cols-2 gap-3">
+                  <button class="p-4 rounded-lg border border-gray-200 dark:border-[#3A3A3C] hover:border-brand-green hover:bg-brand-green/5 transition-colors text-center">
+                    <fa :icon="['fas', 'upload']" class="text-2xl text-brand-green mb-2" />
+                    <div class="text-sm font-medium text-primary dark:text-white">发布视频</div>
+                  </button>
+                  <button class="p-4 rounded-lg border border-gray-200 dark:border-[#3A3A3C] hover:border-brand-green hover:bg-brand-green/5 transition-colors text-center">
+                    <fa :icon="['fas', 'chart-line']" class="text-2xl text-blue-500 mb-2" />
+                    <div class="text-sm font-medium text-primary dark:text-white">查看数据</div>
+                  </button>
+                  <button class="p-4 rounded-lg border border-gray-200 dark:border-[#3A3A3C] hover:border-brand-green hover:bg-brand-green/5 transition-colors text-center">
+                    <fa :icon="['fas', 'message']" class="text-2xl text-yellow-500 mb-2" />
+                    <div class="text-sm font-medium text-primary dark:text-white">消息管理</div>
+                  </button>
+                  <button class="p-4 rounded-lg border border-gray-200 dark:border-[#3A3A3C] hover:border-brand-green hover:bg-brand-green/5 transition-colors text-center">
+                    <fa :icon="['fas', 'shield-halved']" class="text-2xl text-red-500 mb-2" />
+                    <div class="text-sm font-medium text-primary dark:text-white">违禁检测</div>
+                  </button>
+                </div>
+              </div>
+            </div>
+            </div>
+
+            <!-- Platform Management Tab -->
+            <div v-else-if="publishSubTab === 'platforms'" class="max-w-6xl mx-auto">
+              <h2 class="text-xl font-bold text-primary dark:text-white mb-6">平台账号管理</h2>
+              <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <!-- Platform Cards with Connect Button -->
+                <div class="bg-white dark:bg-[#2C2C2E] rounded-xl border border-gray-200 dark:border-[#3A3A3C] p-6">
+                  <div class="flex items-center gap-3 mb-4">
+                    <div class="w-12 h-12 rounded-lg bg-black flex items-center justify-center">
+                      <span class="text-white font-bold text-lg">抖</span>
+                    </div>
+                    <div>
+                      <h3 class="font-bold text-primary dark:text-white">抖音</h3>
+                      <p class="text-xs text-red-500">未连接</p>
+                    </div>
+                  </div>
+                  <button class="w-full px-4 py-2 rounded-lg bg-brand-green text-white hover:bg-brand-green/90 transition-colors text-sm font-medium">
+                    连接账号
+                  </button>
+                </div>
+
+                <div class="bg-white dark:bg-[#2C2C2E] rounded-xl border border-gray-200 dark:border-[#3A3A3C] p-6">
+                  <div class="flex items-center gap-3 mb-4">
+                    <div class="w-12 h-12 rounded-lg bg-gradient-to-br from-orange-500 to-red-500 flex items-center justify-center">
+                      <span class="text-white font-bold text-lg">快</span>
+                    </div>
+                    <div>
+                      <h3 class="font-bold text-primary dark:text-white">快手</h3>
+                      <p class="text-xs text-red-500">未连接</p>
+                    </div>
+                  </div>
+                  <button class="w-full px-4 py-2 rounded-lg bg-brand-green text-white hover:bg-brand-green/90 transition-colors text-sm font-medium">
+                    连接账号
+                  </button>
+                </div>
+
+                <div class="bg-white dark:bg-[#2C2C2E] rounded-xl border border-gray-200 dark:border-[#3A3A3C] p-6">
+                  <div class="flex items-center gap-3 mb-4">
+                    <div class="w-12 h-12 rounded-lg bg-gradient-to-br from-red-500 to-pink-500 flex items-center justify-center">
+                      <span class="text-white font-bold text-lg">小</span>
+                    </div>
+                    <div>
+                      <h3 class="font-bold text-primary dark:text-white">小红书</h3>
+                      <p class="text-xs text-red-500">未连接</p>
+                    </div>
+                  </div>
+                  <button class="w-full px-4 py-2 rounded-lg bg-brand-green text-white hover:bg-brand-green/90 transition-colors text-sm font-medium">
+                    连接账号
+                  </button>
+                </div>
+
+                <div class="bg-white dark:bg-[#2C2C2E] rounded-xl border border-gray-200 dark:border-[#3A3A3C] p-6">
+                  <div class="flex items-center gap-3 mb-4">
+                    <div class="w-12 h-12 rounded-lg bg-gradient-to-br from-pink-400 to-blue-400 flex items-center justify-center">
+                      <span class="text-white font-bold text-lg">B</span>
+                    </div>
+                    <div>
+                      <h3 class="font-bold text-primary dark:text-white">哔哩哔哩</h3>
+                      <p class="text-xs text-red-500">未连接</p>
+                    </div>
+                  </div>
+                  <button class="w-full px-4 py-2 rounded-lg bg-brand-green text-white hover:bg-brand-green/90 transition-colors text-sm font-medium">
+                    连接账号
+                  </button>
+                </div>
+
+                <div class="bg-white dark:bg-[#2C2C2E] rounded-xl border border-gray-200 dark:border-[#3A3A3C] p-6">
+                  <div class="flex items-center gap-3 mb-4">
+                    <div class="w-12 h-12 rounded-lg bg-green-500 flex items-center justify-center">
+                      <span class="text-white font-bold text-lg">视</span>
+                    </div>
+                    <div>
+                      <h3 class="font-bold text-primary dark:text-white">微信视频号</h3>
+                      <p class="text-xs text-red-500">未连接</p>
+                    </div>
+                  </div>
+                  <button class="w-full px-4 py-2 rounded-lg bg-brand-green text-white hover:bg-brand-green/90 transition-colors text-sm font-medium">
+                    连接账号
+                  </button>
+                </div>
+
+                <div class="bg-white dark:bg-[#2C2C2E] rounded-xl border border-gray-200 dark:border-[#3A3A3C] p-6">
+                  <div class="flex items-center gap-3 mb-4">
+                    <div class="w-12 h-12 rounded-lg bg-red-600 flex items-center justify-center">
+                      <span class="text-white font-bold text-lg">YT</span>
+                    </div>
+                    <div>
+                      <h3 class="font-bold text-primary dark:text-white">YouTube</h3>
+                      <p class="text-xs text-red-500">未连接</p>
+                    </div>
+                  </div>
+                  <button class="w-full px-4 py-2 rounded-lg bg-brand-green text-white hover:bg-brand-green/90 transition-colors text-sm font-medium">
+                    连接账号
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <!-- Messages Tab -->
+            <div v-else-if="publishSubTab === 'messages'">
+              <div class="max-w-6xl mx-auto">
+                <div class="flex items-center justify-between mb-6">
+                  <h2 class="text-xl font-bold text-primary dark:text-white">消息中心</h2>
+                  <button class="px-4 py-2 rounded-lg border border-gray-200 dark:border-[#3A3A3C] text-sm hover:bg-gray-50 dark:hover:bg-[#3A3A3C]">
+                    <fa :icon="['fas', 'filter']" class="mr-2" />
+                    筛选
+                  </button>
+                </div>
+                <div class="bg-white dark:bg-[#2C2C2E] rounded-lg border border-gray-200 dark:border-[#3A3A3C] p-6">
+                  <div class="text-center py-12">
+                    <fa :icon="['fas', 'envelope-open']" class="text-6xl text-gray-300 dark:text-gray-600 mb-4" />
+                    <h3 class="text-lg font-medium text-primary dark:text-white mb-2">暂无消息</h3>
+                    <p class="text-sm text-secondary dark:text-gray-400">连接平台账号后，可在此查看和管理所有平台的消息</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Violations Tab -->
+            <div v-else-if="publishSubTab === 'violations'">
+              <div class="max-w-6xl mx-auto">
+                <h2 class="text-xl font-bold text-primary dark:text-white mb-6">违禁内容管理</h2>
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
+                  <div class="bg-white dark:bg-[#2C2C2E] rounded-lg border border-gray-200 dark:border-[#3A3A3C] p-6">
+                    <div class="flex items-center justify-between mb-2">
+                      <span class="text-sm text-secondary dark:text-gray-400">违禁词库</span>
+                      <fa :icon="['fas', 'book']" class="text-red-500" />
+                    </div>
+                    <div class="text-2xl font-bold text-primary dark:text-white">0</div>
+                    <p class="text-xs text-secondary dark:text-gray-400 mt-1">个关键词</p>
+                  </div>
+                  <div class="bg-white dark:bg-[#2C2C2E] rounded-lg border border-gray-200 dark:border-[#3A3A3C] p-6">
+                    <div class="flex items-center justify-between mb-2">
+                      <span class="text-sm text-secondary dark:text-gray-400">检测次数</span>
+                      <fa :icon="['fas', 'shield-halved']" class="text-blue-500" />
+                    </div>
+                    <div class="text-2xl font-bold text-primary dark:text-white">0</div>
+                    <p class="text-xs text-secondary dark:text-gray-400 mt-1">本月检测</p>
+                  </div>
+                  <div class="bg-white dark:bg-[#2C2C2E] rounded-lg border border-gray-200 dark:border-[#3A3A3C] p-6">
+                    <div class="flex items-center justify-between mb-2">
+                      <span class="text-sm text-secondary dark:text-gray-400">拦截记录</span>
+                      <fa :icon="['fas', 'ban']" class="text-yellow-500" />
+                    </div>
+                    <div class="text-2xl font-bold text-primary dark:text-white">0</div>
+                    <p class="text-xs text-secondary dark:text-gray-400 mt-1">条内容被拦截</p>
+                  </div>
+                </div>
+                <div class="bg-white dark:bg-[#2C2C2E] rounded-lg border border-gray-200 dark:border-[#3A3A3C] p-6">
+                  <div class="flex items-center justify-between mb-4">
+                    <h3 class="text-lg font-bold text-primary dark:text-white">AI 违禁检测</h3>
+                    <button class="px-4 py-2 rounded-lg bg-brand-green text-white hover:bg-brand-green/90 transition-colors text-sm font-medium">
+                      开始检测
+                    </button>
+                  </div>
+                  <div class="text-center py-8">
+                    <fa :icon="['fas', 'robot']" class="text-4xl text-gray-300 dark:text-gray-600 mb-2" />
+                    <p class="text-sm text-secondary dark:text-gray-400">使用 AI 智能检测内容合规性</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- AI Service Tab -->
+            <div v-else-if="publishSubTab === 'aiService'">
+              <div class="max-w-6xl mx-auto">
+                <h2 class="text-xl font-bold text-primary dark:text-white mb-6">AI 智能客服</h2>
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                  <div class="bg-white dark:bg-[#2C2C2E] rounded-lg border border-gray-200 dark:border-[#3A3A3C] p-6">
+                    <h3 class="text-lg font-bold text-primary dark:text-white mb-4">自动回复设置</h3>
+                    <div class="space-y-4">
+                      <div class="flex items-center justify-between p-4 bg-gray-50 dark:bg-[#1C1C1E] rounded-lg">
+                        <div>
+                          <div class="font-medium text-primary dark:text-white">智能回复</div>
+                          <div class="text-xs text-secondary dark:text-gray-400">AI 自动回复用户消息</div>
+                        </div>
+                        <label class="relative inline-flex items-center cursor-pointer">
+                          <input type="checkbox" class="sr-only peer">
+                          <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-brand-green/20 dark:peer-focus:ring-brand-green/40 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-brand-green"></div>
+                        </label>
+                      </div>
+                      <div class="flex items-center justify-between p-4 bg-gray-50 dark:bg-[#1C1C1E] rounded-lg">
+                        <div>
+                          <div class="font-medium text-primary dark:text-white">关键词回复</div>
+                          <div class="text-xs text-secondary dark:text-gray-400">根据关键词自动回复</div>
+                        </div>
+                        <label class="relative inline-flex items-center cursor-pointer">
+                          <input type="checkbox" class="sr-only peer">
+                          <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-brand-green/20 dark:peer-focus:ring-brand-green/40 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-brand-green"></div>
+                        </label>
+                      </div>
+                    </div>
+                  </div>
+                  <div class="bg-white dark:bg-[#2C2C2E] rounded-lg border border-gray-200 dark:border-[#3A3A3C] p-6">
+                    <h3 class="text-lg font-bold text-primary dark:text-white mb-4">服务统计</h3>
+                    <div class="space-y-3">
+                      <div class="flex items-center justify-between">
+                        <span class="text-sm text-secondary dark:text-gray-400">今日回复</span>
+                        <span class="text-lg font-bold text-primary dark:text-white">0</span>
+                      </div>
+                      <div class="flex items-center justify-between">
+                        <span class="text-sm text-secondary dark:text-gray-400">平均响应时间</span>
+                        <span class="text-lg font-bold text-primary dark:text-white">--</span>
+                      </div>
+                      <div class="flex items-center justify-between">
+                        <span class="text-sm text-secondary dark:text-gray-400">用户满意度</span>
+                        <span class="text-lg font-bold text-primary dark:text-white">--</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Competitors Tab -->
+            <div v-else-if="publishSubTab === 'competitors'">
+              <div class="max-w-7xl mx-auto">
+                <div class="flex items-center justify-between mb-6">
+                  <div>
+                    <h2 class="text-xl font-bold text-primary dark:text-white">竞品分析</h2>
+                    <p class="text-sm text-secondary dark:text-gray-400 mt-1">实时监控竞品数据，AI 智能分析内容策略</p>
+                  </div>
+                  <button class="px-4 py-2 rounded-lg bg-brand-green text-white hover:bg-brand-green/90 transition-colors text-sm font-medium">
+                    <fa :icon="['fas', 'plus']" class="mr-2" />
+                    添加竞品账号
+                  </button>
+                </div>
+
+                <!-- Competitors List -->
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+                  <!-- Competitor Card 1 -->
+                  <div class="bg-white dark:bg-[#2C2C2E] rounded-lg border border-gray-200 dark:border-[#3A3A3C] p-6">
+                    <div class="flex items-start justify-between mb-4">
+                      <div class="flex items-center gap-3">
+                        <div class="w-12 h-12 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center">
+                          <span class="text-white font-bold text-lg">A</span>
+                        </div>
+                        <div>
+                          <h3 class="font-bold text-primary dark:text-white">账号A - 短剧达人</h3>
+                          <p class="text-xs text-secondary dark:text-gray-400">抖音 · 最后更新: 2小时前</p>
+                        </div>
+                      </div>
+                      <button class="text-secondary hover:text-primary dark:text-gray-400 dark:hover:text-white">
+                        <fa :icon="['fas', 'ellipsis-h']" />
+                      </button>
+                    </div>
+
+                    <div class="grid grid-cols-4 gap-3 mb-4">
+                      <div class="text-center">
+                        <div class="text-lg font-bold text-primary dark:text-white">128.5K</div>
+                        <div class="text-xs text-secondary dark:text-gray-400">粉丝</div>
+                      </div>
+                      <div class="text-center">
+                        <div class="text-lg font-bold text-primary dark:text-white">2.3M</div>
+                        <div class="text-xs text-secondary dark:text-gray-400">获赞</div>
+                      </div>
+                      <div class="text-center">
+                        <div class="text-lg font-bold text-primary dark:text-white">156</div>
+                        <div class="text-xs text-secondary dark:text-gray-400">作品</div>
+                      </div>
+                      <div class="text-center">
+                        <div class="text-lg font-bold text-green-500">+12.3%</div>
+                        <div class="text-xs text-secondary dark:text-gray-400">增长率</div>
+                      </div>
+                    </div>
+
+                    <div class="flex items-center gap-2">
+                      <button class="flex-1 px-3 py-2 rounded-lg border border-gray-200 dark:border-[#3A3A3C] text-sm hover:bg-gray-50 dark:hover:bg-[#3A3A3C] transition-colors">
+                        查看详情
+                      </button>
+                      <button class="flex-1 px-3 py-2 rounded-lg bg-brand-green/10 text-brand-green text-sm hover:bg-brand-green/20 transition-colors">
+                        AI 分析
+                      </button>
+                    </div>
+                  </div>
+
+                  <!-- Competitor Card 2 -->
+                  <div class="bg-white dark:bg-[#2C2C2E] rounded-lg border border-gray-200 dark:border-[#3A3A3C] p-6">
+                    <div class="flex items-start justify-between mb-4">
+                      <div class="flex items-center gap-3">
+                        <div class="w-12 h-12 rounded-full bg-gradient-to-br from-blue-500 to-cyan-500 flex items-center justify-center">
+                          <span class="text-white font-bold text-lg">B</span>
+                        </div>
+                        <div>
+                          <h3 class="font-bold text-primary dark:text-white">账号B - 剧情创作</h3>
+                          <p class="text-xs text-secondary dark:text-gray-400">快手 · 最后更新: 5小时前</p>
+                        </div>
+                      </div>
+                      <button class="text-secondary hover:text-primary dark:text-gray-400 dark:hover:text-white">
+                        <fa :icon="['fas', 'ellipsis-h']" />
+                      </button>
+                    </div>
+
+                    <div class="grid grid-cols-4 gap-3 mb-4">
+                      <div class="text-center">
+                        <div class="text-lg font-bold text-primary dark:text-white">95.2K</div>
+                        <div class="text-xs text-secondary dark:text-gray-400">粉丝</div>
+                      </div>
+                      <div class="text-center">
+                        <div class="text-lg font-bold text-primary dark:text-white">1.8M</div>
+                        <div class="text-xs text-secondary dark:text-gray-400">获赞</div>
+                      </div>
+                      <div class="text-center">
+                        <div class="text-lg font-bold text-primary dark:text-white">203</div>
+                        <div class="text-xs text-secondary dark:text-gray-400">作品</div>
+                      </div>
+                      <div class="text-center">
+                        <div class="text-lg font-bold text-green-500">+8.7%</div>
+                        <div class="text-xs text-secondary dark:text-gray-400">增长率</div>
+                      </div>
+                    </div>
+
+                    <div class="flex items-center gap-2">
+                      <button class="flex-1 px-3 py-2 rounded-lg border border-gray-200 dark:border-[#3A3A3C] text-sm hover:bg-gray-50 dark:hover:bg-[#3A3A3C] transition-colors">
+                        查看详情
+                      </button>
+                      <button class="flex-1 px-3 py-2 rounded-lg bg-brand-green/10 text-brand-green text-sm hover:bg-brand-green/20 transition-colors">
+                        AI 分析
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Data Comparison -->
+                <div class="bg-white dark:bg-[#2C2C2E] rounded-lg border border-gray-200 dark:border-[#3A3A3C] p-6 mb-6">
+                  <div class="flex items-center justify-between mb-4">
+                    <h3 class="text-lg font-bold text-primary dark:text-white">数据对比</h3>
+                    <div class="flex items-center gap-2">
+                      <button class="px-3 py-1.5 rounded-lg text-xs border border-gray-200 dark:border-[#3A3A3C] hover:bg-gray-50 dark:hover:bg-[#3A3A3C]">
+                        7天
+                      </button>
+                      <button class="px-3 py-1.5 rounded-lg text-xs bg-brand-green text-white">
+                        30天
+                      </button>
+                      <button class="px-3 py-1.5 rounded-lg text-xs border border-gray-200 dark:border-[#3A3A3C] hover:bg-gray-50 dark:hover:bg-[#3A3A3C]">
+                        90天
+                      </button>
+                    </div>
+                  </div>
+
+                  <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <div class="text-center p-4 bg-gray-50 dark:bg-[#1C1C1E] rounded-lg">
+                      <div class="text-sm text-secondary dark:text-gray-400 mb-2">平均播放量</div>
+                      <div class="text-2xl font-bold text-primary dark:text-white mb-1">45.2K</div>
+                      <div class="text-xs text-green-500">↑ 15.3% vs 我的账号</div>
+                    </div>
+                    <div class="text-center p-4 bg-gray-50 dark:bg-[#1C1C1E] rounded-lg">
+                      <div class="text-sm text-secondary dark:text-gray-400 mb-2">平均互动率</div>
+                      <div class="text-2xl font-bold text-primary dark:text-white mb-1">8.5%</div>
+                      <div class="text-xs text-red-500">↓ 2.1% vs 我的账号</div>
+                    </div>
+                    <div class="text-center p-4 bg-gray-50 dark:bg-[#1C1C1E] rounded-lg">
+                      <div class="text-sm text-secondary dark:text-gray-400 mb-2">发布频率</div>
+                      <div class="text-2xl font-bold text-primary dark:text-white mb-1">3.2/天</div>
+                      <div class="text-xs text-green-500">↑ 0.8 vs 我的账号</div>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- AI Insights -->
+                <div class="bg-gradient-to-br from-brand-green/10 to-blue-500/10 dark:from-brand-green/20 dark:to-blue-500/20 rounded-lg border border-brand-green/20 p-6">
+                  <div class="flex items-start gap-3">
+                    <div class="w-10 h-10 rounded-full bg-brand-green flex items-center justify-center flex-shrink-0">
+                      <fa :icon="['fas', 'robot']" class="text-white" />
+                    </div>
+                    <div class="flex-1">
+                      <h3 class="font-bold text-primary dark:text-white mb-2">AI 智能洞察</h3>
+                      <div class="space-y-2 text-sm text-secondary dark:text-gray-300">
+                        <p>• <strong>内容策略:</strong> 竞品账号更倾向于发布情感类短剧,平均时长 2-3 分钟,互动率较高</p>
+                        <p>• <strong>发布时间:</strong> 主要集中在晚上 8-10 点,周末发布频率提升 40%</p>
+                        <p>• <strong>热门话题:</strong> #都市情感 #霸道总裁 #逆袭 等标签使用频率最高</p>
+                        <p>• <strong>建议:</strong> 可以尝试增加情感类内容占比,优化发布时间至晚间黄金时段</p>
+                      </div>
+                      <button class="mt-4 px-4 py-2 rounded-lg bg-brand-green text-white text-sm hover:bg-brand-green/90 transition-colors">
+                        查看完整分析报告
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
       </main>
     </div>

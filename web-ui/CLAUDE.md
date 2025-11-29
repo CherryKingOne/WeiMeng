@@ -110,9 +110,10 @@ npm run preview
 - `'storyboard'` - AI 分镜生成
 - `'video'` - 视频编辑时间轴
 - `'files'` - 剧本文件管理
-- `'video-assets'` - 视频素材管理
-- `'audio-assets'` - 音频素材管理
-- `'novel-analysis'` - 章节分析配置
+- `'videoAssets'` - 视频素材管理
+- `'audioAssets'` - 音频素材管理
+- `'novelAnalysis'` - 章节分析配置
+- `'publish'` - 多平台发布管理
 
 **剧本标签** (`activeTab === 'script'`):
 - 通过 `scriptMode` ref 三种模式:'selection'、'upload'、'write'
@@ -179,7 +180,7 @@ npm run preview
 - 向导状态: `extractStep`(1-7),`selectAll` 用于批量选择,`roleEditing`/`roleDetailsOpen` reactive 对象
 - 风格选择: `styleKind`/`sceneStyleKind`('2d'/'live'),`selectedCharacterStyle`/`selectedSceneStyle`
 
-**章节分析标签** (`activeTab === 'novel-analysis'`):
+**章节分析标签** (`activeTab === 'novelAnalysis'`):
 - 分析配置模态框,包含四个子标签:
   - `'visual'` - 风格配置(2D Anime/Realistic)和语言选择(English/Chinese)
   - `'prompt'` - 提示词配置,支持预设/自定义两种类型
@@ -191,6 +192,104 @@ npm run preview
   - `'json'` - JSON 预览,显示处理结果(默认为空)
 - `analysisConfig` ref 存储配置: style, language, promptType, tab, systemPrompt 等
 - 预设提示词通过 `getPresetPrompt()` 函数生成,匹配分析结果的输出格式
+
+**多平台发布管理标签** (`activeTab === 'publish'`):
+多平台发布管理是一个企业级的数据仪表板,参考巨量引擎设计,包含完整的平台管理、数据分析和AI辅助功能。
+
+**子标签系统**: `publishSubTab` ref 在以下子标签间切换:
+- `'overview'` - 数据概览(默认)
+- `'platforms'` - 平台管理
+- `'messages'` - 消息中心
+- `'violations'` - 违禁管理
+- `'aiService'` - AI 客服
+- `'competitors'` - 竞品分析
+
+**数据概览子标签** (`publishSubTab === 'overview'`):
+- 关键指标卡片(4个):
+  - 总播放量 - 蓝色眼睛图标
+  - 总点赞数 - 红色心形图标
+  - 总评论数 - 黄色评论图标
+  - 总分享数 - 紫色分享图标
+  - 每个卡片显示: 当前数值、较昨日增长百分比、彩色图标
+- 平台连接状态面板(左侧,占2/3宽度):
+  - 紧凑的平台卡片网格(2x3布局)
+  - 支持的平台: 抖音、快手、小红书、哔哩哔哩、视频号、YouTube
+  - 每个平台显示: 品牌图标、平台名称、连接状态(未连接/已连接)
+- AI 分析管家面板(右侧,占1/3宽度):
+  - 数据观测 - 实时标签
+  - 智能建议 - Beta标签
+  - 趋势预测 - AI标签
+- 最近动态面板 - 显示平台活动和通知
+- 快捷操作面板(4个按钮):
+  - 发布视频 - 品牌绿色上传图标
+  - 查看数据 - 蓝色图表图标
+  - 消息管理 - 黄色消息图标
+  - 违禁检测 - 红色盾牌图标
+
+**平台管理子标签** (`publishSubTab === 'platforms'`):
+- 6个平台的详细卡片展示(3列网格布局)
+- 每个平台卡片包含:
+  - 平台品牌图标(渐变背景)
+  - 平台名称和连接状态
+  - "连接账号"操作按钮
+- 支持的平台及其视觉标识:
+  - 抖音: 黑色背景,白色"抖"字
+  - 快手: 橙红渐变背景,白色"快"字
+  - 小红书: 红粉渐变背景,白色"小"字
+  - 哔哩哔哩: 粉蓝渐变背景,白色"B"字
+  - 微信视频号: 绿色背景,白色"视"字
+  - YouTube: 红色背景,白色"YT"字
+
+**消息中心子标签** (`publishSubTab === 'messages'`):
+- 页面标题和筛选按钮
+- 空状态提示: 信封图标 + 引导文案
+- 功能说明: "连接平台账号后，可在此查看和管理所有平台的消息"
+
+**违禁管理子标签** (`publishSubTab === 'violations'`):
+- 统计卡片(3个):
+  - 违禁词库 - 红色书本图标,显示关键词数量
+  - 检测次数 - 蓝色盾牌图标,显示本月检测次数
+  - 拦截记录 - 黄色禁止图标,显示被拦截内容数
+- AI 违禁检测功能区:
+  - 标题和"开始检测"按钮
+  - 机器人图标 + 功能说明
+  - 使用说明: "使用 AI 智能检测内容合规性"
+
+**AI 客服子标签** (`publishSubTab === 'aiService'`):
+- 自动回复设置面板(左侧):
+  - 智能回复开关 - "AI 自动回复用户消息"
+  - 关键词回复开关 - "根据关键词自动回复"
+  - 使用 Tailwind CSS peer 类实现的切换开关组件
+- 服务统计面板(右侧):
+  - 今日回复数
+  - 平均响应时间
+  - 用户满意度
+  - 数据以大号字体显示,未连接时显示 "--"
+
+**竞品分析子标签** (`publishSubTab === 'competitors'`):
+- 页面标题和"添加竞品账号"按钮
+- 空状态引导:
+  - 图表线条图标
+  - 标题: "开始竞品分析"
+  - 说明: "添加竞品账号，AI 将自动分析其内容策略和数据表现"
+  - CTA按钮: "添加第一个竞品"
+
+**状态管理**:
+- `publishSubTab` ref - 跟踪当前激活的子标签页
+- `switchPublishSubTab(subTab)` - 切换子标签页的函数
+- 标签按钮使用动态 class 绑定:
+  - 激活状态: `border-brand-green text-brand-green`
+  - 未激活状态: `border-transparent text-secondary hover:text-primary`
+
+**UI/UX 特点**:
+- 专业的企业级数据仪表板设计
+- 清晰的信息层级和视觉分组
+- 紧凑的布局充分利用空间
+- 完整的深色模式支持
+- 响应式网格布局(移动端/平板/桌面)
+- 友好的空状态设计和引导文案
+- 平滑的过渡动画和交互反馈
+- 统一的品牌色(brand-green)和视觉语言
 
 **关键模式**:
 - 使用 DOM 测量和镜像 div 技术的光标定位 AI 对话框
