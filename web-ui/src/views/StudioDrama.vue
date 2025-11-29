@@ -163,46 +163,164 @@ const presetSystemPrompt = `# Role: AIGC 影视级分镜导演 & 提示词专家
 ### <Phase_2: Storyboard_Generation> (脚本生成)
 按照用户指定的表格格式输出。
 
-**表格填写指南：**
-*   **时常**：每个镜头的时长需合理，打斗动作可设置为 2s-3s，环境渲染可设置为 5s-8s。
-*   **画面内容**：不仅仅复述小说，要描写画面构成（例："镜头低角度仰拍，主角的靴子踏碎地面的水洼，水花四溅，背景是燃烧的废墟"）。
-*   **文生图提示词**：英文编写，结构为 \`(Subject description), (Environment), (Lighting), (Style modifiers), (Technical params)\`。
-*   **图生视频提示词**：英文编写，侧重动作幅度描述。
+**分镜填写指南：**
+*   **时长 (duration)**：每个镜头的时长需合理，打斗动作可设置为 2-3 秒，环境渲染可设置为 5-8 秒。
+*   **画面内容 (visualContent)**：不仅仅复述小说，要描写画面构成（例："镜头低角度仰拍，主角的靴子踏碎地面的水洼，水花四溅，背景是燃烧的废墟"）。
+*   **文生图提示词 (text2imgPrompt)**：
+    *   positive: 数组格式，包含主体描述、环境、光照、风格修饰词、技术参数
+    *   negative: 数组格式，包含需要避免的元素（如 "低质量:1.4", "模糊", "变形", "丑陋", "水印"）
+*   **图生视频提示词 (img2videoPrompt)**：
+    *   positive: 数组格式，描述具体的运动指令和动作
+    *   negative: 数组格式，包含需要避免的运动效果（如 "静止", "模糊", "抖动", "变形"）
 
 ## Output Format (输出格式)
 
-**⚠️ 重要：必须严格按照以下表格格式输出，不得遗漏任何列，不得修改列的顺序和名称！**
+**⚠️ 重要：必须严格按照以下 JSON 格式输出，不得遗漏任何字段！**
 
-请严格使用以下 Markdown 表格格式：
+**输出步骤：**
+1. 首先输出 Phase 1 的人物与场景设定分析（Markdown 格式）
+2. 然后输出完整的 JSON 格式分镜脚本
 
-### [小说标题/章节] - AIGC 深度分镜脚本
+**JSON 格式要求：**
 
-**(在此处先输出 Phase 1 的人物与场景设定分析)**
+\`\`\`json
+{
+  "title": "[小说标题/章节] - AIGC 深度分镜脚本",
+  "shots": [
+    {
+      "id": 1,
+      "shotType": "全景",
+      "cameraMove": "推镜",
+      "visualContent": "夕阳下的城市天际线，车流形成光轨",
+      "audio": "底噪城市环境声＋轻微风声",
+      "duration": 3,
+      "remark": "需匹配片头 LOGO 出现节奏",
+      "text2imgPrompt": {
+        "positive": [
+          "夕阳下的城市天际线",
+          "车流光轨",
+          "暖色高光，胶片质感",
+          "8K, ultra sharp, cinematic"
+        ],
+        "negative": [
+          "低质量:1.4",
+          "模糊",
+          "变形",
+          "丑陋",
+          "水印"
+        ]
+      },
+      "img2videoPrompt": {
+        "positive": [
+          "镜头缓慢推近",
+          "车流光轨移动",
+          "云层微动"
+        ],
+        "negative": [
+          "静止",
+          "模糊",
+          "抖动",
+          "变形"
+        ]
+      },
+      "generatedImage": "",
+      "generatedVideo": "",
+      "description": "夕阳下的城市全景，车流光轨交织，镜头缓慢推近，营造宏大开场氛围"
+    },
+    {
+      "id": 2,
+      "shotType": "特写",
+      "cameraMove": "固定",
+      "visualContent": "主角眼睛特写，瞳孔中映出城市灯光",
+      "audio": "心跳声＋低频环境音",
+      "duration": 2,
+      "remark": "强调主角内心状态",
+      "text2imgPrompt": {
+        "positive": [
+          "anime style character close-up",
+          "detailed eyes reflecting city lights",
+          "dramatic lighting",
+          "cinematic composition",
+          "8K, high detail"
+        ],
+        "negative": [
+          "low quality:1.4",
+          "blurry",
+          "deformed eyes",
+          "ugly"
+        ]
+      },
+      "img2videoPrompt": {
+        "positive": [
+          "subtle eye movement",
+          "light reflection shifting",
+          "slow blink"
+        ],
+        "negative": [
+          "static",
+          "no movement",
+          "blurred"
+        ]
+      },
+      "generatedImage": "",
+      "generatedVideo": "",
+      "description": "主角眼睛特写，瞳孔中映出城市灯光，表现内心的决心与渴望"
+    }
+  ]
+}
+\`\`\`
 
-| 镜号 | 景别 | 运镜 | 画面内容 | 音频 | 时长 | 备注 | 文生图提示词 | 图生视频提示词 | 生成图片 | 生成视频 | 画面描述 |
-| :---: | :---: | :---: | :--- | :--- | :---: | :--- | :--- | :--- | :--- | :--- | :--- |
-| **01** | [景别] | [运镜] | [画面内容] | [音频] | [时长] | [备注] | **正向：** [English Prompts...]<br><br>**反向：** (low quality:1.4), deformed, ugly... | **正向：** [Motion Prompts...]<br><br>**反向：** static, blurred... | | | |
-| **02** | [景别] | [运镜] | [画面内容] | [音频] | [时长] | [备注] | **正向：** [English Prompts...]<br><br>**反向：** (low quality:1.4), deformed, ugly... | **正向：** [Motion Prompts...]<br><br>**反向：** static, blurred... | | | |
-| ... | ... | ... | ... | ... | ... | ... | ... | ... | | | |
-
-**表格列说明（必须包含所有12列）：**
-1. **镜号**：分镜编号（01, 02, 03...）
-2. **景别**：远景/全景/中景/特写/大特写
-3. **运镜**：推/拉/摇/移/跟/升降/固定等
-4. **画面内容**：详细的画面描述
-5. **音频**：对白/音效/背景音乐
-6. **时长**：该镜头时长（如 3s, 5s）
-7. **备注**：补充说明
-8. **文生图提示词**：包含正向和反向提示词
-9. **图生视频提示词**：包含正向和反向提示词
-10. **生成图片**：留空（用于后续填充）
-11. **生成视频**：留空（用于后续填充）
-12. **画面描述**：留空（用于后续填充）
+**JSON 字段说明：**
+- **title**: 脚本标题
+- **shots**: 分镜数组，包含所有镜头
+  - **id**: 镜头编号（从 1 开始递增）
+  - **shotType**: 景别（远景/全景/中景/特写/大特写）
+  - **cameraMove**: 运镜方式（推/拉/摇/移/跟/升降/固定/希区柯克变焦等）
+  - **visualContent**: 详细的画面内容描述
+  - **audio**: 音频描述（对白/音效/背景音乐）
+  - **duration**: 镜头时长（秒）
+  - **remark**: 备注说明
+  - **text2imgPrompt**: 文生图提示词对象
+    - **positive**: 正向提示词数组（英文）
+    - **negative**: 反向提示词数组（英文）
+  - **img2videoPrompt**: 图生视频提示词对象
+    - **positive**: 正向运动提示词数组（英文）
+    - **negative**: 反向运动提示词数组（英文）
+  - **generatedImage**: 生成的图片 URL（留空）
+  - **generatedVideo**: 生成的视频 URL（留空）
+  - **description**: 镜头的整体描述
 
 ---`
 
 // Result Preview Modal
 const showResultPreviewModal = ref(false)
+
+// View Mode Toggle (JSON or Table)
+const resultViewMode = ref('markdown') // 'markdown' or 'table'
+
+// Parse JSON from analysis result
+const parsedJsonData = computed(() => {
+  if (!analysisResult.value) return null
+
+  try {
+    // Try to extract JSON from markdown code blocks
+    const jsonMatch = analysisResult.value.match(/```json\s*([\s\S]*?)\s*```/)
+    if (jsonMatch) {
+      const parsed = JSON.parse(jsonMatch[1])
+      console.log('【JSON解析】成功解析 JSON:', parsed)
+      return parsed
+    }
+
+    // Try to parse the entire result as JSON
+    const parsed = JSON.parse(analysisResult.value)
+    console.log('【JSON解析】成功解析完整 JSON:', parsed)
+    return parsed
+  } catch (e) {
+    console.log('【JSON解析】无法解析 JSON:', e)
+    console.log('【JSON解析】原始内容:', analysisResult.value.substring(0, 500))
+    return null
+  }
+})
 
 // Rendered Markdown
 const renderedMarkdown = computed(() => {
@@ -3529,16 +3647,43 @@ watch(activeTab, (newTab) => {
 
           <!-- Right Sidebar: Analysis Results -->
           <div class="w-96 flex-shrink-0 bg-white dark:bg-[#2C2C2E] rounded-xl border border-gray-200 dark:border-[#3A3A3C] overflow-hidden flex flex-col">
-            <div class="p-4 border-b border-gray-200 dark:border-[#3A3A3C] flex items-center justify-between">
-              <h2 class="text-lg font-bold text-primary dark:text-gray-200">运行结果</h2>
-              <button
-                v-if="analysisResult.length > 0"
-                @click="showResultPreviewModal = true"
-                class="p-2 hover:bg-gray-100 dark:hover:bg-[#3A3A3C] rounded-lg transition"
-                title="全屏查看"
-              >
-                <fa :icon="['fas', 'arrow-up-right-from-square']" class="text-gray-500 dark:text-gray-400" />
-              </button>
+            <div class="p-4 border-b border-gray-200 dark:border-[#3A3A3C]">
+              <div class="flex items-center justify-between mb-3">
+                <h2 class="text-lg font-bold text-primary dark:text-gray-200">运行结果</h2>
+                <button
+                  @click="showResultPreviewModal = true"
+                  class="p-2 hover:bg-gray-100 dark:hover:bg-[#3A3A3C] rounded-lg transition"
+                  :class="!analysisResult ? 'opacity-50 cursor-not-allowed' : ''"
+                  :disabled="!analysisResult"
+                  title="全屏查看"
+                >
+                  <fa :icon="['fas', 'arrow-up-right-from-square']" class="text-gray-500 dark:text-gray-400" />
+                </button>
+              </div>
+
+              <!-- View Mode Toggle -->
+              <div class="flex items-center gap-2 bg-gray-100 dark:bg-[#1C1C1E] rounded-lg p-1">
+                <button
+                  @click="resultViewMode = 'markdown'"
+                  class="flex-1 px-3 py-1.5 rounded-md text-xs font-medium transition"
+                  :class="resultViewMode === 'markdown'
+                    ? 'bg-white dark:bg-[#2C2C2E] text-gray-900 dark:text-gray-100 shadow-sm'
+                    : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200'"
+                >
+                  <fa :icon="['fas', 'file-lines']" class="mr-1.5" />
+                  Markdown
+                </button>
+                <button
+                  @click="resultViewMode = 'table'"
+                  class="flex-1 px-3 py-1.5 rounded-md text-xs font-medium transition"
+                  :class="resultViewMode === 'table'
+                    ? 'bg-white dark:bg-[#2C2C2E] text-gray-900 dark:text-gray-100 shadow-sm'
+                    : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200'"
+                >
+                  <fa :icon="['fas', 'table']" class="mr-1.5" />
+                  表格
+                </button>
+              </div>
             </div>
 
             <!-- Loading State (only show when no content yet) -->
@@ -3568,13 +3713,106 @@ watch(activeTab, (newTab) => {
 
             <!-- Result Display (with streaming indicator) -->
             <div v-else class="flex-1 overflow-y-auto p-6">
-              <div class="prose prose-sm dark:prose-invert max-w-none prose-headings:font-bold prose-h1:text-2xl prose-h2:text-xl prose-h3:text-lg prose-table:text-xs prose-pre:bg-gray-100 dark:prose-pre:bg-gray-800 prose-code:text-brand-green prose-code:bg-gray-100 dark:prose-code:bg-gray-800 prose-code:px-1 prose-code:py-0.5 prose-code:rounded markdown-content">
+              <!-- Markdown View -->
+              <div v-if="resultViewMode === 'markdown'" class="prose prose-sm dark:prose-invert max-w-none prose-headings:font-bold prose-h1:text-2xl prose-h2:text-xl prose-h3:text-lg prose-table:text-xs prose-pre:bg-gray-100 dark:prose-pre:bg-gray-800 prose-code:text-brand-green prose-code:bg-gray-100 dark:prose-code:bg-gray-800 prose-code:px-1 prose-code:py-0.5 prose-code:rounded markdown-content">
                 <div v-html="renderedMarkdown"></div>
                 <!-- Streaming indicator -->
                 <div v-if="isAnalyzing" class="flex items-center gap-2 mt-3 text-brand-green not-prose">
                   <fa :icon="['fas', 'circle-dot']" class="animate-pulse text-xs" />
                   <span class="text-xs">正在生成中...</span>
                 </div>
+              </div>
+
+              <!-- Table View -->
+              <div v-else-if="resultViewMode === 'table'" class="space-y-4">
+                <!-- JSON Parse Error -->
+                <div v-if="!parsedJsonData" class="p-4 rounded-lg bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800">
+                  <div class="flex items-start gap-2">
+                    <fa :icon="['fas', 'triangle-exclamation']" class="text-yellow-500 mt-0.5" />
+                    <div class="flex-1">
+                      <h4 class="font-bold text-sm text-yellow-700 dark:text-yellow-400 mb-1">无法解析为表格</h4>
+                      <p class="text-xs text-yellow-600 dark:text-yellow-300">当前内容无法解析为 JSON 格式，请确保 AI 输出了正确的 JSON 格式数据。</p>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- No Shots Data -->
+                <div v-else-if="!parsedJsonData.shots || parsedJsonData.shots.length === 0" class="p-4 rounded-lg bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800">
+                  <div class="flex items-start gap-2">
+                    <fa :icon="['fas', 'triangle-exclamation']" class="text-yellow-500 mt-0.5" />
+                    <div class="flex-1">
+                      <h4 class="font-bold text-sm text-yellow-700 dark:text-yellow-400 mb-1">没有分镜数据</h4>
+                      <p class="text-xs text-yellow-600 dark:text-yellow-300">JSON 中没有找到 shots 数组数据。</p>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Table Content -->
+                <template v-else>
+                  <div v-if="parsedJsonData.title" class="mb-4">
+                    <h3 class="text-lg font-bold text-gray-900 dark:text-gray-100">{{ parsedJsonData.title }}</h3>
+                  </div>
+
+                  <!-- Table -->
+                  <div class="overflow-x-auto">
+                  <table class="w-full text-xs border-collapse">
+                    <thead>
+                      <tr class="bg-gray-100 dark:bg-[#1C1C1E]">
+                        <th class="border border-gray-300 dark:border-gray-600 px-2 py-2 text-center font-semibold">镜号</th>
+                        <th class="border border-gray-300 dark:border-gray-600 px-2 py-2 text-center font-semibold">景别</th>
+                        <th class="border border-gray-300 dark:border-gray-600 px-2 py-2 text-center font-semibold">运镜</th>
+                        <th class="border border-gray-300 dark:border-gray-600 px-2 py-2 text-left font-semibold">画面内容</th>
+                        <th class="border border-gray-300 dark:border-gray-600 px-2 py-2 text-left font-semibold">音频</th>
+                        <th class="border border-gray-300 dark:border-gray-600 px-2 py-2 text-center font-semibold">时长</th>
+                        <th class="border border-gray-300 dark:border-gray-600 px-2 py-2 text-left font-semibold">备注</th>
+                        <th class="border border-gray-300 dark:border-gray-600 px-2 py-2 text-left font-semibold">文生图提示词</th>
+                        <th class="border border-gray-300 dark:border-gray-600 px-2 py-2 text-left font-semibold">图生视频提示词</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr v-for="shot in parsedJsonData.shots" :key="shot.id" class="hover:bg-gray-50 dark:hover:bg-[#2C2C2E]">
+                        <td class="border border-gray-300 dark:border-gray-600 px-2 py-2 text-center font-bold">{{ shot.id }}</td>
+                        <td class="border border-gray-300 dark:border-gray-600 px-2 py-2 text-center">{{ shot.shotType }}</td>
+                        <td class="border border-gray-300 dark:border-gray-600 px-2 py-2 text-center">{{ shot.cameraMove }}</td>
+                        <td class="border border-gray-300 dark:border-gray-600 px-2 py-2">{{ shot.visualContent }}</td>
+                        <td class="border border-gray-300 dark:border-gray-600 px-2 py-2">{{ shot.audio }}</td>
+                        <td class="border border-gray-300 dark:border-gray-600 px-2 py-2 text-center">{{ shot.duration }}s</td>
+                        <td class="border border-gray-300 dark:border-gray-600 px-2 py-2">{{ shot.remark }}</td>
+                        <td class="border border-gray-300 dark:border-gray-600 px-2 py-2">
+                          <div class="space-y-1">
+                            <div v-if="shot.text2imgPrompt && shot.text2imgPrompt.positive">
+                              <strong class="text-green-600 dark:text-green-400">正向：</strong>
+                              <div class="text-gray-700 dark:text-gray-300">{{ shot.text2imgPrompt.positive.join(', ') }}</div>
+                            </div>
+                            <div v-if="shot.text2imgPrompt && shot.text2imgPrompt.negative">
+                              <strong class="text-red-600 dark:text-red-400">反向：</strong>
+                              <div class="text-gray-700 dark:text-gray-300">{{ shot.text2imgPrompt.negative.join(', ') }}</div>
+                            </div>
+                          </div>
+                        </td>
+                        <td class="border border-gray-300 dark:border-gray-600 px-2 py-2">
+                          <div class="space-y-1">
+                            <div v-if="shot.img2videoPrompt && shot.img2videoPrompt.positive">
+                              <strong class="text-green-600 dark:text-green-400">正向：</strong>
+                              <div class="text-gray-700 dark:text-gray-300">{{ shot.img2videoPrompt.positive.join(', ') }}</div>
+                            </div>
+                            <div v-if="shot.img2videoPrompt && shot.img2videoPrompt.negative">
+                              <strong class="text-red-600 dark:text-red-400">反向：</strong>
+                              <div class="text-gray-700 dark:text-gray-300">{{ shot.img2videoPrompt.negative.join(', ') }}</div>
+                            </div>
+                          </div>
+                        </td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+
+                  <!-- Streaming indicator -->
+                  <div v-if="isAnalyzing" class="flex items-center gap-2 mt-3 text-brand-green">
+                    <fa :icon="['fas', 'circle-dot']" class="animate-pulse text-xs" />
+                    <span class="text-xs">正在生成中...</span>
+                  </div>
+                </template>
               </div>
             </div>
           </div>
@@ -4482,28 +4720,150 @@ watch(activeTab, (newTab) => {
           @click.stop
         >
           <!-- Header -->
-          <div class="flex items-center justify-between px-6 py-4 border-b border-gray-200 dark:border-[#3A3A3C]">
-            <div class="flex items-center gap-3">
-              <div class="w-10 h-10 rounded-lg bg-brand-green/10 flex items-center justify-center">
-                <fa :icon="['fas', 'file-lines']" class="text-brand-green text-lg" />
+          <div class="px-6 py-4 border-b border-gray-200 dark:border-[#3A3A3C]">
+            <div class="flex items-center justify-between mb-4">
+              <div class="flex items-center gap-3">
+                <div class="w-10 h-10 rounded-lg bg-brand-green/10 flex items-center justify-center">
+                  <fa :icon="['fas', 'file-lines']" class="text-brand-green text-lg" />
+                </div>
+                <div>
+                  <h3 class="text-lg font-bold text-primary dark:text-gray-200">运行结果</h3>
+                  <p class="text-xs text-secondary dark:text-gray-400">AI 生成的完整内容</p>
+                </div>
               </div>
-              <div>
-                <h3 class="text-lg font-bold text-primary dark:text-gray-200">运行结果</h3>
-                <p class="text-xs text-secondary dark:text-gray-400">AI 生成的完整内容</p>
-              </div>
+              <button
+                @click="showResultPreviewModal = false"
+                class="p-2 hover:bg-gray-100 dark:hover:bg-[#3A3A3C] rounded-lg transition"
+              >
+                <fa :icon="['fas', 'xmark']" class="text-gray-400" />
+              </button>
             </div>
-            <button
-              @click="showResultPreviewModal = false"
-              class="p-2 hover:bg-gray-100 dark:hover:bg-[#3A3A3C] rounded-lg transition"
-            >
-              <fa :icon="['fas', 'xmark']" class="text-gray-400" />
-            </button>
+
+            <!-- View Mode Toggle -->
+            <div class="flex items-center justify-between">
+              <div class="flex items-center gap-2 bg-gray-100 dark:bg-[#1C1C1E] rounded-lg p-1 w-80">
+                <button
+                  @click="resultViewMode = 'markdown'"
+                  class="flex-1 px-3 py-1.5 rounded-md text-xs font-medium transition"
+                  :class="resultViewMode === 'markdown'
+                    ? 'bg-white dark:bg-[#2C2C2E] text-gray-900 dark:text-gray-100 shadow-sm'
+                    : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200'"
+                >
+                  <fa :icon="['fas', 'file-lines']" class="mr-1.5" />
+                  Markdown
+                </button>
+                <button
+                  @click="resultViewMode = 'table'"
+                  class="flex-1 px-3 py-1.5 rounded-md text-xs font-medium transition"
+                  :class="resultViewMode === 'table'
+                    ? 'bg-white dark:bg-[#2C2C2E] text-gray-900 dark:text-gray-100 shadow-sm'
+                    : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200'"
+                >
+                  <fa :icon="['fas', 'table']" class="mr-1.5" />
+                  表格
+                </button>
+              </div>
+              <button
+                v-if="resultViewMode === 'table' && parsedJsonData && parsedJsonData.shots"
+                class="px-4 py-1.5 bg-brand-green text-white rounded-lg text-xs font-medium hover:bg-brand-green-dark transition"
+              >
+                <fa :icon="['fas', 'check']" class="mr-1.5" />
+                应用
+              </button>
+            </div>
           </div>
 
           <!-- Content -->
           <div class="flex-1 overflow-y-auto p-8">
-            <div class="prose prose-sm dark:prose-invert max-w-none prose-headings:font-bold prose-h1:text-2xl prose-h2:text-xl prose-h3:text-lg prose-table:text-xs prose-pre:bg-gray-100 dark:prose-pre:bg-gray-800 prose-code:text-brand-green prose-code:bg-gray-100 dark:prose-code:bg-gray-800 prose-code:px-1 prose-code:py-0.5 prose-code:rounded markdown-content">
+            <!-- Markdown View -->
+            <div v-if="resultViewMode === 'markdown'" class="prose prose-sm dark:prose-invert max-w-none prose-headings:font-bold prose-h1:text-2xl prose-h2:text-xl prose-h3:text-lg prose-table:text-xs prose-pre:bg-gray-100 dark:prose-pre:bg-gray-800 prose-code:text-brand-green prose-code:bg-gray-100 dark:prose-code:bg-gray-800 prose-code:px-1 prose-code:py-0.5 prose-code:rounded markdown-content">
               <div v-html="renderedMarkdown"></div>
+            </div>
+
+            <!-- Table View -->
+            <div v-else-if="resultViewMode === 'table'">
+              <!-- JSON Parse Error -->
+              <div v-if="!parsedJsonData" class="p-4 rounded-lg bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800">
+                <div class="flex items-start gap-2">
+                  <fa :icon="['fas', 'triangle-exclamation']" class="text-yellow-500 mt-0.5" />
+                  <div class="flex-1">
+                    <h4 class="font-bold text-sm text-yellow-700 dark:text-yellow-400 mb-1">无法解析为表格</h4>
+                    <p class="text-xs text-yellow-600 dark:text-yellow-300">当前内容无法解析为 JSON 格式，请确保 AI 输出了正确的 JSON 格式数据。</p>
+                  </div>
+                </div>
+              </div>
+
+              <!-- No Shots Data -->
+              <div v-else-if="!parsedJsonData.shots || parsedJsonData.shots.length === 0" class="p-4 rounded-lg bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800">
+                <div class="flex items-start gap-2">
+                  <fa :icon="['fas', 'triangle-exclamation']" class="text-yellow-500 mt-0.5" />
+                  <div class="flex-1">
+                    <h4 class="font-bold text-sm text-yellow-700 dark:text-yellow-400 mb-1">没有分镜数据</h4>
+                    <p class="text-xs text-yellow-600 dark:text-yellow-300">JSON 中没有找到 shots 数组数据。</p>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Table Content -->
+              <div v-else>
+                <div v-if="parsedJsonData.title" class="mb-6">
+                  <h3 class="text-2xl font-bold text-gray-900 dark:text-gray-100">{{ parsedJsonData.title }}</h3>
+                </div>
+
+                <!-- Table -->
+                <div class="overflow-x-auto">
+                  <table class="w-full text-sm border-collapse">
+                    <thead>
+                      <tr class="bg-gray-100 dark:bg-[#1C1C1E]">
+                        <th class="border border-gray-300 dark:border-gray-600 px-3 py-3 text-center font-semibold">镜号</th>
+                        <th class="border border-gray-300 dark:border-gray-600 px-3 py-3 text-center font-semibold">景别</th>
+                        <th class="border border-gray-300 dark:border-gray-600 px-3 py-3 text-center font-semibold">运镜</th>
+                        <th class="border border-gray-300 dark:border-gray-600 px-3 py-3 text-left font-semibold">画面内容</th>
+                        <th class="border border-gray-300 dark:border-gray-600 px-3 py-3 text-left font-semibold">音频</th>
+                        <th class="border border-gray-300 dark:border-gray-600 px-3 py-3 text-center font-semibold">时长</th>
+                        <th class="border border-gray-300 dark:border-gray-600 px-3 py-3 text-left font-semibold">备注</th>
+                        <th class="border border-gray-300 dark:border-gray-600 px-3 py-3 text-left font-semibold">文生图提示词</th>
+                        <th class="border border-gray-300 dark:border-gray-600 px-3 py-3 text-left font-semibold">图生视频提示词</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr v-for="shot in parsedJsonData.shots" :key="shot.id" class="hover:bg-gray-50 dark:hover:bg-[#2C2C2E]">
+                        <td class="border border-gray-300 dark:border-gray-600 px-3 py-3 text-center font-bold">{{ shot.id }}</td>
+                        <td class="border border-gray-300 dark:border-gray-600 px-3 py-3 text-center">{{ shot.shotType }}</td>
+                        <td class="border border-gray-300 dark:border-gray-600 px-3 py-3 text-center">{{ shot.cameraMove }}</td>
+                        <td class="border border-gray-300 dark:border-gray-600 px-3 py-3">{{ shot.visualContent }}</td>
+                        <td class="border border-gray-300 dark:border-gray-600 px-3 py-3">{{ shot.audio }}</td>
+                        <td class="border border-gray-300 dark:border-gray-600 px-3 py-3 text-center">{{ shot.duration }}s</td>
+                        <td class="border border-gray-300 dark:border-gray-600 px-3 py-3">{{ shot.remark }}</td>
+                        <td class="border border-gray-300 dark:border-gray-600 px-3 py-3">
+                          <div class="space-y-2">
+                            <div v-if="shot.text2imgPrompt && shot.text2imgPrompt.positive">
+                              <strong class="text-green-600 dark:text-green-400">正向：</strong>
+                              <div class="text-gray-700 dark:text-gray-300 mt-1">{{ shot.text2imgPrompt.positive.join(', ') }}</div>
+                            </div>
+                            <div v-if="shot.text2imgPrompt && shot.text2imgPrompt.negative">
+                              <strong class="text-red-600 dark:text-red-400">反向：</strong>
+                              <div class="text-gray-700 dark:text-gray-300 mt-1">{{ shot.text2imgPrompt.negative.join(', ') }}</div>
+                            </div>
+                          </div>
+                        </td>
+                        <td class="border border-gray-300 dark:border-gray-600 px-3 py-3">
+                          <div class="space-y-2">
+                            <div v-if="shot.img2videoPrompt && shot.img2videoPrompt.positive">
+                              <strong class="text-green-600 dark:text-green-400">正向：</strong>
+                              <div class="text-gray-700 dark:text-gray-300 mt-1">{{ shot.img2videoPrompt.positive.join(', ') }}</div>
+                            </div>
+                            <div v-if="shot.img2videoPrompt && shot.img2videoPrompt.negative">
+                              <strong class="text-red-600 dark:text-red-400">反向：</strong>
+                              <div class="text-gray-700 dark:text-gray-300 mt-1">{{ shot.img2videoPrompt.negative.join(', ') }}</div>
+                            </div>
+                          </div>
+                        </td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
             </div>
           </div>
         </div>
