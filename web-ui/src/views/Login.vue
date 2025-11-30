@@ -330,14 +330,14 @@ const sendCode = async () => {
         </router-link>
 
         <div class="relative flex border-b mb-8">
-          <button ref="loginTabEl" @click="switchTab('login')" class="flex-1 pb-3 text-2xl font-bold transition-colors" :class="tab==='login' ? 'text-brand-green' : 'text-secondary'">{{ t('auth.login') }}</button>
-          <button ref="signupTabEl" @click="switchTab('signup')" class="flex-1 pb-3 text-2xl font-bold transition-colors" :class="tab==='signup' ? 'text-brand-green' : 'text-secondary'">{{ t('auth.signup') }}</button>
+          <button ref="loginTabEl" @click="switchTab('login')" class="flex-1 pb-3 text-2xl font-bold transition-colors" :class="tab==='login' ? 'text-brand-green' : 'text-gray-600'">{{ t('auth.login') }}</button>
+          <button ref="signupTabEl" @click="switchTab('signup')" class="flex-1 pb-3 text-2xl font-bold transition-colors" :class="tab==='signup' ? 'text-brand-green' : 'text-gray-600'">{{ t('auth.signup') }}</button>
           <div class="absolute bottom-[-2px] left-0 h-[3px] bg-brand-green" :style="{ width: indicatorWidth+'px', transform: `translateX(${indicatorX}px)` }"></div>
         </div>
 
         <form v-if="tab==='login'" class="space-y-6" @submit.prevent="onLoginSubmit">
           <div>
-            <label for="login-email" class="font-medium text-primary block mb-2">{{ t('auth.email_label') }}</label>
+            <label for="login-email" class="font-semibold text-gray-900 block mb-2">{{ t('auth.email_label') }}</label>
             <div class="relative">
               <fa :icon="['fas','envelope']" class="absolute left-4 top-1/2 -translate-y-1/2 text-secondary" />
               <input
@@ -365,7 +365,7 @@ const sendCode = async () => {
           </div>
           <div>
             <div class="flex justify-between items-center mb-2">
-              <label for="login-password" class="font-medium text-primary">{{ t('auth.password') }}</label>
+              <label for="login-password" class="font-semibold text-gray-900">{{ t('auth.password') }}</label>
               <a href="#" class="text-sm text-brand-green hover:underline">{{ t('auth.forgot') }}</a>
             </div>
             <div class="relative">
@@ -379,32 +379,32 @@ const sendCode = async () => {
       <p v-if="loginError" class="text-red-500 text-sm text-center">{{ loginError }}</p>
       <div class="flex items-center my-2" :class="agreementShake ? 'shake' : ''">
         <input type="checkbox" id="remember-password" v-model="rememberPassword" class="h-4 w-4 rounded border-gray-300 text-brand-green focus:ring-brand-green">
-        <label for="remember-password" class="ml-2 text-sm text-secondary">{{ t('auth.agree') }} <a href="#" class="text-brand-green hover:underline">{{ t('footer.terms') }}</a> {{ t('auth.and') }} <a href="#" class="text-brand-green hover:underline">{{ t('footer.privacy') }}</a></label>
+        <label for="remember-password" class="ml-2 text-sm text-gray-700">{{ t('auth.agree') }} <a href="#" class="text-brand-green hover:underline">{{ t('footer.terms') }}</a> {{ t('auth.and') }} <a href="#" class="text-brand-green hover:underline">{{ t('footer.privacy') }}</a></label>
       </div>
       <button type="submit" class="w-full bg-brand-green text-white font-bold py-4 rounded-lg hover:bg-brand-green-dark">{{ t('auth.login_btn') }}</button>
           
-          <p class="text-center text-sm text-secondary">
+          <p class="text-center text-sm text-gray-700">
             {{ t('auth.no_account') }} <button type="button" class="font-semibold text-brand-green hover:underline" @click="switchTab('signup')">{{ t('auth.signup_now') }}</button>
           </p>
         </form>
 
         <form v-else class="space-y-6" @submit.prevent="onSignupSubmit">
           <div>
-            <label for="signup-email" class="font-medium text-primary block mb-2">{{ t('auth.email_label') }}</label>
+            <label for="signup-email" class="font-semibold text-gray-900 block mb-2">{{ t('auth.email_label') }}</label>
             <div class="relative">
               <fa :icon="['fas','envelope']" class="absolute left-4 top-1/2 -translate-y-1/2 text-secondary" />
               <input v-model="signupEmail" type="email" id="signup-email" :placeholder="t('auth.email_placeholder')" class="w-full pl-12 pr-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 ring-brand-green focus:border-transparent">
             </div>
           </div>
           <div>
-            <label for="verification-code" class="font-medium text-primary block mb-2">{{ t('auth.code') }}</label>
+            <label for="verification-code" class="font-semibold text-gray-900 block mb-2">{{ t('auth.code') }}</label>
             <div class="flex space-x-3">
               <input v-model="signupCode" type="text" id="verification-code" :placeholder="t('auth.code_placeholder')" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 ring-brand-green focus:border-transparent">
               <button type="button" class="flex-shrink-0 bg-light-gray text-brand-green font-semibold px-4 py-3 rounded-lg hover:bg-gray-200 transition" :disabled="sending || resendSeconds>0" @click="sendCode">{{ sending ? t('auth.sending') : (resendSeconds>0 ? `${resendSeconds}`+t('auth.seconds') : t('auth.get_code')) }}</button>
             </div>
           </div>
           <div>
-            <label for="signup-password" class="font-medium text-primary block mb-2">{{ t('auth.create_password') }}</label>
+            <label for="signup-password" class="font-semibold text-gray-900 block mb-2">{{ t('auth.create_password') }}</label>
             <div class="relative">
               <fa :icon="['fas','lock']" class="absolute left-4 top-1/2 -translate-y-1/2 text-secondary" />
               <input v-model="signupPassword" :type="showSignupPassword ? 'text' : 'password'" id="signup-password" :placeholder="t('auth.password_rule')" class="w-full pl-12 pr-12 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 ring-brand-green focus:border-transparent">
@@ -413,11 +413,11 @@ const sendCode = async () => {
           </div>
           <div class="flex items-center">
             <input type="checkbox" id="terms" v-model="terms" class="h-4 w-4 rounded border-gray-300 text-brand-green focus:ring-brand-green">
-            <label for="terms" class="ml-2 text-sm text-secondary">{{ t('auth.agree') }} <a href="#" class="text-brand-green hover:underline">{{ t('footer.terms') }}</a> {{ t('auth.and') }} <a href="#" class="text-brand-green hover:underline">{{ t('footer.privacy') }}</a></label>
+            <label for="terms" class="ml-2 text-sm text-gray-700">{{ t('auth.agree') }} <a href="#" class="text-brand-green hover:underline">{{ t('footer.terms') }}</a> {{ t('auth.and') }} <a href="#" class="text-brand-green hover:underline">{{ t('footer.privacy') }}</a></label>
           </div>
           <p v-if="signupError" class="text-red-500 text-sm text-center">{{ signupError }}</p>
           <button type="submit" class="w-full bg-brand-green text-white font-bold py-4 rounded-lg hover:bg-brand-green-dark" :class="(!terms || registering) ? 'opacity-50 cursor-not-allowed' : ''" :disabled="!terms || registering">{{ createAccountText }}</button>
-          <p class="text-center text-sm text-secondary">
+          <p class="text-center text-sm text-gray-700">
             {{ haveAccountText }} <button type="button" class="font-semibold text-brand-green hover:underline" @click="switchTab('login')">{{ loginNowText }}</button>
           </p>
         </form>

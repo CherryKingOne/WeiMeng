@@ -211,20 +211,22 @@ src/
   - Handles different URL field names (url/video_url) from various APIs
   - Task statuses: queued, in_progress, completed, failed
 
-**User Management System**: User query and management operations:
+**User Management System**: User self-service operations:
 - `GET /api/v1/user-info/me`: Get current logged-in user information
   - Returns the authenticated user's profile (id, email, account, username, timestamps)
   - No parameters required, uses JWT token from Authorization header
-- `GET /api/v1/user-info/{user_id}`: Get single user details by ID
-- `PUT /api/v1/user-info/{user_id}`: Update user information
+- `PUT /api/v1/user-info/me`: Update current logged-in user information
   - Supports updating account, username, and password
   - Account uniqueness validation (excluding current user)
   - Password is automatically hashed if provided
-- `DELETE /api/v1/user-info/{user_id}`: Delete user
-  - Prevents self-deletion (cannot delete your own account)
+  - Only allows users to modify their own information
+- `DELETE /api/v1/user-info/me`: Delete current logged-in user account (account deactivation)
+  - Requires password confirmation in request body: `{"password": "current_password"}`
+  - Validates the password before deletion (returns 401 if incorrect)
+  - Permanently deletes the current user's account upon successful password verification
   - Returns 204 No Content on success
 - All endpoints require authentication via `get_current_user` dependency
-- Schemas defined in `app/schemas/user_info.py`
+- Schemas defined in `app/schemas/user_info.py` (including `UserDeleteRequest` for password confirmation)
 
 ### Configuration
 

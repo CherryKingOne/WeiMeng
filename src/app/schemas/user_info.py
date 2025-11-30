@@ -35,3 +35,8 @@ class UserInfoListResponse(BaseModel):
     page: int
     page_size: int
     items: list[UserInfoResponse]
+
+
+class UserDeleteRequest(BaseModel):
+    """注销账号请求模型"""
+    password: str = Field(..., min_length=1, description="当前密码，用于确认注销操作")

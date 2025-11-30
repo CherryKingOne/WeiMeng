@@ -959,8 +959,11 @@ const confirmCreate = async () => {
     cancelCreate()
   } catch {}
 }
-const adminName = ref('王小明')
-const adminEmail = ref('xiaoming@weimeng.com')
+const adminName = ref('')
+const adminEmail = ref('')
+const adminAccount = ref('')
+const adminUserId = ref('')
+
 const members = ref([
   { id: 'm2', name: '李丽', role: 'editor', email: 'lili@weimeng.com', lastActive: '2天前' },
   { id: 'm3', name: '张伟', role: 'viewer', email: 'zhangwei@weimeng.com', lastActive: '刚刚' },
@@ -1105,10 +1108,16 @@ const loadUserInfo = async () => {
     const data = await res.json()
     console.log('【用户信息】加载成功:', data)
 
-    // 更新用户信息
+    // 更新用户信息(账户模态框)
     if (data.username) accountName.value = data.username
     if (data.email) accountEmail.value = data.email
     if (data.avatar) accountAvatar.value = data.avatar
+
+    // 更新管理员信息(成员管理)
+    if (data.username) adminName.value = data.username
+    if (data.email) adminEmail.value = data.email
+    if (data.account) adminAccount.value = data.account
+    if (data.id) adminUserId.value = data.id
   } catch (err) {
     console.error('【用户信息】加载异常:', err)
   }
@@ -1119,7 +1128,59 @@ const closeAccount = () => { showAccount.value = false }
 const editingAccountName = ref(false)
 const tempAccountName = ref('')
 const editAccountName = () => { editingAccountName.value = true; tempAccountName.value = accountName.value }
-const saveAccountName = () => { const next = (tempAccountName.value || '').trim(); if (next) accountName.value = next; editingAccountName.value = false }
+
+// 更新用户名
+const updateUserName = async (newUsername) => {
+  try {
+    const token = typeof localStorage !== 'undefined' ? localStorage.getItem('accessToken') : ''
+    const res = await fetch(`${API_BASE}/api/v1/user-info/me`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+        ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+      },
+      body: JSON.stringify({ username: newUsername })
+    })
+
+    if (!res.ok) {
+      if (res.status === 401) {
+        try { localStorage.setItem('loggedIn', 'false') } catch {}
+        router.push('/login')
+        return false
+      }
+      console.error('【用户名更新】失败:', res.status)
+      const errorData = await res.json().catch(() => ({}))
+      openToast(errorData.message || t('workspace.update_failed'), 'error')
+      return false
+    }
+
+    const data = await res.json()
+    console.log('【用户名更新】成功:', data)
+    return true
+  } catch (err) {
+    console.error('【用户名更新】异常:', err)
+    openToast(t('workspace.update_failed'), 'error')
+    return false
+  }
+}
+
+const saveAccountName = async () => {
+  const next = (tempAccountName.value || '').trim()
+  if (!next) {
+    openToast(t('workspace.username_required'), 'error')
+    return
+  }
+
+  // 调用 API 更新用户名
+  const success = await updateUserName(next)
+  if (success) {
+    accountName.value = next
+    editingAccountName.value = false
+    openToast(t('workspace.username_updated'), 'success')
+  }
+}
+
 const cancelAccountName = () => { editingAccountName.value = false; tempAccountName.value = '' }
 const showChangeEmail = ref(false)
 const changeTab = ref('email')
@@ -1164,6 +1225,84 @@ const showResetPassword = ref(false)
 const showResetConfirm = ref(false)
 const openReset = () => { showReset.value = true }
 const closeReset = () => { showReset.value = false; resetForm.value = { password: '', confirm: '', code: '' }; resetErrors.value = { password: '', confirm: '', code: '' } }
+
+// 注销账户
+const showDeleteAccount = ref(false)
+const deleteAccountPassword = ref('')
+const deleteAccountError = ref('')
+const openDeleteAccount = async () => {
+  deleteAccountPassword.value = ''
+  deleteAccountError.value = ''
+  await nextTick()
+  showDeleteAccount.value = true
+}
+const closeDeleteAccount = () => {
+  showDeleteAccount.value = false
+  deleteAccountPassword.value = ''
+  deleteAccountError.value = ''
+}
+
+// 注销账户 API
+const deleteUserAccount = async (password) => {
+  try {
+    const token = typeof localStorage !== 'undefined' ? localStorage.getItem('accessToken') : ''
+    const res = await fetch(`${API_BASE}/api/v1/user-info/me`, {
+      method: 'DELETE',
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+        ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+      },
+      body: JSON.stringify({ password })
+    })
+
+    if (!res.ok) {
+      if (res.status === 401) {
+        try { localStorage.setItem('loggedIn', 'false') } catch {}
+        router.push('/login')
+        return false
+      }
+      console.error('【账户注销】失败:', res.status)
+      const errorData = await res.json().catch(() => ({}))
+      deleteAccountError.value = errorData.message || t('workspace.delete_account_failed')
+      return false
+    }
+
+    console.log('【账户注销】成功')
+    return true
+  } catch (err) {
+    console.error('【账户注销】异常:', err)
+    deleteAccountError.value = t('workspace.delete_account_failed')
+    return false
+  }
+}
+
+const confirmDeleteAccount = async () => {
+  deleteAccountError.value = ''
+
+  const password = (deleteAccountPassword.value || '').trim()
+  if (!password) {
+    deleteAccountError.value = t('workspace.password_required')
+    return
+  }
+
+  // 调用 API 注销账户
+  const success = await deleteUserAccount(password)
+  if (success) {
+    closeDeleteAccount()
+    openToast(t('workspace.account_deleted'), 'success')
+
+    // 清除本地存储并跳转到登录页
+    try {
+      localStorage.removeItem('loggedIn')
+      localStorage.removeItem('accessToken')
+    } catch {}
+
+    setTimeout(() => {
+      router.push('/login')
+    }, 1500)
+  }
+}
 const submitReset = () => {
   resetErrors.value = { password: '', confirm: '', code: '' }
   const p = resetForm.value.password.trim()
@@ -1425,7 +1564,12 @@ const loadLibraries = async () => {
           </button>
           <div class="relative">
             <button class="flex items-center space-x-2" @click.stop="toggleUserMenu">
-              <img src="https://i.pravatar.cc/40?u=a042581f4e29026704d" alt="User Avatar" class="w-8 h-8 rounded-full border-2 border-transparent hover:border-brand-green transition-all">
+              <div v-if="accountAvatar" class="w-8 h-8 rounded-full border-2 border-transparent hover:border-brand-green transition-all overflow-hidden">
+                <img :src="accountAvatar" alt="User Avatar" class="w-full h-full object-cover">
+              </div>
+              <div v-else class="w-8 h-8 rounded-full bg-brand-green text-white flex items-center justify-center font-bold text-sm border-2 border-transparent hover:border-brand-green hover:ring-2 hover:ring-brand-green/20 transition-all">
+                {{ accountInitial }}
+              </div>
             </button>
             <div v-if="userMenuOpen" class="absolute right-0 mt-2 w-72 bg-white border border-gray-200 rounded-2xl shadow-xl z-50 overflow-hidden dark:bg-[#2C2C2E] dark:border-[#3A3A3C]">
               <div class="px-4 py-3 flex items-center justify-between">
@@ -1448,6 +1592,10 @@ const loadLibraries = async () => {
                   <span class="flex items-center gap-2"><fa :icon="['fas','book']" /> {{ $t('workspace.help_docs') }}</span>
                   <fa :icon="['fas','chevron-right']" class="text-xs text-gray-400" />
                 </button>
+                <a href="http://0.0.0.0:7767/docs" target="_blank" rel="noopener noreferrer" class="w-full flex items-center justify-between px-4 py-2 text-sm hover:bg-gray-100 dark:hover:bg-[#3A3A3C]">
+                  <span class="flex items-center gap-2"><fa :icon="['fas','book-open']" /> {{ $t('workspace.api_docs') }}</span>
+                  <fa :icon="['fas','arrow-up-right-from-square']" class="text-xs text-gray-400" />
+                </a>
                 <button class="w-full flex items-center justify-between px-4 py-2 text-sm hover:bg-gray-100 dark:hover:bg-[#3A3A3C]">
                   <span class="flex items-center gap-2"><fa :icon="['fas','question-circle']" /> {{ $t('workspace.support') }}</span>
                   <fa :icon="['fas','chevron-right']" class="text-xs text-gray-400" />
@@ -1799,7 +1947,9 @@ const loadLibraries = async () => {
                   <div class="font-semibold mb-2">{{ $t('workspace.admin') }}</div>
                   <div class="flex items-center justify-between py-2">
                     <div class="flex items-center gap-3">
-                      <img src="https://i.pravatar.cc/40?u=member1" class="w-8 h-8 rounded-full" />
+                      <div class="w-8 h-8 rounded-full bg-brand-green text-white flex items-center justify-center font-bold text-sm">
+                        {{ accountInitial }}
+                      </div>
                       <div>
                         <div class="font-medium flex items-center">
                           {{ adminName }}
@@ -1837,7 +1987,9 @@ const loadLibraries = async () => {
                   <div v-for="m in filteredMembers" :key="m.id">
                     <div class="grid grid-cols-[minmax(0,1fr)_minmax(160px,auto)_minmax(120px,auto)] items-center justify-items-start py-2 gap-8">
                       <div class="flex items-center gap-3">
-                        <img :src="'https://i.pravatar.cc/40?u=' + m.id" class="w-8 h-8 rounded-full" />
+                        <div class="w-8 h-8 rounded-full bg-blue-500 text-white flex items-center justify-center font-bold text-sm">
+                          {{ m.name ? m.name.charAt(0).toUpperCase() : 'M' }}
+                        </div>
                         <div>
                             <div class="font-medium flex items-center">
                               {{ m.name }}
@@ -2232,7 +2384,9 @@ const loadLibraries = async () => {
                 <div class="space-y-2 max-h-40 overflow-y-auto no-scrollbar">
                   <div v-for="m in members" :key="m.id" class="flex items-center justify-between p-2 rounded-md border border-gray-200 dark:border-[#333333] bg-white dark:bg-[#1E1E1E]">
                     <div class="flex items-center gap-3">
-                      <img :src="'https://i.pravatar.cc/40?u=' + m.id" class="w-8 h-8 rounded-full" />
+                      <div class="w-8 h-8 rounded-full bg-purple-500 text-white flex items-center justify-center font-bold text-sm">
+                        {{ m.name ? m.name.charAt(0).toUpperCase() : 'U' }}
+                      </div>
                       <div>
                         <div class="text-sm font-medium text-primary dark:text-white">{{ m.name }}</div>
                         <div class="text-xs text-secondary">{{ m.email }}</div>
@@ -2412,6 +2566,15 @@ const loadLibraries = async () => {
                     <button class="font-medium px-3 py-1.5 rounded-md border border-gray-300 text-black hover:bg-gray-100 transition-colors flex-shrink-0 ml-4 dark:border-[#3A3A3C] dark:text-[#E0E0E0] dark:hover:bg-[#3A3A3C]" @click="openReset">{{ $t('workspace.reset_password') }}</button>
                   </div>
                 </div>
+                <div>
+                  <div class="flex justify-between items-start pt-4">
+                    <div>
+                      <h2 class="text-sm font-semibold text-primary dark:text-white">{{ $t('workspace.delete_account') }}</h2>
+                      <p class="text-secondary text-sm mt-1 dark:text-gray-400">{{ $t('workspace.delete_account_hint') }}</p>
+                    </div>
+                    <button class="font-medium px-3 py-1.5 rounded-md border border-red-300 text-red-600 hover:bg-red-50 transition-colors flex-shrink-0 ml-4 dark:border-red-500/30 dark:text-red-400 dark:hover:bg-red-500/10" @click="openDeleteAccount">{{ $t('workspace.delete_account_btn') }}</button>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
@@ -2552,6 +2715,45 @@ const loadLibraries = async () => {
               <div class="flex justify-end gap-3 pt-2">
                 <button type="button" class="px-4 py-2 rounded-lg border border-gray-300 text-secondary hover:bg-gray-100 dark:border-[#3A3A3C] dark:text-gray-300 dark:hover:bg-[#3A3A3C]" @click="closeReset">{{ $t('workspace.cancel') }}</button>
                 <button type="submit" class="px-4 py-2 rounded-lg bg-brand-green text-white hover:bg-brand-green/90">{{ $t('workspace.reset') }}</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      </teleport>
+      <teleport to="body">
+        <div v-if="showDeleteAccount" class="fixed inset-0 z-50 flex items-center justify-center">
+          <div class="absolute inset-0 bg-black/30 backdrop-blur-md" @click="closeDeleteAccount"></div>
+          <div class="relative w-full max-w-md bg-white rounded-2xl shadow-2xl border border-gray-200 overflow-hidden dark:bg-[#2C2C2E] dark:border-[#3A3A3C]">
+            <form class="p-6 space-y-4" @submit.prevent="confirmDeleteAccount">
+              <div class="flex items-center gap-3 mb-2">
+                <div class="w-12 h-12 rounded-full bg-red-100 flex items-center justify-center dark:bg-red-500/20">
+                  <fa :icon="['fas','triangle-exclamation']" class="text-red-600 text-xl dark:text-red-400" />
+                </div>
+                <div>
+                  <h3 class="text-lg font-semibold text-primary dark:text-white">{{ $t('workspace.delete_account') }}</h3>
+                  <p class="text-sm text-secondary dark:text-gray-400">{{ $t('workspace.delete_account_warning') }}</p>
+                </div>
+              </div>
+
+              <div class="bg-red-50 border border-red-200 rounded-lg p-4 dark:bg-red-500/10 dark:border-red-500/30">
+                <p class="text-sm text-red-800 dark:text-red-300">{{ $t('workspace.delete_account_consequences') }}</p>
+              </div>
+
+              <div>
+                <label class="block text-sm font-medium text-secondary dark:text-gray-300 mb-2">{{ $t('workspace.confirm_password_to_delete') }}</label>
+                <input
+                  v-model="deleteAccountPassword"
+                  type="password"
+                  :placeholder="$t('workspace.enter_account_password')"
+                  class="w-full bg-light-gray border rounded-lg py-2 px-3 focus:outline-none focus:ring-0 dark:bg-black/30 dark:text-[#E0E0E0]"
+                  :class="deleteAccountError ? 'border-red-500 focus:border-red-500 dark:border-red-500' : 'border-gray-300 focus:border-brand-green dark:border-[#3A3A3C]'"
+                />
+                <p v-if="deleteAccountError" class="mt-1 text-xs text-red-500">{{ deleteAccountError }}</p>
+              </div>
+
+              <div class="flex justify-end gap-3 pt-2">
+                <button type="button" class="px-4 py-2 rounded-lg border border-gray-300 text-secondary hover:bg-gray-100 dark:border-[#3A3A3C] dark:text-gray-300 dark:hover:bg-[#3A3A3C]" @click="closeDeleteAccount">{{ $t('workspace.cancel') }}</button>
+                <button type="submit" class="px-4 py-2 rounded-lg bg-red-600 text-white hover:bg-red-700 dark:bg-red-500 dark:hover:bg-red-600">{{ $t('workspace.delete_account_confirm') }}</button>
               </div>
             </form>
           </div>

@@ -244,6 +244,20 @@ const messages = {
       show_apps: 'Show {n} Applications',
       projects: 'Projects',
       last_activity: 'Last Activity',
+      loading: 'Loading...',
+      update_failed: 'Update failed',
+      username_required: 'Username is required',
+      username_updated: 'Username updated successfully',
+      delete_account: 'Delete Account',
+      delete_account_hint: 'Permanently delete your account and all data',
+      delete_account_btn: 'Delete Account',
+      delete_account_warning: 'This action cannot be undone',
+      delete_account_consequences: 'All your data, projects, and settings will be permanently deleted. This action is irreversible.',
+      confirm_password_to_delete: 'Enter your password to confirm',
+      delete_account_confirm: 'Delete Account',
+      delete_account_failed: 'Failed to delete account',
+      account_deleted: 'Account deleted successfully',
+      password_required: 'Password is required',
 
       // Change email
       change_email: 'Change Email',
@@ -270,6 +284,7 @@ const messages = {
 
       // Help & Support
       help_docs: 'Help & Documentation',
+      api_docs: 'API Documentation',
       support: 'Support',
       roadmap: 'Roadmap',
       about: 'About',
@@ -650,6 +665,20 @@ const messages = {
       show_apps: '显示 {n} 个应用',
       projects: '项目',
       last_activity: '最后活跃',
+      loading: '加载中...',
+      update_failed: '更新失败',
+      username_required: '请输入用户名',
+      username_updated: '用户名更新成功',
+      delete_account: '注销账户',
+      delete_account_hint: '永久删除您的账户和所有数据',
+      delete_account_btn: '注销账户',
+      delete_account_warning: '此操作无法撤销',
+      delete_account_consequences: '您的所有数据、项目和设置将被永久删除。此操作不可逆转。',
+      confirm_password_to_delete: '输入密码以确认',
+      delete_account_confirm: '确认注销',
+      delete_account_failed: '注销账户失败',
+      account_deleted: '账户已成功注销',
+      password_required: '请输入密码',
 
       // Change email
       change_email: '修改邮箱',
@@ -676,6 +705,7 @@ const messages = {
 
       // Help & Support
       help_docs: '帮助文档',
+      api_docs: 'API 文档',
       support: '支持',
       roadmap: '路线图',
       about: '关于',
