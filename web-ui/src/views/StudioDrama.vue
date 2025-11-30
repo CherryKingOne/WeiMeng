@@ -538,6 +538,58 @@ const resultViewMode = ref('markdown') // 'markdown' or 'table'
 const isSavingStoryboard = ref(false)
 const saveStoryboardError = ref('')
 
+// 检测 JSON 是否不完整
+const isJsonIncomplete = computed(() => {
+  if (!analysisResult.value) return false
+
+  // 检查是否有未闭合的 JSON 代码块
+  const jsonBlockStart = (analysisResult.value.match(/```json/g) || []).length
+  const jsonBlockEnd = (analysisResult.value.match(/```(?!\w)/g) || []).length
+
+  if (jsonBlockStart > jsonBlockEnd) {
+    console.log('【JSON完整性检测】发现未闭合的 JSON 代码块')
+    return true
+  }
+
+  // 尝试提取 JSON 内容
+  const jsonMatch = analysisResult.value.match(/```json\s*([\s\S]*?)\s*```/g)
+  if (jsonMatch && jsonMatch.length > 0) {
+    const lastBlock = jsonMatch[jsonMatch.length - 1]
+    const jsonContent = lastBlock.replace(/```json\s*|\s*```/g, '').trim()
+
+    // 检查 JSON 字符串是否看起来不完整
+    // 1. 检查是否以不完整的方式结束（如缺少闭合括号）
+    const openBraces = (jsonContent.match(/{/g) || []).length
+    const closeBraces = (jsonContent.match(/}/g) || []).length
+    const openBrackets = (jsonContent.match(/\[/g) || []).length
+    const closeBrackets = (jsonContent.match(/\]/g) || []).length
+
+    if (openBraces !== closeBraces || openBrackets !== closeBrackets) {
+      console.log('【JSON完整性检测】括号不匹配 - 大括号:', openBraces, 'vs', closeBraces, '方括号:', openBrackets, 'vs', closeBrackets)
+      return true
+    }
+
+    // 2. 检查是否以不完整的字段结束（如 "field": 后面没有值）
+    if (jsonContent.match(/:\s*$/)) {
+      console.log('【JSON完整性检测】发现不完整的字段定义')
+      return true
+    }
+
+    // 3. 检查是否以不完整的字符串结束
+    const lastQuoteIndex = jsonContent.lastIndexOf('"')
+    if (lastQuoteIndex > 0) {
+      const afterLastQuote = jsonContent.substring(lastQuoteIndex + 1).trim()
+      // 如果最后一个引号后面只有空白或逗号，可能是不完整的
+      if (afterLastQuote === '' || afterLastQuote === ',') {
+        console.log('【JSON完整性检测】可能存在不完整的字符串')
+        return true
+      }
+    }
+  }
+
+  return false
+})
+
 // Parse JSON from analysis result
 const parsedJsonData = computed(() => {
   if (!analysisResult.value) return null
@@ -3571,6 +3623,359 @@ const runAnalysis = async () => {
   }
 }
 
+// Continue generating incomplete content
+const continueGeneration = async () => {
+  console.log('【继续生成】开始执行')
+
+  if (!analysisResult.value) {
+    showToastMessage('没有可继续的内容', 'error')
+    return
+  }
+
+  if (!currentModel.value) {
+    showToastMessage('请先选择模型', 'error')
+    return
+  }
+
+  isAnalyzing.value = true
+  analysisError.value = ''
+  console.log('【继续生成】当前内容长度:', analysisResult.value.length)
+
+  try {
+    const token = localStorage.getItem('accessToken')
+
+    // 分析当前内容的结束位置，构建更精确的继续提示
+    const currentContent = analysisResult.value
+    let continuePrompt = ''
+
+    // 检查是否在 JSON 代码块中
+    const jsonBlockStart = (currentContent.match(/```json/g) || []).length
+    const jsonBlockEnd = (currentContent.match(/```(?!\w)/g) || []).length
+
+    if (jsonBlockStart > jsonBlockEnd) {
+      // 在 JSON 代码块内部中断
+      console.log('【继续生成】检测到在 JSON 代码块内部中断')
+
+      // 提取最后的 JSON 内容
+      const lastJsonStart = currentContent.lastIndexOf('```json')
+      const jsonContent = currentContent.substring(lastJsonStart + 7).trim()
+
+      // 分析 JSON 的结构状态
+      const openBraces = (jsonContent.match(/{/g) || []).length
+      const closeBraces = (jsonContent.match(/}/g) || []).length
+      const openBrackets = (jsonContent.match(/\[/g) || []).length
+      const closeBrackets = (jsonContent.match(/\]/g) || []).length
+
+      console.log('【继续生成】JSON 结构分析 - 大括号:', openBraces, 'vs', closeBraces, '方括号:', openBrackets, 'vs', closeBrackets)
+
+      // 分析最后的内容，判断中断在哪个位置
+      const lastLines = jsonContent.split('\n').slice(-10).join('\n')
+      console.log('【继续生成】最后10行内容:', lastLines)
+
+      // 检查是否在某个字段的值中中断
+      let contextHint = ''
+      if (lastLines.includes('"text2imgPrompt"')) {
+        contextHint = '你正在输出 text2imgPrompt 字段的内容。'
+      } else if (lastLines.includes('"img2videoPrompt"')) {
+        contextHint = '你正在输出 img2videoPrompt 字段的内容。'
+      } else if (lastLines.includes('"positive"')) {
+        contextHint = '你正在输出 positive 数组的内容。'
+      } else if (lastLines.includes('"negative"')) {
+        contextHint = '你正在输出 negative 数组的内容。'
+      }
+
+      // 检查最后一个字符，判断下一步应该输出什么
+      const trimmedJson = jsonContent.trim()
+      const lastChar = trimmedJson[trimmedJson.length - 1]
+      let nextStepHint = ''
+
+      if (lastChar === ',') {
+        nextStepHint = '上一个字段已完成，请继续输出下一个字段。'
+      } else if (lastChar === '[') {
+        nextStepHint = '数组刚开始，请输出数组元素。'
+      } else if (lastChar === '{') {
+        nextStepHint = '对象刚开始，请输出对象的字段。'
+      } else if (lastChar === '"') {
+        nextStepHint = '字符串可能未完成，请继续输出或闭合。'
+      } else if (lastChar === ']') {
+        nextStepHint = '数组已结束，请输出后续内容。'
+      } else if (lastChar === '}') {
+        nextStepHint = '对象已结束，请输出后续内容。'
+      }
+
+      console.log('【继续生成】上下文提示:', contextHint)
+      console.log('【继续生成】下一步提示:', nextStepHint)
+
+      continuePrompt = `请继续完成上面未完成的 JSON 内容。直接从中断的地方继续输出，不要重复任何已有内容，不要添加任何解释。`
+    } else {
+      // 在 Markdown 文本中中断
+      console.log('【继续生成】检测到在 Markdown 文本中中断')
+      continuePrompt = `请继续完成上面未完成的内容。直接从中断的地方继续输出，不要重复已有内容，不要添加任何解释或说明，保持相同的格式和风格。`
+    }
+
+    console.log('【继续生成】生成的提示词:', continuePrompt)
+
+    // Build request body with conversation history
+    const requestBody = {
+      config_id: currentModel.value.config_id,
+      messages: [
+        {
+          role: 'user',
+          content: selectedChapter.value.content
+        },
+        {
+          role: 'assistant',
+          content: analysisResult.value
+        },
+        {
+          role: 'user',
+          content: continuePrompt
+        }
+      ],
+      stream: aiConfig.value.streamingOutput,
+      thinking_mode: aiConfig.value.reasoningMode.enabled
+    }
+
+    // Add system prompt based on type
+    if (systemPromptType.value === 'preset') {
+      requestBody.system_prompt = presetSystemPrompt.value
+    } else if (systemPromptType.value === 'custom' && systemPrompt.value && systemPrompt.value.trim()) {
+      requestBody.system_prompt = systemPrompt.value.trim()
+    }
+
+    // Add optional parameters
+    if (aiConfig.value.temperature.enabled) {
+      requestBody.temperature = aiConfig.value.temperature.value
+    }
+    if (aiConfig.value.reasoningLimit.enabled) {
+      requestBody.reasoning_limit = aiConfig.value.reasoningLimit.value
+    }
+
+    console.log('【继续生成】请求参数:', requestBody)
+
+    const response = await fetch(`${API_BASE}/api/v3/chat/completions`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(requestBody)
+    })
+
+    console.log('【继续生成】响应状态:', response.status)
+
+    if (!response.ok) {
+      const errorText = await response.text()
+      console.error('【继续生成】错误响应:', errorText)
+      throw new Error(`API 请求失败: ${response.status}`)
+    }
+
+    // Handle streaming response
+    if (aiConfig.value.streamingOutput) {
+      console.log('【继续生成】开始处理流式响应')
+      const reader = response.body.getReader()
+      const decoder = new TextDecoder()
+      let chunkCount = 0
+
+      while (true) {
+        const { done, value } = await reader.read()
+        if (done) {
+          console.log('【继续生成】流式响应结束，共接收', chunkCount, '个数据块')
+          break
+        }
+
+        chunkCount++
+        const chunk = decoder.decode(value, { stream: true })
+        console.log('【继续生成】接收数据块', chunkCount, ':', chunk.substring(0, 100))
+        const lines = chunk.split('\n')
+
+        for (const line of lines) {
+          if (line.startsWith('data: ')) {
+            const data = line.slice(6).trim()
+            if (data === '[DONE]') {
+              console.log('【继续生成】收到 [DONE] 标记')
+              continue
+            }
+
+            try {
+              const json = JSON.parse(data)
+
+              // Check for error in response
+              if (json.error) {
+                console.error('【继续生成】API返回错误:', json.error)
+                throw new Error(json.error)
+              }
+
+              // Support both formats
+              let content = ''
+              if (json.content) {
+                content = json.content
+              } else if (json.choices && json.choices[0] && json.choices[0].delta) {
+                content = json.choices[0].delta.content || ''
+              }
+
+              if (content) {
+                analysisResult.value += content
+                console.log('【继续生成】累积内容长度:', analysisResult.value.length, '新增:', content.length)
+
+                // Auto-scroll to bottom
+                nextTick(() => {
+                  if (resultContainer.value) {
+                    resultContainer.value.scrollTop = resultContainer.value.scrollHeight
+                  }
+                })
+              }
+            } catch (e) {
+              console.warn('【继续生成】解析流式数据失败:', e, '原始数据:', data)
+              if (e.message && e.message.includes('Error code:')) {
+                throw e
+              }
+            }
+          }
+        }
+      }
+      console.log('【继续生成】最终结果长度:', analysisResult.value.length)
+    } else {
+      // Handle non-streaming response
+      console.log('【继续生成】处理非流式响应')
+      const data = await response.json()
+      console.log('【继续生成】响应数据:', data)
+      if (data.choices && data.choices[0] && data.choices[0].message) {
+        analysisResult.value += data.choices[0].message.content
+        console.log('【继续生成】追加结果，总长度:', analysisResult.value.length)
+      }
+    }
+
+    // 后处理：尝试修复可能的 JSON 格式问题
+    console.log('【继续生成】开始后处理，检查 JSON 格式')
+    try {
+      // 提取所有 JSON 代码块
+      const jsonMatches = analysisResult.value.match(/```json\s*([\s\S]*?)\s*```/g)
+      if (jsonMatches && jsonMatches.length > 0) {
+        console.log('【继续生成】找到', jsonMatches.length, '个 JSON 代码块')
+
+        // 处理每个 JSON 代码块
+        let processedContent = analysisResult.value
+        for (let i = 0; i < jsonMatches.length; i++) {
+          const block = jsonMatches[i]
+          let jsonContent = block.replace(/```json\s*|\s*```/g, '').trim()
+
+          console.log('【继续生成】开始修复 JSON 格式问题')
+
+          // 修复1: 移除多余的闭合括号
+          // 例如: ],\n"], 或 ],\n"]
+          jsonContent = jsonContent.replace(/\]\s*,\s*\n\s*"\]/g, ']')
+          console.log('【继续生成】✓ 已移除多余的 ], "]')
+
+          // 修复2: 移除重复的数组闭合
+          // 例如: ]\n], 变成 ]
+          jsonContent = jsonContent.replace(/\]\s*,?\s*\n\s*\]/g, ']')
+          console.log('【继续生成】✓ 已移除重复的数组闭合')
+
+          // 修复3: 移除重复的对象闭合
+          // 例如: }\n}, 变成 }
+          jsonContent = jsonContent.replace(/\}\s*,?\s*\n\s*\}/g, '}')
+          console.log('【继续生成】✓ 已移除重复的对象闭合')
+
+          // 修复4: 检查是否有重复的 "img2videoPrompt" 字段
+          const img2videoCount = (jsonContent.match(/"img2videoPrompt"\s*:/g) || []).length
+          console.log('【继续生成】检测到', img2videoCount, '个 "img2videoPrompt" 字段')
+
+          if (img2videoCount > 1) {
+            console.log('【继续生成】⚠️ 检测到重复的 "img2videoPrompt" 字段，尝试修复')
+
+            // 找到第一个 "img2videoPrompt" 的位置
+            const firstImgPromptIndex = jsonContent.indexOf('"img2videoPrompt"')
+            console.log('【继续生成】第一个 "img2videoPrompt" 位置:', firstImgPromptIndex)
+
+            // 找到第二个 "img2videoPrompt" 的位置
+            const secondImgPromptIndex = jsonContent.indexOf('"img2videoPrompt"', firstImgPromptIndex + 1)
+            console.log('【继续生成】第二个 "img2videoPrompt" 位置:', secondImgPromptIndex)
+
+            if (secondImgPromptIndex > 0) {
+              // 找到第二个出现之前的位置，通常是 },\n 或 ],\n
+              let cutPosition = secondImgPromptIndex
+
+              // 向前查找，找到 }, 或 ], 的位置
+              for (let j = secondImgPromptIndex - 1; j >= 0; j--) {
+                const char = jsonContent[j]
+                if (char === '}' || char === ']') {
+                  // 找到了结束符号，检查后面是否有逗号
+                  let k = j + 1
+                  while (k < secondImgPromptIndex && /[\s,]/.test(jsonContent[k])) {
+                    k++
+                  }
+                  cutPosition = k
+                  break
+                }
+              }
+
+              // 截取到第二个 "img2videoPrompt" 之前的内容
+              jsonContent = jsonContent.substring(0, cutPosition)
+              console.log('【继续生成】截取位置:', cutPosition)
+              console.log('【继续生成】✓ 已移除重复的 "img2videoPrompt" 字段')
+            }
+          }
+
+          // 修复5: 检查是否有重复的 shot 对象（通过 id 字段判断）
+          const idMatches = jsonContent.match(/"id"\s*:\s*(\d+)/g)
+          if (idMatches && idMatches.length > 1) {
+            const ids = idMatches.map(m => parseInt(m.match(/\d+/)[0]))
+            console.log('【继续生成】检测到的 shot ID:', ids)
+
+            // 检查是否有重复的 ID
+            const uniqueIds = [...new Set(ids)]
+            if (ids.length !== uniqueIds.length) {
+              console.log('【继续生成】⚠️ 检测到重复的 shot ID，尝试修复')
+
+              // 找到第一个重复 ID 的位置
+              const firstDuplicateId = ids.find((id, index) => ids.indexOf(id) !== index)
+              const duplicatePattern = new RegExp(`"id"\\s*:\\s*${firstDuplicateId}`, 'g')
+              const matches = [...jsonContent.matchAll(duplicatePattern)]
+
+              if (matches.length > 1) {
+                // 找到第二次出现的位置
+                const secondMatchIndex = matches[1].index
+
+                // 向前查找到前一个对象的结束位置
+                let cutPosition = secondMatchIndex
+                for (let j = secondMatchIndex - 1; j >= 0; j--) {
+                  if (jsonContent[j] === '}' && jsonContent[j + 1] === ',') {
+                    cutPosition = j + 2 // 保留 },
+                    break
+                  }
+                }
+
+                jsonContent = jsonContent.substring(0, cutPosition)
+                console.log('【继续生成】✓ 已移除重复的 shot 对象')
+              }
+            }
+          }
+
+          // 替换原内容
+          processedContent = processedContent.replace(block, '```json\n' + jsonContent + '\n```')
+        }
+
+        // 更新结果
+        if (processedContent !== analysisResult.value) {
+          analysisResult.value = processedContent
+          console.log('【继续生成】✓ 内容已更新，新长度:', analysisResult.value.length)
+        }
+      }
+    } catch (e) {
+      console.warn('【继续生成】后处理失败，保持原内容:', e)
+    }
+
+    showToastMessage('继续生成完成', 'success')
+  } catch (error) {
+    console.error('【继续生成】错误:', error)
+    analysisError.value = error.message
+    showToastMessage('继续生成失败: ' + error.message, 'error')
+  } finally {
+    isAnalyzing.value = false
+  }
+}
+
 // Save Storyboard to Backend
 const saveStoryboard = async () => {
   console.log('【保存分镜】开始执行')
@@ -4763,6 +5168,16 @@ watch(activeTab, (newTab) => {
                     <span class="text-xs">表格</span>
                   </button>
                 </div>
+                <!-- Continue Generation Button (only show when JSON is incomplete) -->
+                <button
+                  v-if="isJsonIncomplete && !isAnalyzing"
+                  @click="continueGeneration"
+                  class="px-3 py-1 rounded-md text-xs font-medium bg-yellow-500 text-white hover:bg-yellow-600 transition"
+                  title="检测到内容不完整，点击继续生成"
+                >
+                  <fa :icon="['fas', 'rotate']" class="mr-1" style="font-size: 10px;" />
+                  继续生成
+                </button>
                 <button
                   @click="saveStoryboard"
                   :disabled="isSavingStoryboard || !parsedJsonData || !parsedJsonData.shots"

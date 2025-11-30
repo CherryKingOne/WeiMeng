@@ -1572,6 +1572,12 @@ const loadLibraries = async () => {
           {{ $t('workspace.new_project') }}
         </router-link>
 
+        <!-- Agent 模式按钮 -->
+        <router-link to="/agent" class="flex items-center justify-center w-full bg-purple-600 text-white font-semibold px-4 py-3 rounded-lg hover:bg-purple-700 transition-colors shadow-sm hover:shadow-md">
+          <fa :icon="['fas','robot']" class="mr-2" />
+          Agent 模式
+        </router-link>
+
         <nav class="mt-6 space-y-1">
           <a href="#" @click.prevent="setSection('home')" :class="['flex items-center px-3 py-2 rounded-md transition-colors', currentSection==='home' ? 'font-semibold bg-brand-green/10 text-brand-green' : 'text-secondary dark:text-[#E0E0E0] hover:bg-gray-100 dark:hover:bg-[#2C2C2E]']">
             <fa :icon="['fas','house']" class="w-6 text-center" />

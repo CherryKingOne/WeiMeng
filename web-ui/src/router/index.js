@@ -3,6 +3,7 @@ import Home from '@/views/Home.vue'
 import Login from '@/views/Login.vue'
 import Workspace from '@/views/Workspace.vue'
 import Studio from '@/views/StudioDrama.vue'
+import AgentMode from '@/views/AgentMode.vue'
 
 const router = createRouter({
   history: createWebHistory(),
@@ -11,6 +12,7 @@ const router = createRouter({
     { path: '/login', name: 'login', component: Login },
     { path: '/workspace', name: 'workspace', component: Workspace, meta: { requiresAuth: true } },
     { path: '/studio', name: 'studio', component: Studio, meta: { requiresAuth: true } },
+    { path: '/agent', name: 'agent', component: AgentMode, meta: { requiresAuth: true } },
   ],
 })
 
