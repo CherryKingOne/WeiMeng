@@ -20,11 +20,18 @@ class LibraryCreate(LibraryBase):
     pass
 
 
+class LibraryUpdate(BaseModel):
+    """更新剧本库信息"""
+    name: Optional[str] = Field(None, description="剧本库名称")
+    description: Optional[str] = Field(None, description="剧本库描述")
+
+
 class LibraryResponse(LibraryBase):
     id: int
     user_id: str
     minio_folder_path: str
     created_at: datetime
+    file_count: Optional[int] = Field(None, description="剧本库中的文件数量")
 
     class Config:
         from_attributes = True

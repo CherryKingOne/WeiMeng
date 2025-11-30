@@ -9,7 +9,7 @@ from app.api.deps import get_current_user
 from app.core.database import get_db
 from app.models.user import User
 from app.models.script import ScriptLibrary, ScriptFile
-from app.schemas.script import LibraryCreate, LibraryResponse, FileResponse, LibraryWithFiles
+from app.schemas.script import LibraryCreate, LibraryUpdate, LibraryResponse, FileResponse, LibraryWithFiles
 from app.services.minio_service import minio_client
 from app.utils.id_generator import generate_numeric_uuid16, generate_numeric_uuid18
 
@@ -54,12 +54,36 @@ async def list_libraries(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
-    """List all libraries for current user"""
+    """List all libraries for current user with file count"""
+    from sqlalchemy import func
+
+    # Query libraries with file count
     result = await db.execute(
-        select(ScriptLibrary).where(ScriptLibrary.user_id == current_user.id)
+        select(
+            ScriptLibrary,
+            func.count(ScriptFile.id).label('file_count')
+        )
+        .outerjoin(ScriptFile, ScriptLibrary.id == ScriptFile.library_id)
+        .where(ScriptLibrary.user_id == current_user.id)
+        .group_by(ScriptLibrary.id)
     )
-    libraries = result.scalars().all()
-    return libraries
+
+    # Build response with file count
+    libraries_with_count = []
+    for library, file_count in result:
+        library_dict = {
+            "id": library.id,
+            "user_id": library.user_id,
+            "name": library.name,
+            "type": library.type,
+            "description": library.description,
+            "minio_folder_path": library.minio_folder_path,
+            "created_at": library.created_at,
+            "file_count": file_count
+        }
+        libraries_with_count.append(library_dict)
+
+    return libraries_with_count
 
 
 @router.get("/libraries/{lib_id}", response_model=LibraryWithFiles)
@@ -110,31 +134,73 @@ async def get_library(
     return library
 
 
+@router.put("/libraries/{lib_id}", response_model=LibraryResponse)
+async def update_library(
+    lib_id: int,
+    library_update: LibraryUpdate,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Update library information (name and/or description)
+
+    Args:
+        lib_id: Library ID
+        library_update: Fields to update (name and/or description)
+
+    Returns:
+        Updated library information
+    """
+    # Check if library exists and belongs to user
+    result = await db.execute(
+        select(ScriptLibrary).where(
+            ScriptLibrary.id == lib_id,
+            ScriptLibrary.user_id == current_user.id
+        )
+    )
+    lib = result.scalars().first()
+
+    if not lib:
+        raise HTTPException(status_code=404, detail="Library not found")
+
+    # Update fields if provided
+    if library_update.name is not None:
+        lib.name = library_update.name
+
+    if library_update.description is not None:
+        lib.description = library_update.description
+
+    await db.commit()
+    await db.refresh(lib)
+
+    return lib
+
+
 @router.delete("/libraries/{lib_id}")
 async def delete_library(
-    lib_id: int, 
+    lib_id: int,
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
     """Delete a library and all its files"""
     result = await db.execute(
         select(ScriptLibrary).where(
-            ScriptLibrary.id == lib_id, 
+            ScriptLibrary.id == lib_id,
             ScriptLibrary.user_id == current_user.id
         )
     )
     lib = result.scalars().first()
-    
+
     if not lib:
         raise HTTPException(status_code=404, detail="Library not found")
 
     # 1. Delete Minio folder and all files
     minio_client.delete_folder(lib.minio_folder_path)
-    
+
     # 2. Delete database record (cascade will delete ScriptFile records)
     await db.delete(lib)
     await db.commit()
-    
+
     return {"msg": "Library and associated files deleted"}
 
 

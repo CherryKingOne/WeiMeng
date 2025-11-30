@@ -172,6 +172,12 @@ src/
 - `ScriptLibrary` model (`app/models/script.py:7`): Represents a collection/folder in MinIO with `type` field ('novel' for drama scripts or 'ad' for advertising content)
 - `ScriptFile` model (`app/models/script.py:22`): Individual files within a library (stores `minio_object_key`, `file_url`, and optional `content_summary`)
 - Files are organized as `{library_name}/{filename}` in MinIO
+- Supports CRUD operations:
+  - Create library (`POST /api/v1/script/libraries`)
+  - List libraries (`GET /api/v1/script/libraries`)
+  - Get library details (`GET /api/v1/script/libraries/{lib_id}`)
+  - Update library (`PUT /api/v1/script/libraries/{lib_id}`) - supports updating name and description
+  - Delete library (`DELETE /api/v1/script/libraries/{lib_id}`)
 - Supports cascade deletion: deleting a library removes all associated files from both database and MinIO
 
 **Scriptwriting Project System**: Detailed shot management for video production:

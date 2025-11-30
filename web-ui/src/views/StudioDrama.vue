@@ -1808,8 +1808,13 @@ const filteredModels = computed(() => {
 })
 
 const currentModel = computed(() => {
-  return availableModels.value.find(m => m.id === aiConfig.value.model) ||
-         (availableModels.value.length > 0 ? availableModels.value[0] : { name: aiConfig.value.model, icon: 'robot', color: 'text-gray-500' })
+  // 如果没有可用模型,返回"暂无可用模型"
+  if (availableModels.value.length === 0) {
+    return { name: '暂无可用模型', icon: 'robot', color: 'text-gray-400' }
+  }
+
+  // 查找选中的模型,如果没找到则返回第一个可用模型
+  return availableModels.value.find(m => m.id === aiConfig.value.model) || availableModels.value[0]
 })
 
 // Load effective model (local first, then global)
@@ -2001,6 +2006,13 @@ const toggleModelMenu = () => {
     modelSearchQuery.value = ''
     fetchModels()
   }
+}
+
+// 跳转到工作区的模型设置页面
+const navigateToModelSettings = () => {
+  console.log('【配置模型】跳转到工作区设置页面')
+  // 跳转到工作区,并通过 URL 参数指定打开设置和模型供应商标签
+  router.push('/workspace?settings=true&tab=providers')
 }
 
 const selectModel = async (modelId, configId) => {
@@ -2767,12 +2779,12 @@ const processFile = async (file) => {
   }
 
   // Check file type
-  const validExtensions = ['.txt', '.md', '.doc', '.docx', '.csv', '.xlsx', '.pdf']
+  const validExtensions = ['.txt', '.md']
   const fileName = file.name.toLowerCase()
   const isValid = validExtensions.some(ext => fileName.endsWith(ext))
 
   if (!isValid) {
-    alert('不支持的文件格式')
+    alert('不支持的文件格式，仅支持 .txt 和 .md 文件')
     return
   }
 
@@ -3831,7 +3843,17 @@ watch(activeTab, (newTab) => {
           >
             <!-- Model Selection -->
             <div class="p-4 border-b border-gray-100 dark:border-[#3A3A3C] relative">
-              <h4 class="text-xs font-bold text-gray-500 dark:text-gray-400 mb-2">模型</h4>
+              <div class="flex items-center justify-between mb-2">
+                <h4 class="text-xs font-bold text-gray-500 dark:text-gray-400">模型</h4>
+                <button
+                  @click.stop="navigateToModelSettings"
+                  class="text-xs text-brand-green hover:text-brand-green/80 font-medium flex items-center gap-1"
+                  title="前往工作区配置模型"
+                >
+                  <fa :icon="['fas', 'gear']" class="text-[10px]" />
+                  配置模型
+                </button>
+              </div>
               <div
                 @click.stop="toggleModelMenu"
                 class="flex items-center justify-between p-2 bg-gray-50 dark:bg-[#1C1C1E] rounded-lg border border-gray-200 dark:border-[#3A3A3C] cursor-pointer hover:bg-gray-100 dark:hover:bg-[#2C2C2E] transition-colors"
@@ -4147,7 +4169,7 @@ watch(activeTab, (newTab) => {
             type="file"
             multiple
             class="hidden"
-            accept=".txt,.md,.doc,.docx,.csv,.xlsx,.pdf"
+            accept=".txt,.TXT,.md,.MD"
             @change="handleFileSelect"
           >
 
@@ -4264,7 +4286,7 @@ watch(activeTab, (newTab) => {
             </div>
             <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-2">暂无文件</h3>
             <p class="text-sm text-gray-500 dark:text-gray-400 mb-6 text-center max-w-md">
-              上传剧本文件以便管理和使用。支持 TXT、MD、Word、PDF 等格式。
+              上传剧本文件以便管理和使用。支持 .txt 和 .md 格式。
             </p>
             <button 
               @click="openUploadModal"
@@ -6334,12 +6356,12 @@ watch(activeTab, (newTab) => {
           <!-- Modal Body -->
           <div class="p-6">
             <!-- Hidden file input -->
-            <input 
+            <input
               ref="fileInput"
-              type="file" 
+              type="file"
               multiple
-              class="hidden" 
-              accept=".txt,.md,.doc,.docx,.csv,.xlsx,.pdf"
+              class="hidden"
+              accept=".txt,.TXT,.md,.MD"
               @change="handleFileSelect"
             >
 

@@ -119,14 +119,112 @@ const setTheme = (mode) => {
 const toggleMenu = (id) => {
   openMenuId.value = openMenuId.value === id ? null : id
 }
-const renameProject = (id) => {
+
+// 重命名模态框
+const showRenameModal = ref(false)
+const renameProjectId = ref(null)
+const renameValue = ref('')
+const renameError = ref('')
+
+const openRenameModal = (id) => {
   const idx = projects.value.findIndex(p => p.id === id)
   if (idx === -1) return
-  const next = window.prompt(t('workspace.rename'), projects.value[idx].name)
-  if (next && next.trim()) {
-    projects.value[idx].name = next.trim()
-  }
+  renameProjectId.value = id
+  renameValue.value = projects.value[idx].name
+  renameError.value = ''
   openMenuId.value = null
+  nextTick(() => {
+    showRenameModal.value = true
+  })
+}
+
+const closeRenameModal = () => {
+  showRenameModal.value = false
+  renameProjectId.value = null
+  renameValue.value = ''
+  renameError.value = ''
+}
+
+const confirmRename = async () => {
+  if (!renameValue.value || !renameValue.value.trim()) {
+    renameError.value = t('workspace.enter_name')
+    return
+  }
+
+  const projectId = renameProjectId.value
+  const newName = renameValue.value.trim()
+
+  console.log('【重命名】开始重命名剧本库')
+  console.log('【重命名】项目ID:', projectId)
+  console.log('【重命名】新名称:', newName)
+
+  try {
+    const token = localStorage.getItem('accessToken')
+    if (!token) {
+      console.error('【重命名】未找到访问令牌')
+      renameError.value = '未登录，请重新登录'
+      return
+    }
+
+    const idx = projects.value.findIndex(p => p.id === projectId)
+    if (idx === -1) {
+      console.error('【重命名】未找到项目')
+      return
+    }
+
+    const currentProject = projects.value[idx]
+    console.log('【重命名】当前项目信息:', currentProject)
+
+    const requestBody = {
+      name: newName,
+      description: currentProject.desc || ''
+    }
+    console.log('【重命名】请求体:', requestBody)
+
+    const response = await fetch(`${API_BASE}/api/v1/script/libraries/${projectId}`, {
+      method: 'PUT',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json',
+        'Accept': 'application/json'
+      },
+      body: JSON.stringify(requestBody)
+    })
+
+    console.log('【重命名】响应状态:', response.status)
+
+    if (response.status === 401) {
+      console.error('【重命名】认证失败，跳转到登录页')
+      router.push('/login')
+      return
+    }
+
+    if (!response.ok) {
+      const errorText = await response.text()
+      console.error('【重命名】请求失败:', response.status, errorText)
+      renameError.value = '重命名失败，请稍后重试'
+      return
+    }
+
+    const data = await response.json()
+    console.log('【重命名】响应数据:', data)
+
+    // 更新本地项目列表
+    projects.value[idx].name = newName
+    console.log('【重命名】本地项目列表已更新')
+
+    // 显示成功提示
+    openToast('重命名成功')
+
+    closeRenameModal()
+  } catch (error) {
+    console.error('【重命名】异常:', error)
+    renameError.value = '重命名失败，请检查网络连接'
+  }
+}
+
+const renameProject = (id) => {
+  openRenameModal(id)
 }
 const duplicateProject = (id) => {
   const src = projects.value.find(p => p.id === id)
@@ -214,7 +312,7 @@ const onDocClick = (e) => {
   languageListOpen.value = false
   sortMenuOpen.value = false
 }
-onMounted(() => {
+onMounted(async () => {
   // Load saved locale from localStorage
   const savedLocale = typeof localStorage !== 'undefined' ? localStorage.getItem('locale') : null
   if (savedLocale) {
@@ -229,6 +327,27 @@ onMounted(() => {
   loadLibraries()
   loadConfiguredModels()
   loadUserInfo()
+
+  // 检查 URL 参数,如果有 settings=true,则自动打开设置模态框
+  const urlParams = new URLSearchParams(window.location.search)
+  if (urlParams.get('settings') === 'true') {
+    const tab = urlParams.get('tab')
+    console.log('【URL参数】检测到 settings=true, tab=', tab)
+
+    // 设置标签页
+    if (tab) {
+      settingsTab.value = tab
+      console.log('【URL参数】切换到标签页:', tab)
+    }
+
+    // 打开设置模态框
+    await nextTick()
+    showSettings.value = true
+    console.log('【URL参数】已打开设置模态框')
+
+    // 清除 URL 参数,避免刷新时重复打开
+    window.history.replaceState({}, '', '/workspace')
+  }
 })
 onBeforeUnmount(() => {
   document.removeEventListener('click', onDocClick)
@@ -1379,29 +1498,61 @@ const submitTeamCreate = () => {
 }
 
 const loadLibraries = async () => {
+  console.log('【剧本库列表】开始加载剧本库列表')
   try {
     const token = typeof localStorage !== 'undefined' ? localStorage.getItem('accessToken') : ''
+    if (!token) {
+      console.warn('【剧本库列表】未找到访问令牌')
+    }
+
     const res = await fetch(`${API_BASE}/api/v1/script/libraries`, {
       headers: {
         'Accept': 'application/json',
         ...(token ? { 'Authorization': `Bearer ${token}` } : {})
       }
     })
+
+    console.log('【剧本库列表】响应状态:', res.status)
+
     if (!res.ok) {
-      if (res.status === 401) { try { localStorage.setItem('loggedIn','false') } catch {} ; router.push('/login'); return }
+      if (res.status === 401) {
+        console.error('【剧本库列表】认证失败，跳转到登录页')
+        try { localStorage.setItem('loggedIn','false') } catch {}
+        router.push('/login')
+        return
+      }
+      console.error('【剧本库列表】请求失败:', res.status)
       return
     }
-    const data = await res.json()
-    const mapped = (Array.isArray(data) ? data : []).map(lib => ({
-      id: String(lib.id),
-      name: lib.name,
-      type: lib.type,
-      updated: new Date(lib.created_at).toLocaleString(),
-      thumbnail: 'https://images.unsplash.com/photo-1520975916090-3105956dac38?q=80&w=800&auto=format&fit=crop',
-      desc: lib.description || ''
-    }))
+
+    const text = await res.text()
+    // 处理大整数ID，防止精度丢失
+    const fixedText = text.replace(/"id":(\d{15,})/g, '"id":"$1"')
+    const data = JSON.parse(fixedText)
+
+    console.log('【剧本库列表】原始响应数据:', data)
+    console.log('【剧本库列表】剧本库数量:', Array.isArray(data) ? data.length : 0)
+
+    const mapped = (Array.isArray(data) ? data : []).map(lib => {
+      const fileCount = lib.file_count || 0
+      console.log(`【剧本库列表】剧本库 "${lib.name}" (ID: ${lib.id}) 包含 ${fileCount} 个文件`)
+
+      return {
+        id: String(lib.id),
+        name: lib.name,
+        type: lib.type,
+        updated: new Date(lib.created_at).toLocaleString(),
+        thumbnail: 'https://images.unsplash.com/photo-1520975916090-3105956dac38?q=80&w=800&auto=format&fit=crop',
+        desc: lib.description || '',
+        fileCount: fileCount  // 添加文件数量字段
+      }
+    })
+
     projects.value = mapped
-  } catch {}
+    console.log('【剧本库列表】加载完成，共', mapped.length, '个剧本库')
+  } catch (error) {
+    console.error('【剧本库列表】加载异常:', error)
+  }
 }
 </script>
 
@@ -1714,7 +1865,7 @@ const loadLibraries = async () => {
                 <div class="space-y-2 text-sm text-secondary dark:text-gray-400">
                   <div class="flex items-center gap-2">
                     <fa :icon="['fas','file']" class="text-xs" />
-                    <span>0 文档</span>
+                    <span>{{ p.fileCount || 0 }} 文档</span>
                   </div>
                   <div class="flex items-center gap-2">
                     <fa :icon="['fas','clock']" class="text-xs" />
@@ -1739,6 +1890,42 @@ const loadLibraries = async () => {
             </a>
             <div v-if="filteredProjects.length===0" class="col-span-full">
               <div class="rounded-lg border border-gray-200 bg-white p-6 text-center text-secondary dark:bg-[#12161a] dark:border-[#333333] dark:text-gray-400">{{ $t('workspace.no_drafts') }}</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 重命名模态框 -->
+        <div v-if="showRenameModal" class="fixed inset-0 z-50 flex items-center justify-center">
+          <div class="absolute inset-0 bg-black/40" @click="closeRenameModal"></div>
+          <div class="relative w-full max-w-md bg-white rounded-xl shadow-2xl border border-gray-200 p-6 dark:bg-[#2C2C2E] dark:border-[#3A3A3C]">
+            <h3 class="text-xl font-semibold text-primary dark:text-white">{{ $t('workspace.rename') }}</h3>
+            <div class="mt-4">
+              <label class="block text-sm font-medium text-secondary dark:text-gray-300 mb-2">
+                {{ $t('workspace.name_label') }}
+              </label>
+              <input
+                v-model="renameValue"
+                type="text"
+                class="w-full bg-light-gray border rounded-lg py-2 px-3 focus:outline-none focus:ring-0 dark:bg-black/30 dark:text-[#E0E0E0]"
+                :class="renameError ? 'border-red-500 focus:border-red-500 dark:border-red-500' : 'border-gray-300 focus:border-brand-green dark:border-[#3A3A3C]'"
+                :placeholder="$t('workspace.enter_name_placeholder')"
+                @keyup.enter="confirmRename"
+              >
+              <p v-if="renameError" class="mt-1 text-xs text-red-500">{{ renameError }}</p>
+            </div>
+            <div class="mt-6 flex justify-end gap-3">
+              <button
+                class="px-4 py-2 rounded-lg border border-gray-300 text-secondary hover:bg-gray-100 dark:border-[#3A3A3C] dark:text-gray-300 dark:hover:bg-[#3A3A3C]"
+                @click="closeRenameModal"
+              >
+                {{ $t('workspace.cancel') }}
+              </button>
+              <button
+                class="px-4 py-2 rounded-lg bg-brand-green text-white hover:bg-brand-green/90"
+                @click="confirmRename"
+              >
+                {{ $t('workspace.confirm') }}
+              </button>
             </div>
           </div>
         </div>
