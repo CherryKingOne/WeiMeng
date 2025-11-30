@@ -8,6 +8,7 @@ const router = useRouter()
 const agentInput = ref('')
 const isProcessing = ref(false)
 const messages = ref([])
+const showSidebar = ref(false) // 控制侧边栏显示
 
 // 选中的 Agent
 const selectedAgent = ref('director') // 默认选中 AI 导演
@@ -124,6 +125,9 @@ const handleSubmit = async () => {
   agentInput.value = ''
   isProcessing.value = true
 
+  // 显示侧边栏
+  showSidebar.value = true
+
   // 模拟 AI 响应
   setTimeout(() => {
     messages.value.push({
@@ -175,7 +179,9 @@ const goBack = () => {
     </header>
 
     <!-- 主内容区 -->
-    <main class="relative z-10 flex flex-col items-center justify-center px-8 py-16">
+    <main class="relative z-10 flex px-8 py-6" :class="showSidebar ? 'justify-start' : 'justify-center items-center'">
+      <!-- 左侧内容区 -->
+      <div class="transition-all duration-700 ease-in-out" :class="showSidebar ? 'w-2/3 pr-8' : 'w-full flex flex-col items-center justify-center'">
       <!-- 欢迎区域 -->
       <div v-if="messages.length === 0" class="text-center max-w-4xl mx-auto">
         <!-- 标题 -->
@@ -534,8 +540,8 @@ const goBack = () => {
           </div>
         </div>
 
-        <!-- 输入框（对话模式） -->
-        <div class="sticky bottom-8">
+        <!-- 输入框（对话模式） - 仅在未显示侧边栏时显示 -->
+        <div v-if="!showSidebar" class="sticky bottom-8">
           <div class="relative bg-white/5 backdrop-blur-xl rounded-2xl border border-white/10 shadow-2xl overflow-hidden">
             <div class="flex items-center gap-3 p-4">
               <input
@@ -556,6 +562,124 @@ const goBack = () => {
           </div>
         </div>
       </div>
+      </div>
+
+      <!-- 右侧侧边栏 -->
+      <transition
+        enter-active-class="transition-all duration-700 ease-in-out"
+        leave-active-class="transition-all duration-700 ease-in-out"
+        enter-from-class="opacity-0 translate-x-full"
+        enter-to-class="opacity-100 translate-x-0"
+        leave-from-class="opacity-100 translate-x-0"
+        leave-to-class="opacity-0 translate-x-full"
+      >
+        <aside v-if="showSidebar" class="w-1/3 flex flex-col h-[calc(100vh-120px)]">
+          <!-- 上部内容区域（可滚动） -->
+          <div class="flex-1 bg-white/5 backdrop-blur-xl rounded-t-2xl border border-white/10 border-b-0 p-6 overflow-y-auto">
+            <!-- 侧边栏头部 -->
+            <div class="flex items-center gap-3 mb-6">
+              <div class="w-12 h-12 bg-gradient-to-br from-purple-500 to-pink-500 rounded-full flex items-center justify-center">
+                <fa :icon="['fas', 'robot']" class="text-2xl" />
+              </div>
+              <div>
+                <h3 class="text-lg font-bold">Hi，我是你的AI设计师</h3>
+                <p class="text-sm text-gray-400">让我们开始今天的创作吧！</p>
+              </div>
+            </div>
+
+            <!-- 示例项目卡片 -->
+            <div class="space-y-4">
+              <div class="bg-white/5 rounded-xl p-4 hover:bg-white/10 transition cursor-pointer">
+                <div class="flex items-start gap-3">
+                  <div class="flex-1">
+                    <h4 class="font-semibold mb-1">Wine List</h4>
+                    <p class="text-xs text-gray-400">Mimic this effect to generate a poster of ...</p>
+                  </div>
+                  <div class="w-20 h-20 bg-gradient-to-br from-blue-500 to-purple-500 rounded-lg flex-shrink-0"></div>
+                </div>
+              </div>
+
+              <div class="bg-white/5 rounded-xl p-4 hover:bg-white/10 transition cursor-pointer">
+                <div class="flex items-start gap-3">
+                  <div class="flex-1">
+                    <h4 class="font-semibold mb-1">Coffee Shop Branding</h4>
+                    <p class="text-xs text-gray-400">you are a brand design expert, generate ...</p>
+                  </div>
+                  <div class="w-20 h-20 bg-gradient-to-br from-orange-500 to-red-500 rounded-lg flex-shrink-0"></div>
+                </div>
+              </div>
+
+              <div class="bg-white/5 rounded-xl p-4 hover:bg-white/10 transition cursor-pointer">
+                <div class="flex items-start gap-3">
+                  <div class="flex-1">
+                    <h4 class="font-semibold mb-1">Story Board</h4>
+                    <p class="text-xs text-gray-400">I NEED A STORY BOARD FOR THIS SCRI...</p>
+                  </div>
+                  <div class="w-20 h-20 bg-gradient-to-br from-yellow-500 to-green-500 rounded-lg flex-shrink-0"></div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- 底部输入框区域（固定） -->
+          <div class="bg-white/5 backdrop-blur-xl rounded-b-2xl border border-white/10 border-t-0 p-2">
+            <!-- 输入框容器 -->
+            <div class="bg-white/5 border border-white/10 rounded-xl overflow-hidden">
+              <textarea
+                placeholder="请输入你的设计需求"
+                rows="4"
+                class="w-full px-4 pt-3 pb-2 bg-transparent outline-none focus:border-purple-500 transition resize-none"
+              ></textarea>
+
+              <!-- 底部操作图标栏（在输入框内部） -->
+              <div class="flex items-center justify-between px-3 pb-3 pt-2">
+                <!-- 左侧图标组 -->
+                <div class="flex items-center gap-2">
+                  <button class="w-9 h-9 rounded-full border border-white/10 hover:bg-white/5 transition flex items-center justify-center" title="上传附件">
+                    <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" />
+                    </svg>
+                  </button>
+                  <button class="w-9 h-9 rounded-full border border-white/10 hover:bg-white/5 transition flex items-center justify-center" title="提及">
+                    <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 12a4 4 0 10-8 0 4 4 0 008 0zm0 0v1.5a2.5 2.5 0 005 0V12a9 9 0 10-9 9m4.5-1.206a8.959 8.959 0 01-4.5 1.207" />
+                    </svg>
+                  </button>
+                </div>
+
+                <!-- 右侧图标组 -->
+                <div class="flex items-center gap-2">
+                  <button class="px-3 py-1.5 rounded-full border border-white/10 hover:bg-white/5 transition flex items-center justify-center" title="灵感">
+                    <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+                    </svg>
+                  </button>
+                  <button class="w-9 h-9 rounded-full border border-white/10 hover:bg-white/5 transition flex items-center justify-center" title="快速生成">
+                    <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
+                    </svg>
+                  </button>
+                  <button class="w-9 h-9 rounded-full border border-white/10 hover:bg-white/5 transition flex items-center justify-center" title="全球">
+                    <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                  </button>
+                  <button class="w-9 h-9 rounded-full border border-white/10 hover:bg-white/5 transition flex items-center justify-center bg-blue-500/20 border-blue-500/50" title="模型">
+                    <svg class="w-4 h-4 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
+                    </svg>
+                  </button>
+                  <button class="w-9 h-9 rounded-full bg-gray-600 hover:bg-gray-500 transition flex items-center justify-center" title="发送">
+                    <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 10l7-7m0 0l7 7m-7-7v18" />
+                    </svg>
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </aside>
+      </transition>
     </main>
   </div>
 </template>
