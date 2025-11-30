@@ -3,6 +3,7 @@ import { ref, onMounted, onBeforeUnmount, computed, reactive, watch } from 'vue'
 import JSZip from 'jszip'
 import { useRoute, useRouter } from 'vue-router'
 import { marked } from 'marked'
+import { useI18n } from 'vue-i18n'
 import ModelSelector from '@/components/ModelSelector.vue'
 
 // Configure marked options
@@ -15,6 +16,7 @@ marked.setOptions({
 
 const route = useRoute()
 const router = useRouter()
+const { locale } = useI18n()
 const projectId = route.query.id
 const API_BASE = import.meta.env.VITE_API_BASE || 'http://localhost:7767'
 
@@ -177,6 +179,16 @@ const resultContainer = ref(null)
 const showSystemPromptModal = ref(false)
 const systemPrompt = ref('')
 const systemPromptType = ref('preset') // 'preset' or 'custom'
+
+// 打开系统提示词模态框
+const openSystemPromptModal = () => {
+  console.log('【系统提示词】点击按钮，准备打开模态框')
+  console.log('【系统提示词】当前 locale:', locale.value)
+  console.log('【系统提示词】当前 systemPrompt:', systemPrompt.value)
+  console.log('【系统提示词】当前 systemPromptType:', systemPromptType.value)
+  showSystemPromptModal.value = true
+  console.log('【系统提示词】模态框状态已设置为 true')
+}
 
 // 根据当前语言生成预设提示词
 const getPresetPrompt = (lang) => {
@@ -507,7 +519,10 @@ Output according to the user-specified table format.
 
 // 使用计算属性根据当前语言获取预设提示词
 const presetSystemPrompt = computed(() => {
-  return getPresetPrompt(locale.value)
+  console.log('【系统提示词】当前语言:', locale.value)
+  const prompt = getPresetPrompt(locale.value)
+  console.log('【系统提示词】生成的预设提示词长度:', prompt?.length || 0)
+  return prompt
 })
 
 // Result Preview Modal
@@ -3967,7 +3982,7 @@ watch(activeTab, (newTab) => {
       <div class="flex items-center gap-3">
         <!-- System Prompt Button -->
         <button
-          @click="showSystemPromptModal = true"
+          @click="openSystemPromptModal"
           class="flex items-center gap-2 px-3 py-1.5 bg-white dark:bg-[#2C2C2E] border border-gray-200 dark:border-[#3A3A3C] rounded-lg shadow-sm hover:bg-gray-50 dark:hover:bg-[#3A3A3C]/80 transition"
           :class="systemPrompt ? 'border-brand-green text-brand-green' : 'text-gray-700 dark:text-gray-200'"
         >
@@ -6951,7 +6966,7 @@ watch(activeTab, (newTab) => {
               <div class="relative">
                 <div
                   class="w-full h-[32rem] px-4 py-3 border border-gray-200 dark:border-[#3A3A3C] rounded-lg bg-gray-50 dark:bg-[#1C1C1E] overflow-y-auto markdown-content"
-                  v-html="marked.parse(presetSystemPrompt.value)"
+                  v-html="marked.parse(presetSystemPrompt)"
                 ></div>
                 <div class="absolute top-3 right-3 px-2 py-1 bg-gray-200 dark:bg-[#3A3A3C] rounded text-xs font-medium text-gray-600 dark:text-gray-400">
                   只读
