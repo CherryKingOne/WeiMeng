@@ -38,7 +38,8 @@ const messages = {
       signup_failed: 'Registration failed',
       login_success: 'Login successful',
       signup_success: 'Registration successful, please login',
-      send_code_failed: 'Failed to send verification code'
+      send_code_failed: 'Failed to send verification code',
+      code_sent: 'Verification code sent successfully'
     },
     header: {
       features: 'Features',
@@ -443,7 +444,8 @@ const messages = {
       signup_failed: '注册失败',
       login_success: '登录成功',
       signup_success: '注册成功，请登录',
-      send_code_failed: '发送验证码失败'
+      send_code_failed: '发送验证码失败',
+      code_sent: '验证码已发送'
     },
     header: {
       features: '特性',

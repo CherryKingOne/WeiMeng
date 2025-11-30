@@ -105,49 +105,40 @@ npm run preview
 工作室是短剧制作界面,包含完整视频制作工作流的七个主要标签:
 
 **标签系统**: `activeTab` ref 在以下标签间切换:
-- `'script'` - 剧本创作和上传
-- `'characters'` - 角色管理和一致性
-- `'storyboard'` - AI 分镜生成
-- `'video'` - 视频编辑时间轴
 - `'files'` - 剧本文件管理
-- `'videoAssets'` - 视频素材管理
-- `'audioAssets'` - 音频素材管理
-- `'novelAnalysis'` - 章节分析配置
-- `'publish'` - 多平台发布管理
+- `'novelAnalysis'` - 小说拆解(章节分析)
+- `'storyboard'` - 分镜生成
+- `'videoAssets'` - 视频素材管理(Beta)
+- `'audioAssets'` - 音频素材管理(Beta)
+- `'video'` - 视频剪辑(Beta)
+- `'publish'` - 多平台管理(Beta)
 
-**剧本标签** (`activeTab === 'script'`):
-- 通过 `scriptMode` ref 三种模式:'selection'、'upload'、'write'
-- 选择模式: 在上传文件或编写剧本之间选择
-- 上传模式: 拖放或点击上传 .txt、.md、.doc、.docx、.csv、.xlsx、.pdf(最大 10MB)
-  - `uploadedFiles` ref 跟踪文件的 `selected` 状态、上传进度和完成状态
-  - 文件通过 `uploadFileToBackend()` 使用 XMLHttpRequest 自动上传到后端以跟踪进度
-  - `loadExistingFiles()` 从后端获取文件,使用正则表达式保留大整数 ID
-  - 文件选择系统带复选框: `fileListSelectAll` ref 和 `toggleFileSelection()` 函数
-  - 批量删除功能: `batchDeleteFiles()` 通过 API 删除多个选中文件
-  - 自定义删除确认模态框(`showDeleteFileConfirm`)而非浏览器 confirm
-  - Toast 通知(`showToast`、`toastMessage`、`toastType`)用于成功/错误反馈
-- 编写模式: 全屏剧本编辑器,带 AI 续写对话框
-  - `scriptContent` ref 存储剧本文本
-  - AI 对话框(`showAiDialog`)使用 DOM 测量定位在光标处
-  - AI 状态: 'idle'、'generating'、'review' 由 `aiState` ref 跟踪
-  - `scriptTextarea` ref 用于光标位置计算
+**Beta 功能限制**: 标记为 Beta 的标签在点击时会显示"功能正在开发中"横幅,并阻止标签切换。
 
-**角色标签** (`activeTab === 'characters'`):
-- 网格显示角色卡片,包含头像、姓名、角色、描述
-- `characters` ref 数组存储角色数据
-- 角色创建模态框(`showCharacterModal`)支持图片上传
-- 角色提取向导(`showExtractWizard`) - 7 步流程:
-  1. 选择剧本片段或上传的文件
-  2. 选择提取的角色名称
-  3. 编辑角色外观/详情(年龄、地址、身份、性别、关系、描述)
-  4. 审查场景环境
-  5. 审查对话台词
-  6. 选择角色艺术风格(2D/真人)
-  7. 选择场景风格(2D/真人)
-- `extractedRoles` ref 用于向导数据,`roleDetails` reactive 对象用于角色元数据
-- 角色图片上传带预览(`characterImagePreview`)
+**文件管理标签** (`activeTab === 'files'`):
+- 拖放或点击上传 .txt、.md、.doc、.docx、.csv、.xlsx、.pdf(最大 10MB)
+- `existingFiles` ref 跟踪文件的 `selected` 状态、上传进度和完成状态
+- 文件通过 `uploadFileToBackend()` 使用 XMLHttpRequest 自动上传到后端以跟踪进度
+- `loadExistingFiles()` 从后端获取文件,使用正则表达式保留大整数 ID
+- 文件选择系统带复选框: `fileListSelectAll` ref 和 `toggleFileSelection()` 函数
+- 批量删除功能: `batchDeleteFiles()` 通过 API 删除多个选中文件
+- 自定义删除确认模态框(`showDeleteFileConfirm`)而非浏览器 confirm
+- Toast 通知(`showToast`、`toastMessage`、`toastType`)用于成功/错误反馈
 
-**分镜标签** (`activeTab === 'storyboard'`):
+**小说拆解标签** (`activeTab === 'novelAnalysis'`):
+- 章节列表显示,支持选择章节进行分析
+- `novelChapters` ref 存储章节数据,`selectedChapter` ref 跟踪当前选中章节
+- `loadNovelChapters()` 从后端加载章节,404 时显示示例章节
+- 分析结果显示在四个子标签中: 角色、场景、情节、对话
+- 分析配置模态框(`showSystemPromptModal`)包含四个配置子标签:
+  - `'visual'` - 风格配置(2D Anime/Realistic)和语言选择(English/Chinese)
+  - `'prompt'` - 提示词配置,支持预设/自定义两种类型
+  - `'variables'` - 输出变量配置(Beta 功能,开发中)
+  - `'json'` - JSON 预览,显示处理结果
+- `analysisConfig` ref 存储配置: style, language, promptType, tab, systemPrompt 等
+- 预设提示词通过 `getPresetPrompt()` 函数生成,用于 AIGC 视频分镜生成
+
+**分镜生成标签** (`activeTab === 'storyboard'`):
 - 通过 `storyboardView` ref 两种视图模式:'compact'(网格卡片)或 'detail'(表格)
 - `storyboards` ref 数组包含镜头数据: 场景、尺寸、镜头类型、时长、描述、对话、音效、提示词、生成标志
 - 批量操作: `generateAllImages()`、`generateAllVideos()` 打开尺寸选择模态框
@@ -179,19 +170,6 @@ npm run preview
 - 媒体: `mediaIsDragging` 用于视频标签拖动状态,`mediaFileInput` ref
 - 向导状态: `extractStep`(1-7),`selectAll` 用于批量选择,`roleEditing`/`roleDetailsOpen` reactive 对象
 - 风格选择: `styleKind`/`sceneStyleKind`('2d'/'live'),`selectedCharacterStyle`/`selectedSceneStyle`
-
-**章节分析标签** (`activeTab === 'novelAnalysis'`):
-- 分析配置模态框,包含四个子标签:
-  - `'visual'` - 风格配置(2D Anime/Realistic)和语言选择(English/Chinese)
-  - `'prompt'` - 提示词配置,支持预设/自定义两种类型
-    - 预设提示词: 用于剧本分析,提取角色、场景、情节、对话等信息
-    - 自定义提示词: 用户自定义的系统提示词
-  - `'variables'` - 输出变量配置(Beta 功能,开发中)
-    - 结构化输出字段管理,支持层级关系
-    - 字段类型: string, number, boolean, array, object
-  - `'json'` - JSON 预览,显示处理结果(默认为空)
-- `analysisConfig` ref 存储配置: style, language, promptType, tab, systemPrompt 等
-- 预设提示词通过 `getPresetPrompt()` 函数生成,匹配分析结果的输出格式
 
 **多平台发布管理标签** (`activeTab === 'publish'`):
 多平台发布管理是一个企业级的数据仪表板,参考巨量引擎设计,包含完整的平台管理、数据分析和AI辅助功能。
@@ -373,6 +351,40 @@ npm run preview
 - `【模型选择】` - 用户选择模型的操作
 - `[ModelSelector]` - 模型选择器组件的操作
 
+## 可复用组件
+
+**ModelSelector.vue** - AI 模型选择下拉组件:
+- Props: `modelType`(模型类型)、`selectedModel`(当前选中模型)、`configId`(配置 ID)
+- Emits: `update:selectedModel` - 模型选择变化时触发
+- 功能: 从后端加载可用模型列表,显示下拉菜单供用户选择
+- 使用场景: 工作区设置(全局模型)、工作室(局部模型)
+- API: `GET /api/v2/model_config/list?model_type={type}`
+
+## 状态管理模式
+
+应用不使用 Vuex 或 Pinia,而是通过 Vue 3 Composition API 的 `ref()` 和 `reactive()` 进行组件级状态管理:
+
+**常见模式**:
+- 菜单/下拉框跟踪: `openMenuId` ref 跟踪哪个菜单打开
+- 模态框可见性: 布尔 ref 控制显示/隐藏
+- 表单状态 + 验证: 数据 ref + 错误 ref + 计算属性验证
+- 搜索/过滤: 搜索 ref + 计算属性过滤列表
+- Toast 通知: `toastOpen` + `toastText` + `toastType` + setTimeout 自动关闭
+
+**全局点击处理器模式**:
+```javascript
+const onDocClick = (e) => {
+  // 检查特定 data 属性防止关闭
+  if (e?.target?.closest('[data-menu]')) return
+  // 关闭所有菜单
+  openMenuId.value = null
+}
+onMounted(() => document.addEventListener('click', onDocClick))
+onBeforeUnmount(() => document.removeEventListener('click', onDocClick))
+```
+
+在下拉框内的交互元素上使用 `@click.stop` 防止事件传播。
+
 ## 关键约定
 
 - 使用 Composition API 配合 `<script setup>`
@@ -380,7 +392,6 @@ npm run preview
 - 组件按类型组织: layout/、sections/、icons/
 - 路由组件放在 src/views/
 - 模态框 z-index: 使用 z-50 确保正确堆叠
-- 在下拉框内的交互元素上始终使用 `@click.stop` 防止菜单关闭
 - 表单验证模式: 每个字段单独的错误 ref,提交时清除,验证失败时设置
 - 显示模态框前使用 `nextTick()` 确保 DOM 更新完成
 - 组件生命周期中清理定时器(使用 onBeforeUnmount 清除 intervals/timeouts)

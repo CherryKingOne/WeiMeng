@@ -90,29 +90,46 @@ const onLoginSubmit = async () => {
     return
   }
   try {
+    console.log('[登录] 开始登录:', { email, passwordLength: password.length })
     const res = await fetch(`${API_BASE}/api/v1/auth/login`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json'
+      },
       body: JSON.stringify({ email, password })
     })
+    console.log('[登录] 响应状态:', res.status)
+
     if (!res.ok) {
       let msg = t('auth.invalid')
-      try { const data = await res.json(); msg = data?.detail || msg } catch {}
+      try {
+        const data = await res.json()
+        console.error('[登录] 错误响应:', data)
+        msg = data?.detail || data?.message || msg
+      } catch (e) {
+        console.error('[登录] 解析错误响应失败:', e)
+      }
       loginError.value = msg
       loginInvalid.value = true
       openToast(msg, 'error')
       return
     }
     const data = await res.json()
+    console.log('[登录] 登录成功:', { hasToken: !!data?.access_token, userId: data?.user_id })
+
     try {
       localStorage.setItem('loggedIn', 'true')
       localStorage.setItem('userEmail', email)
       if (data?.access_token) localStorage.setItem('accessToken', data.access_token)
       if (data?.user_id) localStorage.setItem('userId', data.user_id)
-    } catch {}
+    } catch (e) {
+      console.error('[登录] 保存到 localStorage 失败:', e)
+    }
     openToast(t('auth.login_success'), 'success')
     router.push('/workspace')
   } catch (e) {
+    console.error('[登录] 异常:', e)
     loginError.value = t('auth.invalid')
     loginInvalid.value = true
     openToast(t('auth.invalid'), 'error')
@@ -122,37 +139,96 @@ const onLoginSubmit = async () => {
 const onSignupSubmit = async () => {
   signupError.value = ''
   if (!terms.value || registering.value) return
+
   const email = signupEmail.value.trim()
   const codeStr = signupCode.value.trim()
   const password = signupPassword.value
+
+  // 验证邮箱格式
   const emailValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)
+  if (!emailValid) {
+    signupError.value = t('auth.email_invalid')
+    openToast(t('auth.email_invalid'), 'error')
+    return
+  }
+
+  // 验证验证码格式
   const codeValid = /^\d{6}$/.test(codeStr)
+  if (!codeValid) {
+    signupError.value = t('auth.code_invalid')
+    openToast(t('auth.code_invalid'), 'error')
+    return
+  }
+
+  // 验证密码长度
   const passValid = password && password.length >= 8
-  if (!emailValid) { signupError.value = t('auth.email_invalid'); return }
-  if (!codeValid) { signupError.value = t('auth.code_invalid'); return }
-  if (!passValid) { signupError.value = t('auth.password_rule'); return }
+  if (!passValid) {
+    signupError.value = t('auth.password_rule')
+    openToast(t('auth.password_rule'), 'error')
+    return
+  }
+
   registering.value = true
+
   try {
+    const requestBody = { email, password, code: codeStr }
+    console.log('[注册] 开始注册:', { email, codeLength: codeStr.length, passwordLength: password.length })
+    console.log('[注册] 请求体:', JSON.stringify(requestBody, null, 2))
+
     const res = await fetch(`${API_BASE}/api/v1/auth/register`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email, password, code: codeStr })
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json'
+      },
+      body: JSON.stringify(requestBody)
     })
+
+    console.log('[注册] 响应状态:', res.status)
+
     if (!res.ok) {
       let msg = t('auth.signup_failed')
       try {
         const data = await res.json()
-        msg = data?.detail || msg
-      } catch {}
+        console.error('[注册] 错误响应:', data)
+        msg = data?.detail || data?.message || msg
+
+        // 处理常见的错误情况
+        if (res.status === 400) {
+          if (data?.detail?.includes('code') || data?.detail?.includes('验证码')) {
+            msg = '验证码错误或已过期'
+          } else if (data?.detail?.includes('email') || data?.detail?.includes('邮箱')) {
+            msg = '邮箱格式不正确或已被注册'
+          } else if (data?.detail?.includes('password') || data?.detail?.includes('密码')) {
+            msg = '密码格式不符合要求'
+          }
+        }
+      } catch (e) {
+        console.error('[注册] 解析错误响应失败:', e)
+      }
       signupError.value = msg
+      openToast(msg, 'error')
       return
     }
-    await res.json().catch(() => null)
+
+    const data = await res.json().catch(() => null)
+    console.log('[注册] 注册成功:', data)
+
     openToast(t('auth.signup_success'), 'success')
+
+    // 切换到登录标签并预填邮箱
     switchTab('login')
     loginEmail.value = email
+
+    // 清空注册表单
+    signupEmail.value = ''
+    signupCode.value = ''
+    signupPassword.value = ''
+
   } catch (e) {
+    console.error('[注册] 异常:', e)
     signupError.value = t('auth.signup_failed')
+    openToast(t('auth.signup_failed'), 'error')
   } finally {
     registering.value = false
   }
@@ -165,17 +241,43 @@ const sendCode = async () => {
   if (sending.value || resendSeconds.value > 0) return
   const email = signupEmail.value.trim()
   const valid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)
-  if (!valid) return
+  if (!valid) {
+    openToast(t('auth.email_invalid'), 'error')
+    return
+  }
   sending.value = true
+
+  // 创建 AbortController 用于超时控制
+  const controller = new AbortController()
+  const timeoutId = setTimeout(() => controller.abort(), 30000) // 30秒超时
+
   try {
+    console.log('[发送验证码] 开始发送到:', email)
     const res = await fetch(`${API_BASE}/api/v1/auth/send-code`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email })
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json'
+      },
+      body: JSON.stringify({ email }),
+      signal: controller.signal
     })
-    if (!res.ok) throw new Error('Request failed')
+
+    clearTimeout(timeoutId)
+    console.log('[发送验证码] 响应状态:', res.status)
+
+    if (!res.ok) {
+      let errorMsg = t('auth.send_code_failed')
+      try {
+        const errorData = await res.json()
+        errorMsg = errorData?.detail || errorData?.message || errorMsg
+      } catch {}
+      throw new Error(errorMsg)
+    }
+
+    // 成功发送
+    openToast(t('auth.code_sent') || '验证码已发送', 'success')
     resendSeconds.value = 60
-    sending.value = false
     const timer = setInterval(() => {
       resendSeconds.value--
       if (resendSeconds.value <= 0) {
@@ -183,8 +285,19 @@ const sendCode = async () => {
       }
     }, 1000)
   } catch (e) {
+    clearTimeout(timeoutId)
+    console.error('[发送验证码] 错误:', e)
+
+    let errorMessage = t('auth.send_code_failed')
+    if (e.name === 'AbortError') {
+      errorMessage = '请求超时,请检查网络连接'
+    } else if (e.message) {
+      errorMessage = e.message
+    }
+
+    openToast(errorMessage, 'error')
+  } finally {
     sending.value = false
-    alert(t('auth.send_code_failed'))
   }
 }
 </script>

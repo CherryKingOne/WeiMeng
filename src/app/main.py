@@ -8,7 +8,7 @@ from app.core.config import settings
 from app.core.database import init_db
 
 # Import routers
-from app.api.v1 import auth, script, media, scriptwriting, model_config
+from app.api.v1 import auth, script, media, scriptwriting, model_config, user_info
 from app.api.v3 import chat
 from app.api.v4 import shot as shot_v4
 
@@ -29,6 +29,7 @@ app.add_middleware(
 
 # Register routers
 app.include_router(auth.router, prefix="/api/v1/auth", tags=["Authentication"])
+app.include_router(user_info.router, prefix="/api/v1/user-info", tags=["User Management"])
 app.include_router(script.router, prefix="/api/v1/script", tags=["Script & Files"])
 app.include_router(media.router, prefix="/api/v1/media", tags=["AI Media"])
 app.include_router(scriptwriting.router, prefix="/api/v1/scriptwriting", tags=["Scriptwriting"])

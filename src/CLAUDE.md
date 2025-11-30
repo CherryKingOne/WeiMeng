@@ -12,15 +12,13 @@ WeiMeng (唯梦/微梦) is an AI-assisted drama and video production platform th
 
 ### Prerequisites
 
-- Python 3.9+
-- PostgreSQL 15+ (or use Docker Compose)
-- MinIO (or use Docker Compose)
+- Python 3.9+ (tested with Python 3.13.5)
+- PostgreSQL 15+
+- MinIO
 
-To start PostgreSQL and MinIO using Docker:
-```bash
-docker-compose up -d
-```
-This starts PostgreSQL on port 5432 and MinIO on port 9000 (admin UI on 9001).
+**Note**: This project does not include a `docker-compose.yml` file. You need to set up PostgreSQL and MinIO manually or using your own Docker containers. Refer to the official documentation for installation:
+- PostgreSQL: https://www.postgresql.org/download/
+- MinIO: https://min.io/docs/minio/linux/operations/installation.html
 
 ### Backend (from `src/` directory)
 
@@ -37,7 +35,7 @@ uvicorn app.main:app --reload --port 7767
 
 Backend runs on `http://localhost:7767` (configurable via `.env`).
 
-**Note**: PostgreSQL and MinIO must be running before starting the backend. Set up these services manually or via Docker containers as needed.
+**Note**: PostgreSQL and MinIO must be running before starting the backend.
 
 ### Frontend (from `web-ui/` directory)
 
@@ -57,15 +55,39 @@ npm run preview
 
 Frontend runs on `http://localhost:5173`.
 
+**Note**: For detailed frontend architecture and development guidelines, see `web-ui/CLAUDE.md`.
+
 ### Database Setup
 
 The application uses PostgreSQL with async SQLAlchemy. Database tables are automatically created on startup via `init_db()` in `app/core/database.py:36`. The `init_db()` function also handles lightweight schema migrations (BIGINT conversions, adding columns) wrapped in try-except blocks.
 
-For manual migrations using Alembic:
+For manual migrations using Alembic (not currently configured):
 ```bash
+# Initialize Alembic (first time only)
 alembic init alembic
+
+# Generate migration
 alembic revision --autogenerate -m "Migration message"
+
+# Apply migration
 alembic upgrade head
+```
+
+**Note**: The project currently uses automatic schema migrations via `init_db()`. Alembic is available as a dependency but not configured.
+
+### Testing
+
+The project does not currently have a test suite configured. To add testing:
+
+```bash
+# Install pytest and dependencies
+pip install pytest pytest-asyncio httpx
+
+# Run tests (once configured)
+pytest
+
+# Run with coverage
+pytest --cov=app tests/
 ```
 
 ### Environment Configuration
@@ -99,6 +121,38 @@ LLM_MODEL_NAME=gpt-4
 # Optional: SMTP, external AI APIs
 # JIMENG_API_KEY=...
 # QINIU_ACCESS_KEY=...
+```
+
+## Project Structure
+
+```
+src/
+├── app/
+│   ├── api/              # API endpoints organized by version
+│   │   ├── v1/          # Core functionality (auth, script, scriptwriting, media)
+│   │   ├── v2/          # Model configuration management
+│   │   └── v3/          # Chat, image, and video generation
+│   ├── core/            # Core configuration and utilities
+│   │   ├── config.py    # Pydantic settings (line 5)
+│   │   ├── database.py  # SQLAlchemy async setup (line 27, 36)
+│   │   └── security.py  # JWT and password hashing
+│   ├── models/          # SQLAlchemy ORM models
+│   │   ├── user.py
+│   │   ├── script.py    # ScriptLibrary (line 7), ScriptFile (line 22)
+│   │   ├── scriptwriting.py  # ScriptwritingProject (line 8), ScriptwritingShot (line 24)
+│   │   ├── model_config.py   # ModelConfig (line 6)
+│   │   └── chat.py      # ChatSession, ChatMessage, VideoTask (line 82)
+│   ├── services/        # Business logic services
+│   │   ├── llm_service.py    # LLM API integration
+│   │   └── minio_service.py  # MinIO object storage (line 6)
+│   ├── utils/           # Utility functions
+│   │   ├── encryption.py     # AES-256-CBC encryption for API keys
+│   │   └── prompt_loader.py  # Load prompts from markdown files (line 5)
+│   └── main.py          # FastAPI application entry point (CORS at line 22)
+├── prompts/             # System prompts for LLM (markdown files)
+├── main.py              # Application startup script
+├── requirements.txt     # Python dependencies
+└── .env                 # Environment variables (not in git)
 ```
 
 ## Architecture
@@ -157,6 +211,21 @@ LLM_MODEL_NAME=gpt-4
   - Handles different URL field names (url/video_url) from various APIs
   - Task statuses: queued, in_progress, completed, failed
 
+**User Management System**: User query and management operations:
+- `GET /api/v1/user-info/me`: Get current logged-in user information
+  - Returns the authenticated user's profile (id, email, account, username, timestamps)
+  - No parameters required, uses JWT token from Authorization header
+- `GET /api/v1/user-info/{user_id}`: Get single user details by ID
+- `PUT /api/v1/user-info/{user_id}`: Update user information
+  - Supports updating account, username, and password
+  - Account uniqueness validation (excluding current user)
+  - Password is automatically hashed if provided
+- `DELETE /api/v1/user-info/{user_id}`: Delete user
+  - Prevents self-deletion (cannot delete your own account)
+  - Returns 204 No Content on success
+- All endpoints require authentication via `get_current_user` dependency
+- Schemas defined in `app/schemas/user_info.py`
+
 ### Configuration
 
 All settings are managed through `app/core/config.py` using Pydantic Settings. The `.env` file in the `src/` directory is automatically loaded. Key settings include:
@@ -167,9 +236,10 @@ All settings are managed through `app/core/config.py` using Pydantic Settings. T
 
 ### API Structure
 
-Routes are organized under `/api/v1/`, `/api/v2/`, and `/api/v3/`:
+Routes are organized under `/api/v1/`, `/api/v2/`, `/api/v3/`, and `/api/v4/`:
 - **v1**: Core functionality
   - `auth.py`: User registration, login, profile management
+  - `user_info.py`: User management CRUD operations (admin functionality)
   - `script.py`: Script library and file management (CRUD operations)
   - `scriptwriting.py`: Scriptwriting project and shot management (detailed shot system)
   - `media.py`: AI media generation endpoints (placeholder for future implementation)
@@ -180,6 +250,7 @@ Routes are organized under `/api/v1/`, `/api/v2/`, and `/api/v3/`:
   - Default model configuration (global and library-specific)
   - Image generation (`POST /images/generations`)
   - Video generation (`POST /videos`, `GET /videos/{task_id}`)
+- **v4**: `shot.py`: Enhanced shot management endpoints
 
 ### Prompt System
 
@@ -213,3 +284,56 @@ System prompts for LLM calls are stored as markdown files in `prompts/` director
 When the server is running, interactive API documentation is available at:
 - Swagger UI: http://localhost:7767/docs
 - ReDoc: http://localhost:7767/redoc
+
+## Development Workflow
+
+### Adding a New API Endpoint
+
+1. Define the Pydantic schema in `app/schemas/` (create if needed)
+2. Create the endpoint in the appropriate API version directory (`app/api/v1/`, `v2/`, or `v3/`)
+3. Add authentication using `Depends(get_current_user)` if the endpoint requires authentication
+4. Use `Depends(get_db)` for database access
+5. Test the endpoint using the Swagger UI at `/docs`
+
+### Adding a New Model
+
+1. Create the SQLAlchemy model in `app/models/`
+2. Import the model in `app/core/database.py` in the `init_db()` function
+3. Restart the server - tables will be created automatically
+4. For complex migrations, use Alembic
+
+### Working with LLM Services
+
+1. Add system prompts as `.md` files in the `prompts/` directory
+2. Load prompts using `load_prompt(filename)` from `app/utils/prompt_loader.py:5`
+3. Use the `LLMService` singleton (`llm_engine`) for API calls
+4. Handle streaming responses for chat completions
+
+### Working with MinIO
+
+1. Files are organized by prefix (simulated folders): `{library_name}/{filename}`
+2. Use the `MinioService` singleton (`minio_client`) for all operations
+3. Generate presigned URLs for secure temporary access (default 1 hour)
+4. Remember to delete from both database and MinIO when removing files
+
+### Common Patterns
+
+**Async Database Queries**:
+```python
+from sqlalchemy import select
+result = await db.execute(select(Model).where(Model.field == value))
+item = result.scalars().first()
+```
+
+**JWT Authentication**:
+```python
+@router.get("/protected")
+async def protected_endpoint(current_user: User = Depends(get_current_user)):
+    return {"user_id": current_user.id}
+```
+
+**Error Handling**:
+```python
+from fastapi import HTTPException, status
+raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Item not found")
+```

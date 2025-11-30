@@ -10,6 +10,7 @@ from app.models.verification_code import VerificationCode, VerificationType
 from app.schemas.user import UserCreate, UserLogin, UserResponse, Token, VerificationCodeRequest, PasswordResetRequest
 from app.services.email_service import email_service
 from app.utils.id_generator import generate_user_id
+from app.api.deps import get_current_user
 
 router = APIRouter()
 
@@ -96,16 +97,23 @@ async def register(
     # Create new user
     hashed_password = get_password_hash(user_data.password)
     user_id = generate_user_id()
+
+    # 提取邮箱前缀作为默认用户名
+    username = user_data.email.split('@')[0]
+    account = user_data.email
+
     new_user = User(
         id=user_id,
         email=user_data.email,
+        account=account,
+        username=username,
         hashed_password=hashed_password
     )
-    
+
     db.add(new_user)
     await db.commit()
     await db.refresh(new_user)
-    
+
     return new_user
 
 
@@ -182,8 +190,7 @@ async def login(
 
 @router.get("/me", response_model=UserResponse)
 async def get_current_user_info(
-    current_user: User = Depends(get_db)
+    current_user: User = Depends(get_current_user)
 ):
     """Get current user information"""
-    from app.api.deps import get_current_user
     return current_user

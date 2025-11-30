@@ -19,8 +19,12 @@ class UserLogin(BaseModel):
 
 class UserResponse(UserBase):
     id: str
+    account: str
+    username: str
     is_active: bool
     created_at: datetime
+    updated_at: Optional[datetime] = None
+    default_models: Optional[dict] = None
 
     class Config:
         from_attributes = True

@@ -98,6 +98,68 @@ async def init_db():
             except Exception:
                 await session.rollback()
 
+            # Add account column to users if it doesn't exist
+            try:
+                await session.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS account VARCHAR(50)"))
+                await session.commit()
+            except Exception:
+                await session.rollback()
+
+            # Add username column to users if it doesn't exist
+            try:
+                await session.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS username VARCHAR(50)"))
+                await session.commit()
+            except Exception:
+                await session.rollback()
+
+            # Add updated_at column to users if it doesn't exist
+            try:
+                await session.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()"))
+                await session.commit()
+            except Exception:
+                await session.rollback()
+
+            # Update existing users: set account = email and username = email prefix if NULL
+            try:
+                await session.execute(text("""
+                    UPDATE users
+                    SET account = email
+                    WHERE account IS NULL
+                """))
+                await session.commit()
+            except Exception:
+                await session.rollback()
+
+            try:
+                await session.execute(text("""
+                    UPDATE users
+                    SET username = SPLIT_PART(email, '@', 1)
+                    WHERE username IS NULL
+                """))
+                await session.commit()
+            except Exception:
+                await session.rollback()
+
+            # Add unique constraint and index for account
+            try:
+                await session.execute(text("CREATE UNIQUE INDEX IF NOT EXISTS idx_users_account ON users(account)"))
+                await session.commit()
+            except Exception:
+                await session.rollback()
+
+            # Set NOT NULL constraint after data migration
+            try:
+                await session.execute(text("ALTER TABLE users ALTER COLUMN account SET NOT NULL"))
+                await session.commit()
+            except Exception:
+                await session.rollback()
+
+            try:
+                await session.execute(text("ALTER TABLE users ALTER COLUMN username SET NOT NULL"))
+                await session.commit()
+            except Exception:
+                await session.rollback()
+
         except Exception as e:
             print(f"Database migration error: {e}")
             await session.rollback()

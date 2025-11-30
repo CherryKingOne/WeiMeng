@@ -229,6 +229,7 @@ onMounted(() => {
   document.addEventListener('click', onDocClick)
   loadLibraries()
   loadConfiguredModels()
+  loadUserInfo()
 })
 onBeforeUnmount(() => {
   document.removeEventListener('click', onDocClick)
@@ -1065,16 +1066,54 @@ const nextExtract = () => { if (extractStep.value === 2) extractStep.value = 3 }
 const confirmExtractCreate = () => { const chosen = extractedRoles.value.filter(x => x.selected); if (chosen.length === 0) { extractError.value = '请至少选择一个角色'; return } openToast('角色已创建'); closeExtractWizard() }
 const notifyOpen = ref(false)
 const toggleNotify = () => { notifyOpen.value = !notifyOpen.value }
-const notifications = ref([
-  { id: 'n1', title: '你的设计稿被评论', time: '3分钟前', icon: 'comment-dots', read: false },
-  { id: 'n2', title: '组件库已更新到 v2.4', time: '1小时前', icon: 'diagram-project', read: false },
-  { id: 'n3', title: '协作者邀请已通过', time: '昨天', icon: 'users', read: true },
-])
+const notifications = ref([])
 const unreadCount = computed(() => notifications.value.filter(n => !n.read).length)
 const clearNotifications = () => { notifications.value.forEach(n => { n.read = true }) }
 const showAccount = ref(false)
-const accountName = ref('胡子君')
-const accountEmail = ref('huzijun@tangdou.com')
+const accountName = ref('')
+const accountEmail = ref('')
+const accountAvatar = ref('')
+const accountInitial = computed(() => {
+  if (accountName.value) {
+    return accountName.value.charAt(0).toUpperCase()
+  }
+  if (accountEmail.value) {
+    return accountEmail.value.charAt(0).toUpperCase()
+  }
+  return 'U'
+})
+
+// 加载用户信息
+const loadUserInfo = async () => {
+  try {
+    const token = typeof localStorage !== 'undefined' ? localStorage.getItem('accessToken') : ''
+    const res = await fetch(`${API_BASE}/api/v1/user-info/me`, {
+      headers: {
+        'Accept': 'application/json',
+        ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+      }
+    })
+    if (!res.ok) {
+      if (res.status === 401) {
+        try { localStorage.setItem('loggedIn', 'false') } catch {}
+        router.push('/login')
+        return
+      }
+      console.error('【用户信息】加载失败:', res.status)
+      return
+    }
+    const data = await res.json()
+    console.log('【用户信息】加载成功:', data)
+
+    // 更新用户信息
+    if (data.username) accountName.value = data.username
+    if (data.email) accountEmail.value = data.email
+    if (data.avatar) accountAvatar.value = data.avatar
+  } catch (err) {
+    console.error('【用户信息】加载异常:', err)
+  }
+}
+
 const openAccount = async () => { userMenuOpen.value = false; await nextTick(); showAccount.value = true }
 const closeAccount = () => { showAccount.value = false }
 const editingAccountName = ref(false)
@@ -1118,13 +1157,6 @@ const logout = () => {
 }
 const upgradeTab = ref('cloud')
 const annualBilling = ref(false)
-const accountAppsOpen = ref(false)
-const accountApps = ref([
-  { id: 'app1', name: '电商平台', projects: 12, lastActive: '今天' },
-  { id: 'app2', name: 'CRM 系统', projects: 8, lastActive: '2天前' },
-  { id: 'app3', name: '移动健康App', projects: 5, lastActive: '1周前' },
-])
-const toggleAccountApps = () => { accountAppsOpen.value = !accountAppsOpen.value }
 const showReset = ref(false)
 const resetForm = ref({ password: '', confirm: '', code: '' })
 const resetErrors = ref({ password: '', confirm: '', code: '' })
@@ -1162,11 +1194,7 @@ const sendCode = async () => {
 }
 const showRecent = ref(false)
 const recentSearch = ref('')
-const recentItems = ref([
-  { id: 'r1', name: 'Dashboard 概览页', time: '3分钟前', thumbnail: 'https://images.unsplash.com/photo-1515879218367-8466d910aaa4?q=80&w=800&auto=format&fit=crop' },
-  { id: 'r2', name: '电商购物车原型', time: '昨天', thumbnail: 'https://images.unsplash.com/photo-1542831371-29b0f74f9713?q=80&w=800&auto=format&fit=crop' },
-  { id: 'r3', name: '移动端登录页', time: '1周前', thumbnail: 'https://images.unsplash.com/photo-1520975916090-3105956dac38?q=80&w=800&auto=format&fit=crop' },
-])
+const recentItems = ref([])
 const filteredRecent = computed(() => {
   const q = recentSearch.value.trim().toLowerCase()
   if (!q) return recentItems.value
@@ -1204,11 +1232,7 @@ const clearRecycle = () => {
 }
 const showFavorites = ref(false)
 const favoritesSearch = ref('')
-const favoritesItems = ref([
-  { id: 'f1', name: '电商首页原型', updated: '2天前', thumbnail: 'https://images.unsplash.com/photo-1505740420928-5e560c06d30e?q=80&w=800&auto=format&fit=crop' },
-  { id: 'f2', name: '数据报表仪表盘', updated: '3小时前', thumbnail: 'https://images.unsplash.com/photo-1498050108023-c5249f4df085?q=80&w=800&auto=format&fit=crop' },
-  { id: 'f3', name: '移动端注册页', updated: '上周', thumbnail: 'https://images.unsplash.com/photo-1517249361621-f11084eb8eba?q=80&w=800&auto=format&fit=crop' },
-])
+const favoritesItems = ref([])
 const teams = ref([])
 const filteredFavorites = computed(() => {
   const q = favoritesSearch.value.trim().toLowerCase()
@@ -1406,10 +1430,10 @@ const loadLibraries = async () => {
             <div v-if="userMenuOpen" class="absolute right-0 mt-2 w-72 bg-white border border-gray-200 rounded-2xl shadow-xl z-50 overflow-hidden dark:bg-[#2C2C2E] dark:border-[#3A3A3C]">
               <div class="px-4 py-3 flex items-center justify-between">
                 <div>
-                  <div class="font-semibold text-primary dark:text-white">{{ accountName }}</div>
-                  <div class="text-xs text-secondary">{{ accountEmail }}</div>
+                  <div class="font-semibold text-primary dark:text-white">{{ accountName || $t('workspace.loading') }}</div>
+                  <div class="text-xs text-secondary">{{ accountEmail || $t('workspace.loading') }}</div>
                 </div>
-                <div class="w-8 h-8 rounded-full bg-brand-green text-white flex items-center justify-center font-bold">{{ accountName.charAt(0) }}</div>
+                <div class="w-8 h-8 rounded-full bg-brand-green text-white flex items-center justify-center font-bold">{{ accountInitial }}</div>
               </div>
               <div class="border-t border-gray-200 dark:border-[#3A3A3C]">
                 <button class="w-full flex items-center justify-between px-4 py-2 text-sm hover:bg-gray-100 dark:hover:bg-[#3A3A3C]" @click.stop="openAccount">
@@ -1442,8 +1466,26 @@ const loadLibraries = async () => {
               <div class="border-t border-gray-200 px-4 py-3 dark:border-[#3A3A3C]">
                 <div class="text-xs mb-2 text-secondary">{{ $t('workspace.theme') }}</div>
                 <div class="flex items-center gap-2">
-                  <button class="px-2.5 py-1.5 rounded-md border text-xs flex items-center gap-1 hover:bg-gray-100 dark:border-[#3A3A3C] dark:hover:bg-[#3A3A3C]" @click="setTheme('light')"><fa :icon="['fas','sun']" /> {{ $t('workspace.theme_light') }}</button>
-                  <button class="px-2.5 py-1.5 rounded-md border text-xs flex items-center gap-1 hover:bg-gray-100 dark:border-[#3A3A3C] dark:hover:bg-[#3A3A3C]" @click="setTheme('dark')"><fa :icon="['fas','moon']" /> {{ $t('workspace.theme_dark') }}</button>
+                  <button
+                    :class="[
+                      'px-2.5 py-1.5 rounded-md border text-xs flex items-center gap-1 transition-colors',
+                      theme === 'light'
+                        ? 'bg-brand-green text-white border-brand-green'
+                        : 'border-gray-300 text-gray-700 hover:bg-gray-100 dark:border-[#3A3A3C] dark:text-gray-300 dark:hover:bg-[#3A3A3C]'
+                    ]"
+                    @click="setTheme('light')">
+                    <fa :icon="['fas','sun']" /> {{ $t('workspace.theme_light') }}
+                  </button>
+                  <button
+                    :class="[
+                      'px-2.5 py-1.5 rounded-md border text-xs flex items-center gap-1 transition-colors',
+                      theme === 'dark'
+                        ? 'bg-brand-green text-white border-brand-green'
+                        : 'border-gray-300 text-gray-700 hover:bg-gray-100 dark:border-[#3A3A3C] dark:text-gray-300 dark:hover:bg-[#3A3A3C]'
+                    ]"
+                    @click="setTheme('dark')">
+                    <fa :icon="['fas','moon']" /> {{ $t('workspace.theme_dark') }}
+                  </button>
                 </div>
               </div>
               <div class="border-t border-gray-200 dark:border-[#3A3A3C]">
@@ -1929,10 +1971,37 @@ const loadLibraries = async () => {
                 <div class="p-4 rounded-xl border bg-white dark:bg-[#1E1E1E] dark:border-[#333333]">
                   <div class="font-semibold mb-2">{{ $t('workspace.general_settings') }}</div>
                   <div class="flex items-center gap-3 text-sm">
-                    <span>{{ $t('workspace.theme') }}</span>
-                    <button class="px-2 py-1 rounded-md border text-xs hover:bg-gray-100 dark:border-[#3A3A3C] dark:hover:bg-[#3A3A3C]" @click="setTheme('light')">{{ $t('workspace.theme_light') }}</button>
-                    <button class="px-2 py-1 rounded-md border text-xs hover:bg-gray-100 dark:border-[#3A3A3C] dark:hover:bg-[#3A3A3C]" @click="setTheme('dark')">{{ $t('workspace.theme_dark') }}</button>
-                    <button class="px-2 py-1 rounded-md border text-xs hover:bg-gray-100 dark:border-[#3A3A3C] dark:hover:bg-[#3A3A3C]" @click="setTheme('system')">{{ $t('workspace.theme_system') }}</button>
+                    <span class="text-primary dark:text-white">{{ $t('workspace.theme') }}</span>
+                    <button
+                      :class="[
+                        'px-2 py-1 rounded-md border text-xs transition-colors',
+                        theme === 'light'
+                          ? 'bg-brand-green text-white border-brand-green'
+                          : 'border-gray-300 text-gray-700 hover:bg-gray-100 dark:border-[#3A3A3C] dark:text-gray-300 dark:hover:bg-[#3A3A3C]'
+                      ]"
+                      @click="setTheme('light')">
+                      {{ $t('workspace.theme_light') }}
+                    </button>
+                    <button
+                      :class="[
+                        'px-2 py-1 rounded-md border text-xs transition-colors',
+                        theme === 'dark'
+                          ? 'bg-brand-green text-white border-brand-green'
+                          : 'border-gray-300 text-gray-700 hover:bg-gray-100 dark:border-[#3A3A3C] dark:text-gray-300 dark:hover:bg-[#3A3A3C]'
+                      ]"
+                      @click="setTheme('dark')">
+                      {{ $t('workspace.theme_dark') }}
+                    </button>
+                    <button
+                      :class="[
+                        'px-2 py-1 rounded-md border text-xs transition-colors',
+                        theme === 'system'
+                          ? 'bg-brand-green text-white border-brand-green'
+                          : 'border-gray-300 text-gray-700 hover:bg-gray-100 dark:border-[#3A3A3C] dark:text-gray-300 dark:hover:bg-[#3A3A3C]'
+                      ]"
+                      @click="setTheme('system')">
+                      {{ $t('workspace.theme_system') }}
+                    </button>
                   </div>
                 </div>
               </div>
@@ -2341,29 +2410,6 @@ const loadLibraries = async () => {
                       <p class="text-secondary text-sm mt-1 dark:text-gray-400">{{ $t('workspace.password_hint') }}</p>
                     </div>
                     <button class="font-medium px-3 py-1.5 rounded-md border border-gray-300 text-black hover:bg-gray-100 transition-colors flex-shrink-0 ml-4 dark:border-[#3A3A3C] dark:text-[#E0E0E0] dark:hover:bg-[#3A3A3C]" @click="openReset">{{ $t('workspace.reset_password') }}</button>
-                  </div>
-                  <hr class="border-light-gray mt-6 dark:border-[#333333]">
-                </div>
-                <div>
-                  <h2 class="text-sm font-semibold text-primary dark:text-white">{{ $t('workspace.account_data') }}</h2>
-                  <p class="text-secondary text-sm mt-1 mb-2">{{ $t('workspace.account_data_desc') }}</p>
-                  <button class="w-full bg-light-gray rounded-lg p-4 flex justify-between items-center hover:bg-gray-200 transition-colors dark:bg-[#1E1E1E] dark:hover:bg-[#2C2C2E]" @click="toggleAccountApps">
-                    <span class="text-primary dark:text-white">{{ $t('workspace.show_apps', { n: 38 }) }}</span>
-                    <fa :icon="['fas', accountAppsOpen ? 'chevron-down' : 'chevron-right']" class="text-secondary transition-transform" />
-                  </button>
-                  <div v-show="accountAppsOpen" class="mt-3 space-y-2">
-                    <div v-for="a in accountApps" :key="a.id" class="flex items-center justify-between bg-white rounded-lg border border-gray-200 px-4 py-3 dark:bg-[#1E1E1E] dark:border-[#333333]">
-                      <div class="flex items-center gap-3">
-                        <div class="w-6 h-6 rounded-sm bg-green-100 flex items-center justify-center">
-                          <fa :icon="['fas','square']" class="text-green-500 text-xs" />
-                        </div>
-                        <div>
-                          <div class="font-medium text-sm text-primary dark:text-white">{{ a.name }}</div>
-                          <div class="text-xs text-secondary">{{ $t('workspace.projects') }} {{ a.projects }} · {{ $t('workspace.last_activity') }} {{ a.lastActive }}</div>
-                        </div>
-                      </div>
-                      
-                    </div>
                   </div>
                 </div>
               </div>
