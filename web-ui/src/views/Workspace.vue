@@ -98,7 +98,6 @@ const sectionList = computed(() => {
 
   return list
 })
-const viewMode = ref('grid')
 const showCreateModal = ref(false)
 const createName = ref('')
 const createType = ref('')
@@ -1041,32 +1040,6 @@ const removeMember = (id) => {
   roleMenuForId.value = null
 }
 
-const showExtractWizard = ref(false)
-const extractStep = ref(1)
-const scriptInput = ref('')
-const extractedRoles = ref([])
-const extractError = ref('')
-const openExtractWizard = async () => { extractStep.value = 1; scriptInput.value = ''; extractedRoles.value = []; extractError.value = ''; await nextTick(); showExtractWizard.value = true }
-const closeExtractWizard = () => { showExtractWizard.value = false; extractStep.value = 1; scriptInput.value = ''; extractedRoles.value = []; extractError.value = '' }
-const extractCandidates = () => {
-  extractError.value = ''
-  const txt = (scriptInput.value || '').trim()
-  if (!txt) { extractError.value = '请粘贴剧本文本'; return }
-  const set = new Set()
-  let m
-  const reZh = /([\u4e00-\u9fa5]{2,8})：/g
-  const reEn = /([A-Z][A-Za-z\s]{0,20}):/g
-  while ((m = reZh.exec(txt))) { set.add(m[1]) }
-  while ((m = reEn.exec(txt))) { set.add(m[1].trim()) }
-  const list = Array.from(set)
-  if (list.length === 0) { extractError.value = '未识别到角色名称，请检查格式'; return }
-  extractedRoles.value = list.slice(0, 20).map(n => ({ name: n, selected: true }))
-  extractStep.value = 2
-}
-const toggleRoleSelected = (idx) => { const it = extractedRoles.value[idx]; if (!it) return; it.selected = !it.selected }
-const prevExtract = () => { if (extractStep.value > 1) extractStep.value -= 1 }
-const nextExtract = () => { if (extractStep.value === 2) extractStep.value = 3 }
-const confirmExtractCreate = () => { const chosen = extractedRoles.value.filter(x => x.selected); if (chosen.length === 0) { extractError.value = '请至少选择一个角色'; return } openToast('角色已创建'); closeExtractWizard() }
 const notifyOpen = ref(false)
 const toggleNotify = () => { notifyOpen.value = !notifyOpen.value }
 const notifications = ref([])
@@ -1448,10 +1421,6 @@ const loadLibraries = async () => {
           {{ $t('workspace.new_project') }}
         </router-link>
 
-        <button class="flex items-center justify-center w-full bg-white text-brand-green font-semibold px-4 py-3 rounded-lg border border-brand-green hover:bg-brand-green/10 transition-colors" @click="openExtractWizard">
-          <fa :icon="['fas','user']" class="mr-2" /> 剧本提炼角色
-        </button>
-
         <nav class="mt-6 space-y-1">
           <a href="#" @click.prevent="setSection('home')" :class="['flex items-center px-3 py-2 rounded-md transition-colors', currentSection==='home' ? 'font-semibold bg-brand-green/10 text-brand-green' : 'text-secondary dark:text-[#E0E0E0] hover:bg-gray-100 dark:hover:bg-[#2C2C2E]']">
             <fa :icon="['fas','house']" class="w-6 text-center" />
@@ -1655,10 +1624,6 @@ const loadLibraries = async () => {
           </div>
           <div class="flex items-center space-x-2">
             <button class="px-3 py-1 text-sm rounded-md border border-gray-200 bg-white text-primary hover:bg-gray-50 dark:bg-[#2C2C2E] dark:border-[#3A3A3C] dark:text-[#E0E0E0] dark:hover:bg-[#3A3A3C]" @click="openAddMember">{{ $t('workspace.add_team_member') }}</button>
-            <div class="flex items-center bg-white p-1 rounded-lg border border-gray-200 dark:bg-[#2C2C2E] dark:border-[#3A3A3C]">
-              <button class="px-3 py-1 text-sm rounded-md" :class="viewMode==='grid' ? 'font-semibold text-white bg-brand-green' : 'text-secondary hover:text-primary dark:text-gray-300 dark:hover:text-white'" @click="viewMode='grid'"><fa :icon="['fas','th-large']" /></button>
-              <button class="px-3 py-1 text-sm rounded-md" :class="viewMode==='list' ? 'font-semibold text-white bg-brand-green' : 'text-secondary hover:text-primary dark:text-gray-300 dark:hover:text-white'" @click="viewMode='list'"><fa :icon="['fas','list']" /></button>
-            </div>
             <div class="relative">
               <button class="px-4 py-2 bg-white border border-gray-200 rounded-lg text-sm font-medium hover:bg-gray-50 dark:bg-[#2C2C2E] dark:border-[#3A3A3C] dark:text-[#E0E0E0] dark:hover:bg-[#3A3A3C]" @click.stop="sortMenuOpen=!sortMenuOpen">
                 {{ sortLabel }} <fa :icon="['fas','chevron-down']" class="ml-2 text-xs" />
@@ -1693,7 +1658,7 @@ const loadLibraries = async () => {
             <input v-model="recycleSearch" type="text" :placeholder="$t('workspace.search_recycle')" class="flex-1 bg-light-gray border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-0 focus:border-brand-green dark:bg-[#1E1E1E] dark:text-[#E0E0E0] dark:border-[#3A3A3C]" />
             <button class="px-3 py-2 rounded-md border border-gray-300 text-black hover:bg-gray-100 dark:border-[#3A3A3C] dark:text-[#E0E0E0] dark:hover:bg-[#3A3A3C]" @click="clearRecycle">{{ $t('workspace.empty_recycle') }}</button>
           </div>
-          <div v-if="viewMode==='grid'" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+          <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
             <div v-for="d in filteredRecycle" :key="d.id" class="bg-white rounded-lg shadow-sm border border-gray-200 relative dark:bg-[#12161a] dark:border-[#333333]">
               <div class="aspect-video bg-gray-100 rounded-t-lg overflow-hidden">
                 <img :src="d.thumbnail" class="w-full h-full object-cover" />
@@ -1711,25 +1676,9 @@ const loadLibraries = async () => {
               <div class="rounded-lg border border-gray-200 bg-white p-6 text-center text-secondary dark:bg-[#12161a] dark:border-[#333333] dark:text-gray-400">{{ $t('workspace.recycle_empty') }}</div>
             </div>
           </div>
-          <div v-else class="rounded-lg border border-gray-200 bg-white dark:bg-[#12161a] dark:border-[#333333]">
-            <div v-for="d in filteredRecycle" :key="d.id" class="flex items-center justify-between px-4 py-3 border-b last:border-b-0 border-gray-200 dark:border-[#333333]">
-              <div class="flex items-center gap-3">
-                <div class="w-14 h-8 bg-gray-100 rounded overflow-hidden"><img :src="d.thumbnail" class="w-full h-full object-cover" /></div>
-                <div>
-                  <div class="font-medium text-primary dark:text-white">{{ d.name }}</div>
-                  <div class="text-xs text-secondary">{{ $t('workspace.deleted_at') }}：{{ d.deletedAt }}</div>
-                </div>
-              </div>
-              <div class="flex items-center gap-2">
-                <button class="px-3 py-1.5 rounded-md border border-gray-300 text-black hover:bg-gray-100 dark:border-[#3A3A3C] dark:text-[#E0E0E0] dark:hover:bg-[#3A3A3C]" @click="restoreRecycleItem(d.id)">{{ $t('workspace.restore') }}</button>
-                <button class="px-3 py-1.5 rounded-md border border-red-300 text-red-600 hover:bg-red-50 dark:border-red-400 dark:text-red-400 dark:hover:bg-[#3A3A3C]" @click="deleteRecycleItem(d.id)">{{ $t('workspace.delete_permanent') }}</button>
-              </div>
-            </div>
-            <div v-if="filteredRecycle.length===0" class="px-4 py-6 text-center text-secondary">{{ $t('workspace.recycle_empty') }}</div>
-          </div>
         </div>
           <div v-else>
-          <div v-if="viewMode==='grid'" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+          <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
             <div v-for="p in sectionList" :key="p.id" class="bg-white rounded-lg shadow-sm border border-gray-200 relative dark:bg-[#12161a] dark:border-[#333333] group hover:shadow-md transition-all">
               <router-link :to="{ path: '/studio', query: { id: p.id } }" class="block p-6">
                 <!-- 用户头像 -->
@@ -1750,7 +1699,7 @@ const loadLibraries = async () => {
 
                 <!-- 文件名 -->
                 <h3 class="font-semibold text-primary dark:text-white text-lg mb-2 break-words">{{ p.name }}</h3>
-                
+
                 <!-- 类型标签 -->
                 <div v-if="p.type" class="mb-6">
                   <span v-if="p.type === 'novel'" class="inline-block px-2 py-1 rounded text-xs font-medium bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400">
@@ -1791,46 +1740,6 @@ const loadLibraries = async () => {
             <div v-if="filteredProjects.length===0" class="col-span-full">
               <div class="rounded-lg border border-gray-200 bg-white p-6 text-center text-secondary dark:bg-[#12161a] dark:border-[#333333] dark:text-gray-400">{{ $t('workspace.no_drafts') }}</div>
             </div>
-          </div>
-          <div v-else class="rounded-lg border border-gray-200 bg-white dark:bg-[#12161a] dark:border-[#333333]">
-            <div v-for="p in sectionList" :key="p.id" class="flex items-center justify-between px-4 py-3 border-b last:border-b-0 border-gray-200 dark:border-[#333333] hover:bg-gray-50 dark:hover:bg-[#1E1E1E] transition-colors">
-              <router-link :to="{ path: '/studio', query: { id: p.id } }" class="flex items-center gap-4 flex-1">
-                <div class="w-24 h-14 bg-gray-100 rounded-lg overflow-hidden relative">
-                  <img :src="p.thumbnail" class="w-full h-full object-cover" />
-                  <div v-if="p.episodes!=null" class="absolute bottom-1 right-1 px-1.5 py-0.5 bg-black/60 rounded text-[10px] text-white">
-                    {{ p.episodes }} {{ $t('workspace.episodes') }}
-                  </div>
-                </div>
-                <div>
-                  <div class="font-medium text-primary dark:text-white text-base">{{ p.name }}</div>
-                  <div class="flex items-center gap-3 mt-1">
-                    <span v-if="p.type === 'novel'" class="text-xs px-2 py-0.5 rounded-full bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400">
-                      小说剧本
-                    </span>
-                    <span v-else-if="p.type === 'ad'" class="text-xs px-2 py-0.5 rounded-full bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400">
-                      广告创作
-                    </span>
-                    <span class="text-xs px-2 py-0.5 rounded-full bg-gray-100 text-gray-600 dark:bg-[#333333] dark:text-gray-300">
-                      <span v-if="p.status">{{ $t('workspace.status.' + p.status) }}</span>
-                  </span>
-                    <span class="text-xs text-secondary">{{ $t('workspace.modified_at') }}：{{ p.updated || p.time }}</span>
-                  </div>
-                </div>
-              </router-link>
-              <div class="relative">
-                <button data-project-menu-button class="px-2 py-1 rounded-md bg-transparent text-secondary hover:text-primary dark:text-[#E0E0E0] dark:hover:text-white" @click.stop="toggleMenu(p.id)">
-                  <span class="inline-block align-middle text-xl leading-none">…</span>
-                </button>
-                <div v-if="openMenuId===p.id" data-project-menu class="absolute right-0 mt-2 z-20 w-40 rounded-xl border border-gray-200 bg-white shadow-xl dark:bg-[#2C2C2E] dark:border-[#3A3A3C]">
-                  <button class="w-full text-left px-3 py-2 text-sm hover:bg-gray-100 dark:hover:bg-[#3A3A3C] dark:text-[#E0E0E0]" @click.stop="renameProject(p.id)">{{ $t('workspace.rename') }}</button>
-                  <button class="w-full text-left px-3 py-2 text-sm hover:bg-gray-100 dark:hover:bg-[#3A3A3C] dark:text-[#E0E0E0]" @click.stop="shareProject(p.id)">{{ $t('workspace.share') }}</button>
-                  <button class="w-full text-left px-3 py-2 text-sm hover:bg-gray-100 dark:hover:bg-[#3A3A3C] dark:text-[#E0E0E0]" @click.stop="openDuplicate(p.id)">{{ $t('workspace.duplicate') }}</button>
-                  <div class="border-t border-gray-200 dark:border-[#333333]"></div>
-                  <button class="w-full text-left px-3 py-2 text-sm text-red-600 hover:bg-red-50 dark:text-red-400 dark:hover:bg-[#3A3A3C]" @click.stop="deleteProject(p.id)">{{ $t('workspace.delete') }}</button>
-                </div>
-              </div>
-            </div>
-            <div v-if="sectionList.length===0" class="px-4 py-6 text-center text-secondary">{{ $t('workspace.no_content') }}</div>
           </div>
         </div>
 
@@ -2176,56 +2085,6 @@ const loadLibraries = async () => {
                 
               </div>
               </section>
-            </div>
-          </div>
-        </div>
-      </teleport>
-      <teleport to="body">
-        <div v-if="showExtractWizard" class="fixed inset-0 z-50 flex items-center justify-center">
-          <div class="absolute inset-0 bg-black/30 backdrop-blur-md" @click="closeExtractWizard"></div>
-          <div class="relative w-full max-w-2xl bg-white rounded-2xl shadow-2xl border border-gray-200 overflow-hidden dark:bg-[#2C2C2E] dark:border-[#3A3A3C]">
-            <div class="p-6">
-              <h3 class="text-xl font-semibold text-primary dark:text-white">剧本提炼角色</h3>
-              <div v-if="extractStep===1" class="mt-4 space-y-3">
-                <div class="text-sm text-secondary dark:text-gray-300">粘贴剧本文本，格式如：张三：台词内容</div>
-                <textarea v-model="scriptInput" rows="8" class="w-full bg-light-gray border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-0 focus:border-brand-green dark:bg-[#1E1E1E] dark:text-[#E0E0E0] dark:border-[#3A3A3C]"></textarea>
-                <p v-if="extractError" class="text-xs text-red-500">{{ extractError }}</p>
-                <div class="flex justify-end gap-3">
-                  <button class="px-4 py-2 rounded-lg border border-gray-300 text-secondary hover:bg-gray-100 dark:border-[#3A3A3C] dark:text-gray-300 dark:hover:bg-[#3A3A3C]" @click="closeExtractWizard">取消</button>
-                  <button class="px-4 py-2 rounded-lg bg-brand-green text-white hover:bg-brand-green/90" @click="extractCandidates">提炼</button>
-                </div>
-              </div>
-              <div v-else-if="extractStep===2" class="mt-4 space-y-3">
-                <div class="text-sm text-secondary dark:text-gray-300">选择需要创建的角色</div>
-                <div class="grid grid-cols-2 gap-2">
-                  <button v-for="(r,i) in extractedRoles" :key="r.name" class="flex items-center justify-between px-3 py-2 rounded-md border" :class="r.selected ? 'border-brand-green text-brand-green' : 'border-gray-300 text-secondary'" @click="toggleRoleSelected(i)">
-                    <span>{{ r.name }}</span>
-                    <span v-if="r.selected" class="text-xs">已选</span>
-                  </button>
-                </div>
-                <p v-if="extractError" class="text-xs text-red-500">{{ extractError }}</p>
-                <div class="flex justify-between">
-                  <button class="px-4 py-2 rounded-lg border border-gray-300 text-secondary hover:bg-gray-100 dark:border-[#3A3A3C] dark:text-gray-300 dark:hover:bg-[#3A3A3C]" @click="prevExtract">上一步</button>
-                  <div class="flex gap-3">
-                    <button class="px-4 py-2 rounded-lg border border-gray-300 text-secondary hover:bg-gray-100 dark:border-[#3A3A3C] dark:text-gray-300 dark:hover:bg-[#3A3A3C]" @click="closeExtractWizard">取消</button>
-                    <button class="px-4 py-2 rounded-lg bg-brand-green text-white hover:bg-brand-green/90" @click="nextExtract">下一步</button>
-                  </div>
-                </div>
-              </div>
-              <div v-else class="mt-4 space-y-3">
-                <div class="text-sm text-secondary dark:text-gray-300">确认创建以下角色</div>
-                <ul class="list-disc pl-6 text-sm">
-                  <li v-for="r in extractedRoles.filter(x=>x.selected)" :key="r.name">{{ r.name }}</li>
-                </ul>
-                <p v-if="extractError" class="text-xs text-red-500">{{ extractError }}</p>
-                <div class="flex justify-between">
-                  <button class="px-4 py-2 rounded-lg border border-gray-300 text-secondary hover:bg-gray-100 dark:border-[#3A3A3C] dark:text-gray-300 dark:hover:bg-[#3A3A3C]" @click="prevExtract">上一步</button>
-                  <div class="flex gap-3">
-                    <button class="px-4 py-2 rounded-lg border border-gray-300 text-secondary hover:bg-gray-100 dark:border-[#3A3A3C] dark:text-gray-300 dark:hover:bg-[#3A3A3C]" @click="closeExtractWizard">取消</button>
-                    <button class="px-4 py-2 rounded-lg bg-brand-green text-white hover:bg-brand-green/90" @click="confirmExtractCreate">创建</button>
-                  </div>
-                </div>
-              </div>
             </div>
           </div>
         </div>
