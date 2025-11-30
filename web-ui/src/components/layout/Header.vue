@@ -10,7 +10,7 @@ const toggleLang = () => {
 
 <template>
   <header class="sticky top-0 z-50 bg-white/80 backdrop-blur-lg border-b border-gray-200">
-    <div class="container mx-auto px-6 py-2 flex justify-between items-center">
+    <div class="w-full px-6 py-2 flex justify-between items-center">
       <span class="text-2xl font-bold text-gray-900 dark:text-white flex items-center">
         <img src="@/assets/logo.png" :alt="t('brand.name') + ' Logo'" class="h-10 mr-4" />
         {{ t('brand.name') }}
@@ -22,10 +22,13 @@ const toggleLang = () => {
         <a href="#" class="text-secondary hover:text-primary transition">{{ t('header.pricing') }}</a>
       </nav>
       <div class="flex items-center space-x-4">
+        <a href="https://github.com/CherryKingOne/WeiMeng" target="_blank" rel="noopener noreferrer" class="text-gray-900 hover:text-gray-700 transition">
+          <fa :icon="['fab', 'github']" class="text-2xl" />
+        </a>
         <button @click="toggleLang" class="text-secondary hover:text-primary transition">
           {{ locale === 'en' ? t('header.lang_zh') : t('header.lang_en') }}
         </button>
-        <router-link to="/login" class="text-secondary hover:text-primary transition">{{ t('header.login') }}</router-link>
+        <router-link to="/login" class="bg-brand-green text-white px-6 py-2 rounded-lg hover:bg-brand-green-dark transition font-semibold">{{ t('header.login') }}</router-link>
       </div>
     </div>
   </header>

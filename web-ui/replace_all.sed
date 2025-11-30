@@ -16,7 +16,7 @@ s/>复制项目</>\{\{ \$t('workspace.duplicate_project') \}\}</g
 s/>名称</>\{\{ \$t('workspace.duplicate_name') \}\}</g
 
 # Settings modal
-s/>OneFour 工作空间</>\{\{ \$t('workspace.workspace_name') \}\}</g
+s/>WeiMeng 工作空间</>\{\{ \$t('workspace.workspace_name') \}\}</g
 s/>成员 8 · 项目 24</>\{\{ \$t('workspace.workspace_info') \}\}</g
 s/>工作空间</>\{\{ \$t('workspace.settings_workspace') \}\}</g
 s/>模型供应商</>\{\{ \$t('workspace.model_providers') \}\}</g
@@ -77,7 +77,7 @@ s/>现已可用。</>\{\{ \$t('workspace.version_available', \{ version: latestV
 s/>更新日志</>\{\{ \$t('workspace.changelog') \}\}</g
 
 # Upgrade modal
-s/>OneFour 套餐</>\{\{ \$t('workspace.onefour_plans') \}\}</g
+s/>WeiMeng 套餐</>\{\{ \$t('workspace.onefour_plans') \}\}</g
 s/>选择最适合你团队的服务方式</>\{\{ \$t('workspace.plans_desc') \}\}</g
 s/>云服务</>\{\{ \$t('workspace.cloud_service') \}\}</g
 s/>自部署</>\{\{ \$t('workspace.self_hosted') \}\}</g

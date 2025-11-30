@@ -222,26 +222,6 @@ const sendCode = async () => {
           <div class="absolute bottom-[-2px] left-0 h-[3px] bg-brand-green" :style="{ width: indicatorWidth+'px', transform: `translateX(${indicatorX}px)` }"></div>
         </div>
 
-        <div>
-          <p class="text-center text-sm text-secondary mb-4">{{ t('auth.social') }}</p>
-          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <a href="#" class="w-full flex items-center justify-center py-3 px-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition">
-              <img src="https://www.vectorlogo.zone/logos/google/google-icon.svg" alt="Google" class="w-5 h-5 mr-3">
-              <span class="font-semibold text-primary text-sm">Google</span>
-            </a>
-            <a href="#" class="w-full flex items-center justify-center py-3 px-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition">
-              <i class="fab fa-github text-xl mr-3 text-gray-900"></i>
-              <span class="font-semibold text-primary text-sm">GitHub</span>
-            </a>
-          </div>
-        </div>
-
-        <div class="flex items-center my-8">
-          <hr class="flex-grow border-gray-200">
-          <span class="mx-4 text-sm text-secondary">{{ t('auth.email') }}</span>
-          <hr class="flex-grow border-gray-200">
-        </div>
-
         <form v-if="tab==='login'" class="space-y-6" @submit.prevent="onLoginSubmit">
           <div>
             <label for="login-email" class="font-medium text-primary block mb-2">{{ t('auth.email_label') }}</label>

@@ -276,9 +276,9 @@ const messages = {
       // Upgrade
       unlock_ai: 'Unlock AI Features',
       upgrade_pro: 'Upgrade to Pro',
-      update_available: 'OneFour {version} is now available.',
+      update_available: 'WeiMeng {version} is now available.',
       changelog: 'Changelog',
-      onefour_plans: 'OneFour Plans',
+      onefour_plans: 'WeiMeng Plans',
       plans_desc: 'Choose the plan that fits your needs',
       cloud_service: 'Cloud Service',
       self_hosted: 'Self-Hosted',
@@ -681,9 +681,9 @@ const messages = {
       // Upgrade
       unlock_ai: '解锁 AI 功能',
       upgrade_pro: '升级至专业版',
-      update_available: 'OneFour {version} 现已可用。',
+      update_available: 'WeiMeng {version} 现已可用。',
       changelog: '更新日志',
-      onefour_plans: 'OneFour 套餐',
+      onefour_plans: 'WeiMeng 套餐',
       plans_desc: '选择适合您需求的套餐',
       cloud_service: '云服务',
       self_hosted: '私有部署',

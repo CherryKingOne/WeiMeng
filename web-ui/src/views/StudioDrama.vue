@@ -403,9 +403,10 @@ const parsedJsonData = computed(() => {
     console.log('【JSON解析】成功解析完整 JSON:', parsed)
     return parsed
   } catch (e) {
-    console.log('【JSON解析】无法解析 JSON:', e)
-    console.log('【JSON解析】原始内容前500字符:', analysisResult.value.substring(0, 500))
-    console.log('【JSON解析】找到的代码块数量:', (analysisResult.value.match(/```json/g) || []).length)
+    // 静默处理 JSON 解析错误，不影响 Markdown 显示
+    // console.log('【JSON解析】无法解析 JSON:', e)
+    // console.log('【JSON解析】原始内容前500字符:', analysisResult.value.substring(0, 500))
+    // console.log('【JSON解析】找到的代码块数量:', (analysisResult.value.match(/```json/g) || []).length)
     return null
   }
 })
@@ -439,8 +440,14 @@ const highlightedJson = computed(() => {
 
 // Rendered Markdown
 const renderedMarkdown = computed(() => {
-  if (!analysisResult.value) return ''
-  return marked.parse(analysisResult.value)
+  if (!analysisResult.value) {
+    console.log('【Markdown渲染】analysisResult 为空')
+    return ''
+  }
+  console.log('【Markdown渲染】analysisResult 长度:', analysisResult.value.length)
+  const html = marked.parse(analysisResult.value)
+  console.log('【Markdown渲染】生成的 HTML 长度:', html.length)
+  return html
 })
 
 // Storyboard data - loaded from backend
@@ -3237,6 +3244,7 @@ const runAnalysis = async () => {
   isAnalyzing.value = true
   analysisError.value = ''
   analysisResult.value = ''
+  console.log('【运行分析】初始状态 - isAnalyzing:', isAnalyzing.value, 'analysisResult:', analysisResult.value)
 
   try {
     const token = localStorage.getItem('accessToken')
@@ -3283,29 +3291,52 @@ const runAnalysis = async () => {
       body: JSON.stringify(requestBody)
     })
 
+    console.log('【运行分析】响应状态:', response.status)
+    console.log('【运行分析】响应头:', Object.fromEntries(response.headers.entries()))
+
     if (!response.ok) {
+      const errorText = await response.text()
+      console.error('【运行分析】错误响应:', errorText)
       throw new Error(`API 请求失败: ${response.status}`)
     }
 
     // Handle streaming response
     if (aiConfig.value.streamingOutput) {
+      console.log('【运行分析】开始处理流式响应')
       const reader = response.body.getReader()
       const decoder = new TextDecoder()
+      let chunkCount = 0
 
       while (true) {
         const { done, value } = await reader.read()
-        if (done) break
+        if (done) {
+          console.log('【运行分析】流式响应结束，共接收', chunkCount, '个数据块')
+          break
+        }
 
+        chunkCount++
         const chunk = decoder.decode(value, { stream: true })
+        console.log('【运行分析】接收数据块', chunkCount, ':', chunk.substring(0, 100))
         const lines = chunk.split('\n')
 
         for (const line of lines) {
           if (line.startsWith('data: ')) {
             const data = line.slice(6).trim()
-            if (data === '[DONE]') continue
+            if (data === '[DONE]') {
+              console.log('【运行分析】收到 [DONE] 标记')
+              continue
+            }
 
             try {
               const json = JSON.parse(data)
+              console.log('【运行分析】解析JSON:', json)
+
+              // Check for error in response
+              if (json.error) {
+                console.error('【运行分析】API返回错误:', json.error)
+                throw new Error(json.error)
+              }
+
               // Support both formats: {"content": "..."} and {"choices": [{"delta": {"content": "..."}}]}
               let content = ''
               if (json.content) {
@@ -3318,7 +3349,7 @@ const runAnalysis = async () => {
 
               if (content) {
                 analysisResult.value += content
-                console.log('【流式输出】接收内容:', content)
+                console.log('【流式输出】累积内容长度:', analysisResult.value.length, '新增:', content.length)
 
                 // Auto-scroll to bottom when new content arrives
                 nextTick(() => {
@@ -3328,16 +3359,24 @@ const runAnalysis = async () => {
                 })
               }
             } catch (e) {
-              console.warn('解析流式数据失败:', e, '原始数据:', data)
+              console.warn('【运行分析】解析流式数据失败:', e, '原始数据:', data)
+              // If it's an error from API, throw it to be caught by outer catch
+              if (e.message && e.message.includes('Error code:')) {
+                throw e
+              }
             }
           }
         }
       }
+      console.log('【运行分析】最终结果长度:', analysisResult.value.length)
     } else {
       // Handle non-streaming response
+      console.log('【运行分析】处理非流式响应')
       const data = await response.json()
+      console.log('【运行分析】响应数据:', data)
       if (data.choices && data.choices[0] && data.choices[0].message) {
         analysisResult.value = data.choices[0].message.content
+        console.log('【运行分析】设置结果，长度:', analysisResult.value.length)
       }
     }
 
@@ -4505,39 +4544,50 @@ watch(activeTab, (newTab) => {
                   :disabled="!analysisResult"
                   title="全屏查看"
                 >
-                  <fa :icon="['fas', 'arrow-up-right-from-square']" class="text-gray-500 dark:text-gray-400" />
+                  <fa :icon="['fas', 'expand']" class="text-gray-500 dark:text-gray-400" />
                 </button>
               </div>
 
               <!-- View Mode Toggle -->
-              <div class="flex items-center gap-2 bg-gray-100 dark:bg-[#1C1C1E] rounded-lg p-1">
+              <div class="flex items-center gap-2">
+                <div class="inline-flex items-center gap-0.5 bg-gray-100 dark:bg-[#1C1C1E] rounded p-0.5">
+                  <button
+                    @click="resultViewMode = 'markdown'"
+                    class="px-2 py-0.5 rounded text-xs transition"
+                    :class="resultViewMode === 'markdown'
+                      ? 'bg-white dark:bg-[#2C2C2E] text-gray-900 dark:text-gray-100 shadow-sm'
+                      : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200'"
+                  >
+                    <fa :icon="['fas', 'file-lines']" class="mr-1" style="font-size: 10px;" />
+                    <span class="text-xs">Markdown</span>
+                  </button>
+                  <button
+                    @click="resultViewMode = 'table'"
+                    class="px-2 py-0.5 rounded text-xs transition"
+                    :class="resultViewMode === 'table'
+                      ? 'bg-white dark:bg-[#2C2C2E] text-gray-900 dark:text-gray-100 shadow-sm'
+                      : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200'"
+                  >
+                    <fa :icon="['fas', 'table']" class="mr-1" style="font-size: 10px;" />
+                    <span class="text-xs">表格</span>
+                  </button>
+                </div>
                 <button
-                  @click="resultViewMode = 'markdown'"
-                  class="flex-1 px-3 py-1.5 rounded-md text-xs font-medium transition"
-                  :class="resultViewMode === 'markdown'
-                    ? 'bg-white dark:bg-[#2C2C2E] text-gray-900 dark:text-gray-100 shadow-sm'
-                    : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200'"
+                  @click="saveStoryboard"
+                  :disabled="isSavingStoryboard || !parsedJsonData || !parsedJsonData.shots"
+                  class="px-3 py-1 rounded-md text-xs font-medium bg-brand-green text-white hover:bg-brand-green-dark transition disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  <fa :icon="['fas', 'file-lines']" class="mr-1.5" />
-                  Markdown
-                </button>
-                <button
-                  @click="resultViewMode = 'table'"
-                  class="flex-1 px-3 py-1.5 rounded-md text-xs font-medium transition"
-                  :class="resultViewMode === 'table'
-                    ? 'bg-white dark:bg-[#2C2C2E] text-gray-900 dark:text-gray-100 shadow-sm'
-                    : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200'"
-                >
-                  <fa :icon="['fas', 'table']" class="mr-1.5" />
-                  表格
+                  <fa :icon="isSavingStoryboard ? ['fas', 'circle-notch'] : ['fas', 'check']" :class="{'animate-spin': isSavingStoryboard}" class="mr-1" style="font-size: 10px;" />
+                  {{ isSavingStoryboard ? '保存中...' : '应用到分镜' }}
                 </button>
               </div>
             </div>
 
             <!-- Loading State (only show when no content yet) -->
-            <div v-if="isAnalyzing && !analysisResult" class="flex-1 flex flex-col items-center justify-center text-secondary dark:text-gray-400 p-6">
-              <fa :icon="['fas', 'circle-dot']" class="text-5xl mb-3 text-brand-green animate-spin" />
-              <p class="text-sm text-center">AI 正在分析中...</p>
+            <div v-if="isAnalyzing && !analysisResult" class="flex-1 flex flex-col items-center justify-center text-brand-green p-6">
+              <fa :icon="['fas', 'circle-notch']" class="text-5xl mb-3 animate-spin" />
+              <p class="text-sm text-center font-medium">AI 正在生成中...</p>
+              <p class="text-xs text-secondary dark:text-gray-400 mt-2">请稍候，正在分析章节内容</p>
             </div>
 
             <!-- Error State -->
@@ -4559,15 +4609,8 @@ watch(activeTab, (newTab) => {
               <p class="text-sm text-center">点击"运行"按钮<br/>开始 AI 分析</p>
             </div>
 
-            <!-- Loading State -->
-            <div v-else-if="isAnalyzing && !analysisResult" class="flex-1 flex flex-col items-center justify-center text-brand-green p-6">
-              <fa :icon="['fas', 'circle-notch']" class="text-5xl mb-3 animate-spin" />
-              <p class="text-sm text-center font-medium">AI 正在生成中...</p>
-              <p class="text-xs text-secondary dark:text-gray-400 mt-2">请稍候，正在分析章节内容</p>
-            </div>
-
-            <!-- Result Display (with streaming indicator) -->
-            <div v-else ref="resultContainer" class="flex-1 overflow-y-auto p-6">
+            <!-- Result Display (with streaming indicator) - 当有内容时显示，无论是否还在生成 -->
+            <div v-else-if="analysisResult" ref="resultContainer" class="flex-1 overflow-y-auto p-6">
               <!-- Markdown View -->
               <div v-if="resultViewMode === 'markdown'" class="prose prose-sm dark:prose-invert max-w-none prose-headings:font-bold prose-h1:text-2xl prose-h2:text-xl prose-h3:text-lg prose-table:text-xs prose-pre:bg-gray-100 dark:prose-pre:bg-gray-800 prose-code:text-brand-green prose-code:bg-gray-100 dark:prose-code:bg-gray-800 prose-code:px-1 prose-code:py-0.5 prose-code:rounded markdown-content">
                 <div v-html="renderedMarkdown"></div>

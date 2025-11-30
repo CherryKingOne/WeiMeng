@@ -253,6 +253,7 @@ const providers = ref([
   { id: 'qiniu', name: '七牛云', slug: 'qiniu', desc: '七牛云模型与推理服务', enabled: false, caps: ['LLM'], models: [], configured: false }
 ])
 const showSystemModelSettings = ref(false)
+const defaultModelConfigId = ref('') // 存储默认模型配置的 config_id
 const systemReasoningModel = ref('')
 const embeddingModel = ref('')
 const rerankModel = ref('')
@@ -402,7 +403,13 @@ const loadAllModelConfigurations = async () => {
     // Set models from backend config or auto-select first model
     if (defaultConfig && defaultConfig.data) {
       const config = defaultConfig.data
+
+      // 保存 config_id，如果没有则生成一个新的
+      defaultModelConfigId.value = config.config_id || config.id || ''
+      console.log('[模型配置] 保存 config_id:', defaultModelConfigId.value)
+
       console.log('[模型配置] 使用后端配置设置默认模型:', {
+        config_id: defaultModelConfigId.value,
         chat_model: config.chat_model,
         embedding_model: config.embedding_model,
         rerank_model: config.rerank_model,
@@ -480,18 +487,40 @@ const saveSystemModelSettings = async () => {
       return
     }
 
-    // 构建请求体 - 不再包含 config_id,让后端根据当前用户自动处理
-    const requestBody = {
-      chat_model: systemReasoningModel.value || null,
-      embedding_model: embeddingModel.value || null,
-      rerank_model: rerankModel.value || null,
-      stt_model: speechToTextModel.value || null,
-      tts_model: textToSpeechModel.value || null,
-      video_model: videoModel.value || null,
-      image_model: imageModel.value || null
+    // 构建请求体
+    // 如果有 config_id 就包含它，如果没有就让后端自动创建
+    const requestBody = {}
+
+    if (defaultModelConfigId.value) {
+      requestBody.config_id = defaultModelConfigId.value
+      console.log('[保存模型配置] 使用已有的 config_id:', defaultModelConfigId.value)
+    } else {
+      // 如果没有 config_id，生成一个新的
+      const userId = localStorage.getItem('userId') || 'default'
+      const newConfigId = `wm${userId}${Date.now()}`
+      requestBody.config_id = newConfigId
+      console.log('[保存模型配置] 生成新的 config_id:', newConfigId)
     }
 
+    // 只包含有值的字段，过滤掉 null 和空字符串
+    if (systemReasoningModel.value) requestBody.chat_model = systemReasoningModel.value
+    if (embeddingModel.value) requestBody.embedding_model = embeddingModel.value
+    if (rerankModel.value) requestBody.rerank_model = rerankModel.value
+    if (speechToTextModel.value) requestBody.stt_model = speechToTextModel.value
+    if (textToSpeechModel.value) requestBody.tts_model = textToSpeechModel.value
+    if (videoModel.value) requestBody.video_model = videoModel.value
+    if (imageModel.value) requestBody.image_model = imageModel.value
+
     console.log('[保存模型配置] 📦 请求体:', JSON.stringify(requestBody, null, 2))
+    console.log('[保存模型配置] 🔍 各字段值:')
+    console.log('  - config_id:', defaultModelConfigId.value)
+    console.log('  - chat_model:', systemReasoningModel.value)
+    console.log('  - embedding_model:', embeddingModel.value)
+    console.log('  - rerank_model:', rerankModel.value)
+    console.log('  - stt_model:', speechToTextModel.value)
+    console.log('  - tts_model:', textToSpeechModel.value)
+    console.log('  - video_model:', videoModel.value)
+    console.log('  - image_model:', imageModel.value)
     console.log('[保存模型配置] 🌐 请求 URL:', `${API_BASE}/api/v3/chat/default-model`)
 
     const response = await fetch(
@@ -513,6 +542,51 @@ const saveSystemModelSettings = async () => {
       console.warn('[保存模型配置] ❌ 401 未授权，跳转到登录页')
       router.push('/login')
       return
+    }
+
+    // 如果是 404 错误，说明配置不存在，尝试使用 PUT 方法创建
+    if (response.status === 404) {
+      console.log('[保存模型配置] 配置不存在，尝试使用 PUT 方法创建')
+      try {
+        const putResponse = await fetch(
+          `${API_BASE}/api/v3/chat/default-model`,
+          {
+            method: 'PUT',
+            headers: {
+              'Content-Type': 'application/json',
+              'Accept': 'application/json',
+              'Authorization': `Bearer ${token}`
+            },
+            body: JSON.stringify(requestBody)
+          }
+        )
+
+        console.log('[保存模型配置] PUT 响应状态码:', putResponse.status)
+
+        if (!putResponse.ok) {
+          const errorText = await putResponse.text()
+          console.error('[保存模型配置] PUT 错误响应:', errorText)
+          openToast('创建配置失败', 'error')
+          return
+        }
+
+        const putResult = await putResponse.json()
+        console.log('[保存模型配置] PUT 成功:', putResult)
+
+        // 保存新创建的 config_id
+        if (putResult.data && putResult.data.config_id) {
+          defaultModelConfigId.value = putResult.data.config_id
+          console.log('[保存模型配置] 保存新的 config_id:', defaultModelConfigId.value)
+        }
+
+        openToast('系统模型设置已保存')
+        closeSystemModelSettings()
+        return
+      } catch (putError) {
+        console.error('[保存模型配置] PUT 请求异常:', putError)
+        openToast('创建配置失败', 'error')
+        return
+      }
     }
 
     if (!response.ok) {
@@ -1028,8 +1102,8 @@ const submitChangeVerify = () => { changeErrors.value = { email: '', phone: '', 
 const confirmNewEmail = () => { newEmailError.value = ''; newEmailCodeError.value = ''; const next = (newEmail.value||'').trim(); const k = (changeForm.value.code||'').trim(); if (!next) { newEmailError.value = t('workspace.enter_new_email'); return } if (!/^\d{6}$/.test(k)) { newEmailCodeError.value = t('workspace.enter_code'); return } accountEmail.value = next; closeChangeEmail(); openToast(t('workspace.email_updated')) }
 const changeAccountEmail = () => { openChangeEmail() }
 const showAbout = ref(false)
-const currentVersion = ref('1.7.2')
-const latestVersion = ref('1.9.2')
+const currentVersion = ref('0.0.8')
+const latestVersion = ref('0.0.8')
 const openAbout = async () => { userMenuOpen.value = false; await nextTick(); showAbout.value = true }
 const closeAbout = () => { showAbout.value = false }
 const showUpgrade = ref(false)
@@ -1135,10 +1209,7 @@ const favoritesItems = ref([
   { id: 'f2', name: '数据报表仪表盘', updated: '3小时前', thumbnail: 'https://images.unsplash.com/photo-1498050108023-c5249f4df085?q=80&w=800&auto=format&fit=crop' },
   { id: 'f3', name: '移动端注册页', updated: '上周', thumbnail: 'https://images.unsplash.com/photo-1517249361621-f11084eb8eba?q=80&w=800&auto=format&fit=crop' },
 ])
-const teams = ref([
-  { id: 't1', name: 'UX 部门', icon: '' },
-  { id: 't2', name: '电商项目组', icon: '' }
-])
+const teams = ref([])
 const filteredFavorites = computed(() => {
   const q = favoritesSearch.value.trim().toLowerCase()
   if (!q) return favoritesItems.value
@@ -1361,13 +1432,11 @@ const loadLibraries = async () => {
                   <span class="flex items-center gap-2"><fa :icon="['fas','sitemap']" /> {{ $t('workspace.roadmap') }}</span>
                   <fa :icon="['fas','chevron-right']" class="text-xs text-gray-400" />
                 </button>
-                <button class="w-full flex items-center justify-between px-4 py-2 text-sm hover:bg-gray-100 dark:hover:bg-[#3A3A3C]">
+                <a href="https://github.com/CherryKingOne/WeiMeng" target="_blank" rel="noopener noreferrer" class="w-full flex items-center px-4 py-2 text-sm hover:bg-gray-100 dark:hover:bg-[#3A3A3C]">
                   <span class="flex items-center gap-2"><fa :icon="['fab','github']" /> GitHub</span>
-                  <span class="text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded-md">118,905</span>
-                </button>
-                <button class="w-full flex items-center justify-between px-4 py-2 text-sm hover:bg-gray-100 dark:hover:bg-[#3A3A3C]" @click.stop="openAbout">
+                </a>
+                <button class="w-full flex items-center px-4 py-2 text-sm hover:bg-gray-100 dark:hover:bg-[#3A3A3C]" @click.stop="openAbout">
                   <span class="flex items-center gap-2"><fa :icon="['fas','circle-info']" /> {{ $t('workspace.about') }}</span>
-                  <span class="text-xs text-secondary">1.7.2</span>
                 </button>
               </div>
               <div class="border-t border-gray-200 px-4 py-3 dark:border-[#3A3A3C]">
@@ -2374,15 +2443,14 @@ const loadLibraries = async () => {
           <div class="relative w-full max-w-xl bg-white rounded-2xl shadow-2xl border border-gray-200 overflow-hidden dark:bg-[#2C2C2E] dark:border-[#3A3A3C]">
             <div class="p-8 text-center">
               <div class="text-4xl font-extrabold tracking-tight">
-                <span class="text-black dark:text-white">One</span><span class="text-brand-green">Four</span>
+                <span class="text-black dark:text-white">Wei</span><span class="text-brand-green">Meng</span>
               </div>
               <div class="mt-3 text-secondary">Version {{ currentVersion }}</div>
-              <div class="mt-4 text-sm text-secondary">© 2025 OneFour Inc., Contributors.</div>
+              <div class="mt-4 text-sm text-secondary">© 2025 WeiMeng Inc., Contributors.</div>
               <a href="https://opensource.org/license/mit" target="_blank" rel="noopener" class="mt-3 inline-block text-brand-green font-medium hover:underline">Open Source License</a>
             </div>
-            <div class="border-t border-gray-200 bg-light-gray p-4 flex items-center justify-between dark:bg-[#1E1E1E] dark:border-[#3A3A3C]">
-              <div class="text-sm text-secondary dark:text-gray-400">{{ $t('workspace.update_available', { version: latestVersion }) }}</div>
-              <button class="px-3 py-1.5 rounded-md border border-gray-300 text-black hover:bg-gray-100 dark:border-[#3A3A3C] dark:text-[#E0E0E0] dark:hover:bg-[#3A3A3C]">{{ $t('workspace.changelog') }}</button>
+            <div class="border-t border-gray-200 bg-light-gray p-4 flex items-center justify-center dark:bg-[#1E1E1E] dark:border-[#3A3A3C]">
+              <div class="text-sm text-secondary dark:text-gray-400">目前最新</div>
             </div>
           </div>
         </div>
