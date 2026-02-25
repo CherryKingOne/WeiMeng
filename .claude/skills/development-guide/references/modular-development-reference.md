@@ -95,7 +95,7 @@ frontend/
 ### 3.2 组件设计规范
 
 ```tsx
-// ✅ 推荐的组件结构
+//  推荐的组件结构
 // components/ui/Button/Button.tsx
 import { cn } from '@/utils/cn';
 import { ButtonProps } from './Button.types';
