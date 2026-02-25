@@ -4,352 +4,245 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-WeiMeng-Agent is a multi-agent system for automated video production. It bridges the gap between conceptual multi-agent designs and engineering-level system implementation. The system follows a centralized scheduling architecture where all agents coordinate through a central dispatcher, avoiding direct peer-to-peer communication.
+WeiMeng is an intelligent video production platform currently under active development. The project aims to build a multi-agent collaboration system powered by Large Language Models (LLMs) for automated video production workflows.
 
-## Core Architecture
+**Current Development Status:**
 
-### Backend (FastAPI + DDD)
-- **Framework**: FastAPI with Python 3.10+
-- **Architecture**: Domain-Driven Design (DDD) with clear separation of concerns
-- **Database**: PostgreSQL with asyncpg, SQLAlchemy 2.0 async support
-- **Cache**: Redis for session management and caching
-- **AI Integration**: LangChain, LangGraph, LangFuse, OpenAI integration
-- **Authentication**: JWT-based with python-jose and bcrypt
+- **Implemented Features:**
+  - User authentication (registration, login, password reset)
+  - Email verification code (captcha) service
+  - Frontend dashboard with project management, asset library, and workflow editor interfaces
+  - DDD-based backend architecture with clean layer separation
 
-### Frontend (Next.js + React)
-- **Framework**: Next.js 16.1.6 with React 19.2.3
-- **Language**: TypeScript
-- **Styling**: Tailwind CSS 4
-- **State Management**: Zustand
-- **UI Components**: Custom component library (Button, Modal, Card, Drawer, Badge, Avatar, etc.)
+- **Planned Features (Not Yet Implemented):**
+  - Multi-agent system with 7 specialized agents (Screenwriter, Director, Storyboard, Scene Design, Character Design, Art Design, Editing)
+  - LangChain/LangGraph-based agent orchestration
+  - Central dispatcher and task orchestrator for agent coordination
+  - LLM provider abstraction supporting multiple vendors (OpenAI, Anthropic, Azure, Google, DeepSeek, local models)
 
-### Multi-Agent System
-- **Central Dispatcher**: System controller, unified user request intake
-- **Task Orchestrator**: Central nervous system, task decomposition and tracking
-- **Execution Agents**: Storyboard, Art Director, Animation/Editing specialists
-- **Task State Store**: Lifecycle management with interruption, failure, and retry support
+**Technology Selection:**
+- Agent framework: LangChain, LangGraph, LangFuse (dependencies declared, implementation pending)
+- The `backend/src/modules/agent/` directory structure is scaffolded but empty
 
-## Common Development Commands
+## Development Commands
 
-### Backend Development
+### Backend (FastAPI + Python 3.10+)
 
 ```bash
-# Navigate to backend directory
-cd backend
-
-# Install dependencies (if using poetry)
-poetry install
-
-# Install dependencies (if using pip)
-pip install -r requirements.txt
+# Install dependencies (uses uv package manager)
+cd backend && uv sync
 
 # Run development server
-python main.py
-
-# Run with uvicorn directly
-uvicorn main:app --host 0.0.0.0 --port 5607 --reload
+cd backend && uv run uvicorn main:app --host 0.0.0.0 --port 5607 --reload
 
 # Run tests
-pytest
+cd backend && uv run pytest
 
-# Run specific test file
-pytest tests/test_auth.py
+# Run specific test
+cd backend && uv run pytest tests/unit/auth/test_login.py -v
 
-# Run with coverage
-pytest --cov=src --cov-report=html
-
-# Format code
-black src tests
-
-# Lint code
-ruff check src tests
-
-# Type check
-mypy src
+# Run tests with coverage
+cd backend && uv run pytest --cov=src --cov-report=html
 ```
 
-### Frontend Development
+### Frontend (Next.js 16 + React 19)
 
 ```bash
-# Navigate to frontend directory
-cd frontend
-
 # Install dependencies
-npm install
+cd frontend && npm install
 
-# Run development server
-npm run dev
+# Run development server (port 5678)
+cd frontend && npm run dev
 
 # Build for production
-npm run build
+cd frontend && npm run build
 
-# Start production server
-npm start
+# Run production server
+cd frontend && npm start
 
-# Run tests
-npm test
-
-# Run tests in watch mode
-npm run test:watch
-
-# Lint code
-npm run lint
-
-# Type check
-npm run type-check
-
-# Format code
-npm run format
+# Lint check
+cd frontend && npm run lint
 ```
 
-### Docker Development
+### Docker Deployment
 
 ```bash
-# Navigate to docker directory
-cd docker
-
-# Copy environment template
-cp .env.example .env
-
-# Start all services
-docker compose up -d
+# Start all services (API, frontend, PostgreSQL, Redis)
+cd docker && docker compose up -d --build
 
 # View logs
-docker compose logs -f
+cd docker && docker compose logs -f
 
-# Stop all services
-docker compose down
-
-# Rebuild services
-docker compose up -d --build
-
-# Access backend API
-curl http://localhost:5607/health
-
-# Access frontend
-curl http://localhost:5678
+# Stop services
+cd docker && docker compose down
 ```
 
-## Key File Locations
+## Architecture Overview
 
-### Backend Structure
-```
-backend/
-├── src/
-│   ├── modules/           # Business modules (auth, captcha, agent)
-│   │   ├── auth/          # Authentication module
-│   │   │   ├── domain/    # Entities, value objects, services
-│   │   │   ├── application/  # DTOs, application services
-│   │   │   ├── infrastructure/  # Repository implementations
-│   │   │   └── api/       # API routers
-│   │   ├── captcha/       # Email verification module
-│   │   └── agent/         # Multi-agent system module
-│   ├── shared/            # Shared infrastructure
-│   │   ├── domain/        # Base entities, value objects
-│   │   ├── infrastructure/  # Database, Redis, unit of work
-│   │   ├── security/      # JWT, password hashing
-│   │   ├── middleware/    # Error handling, logging
-│   │   └── common/        # Utilities, dependencies
-│   └── api/v1/            # API version 1 router
-├── config/                # Configuration (settings, AI, email, etc.)
-├── tests/                 # Test files
-├── main.py                # Application entry point
-└── pyproject.toml         # Dependencies and project config
-```
+### Backend Architecture (DDD-based)
 
-### Frontend Structure
+The backend follows Domain-Driven Design with clear layer separation:
+
+- **API Layer** (`src/api/v1/`): FastAPI routes and endpoint definitions
+- **Application Layer** (`modules/*/application/`): Use cases, DTOs, and application services
+- **Domain Layer** (`modules/*/domain/`): Business entities, domain services, repository interfaces
+- **Infrastructure Layer** (`modules/*/infrastructure/`): Repository implementations, ORM models, external integrations
+
+### Module Structure Pattern
+
+Each business module (auth, captcha, agent) follows this structure:
 ```
-frontend/
-├── app/                   # Next.js app router
-│   ├── (dashboard)/       # Dashboard layout and pages
-│   ├── auth/              # Authentication pages
-│   ├── workflow-editor/   # Visual workflow builder
-│   └── layout.tsx         # Root layout
-├── components/
-│   ├── layout/            # Layout components (Sidebar, etc.)
-│   ├── features/          # Feature-specific components
-│   └── ui/                # Reusable UI components
-├── services/              # API service layer
-├── stores/                # Zustand state stores
-│   ├── auth.store.ts      # Authentication state
-│   ├── workflow.store.ts  # Workflow editor state
-│   └── ui.store.ts        # UI state (modals, drawers)
-├── constants/             # Constants and routes
-├── types/                 # TypeScript type definitions
-├── config/                # Configuration files
-└── public/                # Static assets
+module_name/
+├── api/              # HTTP endpoints and routing
+├── application/      # Application services and DTOs
+│   ├── dto/
+│   └── services/
+├── domain/           # Core business logic
+│   ├── entities/
+│   ├── repositories/
+│   └── services/
+└── infrastructure/   # External integrations
+    ├── models/       # SQLAlchemy models
+    ├── repositories/ # Repository implementations
+    └── mappers/      # Domain-to-model mapping
 ```
 
-### Docker Structure
-```
-docker/
-├── docker-compose.yaml    # Multi-container orchestration
-├── .env.example           # Environment template
-├── postgres/              # PostgreSQL init scripts
-├── redis/                 # Redis configuration
-└── README.md              # Docker deployment guide
-```
+### Shared Infrastructure
 
-## Development Patterns
+Located in `backend/src/shared/`:
+- **infrastructure/**: Database (SQLAlchemy 2.0 async), Redis, Unit of Work
+- **security/**: JWT token handling, password hashing
+- **middleware/**: Logging, error handling
+- **domain/**: Base classes for entities, value objects, exceptions
+- **extensions/**: Email service (aiosmtplib)
 
-### Backend DDD Layers
-1. **Domain Layer**: Pure business logic, entities, value objects, domain services
-2. **Application Layer**: Use cases, DTOs, application services
-3. **Infrastructure Layer**: Repository implementations, external services
-4. **API Layer**: HTTP endpoints, request/response handling
+### Agent Architecture
 
-### Frontend State Management
-- **Auth Store**: User authentication state, tokens, profile
-- **Workflow Store**: Workflow editor state, nodes, connections
-- **UI Store**: Global UI state (sidebar, modals, drawers)
+The agent module is designed for LangChain/LangGraph integration with a planned 7-agent system. Key concepts from `目录结构.md`:
 
-### API Service Pattern
-```typescript
-// services/auth.service.ts
-export const authService = {
-  login: async (credentials: LoginRequest) => {
-    const response = await api.post(API_ROUTES.AUTH.LOGIN, credentials);
-    return response.data;
-  },
-  // ... other methods
-};
-```
+- **LLM Provider Abstraction**: Factory pattern supporting multiple providers (OpenAI, Anthropic, Azure, Google, DeepSeek, local models via Ollama)
+- **Agent Base Classes**: BaseAgent with execute(), memory management, and tool integration
+- **Team Coordination**: LangGraph StateGraph for workflow orchestration with conditional routing
+- **Task State Management**: Traceable, interruptible, reversible task states
 
-### Component Structure
-- **Layout Components**: Sidebar, Header, Footer
-- **Feature Components**: WorkflowCard, ProjectCard, AssetCard
-- **UI Components**: Button, Modal, Card, Drawer (reusable)
+The agent workflow follows: Researcher → Planner → Code Generator → Reviewer (conditional) → Executor → QA (conditional) → Reporter
 
-## Testing
+## Important Implementation Notes
 
-### Backend Tests
-```bash
-# Run all tests
-pytest
+### Database and ORM
 
-# Run specific test module
-pytest tests/modules/auth/
+- Uses **SQLAlchemy 2.0** with async support (`AsyncSession`, `create_async_engine`)
+- Database initialization happens in `main.py` lifespan context
+- Models are in `infrastructure/models/`, domain entities in `domain/entities/`
+- Use mappers to convert between ORM models and domain entities
+- Unit of Work pattern for transaction management
 
-# Run with verbose output
-pytest -v
+### Authentication and Security
 
-# Run with coverage
-pytest --cov=src --cov-report=html
-```
+- JWT tokens with expiration tracking
+- Password hashing via bcrypt
+- Token validation through FastAPI dependencies
+- Session management via Redis
 
-### Frontend Tests
-```bash
-# Run all tests
-npm test
+### Configuration
 
-# Run tests in watch mode
-npm run test:watch
+All configuration is centralized in `backend/config/`:
+- `settings.py`: Application settings
+- `database.py`: PostgreSQL configuration
+- `redis.py`: Redis configuration
+- `email.py`: SMTP configuration
+- `ai.py`: LLM API keys (OpenAI, LangFuse)
 
-# Run specific test file
-npm test -- workflow.test.tsx
-```
+Environment variables are loaded from `.env` file using pydantic-settings.
 
-## Environment Configuration
+### Testing Strategy
 
-### Backend Environment Variables
-```bash
-# Database
-POSTGRESQL_HOST=localhost
-POSTGRESQL_PORT=5432
-POSTGRESQL_USER=weimeng
-POSTGRESQL_PASSWORD=weimeng
-POSTGRESQL_DB=weimeng
+- Test framework: pytest with async support
+- Test database: Separate PostgreSQL instance (configured in `conftest.py`)
+- Fixtures: `db_session` for database tests, `client` for API tests
+- Test organization: `unit/` for isolated tests, `integration/test_api/` for API endpoint tests
+- All test functions must be async and use `async with` for session management
 
-# Redis
-REDIS_HOST=localhost
-REDIS_PORT=6379
-REDIS_PASSWORD=weimeng
+### Frontend Architecture
 
-# JWT
-JWT_SECRET_KEY=your-secret-key
-JWT_ALGORITHM=HS256
-JWT_ACCESS_TOKEN_EXPIRE_MINUTES=30
+- **App Router** structure in `frontend/app/`
+- **State Management**: Zustand stores in `frontend/stores/`
+- **API Layer**: HTTP clients in `frontend/services/`
+- **Component Organization**:
+  - `components/ui/`: Reusable UI components
+  - `components/features/`: Business-specific components
+  - `components/layout/`: Layout components
+- **Styling**: Tailwind CSS 4 with utility classes
 
-# Email (for password reset)
-SMTP_HOST=smtp.gmail.com
-SMTP_PORT=587
-SMTP_USER=your-email@gmail.com
-SMTP_PASSWORD=your-app-password
+## Coding Conventions
 
-# AI Providers
-OPENAI_API_KEY=your-openai-key
-```
+### Python Style
+- 4-space indentation
+- snake_case for variables, functions, modules
+- PascalCase for classes
+- Type hints required for function signatures
+- Async/await for all I/O operations
 
-### Frontend Environment Variables
-```bash
-# Next.js environment variables
-NEXT_PUBLIC_API_URL=http://localhost:5607
-NEXT_PUBLIC_APP_URL=http://localhost:5678
-```
+### TypeScript Style
+- 2-space indentation
+- Functional components preferred
+- Path aliases: Use `@/` for imports (e.g., `@/components/ui/Button`)
+- Prop types: Use TypeScript interfaces, not PropTypes
 
-## API Endpoints
+### No Emoji Policy
+- **Never** include emoji characters in code, comments, UI text, or commit messages
+- This is enforced through the `no-emoji-policy` skill
 
-### Authentication
-- `POST /api/v1/auth/login` - User login
-- `POST /api/v1/auth/register` - User registration
-- `POST /api/v1/auth/reset-password` - Password reset
-- `POST /api/v1/auth/logout` - User logout
-- `GET /api/v1/auth/profile` - Get user profile
+## Key Dependencies
 
-### Captcha
-- `POST /api/v1/captcha/email/send` - Send email verification code
+### Backend
+- **Web**: FastAPI 0.128+, Uvicorn 0.40+
+- **AI/ML**: LangChain 1.2+, LangGraph 1.0+, LangSmith 0.6+, LangFuse 3.12+
+- **Database**: SQLAlchemy 2.0+, asyncpg 0.31+, psycopg 3.3+
+- **Cache**: redis 7.1+
+- **Security**: python-jose, bcrypt 4.0+
+- **LLM Integration**: openai 1.0+, langchain-openai 1.1+
 
-### Documentation
-- `GET /docs` - Swagger UI
-- `GET /redoc` - ReDoc documentation
+### Frontend
+- **Framework**: Next.js 16.1, React 19.2
+- **State**: Zustand 5.0
+- **HTTP**: Axios 1.13+
+- **Styling**: Tailwind CSS 4
+- **Icons**: lucide-react 0.563+
 
-## Important Notes
+## Service Ports
 
-### Multi-Agent System Design
-- **Unified Entry**: Users interact through a single interface
-- **Centralized Scheduling**: All agents coordinate through dispatcher
-- **Task-First**: Tasks are first-class citizens, agents are executors
-- **Traceable State**: Task states are fully traceable, interruptible, and reversible
+- Frontend: `5678`
+- Backend API: `5607`
+- PostgreSQL: `5400` (external), `5432` (container)
+- Redis: `6379`
+- API Documentation: http://localhost:5607/docs
 
-### Workflow Editor
-- Visual node-based workflow builder
-- Drag-and-drop interface for creating workflows
-- Node types: media, video, text, gen, videogen, post, upscale, controlnet
-- Real-time preview and execution
+## When Adding New Features
 
-### Security Considerations
-- JWT-based authentication with refresh tokens
-- Password hashing with bcrypt
-- CORS configured for development (adjust for production)
-- Input validation using Pydantic models
+### Backend Module
+1. Create domain entities first in `domain/entities/`
+2. Define repository interface in `domain/repositories/`
+3. Implement application service in `application/services/`
+4. Create DTOs for request/response in `application/dto/`
+5. Implement repository in `infrastructure/repositories/`
+6. Add API routes in `api/router.py`
+7. Write unit tests for domain logic and integration tests for API
 
-### Performance
-- Async database operations with SQLAlchemy 2.0
-- Redis caching for frequently accessed data
-- Connection pooling for database connections
-- Next.js static generation and server-side rendering
+### Frontend Feature
+1. Define TypeScript types in `types/`
+2. Create API client in `services/`
+3. Build UI components in `components/features/`
+4. Add Zustand store if state management needed
+5. Create route in appropriate `app/` subdirectory
+6. Test manually and verify with `npm run lint`
 
-## Common Issues and Solutions
+## Multi-Agent System Guidelines
 
-### Backend Issues
-1. **Database connection failed**: Check PostgreSQL is running and credentials in `.env`
-2. **Redis connection failed**: Check Redis is running and password is correct
-3. **JWT validation error**: Verify `JWT_SECRET_KEY` matches between backend and frontend
-
-### Frontend Issues
-1. **API connection failed**: Check `NEXT_PUBLIC_API_URL` is correct
-2. **Build errors**: Run `npm run type-check` to find TypeScript errors
-3. **Styling issues**: Ensure Tailwind CSS is properly configured
-
-### Docker Issues
-1. **Port conflicts**: Check if ports 5607, 5678, 5432, 6379 are available
-2. **Volume permissions**: Ensure Docker has permission to create volumes
-3. **Build failures**: Check Dockerfile syntax and dependencies
-
-## References
-
-- **README.md**: English project documentation
-- **README_zh-CN.md**: Chinese project documentation
-- **docs/Development_Guide.md**: Comprehensive development guide
-- **docs/System_Architecture_Notes.md**: Detailed architecture notes
-- **docs/State_Flow_Responsibility.md**: Task state responsibility breakdown
+When working with the agent system:
+- Each agent should be self-contained with its own tools and prompt
+- Use LangGraph's StateGraph for orchestration, not direct agent-to-agent calls
+- Implement conditional edges for decision points (e.g., review approval, QA pass/fail)
+- Store task state in the database for traceability and resumability
+- Design agents to be provider-agnostic through the LLM factory pattern
+- Use LangFuse for observability and debugging of agent interactions
