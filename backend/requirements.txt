@@ -1,0 +1,15 @@
+asyncpg>=0.31.0
+fastapi>=0.128.0
+langchain>=1.2.7
+langchain-openai>=1.1.7
+langfuse>=3.12.1
+langgraph>=1.0.7
+langsmith>=0.6.7
+pydantic-settings>=2.12.0
+pydantic[email]>=2.12.5
+python-jose[cryptography]>=3.5.0
+redis>=7.1.0
+uvicorn>=0.40.0
+sqlalchemy[asyncio]>=2.0.25
+passlib[bcrypt]>=1.7.4
+aiosmtplib>=3.0.1

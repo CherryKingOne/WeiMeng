@@ -1,0 +1,88 @@
+version: '3.8'
+
+services:
+  # ==============================================
+  # Backend Service (FastAPI)
+  # ==============================================
+  api:
+    image: vmengs/weimeng-api:latest
+    container_name: weimeng-api
+    build:
+      context: ../backend
+      dockerfile: Dockerfile
+    ports:
+      - "5607:5607"
+    environment:
+      - POSTGRESQL_HOST=postgres
+      - POSTGRESQL_PORT=5432
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+    env_file:
+      - .env
+    depends_on:
+      - postgres
+      - redis
+    volumes:
+      - ../backend:/app
+    networks:
+      - weimeng-network
+
+  # ==============================================
+  # Frontend Service (Next.js)
+  # ==============================================
+  web:
+    image: vmengs/weimeng-web:latest
+    container_name: weimeng-web
+    build:
+      context: ../frontend
+      dockerfile: Dockerfile
+    ports:
+      - "${FRONTEND_PORT:-5678}:5678"
+    environment:
+      - NODE_ENV=production
+      - PORT=5678
+    depends_on:
+      - api
+    networks:
+      - weimeng-network
+
+  # ==============================================
+  # Database Service (PostgreSQL)
+  # ==============================================
+  postgres:
+    image: vmengs/postgres:latest
+    container_name: weimeng-postgres
+    environment:
+      - POSTGRES_USER=${POSTGRESQL_USER:-weimeng}
+      - POSTGRES_PASSWORD=${POSTGRESQL_PASSWORD:-weimeng}
+      - POSTGRES_DB=${POSTGRESQL_DB:-weimeng}
+    ports:
+      - "${POSTGRESQL_PORT:-5400}:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./postgres:/docker-entrypoint-initdb.d
+    networks:
+      - weimeng-network
+
+  # ==============================================
+  # Cache Service (Redis)
+  # ==============================================
+  redis:
+    image: vmengs/redis:latest
+    container_name: weimeng-redis
+    command: redis-server --requirepass ${REDIS_PASSWORD:-weimeng}
+    ports:
+      - "${REDIS_PORT:-6300}:6379"
+    volumes:
+      - redis_data:/data
+      - ./redis:/usr/local/etc/redis
+    networks:
+      - weimeng-network
+
+volumes:
+  postgres_data:
+  redis_data:
+
+networks:
+  weimeng-network:
+    driver: bridge

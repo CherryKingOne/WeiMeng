@@ -1,0 +1,465 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WeiMeng - Plugins</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        * { font-family: 'Inter', sans-serif; }
+        .scale-on-active:active { transform: scale(0.95); }
+        .hover-lift { transition: transform 0.2s ease, box-shadow 0.2s ease; }
+        .hover-lift:hover { transform: translateY(-4px); box-shadow: 0 12px 40px rgba(0,0,0,0.08); }
+        .drawer-enter {
+            animation: slideIn 0.3s ease forwards;
+        }
+        @keyframes slideIn {
+            from { transform: translateX(100%); }
+            to { transform: translateX(0); }
+        }
+        .ios-toggle {
+            appearance: none;
+            width: 48px;
+            height: 28px;
+            background: #E5E7EB;
+            border-radius: 14px;
+            position: relative;
+            cursor: pointer;
+            transition: background 0.3s ease;
+        }
+        .ios-toggle::after {
+            content: '';
+            position: absolute;
+            width: 24px;
+            height: 24px;
+            background: white;
+            border-radius: 50%;
+            top: 2px;
+            left: 2px;
+            transition: transform 0.3s ease;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .ios-toggle:checked {
+            background: #000000;
+        }
+        .ios-toggle:checked::after {
+            transform: translateX(20px);
+        }
+        .input-field {
+            background: #F3F4F6;
+            border: 2px solid transparent;
+            transition: all 0.2s ease;
+        }
+        .input-field:focus {
+            background: white;
+            border-color: #E5E7EB;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+            outline: none;
+        }
+        .tab-active {
+            position: relative;
+        }
+        .tab-active::after {
+            content: '';
+            position: absolute;
+            bottom: -1px;
+            left: 0;
+            right: 0;
+            height: 2px;
+            background: #000;
+        }
+    </style>
+</head>
+<body class="bg-white text-gray-900">
+    <div class="flex h-screen">
+        <!-- Sidebar -->
+        <aside class="w-64 bg-[#F9FAFB] border-r border-gray-100 flex flex-col">
+            <div class="p-6">
+                <div class="flex items-center gap-3">
+                    <div class="w-8 h-8 bg-black rounded-xl flex items-center justify-center">
+                <span class="text-white font-bold text-sm">W</span>
+            </div>
+            <span class="font-semibold text-lg tracking-tight">WeiMeng</span>
+                </div>
+            </div>
+            
+            <nav class="flex-1 px-4 space-y-1">
+                <p class="px-3 text-xs font-medium text-gray-400 uppercase tracking-wider mb-2 mt-4">主要功能</p>
+                <a href="dashboard.html" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-gray-600 hover:bg-gray-100 text-sm font-medium transition-colors">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>
+                    首页
+                </a>
+                <a href="projects.html" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-gray-600 hover:bg-gray-100 text-sm font-medium transition-colors">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"/></svg>
+                    项目
+                </a>
+                <a href="workflows.html" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-gray-600 hover:bg-gray-100 text-sm font-medium transition-colors">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+                    工作流
+                </a>
+                
+                <p class="px-3 text-xs font-medium text-gray-400 uppercase tracking-wider mb-2 mt-6">资源中心</p>
+                <a href="assets.html" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-gray-600 hover:bg-gray-100 text-sm font-medium transition-colors">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+                    资产
+                </a>
+                <a href="scripts.html" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-gray-600 hover:bg-gray-100 text-sm font-medium transition-colors">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+                    剧本库
+                </a>
+                <a href="plugins.html" class="flex items-center gap-3 px-3 py-2.5 rounded-xl bg-black text-white text-sm font-medium">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M14 10l-2 1m0 0l-2-1m2 1v2.5M20 7l-2 1m2-1l-2-1m2 1v2.5M14 4l-2-1-2 1M4 7l2-1M4 7l2 1M4 7v2.5M12 21l-2-1m2 1l2-1m-2 1v-2.5M6 18l-2-1v-2.5M18 18l2-1v-2.5"/></svg>
+                    插件
+                </a>
+            </nav>
+            
+            <div class="p-4 border-t border-gray-200">
+                <a href="settings.html" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-gray-600 hover:bg-gray-100 text-sm font-medium transition-colors">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+                    设置
+                </a>
+            </div>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="flex-1 overflow-y-auto">
+            <div class="max-w-6xl mx-auto px-8 py-8">
+                <!-- Header -->
+                <div class="flex items-center justify-between mb-8">
+                    <h1 class="text-2xl font-semibold text-gray-900">插件中心</h1>
+                </div>
+
+                <!-- Tabs & Search -->
+                <div class="flex items-center justify-between mb-8 border-b border-gray-100">
+                    <div class="flex items-center gap-8">
+                        <button class="tab-active pb-4 text-sm font-medium text-gray-900" onclick="switchTab('discover')">发现</button>
+                        <button class="pb-4 text-sm font-medium text-gray-500 hover:text-gray-900 transition-colors" onclick="switchTab('installed')">已安装</button>
+                    </div>
+                    <div class="relative mb-3">
+                        <svg class="w-5 h-5 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+                        <input type="text" placeholder="搜索插件..." class="pl-10 pr-4 py-2 bg-gray-100 rounded-xl text-sm outline-none focus:bg-white focus:ring-2 focus:ring-gray-200 transition-all w-64">
+                    </div>
+                </div>
+
+                <!-- Featured Banner -->
+                <div class="mb-10 rounded-3xl bg-gradient-to-r from-violet-50 via-purple-50 to-pink-50 p-8 relative overflow-hidden">
+                    <div class="relative z-10 max-w-lg">
+                        <span class="inline-block px-3 py-1 bg-white/80 backdrop-blur-sm rounded-full text-xs font-medium text-purple-600 mb-4">编辑推荐</span>
+                        <h2 class="text-3xl font-bold text-gray-900 mb-3">ControlNet Pro</h2>
+                        <p class="text-gray-600 mb-6 leading-relaxed">强大的姿态控制与图像生成插件，支持 OpenPose、Canny、Depth 等多种预处理器，让你的 AI 创作更加精准可控。</p>
+                        <div class="flex items-center gap-3">
+                            <button class="px-6 py-2.5 bg-black text-white text-sm font-medium rounded-xl hover:bg-gray-800 transition-colors scale-on-active">
+                                立即安装
+                            </button>
+                            <button class="px-6 py-2.5 bg-white/80 backdrop-blur-sm text-gray-900 text-sm font-medium rounded-xl hover:bg-white transition-colors scale-on-active">
+                                了解更多
+                            </button>
+                        </div>
+                    </div>
+                    <!-- Abstract 3D Graphic -->
+                    <div class="absolute right-8 top-1/2 -translate-y-1/2 w-64 h-64">
+                        <div class="absolute inset-0 bg-gradient-to-br from-purple-200/50 to-pink-200/50 rounded-full blur-3xl"></div>
+                        <div class="relative w-full h-full flex items-center justify-center">
+                            <div class="w-32 h-32 bg-gradient-to-br from-purple-400 to-pink-400 rounded-2xl rotate-12 shadow-2xl"></div>
+                            <div class="absolute w-20 h-20 bg-gradient-to-br from-blue-400 to-purple-400 rounded-xl -rotate-6 shadow-xl"></div>
+                            <div class="absolute w-12 h-12 bg-white rounded-lg shadow-lg"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Category Tags -->
+                <div class="flex items-center gap-2 mb-6">
+                    <button class="px-4 py-2 bg-black text-white text-sm rounded-full">全部</button>
+                    <button class="px-4 py-2 bg-gray-100 text-gray-600 text-sm rounded-full hover:bg-gray-200 transition-colors">图像生成</button>
+                    <button class="px-4 py-2 bg-gray-100 text-gray-600 text-sm rounded-full hover:bg-gray-200 transition-colors">工具增强</button>
+                    <button class="px-4 py-2 bg-gray-100 text-gray-600 text-sm rounded-full hover:bg-gray-200 transition-colors">模型训练</button>
+                    <button class="px-4 py-2 bg-gray-100 text-gray-600 text-sm rounded-full hover:bg-gray-200 transition-colors">工作流</button>
+                </div>
+
+                <!-- Plugin Grid -->
+                <div class="grid grid-cols-3 gap-5">
+                    <!-- Plugin Card 1 - Installed -->
+                    <div class="bg-white rounded-2xl p-5 shadow-[0_8px_30px_rgba(0,0,0,0.04)] hover-lift relative">
+                        <!-- Active Indicator -->
+                        <div class="absolute top-5 right-5 flex items-center gap-1.5">
+                            <span class="w-2 h-2 bg-green-500 rounded-full"></span>
+                            <span class="text-xs text-gray-400">Active</span>
+                        </div>
+                        <div class="flex items-start justify-between mb-4">
+                            <div class="w-12 h-12 bg-gradient-to-br from-blue-400 to-cyan-400 rounded-xl flex items-center justify-center">
+                                <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+                            </div>
+                            <button onclick="openConfigDrawer('LoRA Trainer', '模型训练')" class="px-4 py-1.5 bg-gray-100 text-gray-700 text-sm font-medium rounded-lg hover:bg-gray-200 transition-colors scale-on-active">
+                                配置
+                            </button>
+                        </div>
+                        <h3 class="font-semibold text-gray-900 mb-1">LoRA Trainer</h3>
+                        <p class="text-sm text-gray-500 mb-4 line-clamp-2">快速训练自定义 LoRA 模型，支持多种基础模型和参数调优。</p>
+                        <div class="flex items-center justify-between">
+                            <span class="px-2.5 py-1 bg-blue-50 text-blue-600 text-xs rounded-lg">模型训练</span>
+                            <div class="flex items-center gap-3 text-xs text-gray-400">
+                                <span class="flex items-center gap-1">
+                                    <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/></svg>
+                                    4.9
+                                </span>
+                                <span>12.5k</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Plugin Card 2 - Not Installed -->
+                    <div class="bg-white rounded-2xl p-5 shadow-[0_8px_30px_rgba(0,0,0,0.04)] hover-lift">
+                        <div class="flex items-start justify-between mb-4">
+                            <div class="w-12 h-12 bg-gradient-to-br from-purple-400 to-pink-400 rounded-xl flex items-center justify-center">
+                                <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+                            </div>
+                            <button class="px-4 py-1.5 bg-white border border-gray-200 text-gray-900 text-sm font-medium rounded-lg hover:bg-gray-50 transition-colors scale-on-active">
+                                获取
+                            </button>
+                        </div>
+                        <h3 class="font-semibold text-gray-900 mb-1">Image Upscaler</h3>
+                        <p class="text-sm text-gray-500 mb-4 line-clamp-2">AI 驱动的图像超分辨率工具，可将图片放大 4 倍而不失真。</p>
+                        <div class="flex items-center justify-between">
+                            <span class="px-2.5 py-1 bg-purple-50 text-purple-600 text-xs rounded-lg">图像生成</span>
+                            <div class="flex items-center gap-3 text-xs text-gray-400">
+                                <span class="flex items-center gap-1">
+                                    <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/></svg>
+                                    4.8
+                                </span>
+                                <span>8.2k</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Plugin Card 3 - Installed -->
+                    <div class="bg-white rounded-2xl p-5 shadow-[0_8px_30px_rgba(0,0,0,0.04)] hover-lift relative">
+                        <div class="absolute top-5 right-5 flex items-center gap-1.5">
+                            <span class="w-2 h-2 bg-green-500 rounded-full"></span>
+                            <span class="text-xs text-gray-400">Active</span>
+                        </div>
+                        <div class="flex items-start justify-between mb-4">
+                            <div class="w-12 h-12 bg-gradient-to-br from-amber-400 to-orange-400 rounded-xl flex items-center justify-center">
+                                <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
+                            </div>
+                            <button onclick="openConfigDrawer('Prompt Enhancer', '工具增强')" class="px-4 py-1.5 bg-gray-100 text-gray-700 text-sm font-medium rounded-lg hover:bg-gray-200 transition-colors scale-on-active">
+                                配置
+                            </button>
+                        </div>
+                        <h3 class="font-semibold text-gray-900 mb-1">Prompt Enhancer</h3>
+                        <p class="text-sm text-gray-500 mb-4 line-clamp-2">智能优化你的提示词，让 AI 生成效果更加出色。</p>
+                        <div class="flex items-center justify-between">
+                            <span class="px-2.5 py-1 bg-amber-50 text-amber-600 text-xs rounded-lg">工具增强</span>
+                            <div class="flex items-center gap-3 text-xs text-gray-400">
+                                <span class="flex items-center gap-1">
+                                    <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/></svg>
+                                    4.7
+                                </span>
+                                <span>5.8k</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Plugin Card 4 - Not Installed -->
+                    <div class="bg-white rounded-2xl p-5 shadow-[0_8px_30px_rgba(0,0,0,0.04)] hover-lift">
+                        <div class="flex items-start justify-between mb-4">
+                            <div class="w-12 h-12 bg-gradient-to-br from-emerald-400 to-teal-400 rounded-xl flex items-center justify-center">
+                                <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 5a1 1 0 011-1h14a1 1 0 011 1v2a1 1 0 01-1 1H5a1 1 0 01-1-1V5zM4 13a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H5a1 1 0 01-1-1v-6zM16 13a1 1 0 011-1h2a1 1 0 011 1v6a1 1 0 01-1 1h-2a1 1 0 01-1-1v-6z"/></svg>
+                            </div>
+                            <button class="px-4 py-1.5 bg-white border border-gray-200 text-gray-900 text-sm font-medium rounded-lg hover:bg-gray-50 transition-colors scale-on-active">
+                                获取
+                            </button>
+                        </div>
+                        <h3 class="font-semibold text-gray-900 mb-1">Batch Processor</h3>
+                        <p class="text-sm text-gray-500 mb-4 line-clamp-2">批量处理图像，支持重命名、格式转换、尺寸调整等功能。</p>
+                        <div class="flex items-center justify-between">
+                            <span class="px-2.5 py-1 bg-emerald-50 text-emerald-600 text-xs rounded-lg">工作流</span>
+                            <div class="flex items-center gap-3 text-xs text-gray-400">
+                                <span class="flex items-center gap-1">
+                                    <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/></svg>
+                                    4.6
+                                </span>
+                                <span>3.4k</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Plugin Card 5 - Not Installed -->
+                    <div class="bg-white rounded-2xl p-5 shadow-[0_8px_30px_rgba(0,0,0,0.04)] hover-lift">
+                        <div class="flex items-start justify-between mb-4">
+                            <div class="w-12 h-12 bg-gradient-to-br from-rose-400 to-red-400 rounded-xl flex items-center justify-center">
+                                <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4"/></svg>
+                            </div>
+                            <button class="px-4 py-1.5 bg-white border border-gray-200 text-gray-900 text-sm font-medium rounded-lg hover:bg-gray-50 transition-colors scale-on-active">
+                                获取
+                            </button>
+                        </div>
+                        <h3 class="font-semibold text-gray-900 mb-1">Style Transfer</h3>
+                        <p class="text-sm text-gray-500 mb-4 line-clamp-2">将任意图像转换为指定艺术风格，支持 50+ 种预设风格。</p>
+                        <div class="flex items-center justify-between">
+                            <span class="px-2.5 py-1 bg-rose-50 text-rose-600 text-xs rounded-lg">图像生成</span>
+                            <div class="flex items-center gap-3 text-xs text-gray-400">
+                                <span class="flex items-center gap-1">
+                                    <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/></svg>
+                                    4.9
+                                </span>
+                                <span>15.2k</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Plugin Card 6 - Installed -->
+                    <div class="bg-white rounded-2xl p-5 shadow-[0_8px_30px_rgba(0,0,0,0.04)] hover-lift relative">
+                        <div class="absolute top-5 right-5 flex items-center gap-1.5">
+                            <span class="w-2 h-2 bg-green-500 rounded-full"></span>
+                            <span class="text-xs text-gray-400">Active</span>
+                        </div>
+                        <div class="flex items-start justify-between mb-4">
+                            <div class="w-12 h-12 bg-gradient-to-br from-indigo-400 to-blue-400 rounded-xl flex items-center justify-center">
+                                <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+                            </div>
+                            <button onclick="openConfigDrawer('Auto Caption', '工具增强')" class="px-4 py-1.5 bg-gray-100 text-gray-700 text-sm font-medium rounded-lg hover:bg-gray-200 transition-colors scale-on-active">
+                                配置
+                            </button>
+                        </div>
+                        <h3 class="font-semibold text-gray-900 mb-1">Auto Caption</h3>
+                        <p class="text-sm text-gray-500 mb-4 line-clamp-2">自动生成图像描述，支持多语言和多种描述风格。</p>
+                        <div class="flex items-center justify-between">
+                            <span class="px-2.5 py-1 bg-indigo-50 text-indigo-600 text-xs rounded-lg">工具增强</span>
+                            <div class="flex items-center gap-3 text-xs text-gray-400">
+                                <span class="flex items-center gap-1">
+                                    <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/></svg>
+                                    4.5
+                                </span>
+                                <span>2.1k</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+
+        <!-- Config Drawer -->
+        <div id="configDrawer" class="fixed right-0 top-0 h-full w-[420px] bg-white shadow-[-8px_0_30px_rgba(0,0,0,0.08)] transform translate-x-full transition-transform duration-300 z-50">
+            <div class="h-full flex flex-col">
+                <!-- Header -->
+                <div class="flex items-center justify-between p-6 border-b border-gray-100">
+                    <h2 class="text-lg font-semibold text-gray-900">插件配置</h2>
+                    <button onclick="closeConfigDrawer()" class="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-gray-100 text-gray-500 transition-colors">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                    </button>
+                </div>
+
+                <!-- Content -->
+                <div class="flex-1 overflow-y-auto p-6">
+                    <!-- Plugin Info -->
+                    <div class="flex items-center gap-4 mb-8">
+                        <div id="drawerPluginIcon" class="w-14 h-12 bg-gradient-to-br from-blue-400 to-cyan-400 rounded-xl flex items-center justify-center">
+                            <svg class="w-7 h-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+                        </div>
+                        <div class="flex-1">
+                            <h3 id="drawerPluginName" class="font-semibold text-gray-900">LoRA Trainer</h3>
+                            <p id="drawerPluginCategory" class="text-sm text-gray-500">模型训练</p>
+                        </div>
+                        <input type="checkbox" class="ios-toggle" checked>
+                    </div>
+
+                    <!-- Config Form -->
+                    <div class="space-y-6">
+                        <!-- API Key -->
+                        <div>
+                            <label class="text-sm font-medium text-gray-700 mb-2 block">API Key</label>
+                            <div class="relative">
+                                <input type="password" value="sk-lora-xxxxxxxxxxxx" class="input-field w-full px-4 py-3 rounded-xl text-sm pr-10">
+                                <button class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
+                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
+                                </button>
+                            </div>
+                            <p class="text-xs text-gray-400 mt-2">在 <a href="#" class="text-blue-600 hover:underline">开发者设置</a> 中获取 API Key</p>
+                        </div>
+
+                        <!-- Model Path -->
+                        <div>
+                            <label class="text-sm font-medium text-gray-700 mb-2 block">模型路径</label>
+                            <div class="flex gap-2">
+                                <input type="text" value="/models/checkpoints" class="input-field flex-1 px-4 py-3 rounded-xl text-sm">
+                                <button class="px-4 py-3 bg-gray-100 text-gray-700 text-sm font-medium rounded-xl hover:bg-gray-200 transition-colors scale-on-active">
+                                    浏览
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Max Steps -->
+                        <div>
+                            <label class="text-sm font-medium text-gray-700 mb-2 block">最大训练步数</label>
+                            <input type="number" value="1000" class="input-field w-full px-4 py-3 rounded-xl text-sm">
+                        </div>
+
+                        <!-- Batch Size -->
+                        <div>
+                            <label class="text-sm font-medium text-gray-700 mb-2 block">批次大小</label>
+                            <select class="input-field w-full px-4 py-3 rounded-xl text-sm">
+                                <option>1</option>
+                                <option selected>2</option>
+                                <option>4</option>
+                                <option>8</option>
+                            </select>
+                        </div>
+
+                        <!-- Advanced Settings -->
+                        <div class="pt-4 border-t border-gray-100">
+                            <button class="flex items-center justify-between w-full text-sm font-medium text-gray-700 hover:text-gray-900">
+                                <span>高级设置</span>
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Footer -->
+                <div class="p-6 border-t border-gray-100 space-y-3">
+                    <button class="w-full py-3 bg-black text-white text-sm font-medium rounded-xl hover:bg-gray-800 transition-colors scale-on-active">
+                        保存配置
+                    </button>
+                    <div class="flex items-center justify-between">
+                        <a href="#" class="text-sm text-gray-500 hover:text-gray-900 flex items-center gap-1">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/></svg>
+                            查看文档
+                        </a>
+                        <button class="text-sm text-red-600 hover:text-red-700 font-medium">
+                            卸载插件
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Overlay -->
+        <div id="drawerOverlay" class="fixed inset-0 bg-black/20 backdrop-blur-sm hidden z-40" onclick="closeConfigDrawer()"></div>
+    </div>
+
+    <script>
+        function switchTab(tab) {
+            const tabs = document.querySelectorAll('.tab-active');
+            tabs.forEach(t => {
+                t.classList.remove('tab-active');
+                t.classList.add('text-gray-500');
+            });
+            event.target.classList.add('tab-active');
+            event.target.classList.remove('text-gray-500');
+        }
+
+        function openConfigDrawer(pluginName, category) {
+            document.getElementById('drawerPluginName').textContent = pluginName;
+            document.getElementById('drawerPluginCategory').textContent = category;
+            document.getElementById('configDrawer').classList.remove('translate-x-full');
+            document.getElementById('drawerOverlay').classList.remove('hidden');
+        }
+
+        function closeConfigDrawer() {
+            document.getElementById('configDrawer').classList.add('translate-x-full');
+            document.getElementById('drawerOverlay').classList.add('hidden');
+        }
+    </script>
+</body>
+</html>

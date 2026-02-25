@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WeiMeng - Dashboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        * { font-family: 'Inter', sans-serif; }
+        .hover-lift { transition: transform 0.2s ease, box-shadow 0.2s ease; }
+        .hover-lift:hover { transform: translateY(-4px); box-shadow: 0 12px 40px rgba(0,0,0,0.08); }
+        .scale-on-active:active { transform: scale(0.95); }
+        .skeleton { background: linear-gradient(90deg, #f3f4f6 25%, #e5e7eb 50%, #f3f4f6 75%); background-size: 200% 100%; animation: shimmer 1.5s infinite; }
+        @keyframes shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
+    </style>
+</head>
+<body class="bg-white text-gray-900">
+    <div class="flex h-screen">
+        <!-- Sidebar -->
+        <aside class="w-64 bg-[#F9FAFB] border-r border-gray-100 flex flex-col">
+            <!-- Logo -->
+            <div class="p-6">
+                <div class="flex items-center gap-3">
+                    <div class="w-8 h-8 bg-black rounded-xl flex items-center justify-center">
+                        <span class="text-white font-bold text-sm">W</span>
+                    </div>
+                    <span class="font-semibold text-lg tracking-tight">WeiMeng</span>
+                </div>
+            </div>
+            
+            <!-- Navigation -->
+            <nav class="flex-1 px-4 space-y-1">
+                <p class="px-3 text-xs font-medium text-gray-400 uppercase tracking-wider mb-2 mt-4">主要功能</p>
+                <a href="dashboard.html" class="flex items-center gap-3 px-3 py-2.5 rounded-xl bg-black text-white text-sm font-medium">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>
+                    首页
+                </a>
+                <a href="projects.html" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-gray-600 hover:bg-gray-100 text-sm font-medium transition-colors">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"/></svg>
+                    项目
+                </a>
+                <a href="workflows.html" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-gray-600 hover:bg-gray-100 text-sm font-medium transition-colors">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+                    工作流
+                </a>
+                
+                <p class="px-3 text-xs font-medium text-gray-400 uppercase tracking-wider mb-2 mt-6">资源中心</p>
+                <a href="assets.html" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-gray-600 hover:bg-gray-100 text-sm font-medium transition-colors">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+                    资产
+                </a>
+                <a href="scripts.html" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-gray-600 hover:bg-gray-100 text-sm font-medium transition-colors">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+                    剧本库
+                </a>
+                <a href="plugins.html" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-gray-600 hover:bg-gray-100 text-sm font-medium transition-colors">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M14 10l-2 1m0 0l-2-1m2 1v2.5M20 7l-2 1m2-1l-2-1m2 1v2.5M14 4l-2-1-2 1M4 7l2-1M4 7l2 1M4 7v2.5M12 21l-2-1m2 1l2-1m-2 1v-2.5M6 18l-2-1v-2.5M18 18l2-1v-2.5"/></svg>
+                    插件
+                </a>
+            </nav>
+            
+            <!-- Bottom Settings -->
+            <div class="p-4 border-t border-gray-200 space-y-1">
+                <a href="settings.html" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-gray-600 hover:bg-gray-100 text-sm font-medium transition-colors">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+                    设置
+                </a>
+                <a href="login.html" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-red-600 hover:bg-red-50 text-sm font-medium transition-colors">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/></svg>
+                    退出登录
+                </a>
+            </div>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="flex-1 overflow-y-auto">
+            <div class="max-w-6xl mx-auto px-8 py-12">
+                <!-- Hero Section -->
+                <div class="flex flex-col items-center justify-center pt-16 pb-16">
+                    <h1 class="text-4xl font-semibold text-gray-900 mb-2 tracking-tight">WeiMeng 让设计更简单</h1>
+                    <p class="text-gray-500 mb-10 text-base">输入灵感，AI 为你创造无限可能</p>
+                    
+                    <!-- Super Input Box (Deep Thinking Mode) -->
+                    <div class="w-full max-w-3xl relative group">
+                        <!-- Main Container -->
+                        <div class="bg-white rounded-3xl border border-gray-200 shadow-[0_8px_30px_rgba(0,0,0,0.04)] hover:shadow-[0_12px_40px_rgba(0,0,0,0.08)] transition-all duration-300 overflow-hidden focus-within:ring-2 focus-within:ring-black/5 focus-within:border-black/10 relative z-10">
+                            
+                            <!-- Textarea Area -->
+                            <div class="p-5">
+                                <textarea 
+                                    placeholder="描述你想要创建的内容，或者通过 @ 调用 Agent..." 
+                                    class="w-full min-h-[140px] text-lg bg-transparent outline-none resize-none placeholder-gray-400 text-gray-900 leading-relaxed scrollbar-hide"
+                                ></textarea>
+                            </div>
+
+                            <!-- Bottom Toolbar -->
+                            <div class="px-4 pb-4 flex items-center justify-between">
+                                <!-- Left: Tools & Model -->
+                                <div class="flex items-center gap-1.5">
+                                    <!-- Model Selector -->
+                                    <button id="model-selector" class="flex items-center gap-2 px-3 py-1.5 bg-gray-50 hover:bg-gray-100 rounded-lg text-sm font-medium text-gray-700 transition-colors border border-gray-200/50 mr-2 group/model">
+                                        <div class="w-4 h-4 rounded bg-indigo-100 text-indigo-600 flex items-center justify-center">
+                                            <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+                                        </div>
+                                        <span id="model-name">DeepThink R1</span>
+                                        <svg class="w-3 h-3 text-gray-400 group-hover/model:text-gray-600 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+                                    </button>
+
+                                    <!-- Divider -->
+                                    <div class="w-px h-5 bg-gray-200 mx-1"></div>
+
+                                    <!-- Attachment -->
+                                    <button class="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors relative group/tooltip">
+                                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13"/></svg>
+                                        <!-- Tooltip -->
+                                        <span class="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-2 py-1 bg-black text-white text-xs rounded opacity-0 group-hover/tooltip:opacity-100 transition-opacity pointer-events-none whitespace-nowrap">上传文件</span>
+                                    </button>
+                                    
+                                    <!-- Web Search -->
+                                    <button id="web-search-btn" class="p-2 text-gray-400 hover:text-blue-500 hover:bg-blue-50 rounded-lg transition-colors relative group/tooltip" onclick="this.classList.toggle('text-blue-500'); this.classList.toggle('bg-blue-50'); this.classList.toggle('text-gray-400');">
+                                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9"/></svg>
+                                        <span class="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-2 py-1 bg-black text-white text-xs rounded opacity-0 group-hover/tooltip:opacity-100 transition-opacity pointer-events-none whitespace-nowrap">联网搜索</span>
+                                    </button>
+
+                                    <!-- Agent Switch -->
+                                    <button id="agent-toggle" class="p-2 text-gray-400 hover:text-purple-500 hover:bg-purple-50 rounded-lg transition-colors relative group/tooltip" onclick="toggleAgent()">
+                                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z"/></svg>
+                                        <span class="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-2 py-1 bg-black text-white text-xs rounded opacity-0 group-hover/tooltip:opacity-100 transition-opacity pointer-events-none whitespace-nowrap">开启 Agent</span>
+                                    </button>
+                                </div>
+
+                                <!-- Right: Send Button -->
+                                <button class="w-10 h-10 bg-black text-white rounded-xl flex items-center justify-center hover:bg-gray-800 transition-all scale-on-active shadow-md group/send">
+                                    <svg class="w-5 h-5 group-hover/send:translate-x-0.5 group-hover/send:-translate-y-0.5 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 10l7-7m0 0l7 7m-7-7v18"/></svg>
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <!-- Quick Tags -->
+                        <div class="flex items-center justify-center gap-2 mt-5 flex-wrap">
+                            <button class="px-4 py-1.5 bg-gray-100 hover:bg-gray-200 rounded-full text-sm text-gray-600 transition-colors scale-on-active">3D Icon</button>
+                            <button class="px-4 py-1.5 bg-gray-100 hover:bg-gray-200 rounded-full text-sm text-gray-600 transition-colors scale-on-active">Avatar</button>
+                            <button class="px-4 py-1.5 bg-gray-100 hover:bg-gray-200 rounded-full text-sm text-gray-600 transition-colors scale-on-active">Poster</button>
+                            <button class="px-4 py-1.5 bg-gray-100 hover:bg-gray-200 rounded-full text-sm text-gray-600 transition-colors scale-on-active">Logo</button>
+                            <button class="px-4 py-1.5 bg-gray-100 hover:bg-gray-200 rounded-full text-sm text-gray-600 transition-colors scale-on-active">Illustration</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Recent Works -->
+                <div class="mt-8">
+                    <div class="flex items-center justify-between mb-6">
+                        <h2 class="text-lg font-semibold text-gray-900">继续创作</h2>
+                        <a href="projects.html" class="text-sm text-gray-500 hover:text-gray-900 transition-colors">查看全部</a>
+                    </div>
+                    
+                    <!-- Cards Grid -->
+                    <div class="grid grid-cols-4 gap-5">
+                        <!-- New Card -->
+                        <a href="workflows.html" class="aspect-square rounded-2xl border-2 border-dashed border-gray-200 flex flex-col items-center justify-center gap-3 text-gray-400 hover:border-gray-300 hover:text-gray-600 hover:bg-gray-50 transition-all scale-on-active">
+                            <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 4v16m8-8H4"/></svg>
+                            <span class="text-sm font-medium">新建项目</span>
+                        </a>
+                        
+                        <!-- Project Card 1 -->
+                        <div class="rounded-2xl bg-white shadow-[0_8px_30px_rgba(0,0,0,0.04)] overflow-hidden hover-lift cursor-pointer scale-on-active">
+                            <div class="aspect-[4/3] bg-gradient-to-br from-purple-100 to-pink-100"></div>
+                            <div class="p-4">
+                                <h3 class="font-medium text-gray-900 text-sm truncate">品牌视觉设计</h3>
+                                <p class="text-xs text-gray-400 mt-1">2 小时前</p>
+                            </div>
+                        </div>
+                        
+                        <!-- Project Card 2 -->
+                        <div class="rounded-2xl bg-white shadow-[0_8px_30px_rgba(0,0,0,0.04)] overflow-hidden hover-lift cursor-pointer scale-on-active">
+                            <div class="aspect-[4/3] bg-gradient-to-br from-blue-100 to-cyan-100"></div>
+                            <div class="p-4">
+                                <h3 class="font-medium text-gray-900 text-sm truncate">3D 产品展示</h3>
+                                <p class="text-xs text-gray-400 mt-1">昨天</p>
+                            </div>
+                        </div>
+                        
+                        <!-- Project Card 3 -->
+                        <div class="rounded-2xl bg-white shadow-[0_8px_30px_rgba(0,0,0,0.04)] overflow-hidden hover-lift cursor-pointer scale-on-active">
+                            <div class="aspect-[4/3] bg-gradient-to-br from-amber-100 to-orange-100"></div>
+                            <div class="p-4">
+                                <h3 class="font-medium text-gray-900 text-sm truncate">社交媒体海报</h3>
+                                <p class="text-xs text-gray-400 mt-1">3 天前</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+    <script>
+        // Toggle Agent State
+        function toggleAgent() {
+            const btn = document.getElementById('agent-toggle');
+            const isActive = btn.classList.contains('bg-purple-50');
+            
+            if (isActive) {
+                // Deactivate
+                btn.classList.remove('bg-purple-50', 'text-purple-500');
+                btn.classList.add('text-gray-400');
+                btn.querySelector('span').textContent = '开启 Agent';
+            } else {
+                // Activate
+                btn.classList.remove('text-gray-400');
+                btn.classList.add('bg-purple-50', 'text-purple-500');
+                btn.querySelector('span').textContent = 'Agent 已开启';
+            }
+        }
+
+        // Model Selector Logic (Demo)
+        const modelBtn = document.getElementById('model-selector');
+        const modelName = document.getElementById('model-name');
+        
+        modelBtn.addEventListener('click', () => {
+            if (modelName.textContent === 'DeepThink R1') {
+                modelName.textContent = 'GPT-4o';
+            } else {
+                modelName.textContent = 'DeepThink R1';
+            }
+        });
+
+        // Auto-resize Textarea
+        const textarea = document.querySelector('textarea');
+        textarea.addEventListener('input', function() {
+            this.style.height = 'auto';
+            this.style.height = (this.scrollHeight) + 'px';
+        });
+    </script>
+</body>
+</html>

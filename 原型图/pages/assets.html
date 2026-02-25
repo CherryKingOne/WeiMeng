@@ -1,0 +1,650 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WeiMeng - Assets Library</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        * { font-family: 'Inter', sans-serif; }
+        .masonry-grid {
+            column-count: 4;
+            column-gap: 1.25rem;
+        }
+        @media (max-width: 1400px) {
+            .masonry-grid { column-count: 3; }
+        }
+        @media (max-width: 1024px) {
+            .masonry-grid { column-count: 2; }
+        }
+        .masonry-item {
+            break-inside: avoid;
+            margin-bottom: 1.25rem;
+        }
+        .hover-overlay {
+            background: linear-gradient(to top, rgba(0,0,0,0.7) 0%, rgba(0,0,0,0.3) 50%, transparent 100%);
+        }
+        .scale-on-active:active { transform: scale(0.95); }
+        .drawer-enter {
+            animation: slideIn 0.3s ease forwards;
+        }
+        @keyframes slideIn {
+            from { transform: translateX(100%); }
+            to { transform: translateX(0); }
+        }
+        .filter-btn.active {
+            background: #000;
+            color: #fff;
+        }
+        .asset-card {
+            transition: all 0.3s ease;
+        }
+        .asset-card.hidden {
+            display: none;
+        }
+        .asset-card.fade-out {
+            opacity: 0;
+            transform: scale(0.95);
+        }
+        /* Tooltip Styles */
+        .tooltip-container .tooltip {
+            position: absolute;
+            left: 50px;
+            top: 50%;
+            transform: translateY(-50%);
+            background: #1F2937;
+            color: white;
+            padding: 6px 12px;
+            border-radius: 8px;
+            font-size: 13px;
+            font-weight: 500;
+            white-space: nowrap;
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.2s ease, visibility 0.2s ease;
+            transition-delay: 0s;
+            z-index: 100;
+            pointer-events: none;
+        }
+        .tooltip-container .tooltip::before {
+            content: '';
+            position: absolute;
+            left: -4px;
+            top: 50%;
+            transform: translateY(-50%);
+            border-width: 4px 4px 4px 0;
+            border-style: solid;
+            border-color: transparent #1F2937 transparent transparent;
+        }
+        .tooltip-container:hover .tooltip {
+            opacity: 1;
+            visibility: visible;
+            transition-delay: 0.5s;
+        }
+    </style>
+</head>
+<body class="bg-white text-gray-900">
+    <div class="flex h-screen">
+        <!-- Sidebar -->
+        <aside class="w-64 bg-[#F9FAFB] border-r border-gray-100 flex flex-col">
+            <div class="p-6">
+                <div class="flex items-center gap-3">
+                    <div class="w-8 h-8 bg-black rounded-xl flex items-center justify-center">
+                <span class="text-white font-bold text-sm">W</span>
+            </div>
+            <span class="font-semibold text-lg tracking-tight">WeiMeng</span>
+                </div>
+            </div>
+            
+            <nav class="flex-1 px-4 space-y-1">
+                <p class="px-3 text-xs font-medium text-gray-400 uppercase tracking-wider mb-2 mt-4">主要功能</p>
+                <a href="dashboard.html" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-gray-600 hover:bg-gray-100 text-sm font-medium transition-colors">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>
+                    首页
+                </a>
+                <a href="projects.html" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-gray-600 hover:bg-gray-100 text-sm font-medium transition-colors">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"/></svg>
+                    项目
+                </a>
+                <a href="workflows.html" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-gray-600 hover:bg-gray-100 text-sm font-medium transition-colors">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+                    工作流
+                </a>
+                
+                <p class="px-3 text-xs font-medium text-gray-400 uppercase tracking-wider mb-2 mt-6">资源中心</p>
+                <a href="assets.html" class="flex items-center gap-3 px-3 py-2.5 rounded-xl bg-black text-white text-sm font-medium">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+                    资产
+                </a>
+                <a href="scripts.html" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-gray-600 hover:bg-gray-100 text-sm font-medium transition-colors">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+                    剧本库
+                </a>
+                <a href="plugins.html" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-gray-600 hover:bg-gray-100 text-sm font-medium transition-colors">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M14 10l-2 1m0 0l-2-1m2 1v2.5M20 7l-2 1m2-1l-2-1m2 1v2.5M14 4l-2-1-2 1M4 7l2-1M4 7l2 1M4 7v2.5M12 21l-2-1m2 1l2-1m-2 1v-2.5M6 18l-2-1v-2.5M18 18l2-1v-2.5"/></svg>
+                    插件
+                </a>
+            </nav>
+            
+            <div class="p-4 border-t border-gray-200">
+                <a href="settings.html" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-gray-600 hover:bg-gray-100 text-sm font-medium transition-colors">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+                    设置
+                </a>
+            </div>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="flex-1 overflow-hidden flex">
+            <!-- Filter Sidebar -->
+            <aside class="w-16 border-r border-gray-100 flex flex-col items-center py-6 gap-2">
+                <div class="tooltip-container relative">
+                    <button class="filter-btn active w-10 h-10 flex items-center justify-center rounded-xl transition-colors" data-filter="all" onclick="filterAssets('all')">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"/></svg>
+                    </button>
+                    <span class="tooltip">全部</span>
+                </div>
+                <div class="tooltip-container relative">
+                    <button class="filter-btn w-10 h-10 flex items-center justify-center rounded-xl text-gray-500 hover:bg-gray-100 transition-colors" data-filter="image" onclick="filterAssets('image')">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+                    </button>
+                    <span class="tooltip">图片</span>
+                </div>
+                <div class="tooltip-container relative">
+                    <button class="filter-btn w-10 h-10 flex items-center justify-center rounded-xl text-gray-500 hover:bg-gray-100 transition-colors" data-filter="3d" onclick="filterAssets('3d')">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/></svg>
+                    </button>
+                    <span class="tooltip">3D</span>
+                </div>
+                <div class="tooltip-container relative">
+                    <button class="filter-btn w-10 h-10 flex items-center justify-center rounded-xl text-gray-500 hover:bg-gray-100 transition-colors" data-filter="video" onclick="filterAssets('video')">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"/></svg>
+                    </button>
+                    <span class="tooltip">视频</span>
+                </div>
+                <div class="tooltip-container relative">
+                    <button class="filter-btn w-10 h-10 flex items-center justify-center rounded-xl text-gray-500 hover:bg-gray-100 transition-colors" data-filter="favorite" onclick="filterAssets('favorite')">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"/></svg>
+                    </button>
+                    <span class="tooltip">收藏</span>
+                </div>
+            </aside>
+
+            <!-- Content Area -->
+            <div class="flex-1 overflow-y-auto">
+                <div class="p-8">
+                    <!-- Header -->
+                    <div class="flex items-center justify-between mb-6">
+                        <div>
+                            <h1 class="text-2xl font-semibold text-gray-900">资产库</h1>
+                            <p class="text-sm text-gray-500 mt-1">浏览和使用社区共享的设计资源</p>
+                        </div>
+                        <div class="flex items-center gap-3">
+                            <div class="relative">
+                                <svg class="w-5 h-5 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+                                <input type="text" placeholder="搜索资产..." class="pl-10 pr-4 py-2 bg-gray-100 rounded-xl text-sm outline-none focus:bg-white focus:ring-2 focus:ring-gray-200 transition-all w-64">
+                            </div>
+                            <button onclick="openCreateModal()" class="px-4 py-2 bg-black text-white text-sm rounded-xl hover:bg-gray-800 transition-colors scale-on-active">
+                                新建资产
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Masonry Grid -->
+                    <div class="masonry-grid" id="assetsGrid">
+                        <!-- Asset 1 - Image -->
+                        <div class="masonry-item asset-card group relative rounded-2xl overflow-hidden cursor-pointer" data-type="image" onclick="openDrawer()">
+                            <div class="aspect-[3/4] bg-gradient-to-br from-purple-200 to-pink-200"></div>
+                            <div class="absolute inset-0 hover-overlay opacity-0 group-hover:opacity-100 transition-opacity flex flex-col justify-end p-4">
+                                <div class="flex items-center gap-2">
+                                    <button class="flex-1 py-2 bg-white text-gray-900 text-sm font-medium rounded-lg scale-on-active">使用</button>
+                                    <button class="w-10 h-10 bg-white/20 backdrop-blur-sm text-white rounded-lg flex items-center justify-center scale-on-active">
+                                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"/></svg>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Asset 2 - 3D -->
+                        <div class="masonry-item asset-card group relative rounded-2xl overflow-hidden cursor-pointer" data-type="3d" onclick="openDrawer()">
+                            <div class="aspect-square bg-gradient-to-br from-blue-200 to-cyan-200"></div>
+                            <div class="absolute inset-0 hover-overlay opacity-0 group-hover:opacity-100 transition-opacity flex flex-col justify-end p-4">
+                                <div class="flex items-center gap-2">
+                                    <button class="flex-1 py-2 bg-white text-gray-900 text-sm font-medium rounded-lg scale-on-active">使用</button>
+                                    <button class="w-10 h-10 bg-white/20 backdrop-blur-sm text-white rounded-lg flex items-center justify-center scale-on-active">
+                                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"/></svg>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Asset 3 - Image -->
+                        <div class="masonry-item asset-card group relative rounded-2xl overflow-hidden cursor-pointer" data-type="image" onclick="openDrawer()">
+                            <div class="aspect-[4/5] bg-gradient-to-br from-amber-200 to-orange-200"></div>
+                            <div class="absolute inset-0 hover-overlay opacity-0 group-hover:opacity-100 transition-opacity flex flex-col justify-end p-4">
+                                <div class="flex items-center gap-2">
+                                    <button class="flex-1 py-2 bg-white text-gray-900 text-sm font-medium rounded-lg scale-on-active">使用</button>
+                                    <button class="w-10 h-10 bg-white/20 backdrop-blur-sm text-white rounded-lg flex items-center justify-center scale-on-active">
+                                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"/></svg>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Asset 4 - Video -->
+                        <div class="masonry-item asset-card group relative rounded-2xl overflow-hidden cursor-pointer" data-type="video" onclick="openDrawer()">
+                            <div class="aspect-[3/4] bg-gradient-to-br from-emerald-200 to-teal-200"></div>
+                            <div class="absolute top-3 right-3 w-8 h-8 bg-black/50 backdrop-blur-sm rounded-lg flex items-center justify-center">
+                                <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                            </div>
+                            <div class="absolute inset-0 hover-overlay opacity-0 group-hover:opacity-100 transition-opacity flex flex-col justify-end p-4">
+                                <div class="flex items-center gap-2">
+                                    <button class="flex-1 py-2 bg-white text-gray-900 text-sm font-medium rounded-lg scale-on-active">使用</button>
+                                    <button class="w-10 h-10 bg-white/20 backdrop-blur-sm text-white rounded-lg flex items-center justify-center scale-on-active">
+                                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"/></svg>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Asset 5 - Image -->
+                        <div class="masonry-item asset-card group relative rounded-2xl overflow-hidden cursor-pointer" data-type="image" onclick="openDrawer()">
+                            <div class="aspect-square bg-gradient-to-br from-rose-200 to-red-200"></div>
+                            <div class="absolute inset-0 hover-overlay opacity-0 group-hover:opacity-100 transition-opacity flex flex-col justify-end p-4">
+                                <div class="flex items-center gap-2">
+                                    <button class="flex-1 py-2 bg-white text-gray-900 text-sm font-medium rounded-lg scale-on-active">使用</button>
+                                    <button class="w-10 h-10 bg-white/20 backdrop-blur-sm text-white rounded-lg flex items-center justify-center scale-on-active">
+                                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"/></svg>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Asset 6 - 3D -->
+                        <div class="masonry-item asset-card group relative rounded-2xl overflow-hidden cursor-pointer" data-type="3d" onclick="openDrawer()">
+                            <div class="aspect-[4/5] bg-gradient-to-br from-indigo-200 to-violet-200"></div>
+                            <div class="absolute inset-0 hover-overlay opacity-0 group-hover:opacity-100 transition-opacity flex flex-col justify-end p-4">
+                                <div class="flex items-center gap-2">
+                                    <button class="flex-1 py-2 bg-white text-gray-900 text-sm font-medium rounded-lg scale-on-active">使用</button>
+                                    <button class="w-10 h-10 bg-white/20 backdrop-blur-sm text-white rounded-lg flex items-center justify-center scale-on-active">
+                                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"/></svg>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Asset 7 - Image (Favorite) -->
+                        <div class="masonry-item asset-card group relative rounded-2xl overflow-hidden cursor-pointer" data-type="image favorite" onclick="openDrawer()">
+                            <div class="aspect-[3/4] bg-gradient-to-br from-lime-200 to-green-200"></div>
+                            <div class="absolute top-3 right-3">
+                                <svg class="w-5 h-5 text-red-500 fill-current" viewBox="0 0 24 24"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>
+                            </div>
+                            <div class="absolute inset-0 hover-overlay opacity-0 group-hover:opacity-100 transition-opacity flex flex-col justify-end p-4">
+                                <div class="flex items-center gap-2">
+                                    <button class="flex-1 py-2 bg-white text-gray-900 text-sm font-medium rounded-lg scale-on-active">使用</button>
+                                    <button class="w-10 h-10 bg-white/20 backdrop-blur-sm text-white rounded-lg flex items-center justify-center scale-on-active">
+                                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"/></svg>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Asset 8 - Video -->
+                        <div class="masonry-item asset-card group relative rounded-2xl overflow-hidden cursor-pointer" data-type="video" onclick="openDrawer()">
+                            <div class="aspect-square bg-gradient-to-br from-slate-200 to-gray-200"></div>
+                            <div class="absolute top-3 right-3 w-8 h-8 bg-black/50 backdrop-blur-sm rounded-lg flex items-center justify-center">
+                                <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                            </div>
+                            <div class="absolute inset-0 hover-overlay opacity-0 group-hover:opacity-100 transition-opacity flex flex-col justify-end p-4">
+                                <div class="flex items-center gap-2">
+                                    <button class="flex-1 py-2 bg-white text-gray-900 text-sm font-medium rounded-lg scale-on-active">使用</button>
+                                    <button class="w-10 h-10 bg-white/20 backdrop-blur-sm text-white rounded-lg flex items-center justify-center scale-on-active">
+                                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"/></svg>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+
+        <!-- Detail Drawer -->
+        <div id="detailDrawer" class="fixed right-0 top-0 h-full w-[400px] bg-white shadow-[-8px_0_30px_rgba(0,0,0,0.08)] transform translate-x-full transition-transform duration-300 z-50">
+            <div class="h-full flex flex-col">
+                <!-- Header -->
+                <div class="flex items-center justify-between p-6 border-b border-gray-100">
+                    <h2 class="text-lg font-semibold text-gray-900">资产详情</h2>
+                    <button onclick="closeDrawer()" class="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-gray-100 text-gray-500 transition-colors">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                    </button>
+                </div>
+
+                <!-- Content -->
+                <div class="flex-1 overflow-y-auto p-6">
+                    <!-- Preview -->
+                    <div class="aspect-square bg-gradient-to-br from-purple-200 to-pink-200 rounded-2xl mb-6"></div>
+
+                    <!-- Info -->
+                    <div class="space-y-6">
+                        <div>
+                            <h3 class="font-medium text-gray-900 mb-1">梦幻紫色调插画</h3>
+                            <p class="text-sm text-gray-500">由 @designer 创建 · 2 天前</p>
+                        </div>
+
+                        <!-- Prompt -->
+                        <div>
+                            <label class="text-xs font-medium text-gray-400 uppercase tracking-wider mb-2 block">Prompt</label>
+                            <div class="bg-gray-50 rounded-xl p-4">
+                                <p class="text-sm text-gray-700 leading-relaxed">A dreamy purple gradient illustration with soft clouds and stars, ethereal atmosphere, digital art style, 8k resolution</p>
+                            </div>
+                        </div>
+
+                        <!-- Parameters -->
+                        <div>
+                            <label class="text-xs font-medium text-gray-400 uppercase tracking-wider mb-3 block">参数</label>
+                            <div class="grid grid-cols-2 gap-3">
+                                <div class="bg-gray-50 rounded-xl p-3">
+                                    <span class="text-xs text-gray-500 block">Model</span>
+                                    <span class="text-sm font-medium text-gray-900">SDXL 1.0</span>
+                                </div>
+                                <div class="bg-gray-50 rounded-xl p-3">
+                                    <span class="text-xs text-gray-500 block">Seed</span>
+                                    <span class="text-sm font-medium text-gray-900">123456789</span>
+                                </div>
+                                <div class="bg-gray-50 rounded-xl p-3">
+                                    <span class="text-xs text-gray-500 block">Steps</span>
+                                    <span class="text-sm font-medium text-gray-900">30</span>
+                                </div>
+                                <div class="bg-gray-50 rounded-xl p-3">
+                                    <span class="text-xs text-gray-500 block">CFG Scale</span>
+                                    <span class="text-sm font-medium text-gray-900">7.5</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Actions -->
+                        <div class="flex gap-3">
+                            <button class="flex-1 py-3 bg-black text-white text-sm font-medium rounded-xl hover:bg-gray-800 transition-colors scale-on-active">
+                                使用此资产
+                            </button>
+                            <button class="flex-1 py-3 bg-gray-100 text-gray-900 text-sm font-medium rounded-xl hover:bg-gray-200 transition-colors scale-on-active flex items-center justify-center gap-2">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"/></svg>
+                                复制参数
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Overlay -->
+        <div id="drawerOverlay" class="fixed inset-0 bg-black/20 backdrop-blur-sm hidden z-40" onclick="closeDrawer()"></div>
+    </div>
+
+    <!-- Create Asset Modal -->
+    <div id="createAssetModal" class="fixed inset-0 flex items-center justify-center z-50 hidden opacity-0 transition-opacity duration-300">
+        <!-- Backdrop -->
+        <div class="absolute inset-0 bg-black/40 backdrop-blur-sm" onclick="closeCreateModal()"></div>
+        
+        <!-- Modal Container -->
+        <div class="relative bg-white w-[800px] h-[600px] rounded-3xl shadow-2xl flex overflow-hidden transform scale-95 transition-transform duration-300" id="createModalContent">
+            
+            <!-- Left: Visual Preview (40%) -->
+            <div class="w-[40%] bg-[#F9FAFB] relative flex items-center justify-center overflow-hidden border-r border-gray-100">
+                <!-- State A: Empty -->
+                <div id="previewEmpty" class="flex flex-col items-center gap-3 transition-opacity duration-300">
+                    <svg class="w-12 h-12 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+                    <span class="text-xs text-gray-400 font-medium">预览将在此显示</span>
+                </div>
+                
+                <!-- State B: Image Loaded -->
+                <img id="previewImage" src="" alt="Preview" class="absolute inset-0 w-full h-full object-cover opacity-0 transition-opacity duration-500">
+                
+                <!-- Overlay Shadow -->
+                <div class="absolute inset-0 pointer-events-none shadow-[inset_0_0_20px_rgba(0,0,0,0.02)]"></div>
+            </div>
+
+            <!-- Right: Form Controls (60%) -->
+            <div class="flex-1 p-6 flex flex-col">
+                <!-- Header -->
+                <div class="flex items-center justify-between mb-5">
+                    <h2 class="text-xl font-bold text-gray-900">新建资产引用</h2>
+                    <button onclick="closeCreateModal()" class="w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-100 text-gray-400 transition-colors">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                    </button>
+                </div>
+
+                <!-- Form Fields -->
+                <div class="flex-1 space-y-4 overflow-y-auto pr-2 custom-scrollbar">
+                    <!-- Field 1: Image URL -->
+                    <div class="group">
+                        <label class="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">资源链接</label>
+                        <div class="relative transition-all duration-300" id="urlInputContainer">
+                            <div class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"/></svg>
+                            </div>
+                            <input type="text" id="assetUrl" placeholder="粘贴图片 URL..." 
+                                class="w-full pl-9 pr-4 py-2.5 bg-gray-50 rounded-xl text-sm outline-none focus:bg-white focus:ring-2 focus:ring-black/5 transition-all border border-transparent focus:border-gray-200 placeholder-gray-400">
+                        </div>
+                    </div>
+
+                    <!-- Field 2: Asset Type -->
+                    <div>
+                        <label class="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">资产类型</label>
+                        <div class="grid grid-cols-2 gap-3">
+                            <button type="button" class="type-option group flex items-center gap-3 p-3 rounded-xl bg-gray-50 hover:bg-gray-100 transition-all border border-transparent" onclick="selectType(this, 'character')">
+                                <svg class="w-5 h-5 text-gray-500 group-hover:text-gray-900 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>
+                                <span class="text-sm font-medium text-gray-600 group-hover:text-gray-900">角色</span>
+                            </button>
+                            <button type="button" class="type-option group flex items-center gap-3 p-3 rounded-xl bg-gray-50 hover:bg-gray-100 transition-all border border-transparent" onclick="selectType(this, 'scene')">
+                                <svg class="w-5 h-5 text-gray-500 group-hover:text-gray-900 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+                                <span class="text-sm font-medium text-gray-600 group-hover:text-gray-900">场景</span>
+                            </button>
+                            <button type="button" class="type-option group flex items-center gap-3 p-3 rounded-xl bg-gray-50 hover:bg-gray-100 transition-all border border-transparent" onclick="selectType(this, 'clothing')">
+                                <svg class="w-5 h-5 text-gray-500 group-hover:text-gray-900 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"/></svg>
+                                <span class="text-sm font-medium text-gray-600 group-hover:text-gray-900">服装</span>
+                            </button>
+                            <button type="button" class="type-option group flex items-center gap-3 p-3 rounded-xl bg-gray-50 hover:bg-gray-100 transition-all border border-transparent" onclick="selectType(this, 'prop')">
+                                <svg class="w-5 h-5 text-gray-500 group-hover:text-gray-900 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/></svg>
+                                <span class="text-sm font-medium text-gray-600 group-hover:text-gray-900">道具</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Field 3: Name -->
+                    <div>
+                        <input type="text" id="assetName" placeholder="为资产命名..." 
+                            class="w-full py-2 bg-transparent border-b border-gray-200 text-lg font-medium outline-none focus:border-black transition-colors placeholder-gray-300">
+                    </div>
+
+                    <!-- Field 4: Description -->
+                    <div>
+                        <textarea id="assetDesc" placeholder="添加备注或提示词..." 
+                            class="w-full h-20 p-3 bg-gray-50 rounded-xl text-sm outline-none focus:ring-2 focus:ring-black/5 resize-none transition-all placeholder-gray-400"></textarea>
+                    </div>
+                </div>
+
+                <!-- Footer -->
+                <div class="mt-5 pt-3 border-t border-gray-50">
+                    <button id="createBtn" disabled class="w-full py-3 bg-gray-200 text-gray-400 font-medium rounded-xl cursor-not-allowed transition-all duration-300">
+                        立即创建
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function filterAssets(type) {
+            // Update active button state
+            document.querySelectorAll('.filter-btn').forEach(btn => {
+                btn.classList.remove('active');
+                if (btn.dataset.filter === type) {
+                    btn.classList.add('active');
+                }
+            });
+
+            // Filter assets with animation
+            const assets = document.querySelectorAll('.asset-card');
+            assets.forEach(asset => {
+                const assetTypes = asset.dataset.type.split(' ');
+                
+                if (type === 'all' || assetTypes.includes(type)) {
+                    asset.classList.remove('hidden');
+                    setTimeout(() => {
+                        asset.style.opacity = '1';
+                        asset.style.transform = 'scale(1)';
+                    }, 50);
+                } else {
+                    asset.style.opacity = '0';
+                    asset.style.transform = 'scale(0.95)';
+                    setTimeout(() => {
+                        asset.classList.add('hidden');
+                    }, 300);
+                }
+            });
+        }
+
+        function openDrawer() {
+            document.getElementById('detailDrawer').classList.remove('translate-x-full');
+            document.getElementById('drawerOverlay').classList.remove('hidden');
+        }
+
+        function closeDrawer() {
+            document.getElementById('detailDrawer').classList.add('translate-x-full');
+            document.getElementById('drawerOverlay').classList.add('hidden');
+        }
+
+        // Create Modal Logic
+        let selectedType = null;
+        const modal = document.getElementById('createAssetModal');
+        const modalContent = document.getElementById('createModalContent');
+        const urlInput = document.getElementById('assetUrl');
+        const nameInput = document.getElementById('assetName');
+        const createBtn = document.getElementById('createBtn');
+        const previewImage = document.getElementById('previewImage');
+        const previewEmpty = document.getElementById('previewEmpty');
+        const urlInputContainer = document.getElementById('urlInputContainer');
+
+        function openCreateModal() {
+            modal.classList.remove('hidden');
+            // Small delay for transition
+            setTimeout(() => {
+                modal.classList.remove('opacity-0');
+                modalContent.classList.remove('scale-95');
+                modalContent.classList.add('scale-100');
+            }, 10);
+        }
+
+        function closeCreateModal() {
+            modal.classList.add('opacity-0');
+            modalContent.classList.remove('scale-100');
+            modalContent.classList.add('scale-95');
+            setTimeout(() => {
+                modal.classList.add('hidden');
+                // Reset form
+                urlInput.value = '';
+                nameInput.value = '';
+                document.getElementById('assetDesc').value = '';
+                selectedType = null;
+                document.querySelectorAll('.type-option').forEach(btn => {
+                    btn.classList.remove('bg-black', 'text-white', 'hover:bg-gray-800');
+                    btn.classList.add('bg-gray-50', 'hover:bg-gray-100');
+                    const icon = btn.querySelector('svg');
+                    icon.classList.remove('text-white');
+                    icon.classList.add('text-gray-500', 'group-hover:text-gray-900');
+                    const text = btn.querySelector('span');
+                    text.classList.remove('text-white');
+                    text.classList.add('text-gray-600', 'group-hover:text-gray-900');
+                });
+                previewImage.src = '';
+                previewImage.classList.add('opacity-0');
+                previewEmpty.classList.remove('opacity-0');
+                urlInputContainer.classList.remove('ring-2', 'ring-red-500', 'bg-red-50');
+                validateForm();
+            }, 300);
+        }
+
+        function selectType(btn, type) {
+            selectedType = type;
+            document.querySelectorAll('.type-option').forEach(b => {
+                b.classList.remove('bg-black', 'text-white', 'hover:bg-gray-800');
+                b.classList.add('bg-gray-50', 'hover:bg-gray-100');
+                const icon = b.querySelector('svg');
+                icon.classList.remove('text-white');
+                icon.classList.add('text-gray-500', 'group-hover:text-gray-900');
+                const text = b.querySelector('span');
+                text.classList.remove('text-white');
+                text.classList.add('text-gray-600', 'group-hover:text-gray-900');
+            });
+            
+            btn.classList.remove('bg-gray-50', 'hover:bg-gray-100');
+            btn.classList.add('bg-black', 'text-white', 'hover:bg-gray-800');
+            const icon = btn.querySelector('svg');
+            icon.classList.remove('text-gray-500', 'group-hover:text-gray-900');
+            icon.classList.add('text-white');
+            const text = btn.querySelector('span');
+            text.classList.remove('text-gray-600', 'group-hover:text-gray-900');
+            text.classList.add('text-white');
+            
+            validateForm();
+        }
+
+        urlInput.addEventListener('blur', function() {
+            const url = this.value.trim();
+            if (url) {
+                // Try to load image
+                const img = new Image();
+                img.onload = function() {
+                    previewImage.src = url;
+                    previewImage.classList.remove('opacity-0');
+                    previewEmpty.classList.add('opacity-0');
+                    urlInputContainer.classList.remove('ring-2', 'ring-red-500', 'bg-red-50');
+                    
+                    // Smart Autofill
+                    if (!nameInput.value) {
+                        try {
+                            const filename = url.split('/').pop().split('?')[0].split('.')[0];
+                            const cleanName = decodeURIComponent(filename).replace(/[-_]/g, ' ');
+                            nameInput.value = cleanName.replace(/\b\w/g, l => l.toUpperCase());
+                        } catch(e) {}
+                    }
+                    validateForm();
+                };
+                img.onerror = function() {
+                    previewImage.classList.add('opacity-0');
+                    previewEmpty.classList.remove('opacity-0');
+                    urlInputContainer.classList.add('ring-2', 'ring-red-500', 'bg-red-50');
+                    validateForm();
+                };
+                img.src = url;
+            } else {
+                previewImage.classList.add('opacity-0');
+                previewEmpty.classList.remove('opacity-0');
+                urlInputContainer.classList.remove('ring-2', 'ring-red-500', 'bg-red-50');
+            }
+        });
+
+        urlInput.addEventListener('input', validateForm);
+        nameInput.addEventListener('input', validateForm);
+
+        function validateForm() {
+            const isValid = urlInput.value.trim() !== '' && 
+                          nameInput.value.trim() !== '' && 
+                          selectedType !== null; 
+            
+            if (isValid) {
+                createBtn.disabled = false;
+                createBtn.classList.remove('bg-gray-200', 'text-gray-400', 'cursor-not-allowed');
+                createBtn.classList.add('bg-black', 'text-white', 'hover:bg-gray-800', 'cursor-pointer');
+            } else {
+                createBtn.disabled = true;
+                createBtn.classList.add('bg-gray-200', 'text-gray-400', 'cursor-not-allowed');
+                createBtn.classList.remove('bg-black', 'text-white', 'hover:bg-gray-800', 'cursor-pointer');
+            }
+        }
+    </script>
+</body>
+</html>

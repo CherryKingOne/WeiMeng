@@ -1,0 +1,151 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mxGraphModel dx="1554" dy="946" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1600" pageHeight="1100" background="#ffffff" math="0" shadow="0">
+  <root>
+    <mxCell id="0" />
+    <mxCell id="1" parent="0" />
+
+    
+    <mxCell id="lbl_access" value="接入层" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=16;fontStyle=1;fontColor=#333333;" parent="1" vertex="1">
+      <mxGeometry x="40" y="80" width="100" height="40" as="geometry" />
+    </mxCell>
+    <mxCell id="lbl_orchestration" value="编排层" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=16;fontStyle=1;fontColor=#333333;" parent="1" vertex="1">
+      <mxGeometry x="40" y="260" width="100" height="40" as="geometry" />
+    </mxCell>
+    <mxCell id="lbl_agents" value="智能体层" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=16;fontStyle=1;fontColor=#333333;" parent="1" vertex="1">
+      <mxGeometry x="40" y="480" width="100" height="40" as="geometry" />
+    </mxCell>
+    <mxCell id="lbl_models" value="模型层" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=16;fontStyle=1;fontColor=#333333;" parent="1" vertex="1">
+      <mxGeometry x="40" y="700" width="100" height="40" as="geometry" />
+    </mxCell>
+    <mxCell id="lbl_data" value="数据层" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=16;fontStyle=1;fontColor=#333333;" parent="1" vertex="1">
+      <mxGeometry x="40" y="920" width="100" height="40" as="geometry" />
+    </mxCell>
+
+    
+    <mxCell id="layer_access" value="用户界面" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;strokeWidth=2;verticalAlign=top;align=center;spacingTop=10;fontSize=14;fontStyle=1;" parent="1" vertex="1">
+      <mxGeometry x="240" y="40" width="1120" height="140" as="geometry" />
+    </mxCell>
+    
+    <mxCell id="ui_chat" value="对话式界面" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#6c8ebf;fontSize=12;" parent="layer_access" vertex="1">
+      <mxGeometry x="200" y="60" width="200" height="50" as="geometry" />
+    </mxCell>
+    <mxCell id="ui_visual" value="可视化画板" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#6c8ebf;fontSize=12;" parent="layer_access" vertex="1">
+      <mxGeometry x="520" y="60" width="200" height="50" as="geometry" />
+    </mxCell>
+    <mxCell id="ui_assets" value="资产库" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#6c8ebf;fontSize=12;" parent="layer_access" vertex="1">
+      <mxGeometry x="840" y="60" width="200" height="50" as="geometry" />
+    </mxCell>
+
+    
+    <mxCell id="layer_orchestration" value="导演智能体" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;strokeWidth=2;verticalAlign=top;align=center;spacingTop=10;fontSize=14;fontStyle=1;" parent="1" vertex="1">
+      <mxGeometry x="240" y="200" width="1120" height="140" as="geometry" />
+    </mxCell>
+    
+    <mxCell id="director_task" value="自适应任务拆解" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#82b366;fontSize=12;" parent="layer_orchestration" vertex="1">
+      <mxGeometry x="200" y="60" width="200" height="50" as="geometry" />
+    </mxCell>
+    <mxCell id="director_reflect" value="自我反思机制" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#82b366;fontSize=12;" parent="layer_orchestration" vertex="1">
+      <mxGeometry x="520" y="60" width="200" height="50" as="geometry" />
+    </mxCell>
+    <mxCell id="director_quality" value="质量门控" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#82b366;fontSize=12;" parent="layer_orchestration" vertex="1">
+      <mxGeometry x="840" y="60" width="200" height="50" as="geometry" />
+    </mxCell>
+
+    
+    <mxCell id="agent_art" value="艺术总监" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=12;" parent="1" vertex="1">
+      <mxGeometry x="240" y="380" width="150" height="80" as="geometry" />
+    </mxCell>
+    <mxCell id="agent_writer" value="编剧" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=12;" parent="1" vertex="1">
+      <mxGeometry x="450" y="380" width="150" height="80" as="geometry" />
+    </mxCell>
+    <mxCell id="agent_character" value="角色设计师" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=12;" parent="1" vertex="1">
+      <mxGeometry x="660" y="380" width="150" height="80" as="geometry" />
+    </mxCell>
+    <mxCell id="agent_storyboard" value="分镜师" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=12;" parent="1" vertex="1">
+      <mxGeometry x="870" y="380" width="150" height="80" as="geometry" />
+    </mxCell>
+    <mxCell id="agent_scene" value="场景设计师" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=12;" parent="1" vertex="1">
+      <mxGeometry x="1080" y="380" width="150" height="80" as="geometry" />
+    </mxCell>
+    <mxCell id="agent_animator" value="动画师" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=12;" parent="1" vertex="1">
+      <mxGeometry x="450" y="480" width="150" height="80" as="geometry" />
+    </mxCell>
+    <mxCell id="agent_sound" value="音效师" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=12;" parent="1" vertex="1">
+      <mxGeometry x="660" y="480" width="150" height="80" as="geometry" />
+    </mxCell>
+
+    
+    <mxCell id="layer_models" value="AI模型集成" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;strokeWidth=2;verticalAlign=top;align=center;spacingTop=10;fontSize=14;fontStyle=1;" parent="1" vertex="1">
+      <mxGeometry x="240" y="600" width="1120" height="140" as="geometry" />
+    </mxCell>
+    
+    <mxCell id="model_gpt" value="GPT-4o" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#b85450;fontSize=12;" parent="layer_models" vertex="1">
+      <mxGeometry x="200" y="60" width="150" height="50" as="geometry" />
+    </mxCell>
+    <mxCell id="model_sora" value="Sora2" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#b85450;fontSize=12;" parent="layer_models" vertex="1">
+      <mxGeometry x="410" y="60" width="150" height="50" as="geometry" />
+    </mxCell>
+    <mxCell id="model_wan" value="Wan2.5" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#b85450;fontSize=12;" parent="layer_models" vertex="1">
+      <mxGeometry x="620" y="60" width="150" height="50" as="geometry" />
+    </mxCell>
+    <mxCell id="model_nano" value="Nanobanana" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#b85450;fontSize=12;" parent="layer_models" vertex="1">
+      <mxGeometry x="830" y="60" width="150" height="50" as="geometry" />
+    </mxCell>
+
+    
+    <mxCell id="layer_data" value="数据存储" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;strokeWidth=2;verticalAlign=top;align=center;spacingTop=10;fontSize=14;fontStyle=1;" parent="1" vertex="1">
+      <mxGeometry x="240" y="800" width="1120" height="180" as="geometry" />
+    </mxCell>
+    
+    <mxCell id="db_assets" value="全局资产记忆库" style="shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;size=15;fillColor=#ffffff;strokeColor=#9673a6;fontSize=12;" parent="layer_data" vertex="1">
+      <mxGeometry x="300" y="60" width="150" height="90" as="geometry" />
+    </mxCell>
+    <mxCell id="db_user" value="用户数据" style="shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;size=15;fillColor=#ffffff;strokeColor=#9673a6;fontSize=12;" parent="layer_data" vertex="1">
+      <mxGeometry x="600" y="60" width="150" height="90" as="geometry" />
+    </mxCell>
+    <mxCell id="db_tasks" value="任务历史" style="shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;size=15;fillColor=#ffffff;strokeColor=#9673a6;fontSize=12;" parent="layer_data" vertex="1">
+      <mxGeometry x="900" y="60" width="150" height="90" as="geometry" />
+    </mxCell>
+
+    
+    <mxCell id="link_access_orchestration" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=2;strokeColor=#6c8ebf;entryX=0.5;entryY=0;exitX=0.5;exitY=1;" parent="1" source="layer_access" target="layer_orchestration" edge="1">
+      <mxGeometry relative="1" as="geometry" />
+    </mxCell>
+
+    
+    <mxCell id="link_orchestration_agents" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=2;strokeColor=#82b366;entryX=0.5;entryY=0;exitX=0.5;exitY=1;" parent="1" source="layer_orchestration" target="agent_art" edge="1">
+      <mxGeometry relative="1" as="geometry" />
+    </mxCell>
+
+    
+    <mxCell id="link_agents_models" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=2;strokeColor=#d6b656;entryX=0.5;entryY=0;exitX=0.5;exitY=1;" parent="1" source="agent_animator" target="layer_models" edge="1">
+      <mxGeometry relative="1" as="geometry" />
+    </mxCell>
+
+    
+    <mxCell id="link_models_data" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=2;strokeColor=#b85450;entryX=0.5;entryY=0;exitX=0.5;exitY=1;" parent="1" source="layer_models" target="layer_data" edge="1">
+      <mxGeometry relative="1" as="geometry" />
+    </mxCell>
+
+    
+    <mxCell id="link_art_writer" value="JSON通信" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=2;strokeColor=#d6b656;dashed=1;curved=1;entryX=1;entryY=0.5;exitX=0;exitY=0.5;" parent="1" source="agent_art" target="agent_writer" edge="1">
+      <mxGeometry relative="1" as="geometry" />
+    </mxCell>
+    <mxCell id="link_writer_character" value="JSON通信" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=2;strokeColor=#d6b656;dashed=1;curved=1;entryX=1;entryY=0.5;exitX=0;exitY=0.5;" parent="1" source="agent_writer" target="agent_character" edge="1">
+      <mxGeometry relative="1" as="geometry" />
+    </mxCell>
+    <mxCell id="link_character_storyboard" value="JSON通信" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=2;strokeColor=#d6b656;dashed=1;curved=1;entryX=1;entryY=0.5;exitX=0;exitY=0.5;" parent="1" source="agent_character" target="agent_storyboard" edge="1">
+      <mxGeometry relative="1" as="geometry" />
+    </mxCell>
+    <mxCell id="link_storyboard_scene" value="JSON通信" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=2;strokeColor=#d6b656;dashed=1;curved=1;entryX=1;entryY=0.5;exitX=0;exitY=0.5;" parent="1" source="agent_storyboard" target="agent_scene" edge="1">
+      <mxGeometry relative="1" as="geometry" />
+    </mxCell>
+    <mxCell id="link_scene_animator" value="JSON通信" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=2;strokeColor=#d6b656;dashed=1;curved=1;entryX=0;entryY=0.5;exitX=0;" parent="1" source="agent_scene" target="agent_animator" edge="1">
+      <mxGeometry relative="1" as="geometry" />
+    </mxCell>
+    <mxCell id="link_animator_sound" value="JSON通信" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=2;strokeColor=#d6b656;dashed=1;curved=1;entryX=1;entryY=0.5;exitX=0;" parent="1" source="agent_animator" target="agent_sound" edge="1">
+      <mxGeometry relative="1" as="geometry" />
+    </mxCell>
+
+  </root>
+</mxGraphModel>

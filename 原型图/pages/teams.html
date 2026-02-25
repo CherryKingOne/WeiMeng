@@ -1,0 +1,378 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WeiMeng Agent - Teams</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body { font-family: ui-sans-serif, system-ui, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji"; }
+        
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #e4e4e7; border-radius: 3px; }
+        ::-webkit-scrollbar-thumb:hover { background: #d4d4d8; }
+        
+        .bg-dot-pattern {
+            background-image: radial-gradient(#e5e7eb 1px, transparent 1px);
+            background-size: 20px 20px;
+        }
+        
+        .text-gradient {
+            background: linear-gradient(to right, #fbbf24, #ef4444, #ec4899);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        
+        .scrollbar-hide::-webkit-scrollbar { display: none; }
+        .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
+        
+        .hover-lift { transition: transform 0.2s ease, box-shadow 0.2s ease; }
+        .hover-lift:hover { transform: translateY(-4px); box-shadow: 0 12px 40px rgba(0,0,0,0.08); }
+        
+        .scale-on-active { transition: transform 0.1s ease; }
+        .scale-on-active:active { transform: scale(0.95); }
+    </style>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    boxShadow: {
+                        'glow': '0 0 20px rgba(251, 191, 36, 0.1)',
+                        'panel': '0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px -1px rgba(0, 0, 0, 0.1)',
+                        'float': '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1)',
+                        'card': '0 8px 30px rgba(0,0,0,0.04)',
+                    }
+                }
+            }
+        }
+    </script>
+</head>
+<body class="bg-white text-gray-900 h-screen w-screen overflow-hidden flex flex-col antialiased">
+
+    <!-- Top Navigation Bar -->
+    <header class="h-14 bg-white border-b border-gray-100 flex items-center justify-between px-5 shrink-0 z-30">
+        <!-- Left: Logo & Title -->
+        <div class="flex items-center gap-4">
+            <div class="flex items-center gap-2">
+                <!-- Logo Icon -->
+                <div class="w-8 h-8 rounded-xl bg-black flex items-center justify-center">
+                    <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
+                    </svg>
+                </div>
+                <span class="font-bold text-gray-900 tracking-tight">WeiMeng</span>
+                <span class="px-2 py-0.5 rounded-full bg-gray-100 text-[10px] font-medium text-gray-500 uppercase tracking-wider">Teams</span>
+            </div>
+            
+            <div class="h-4 w-px bg-gray-200 mx-2"></div>
+            
+            <!-- Editable Title -->
+            <input 
+                type="text" 
+                value="团队工作区" 
+                class="bg-transparent border border-transparent hover:border-gray-200 hover:bg-gray-50 focus:bg-white focus:border-gray-300 text-sm text-gray-500 font-medium focus:text-gray-900 px-3 py-1 rounded-lg transition-all outline-none w-40 cursor-text placeholder:text-gray-400 truncate"
+                placeholder="输入标题..."
+            />
+        </div>
+
+        <!-- Right: Actions & User -->
+        <div class="flex items-center gap-3">
+            <!-- Icons -->
+            <button class="w-9 h-9 rounded-xl hover:bg-gray-100 flex items-center justify-center text-gray-400 hover:text-gray-600 transition-colors">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"/>
+                </svg>
+            </button>
+            <button class="w-9 h-9 rounded-xl hover:bg-gray-100 flex items-center justify-center text-gray-400 hover:text-gray-600 transition-colors">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/>
+                </svg>
+            </button>
+            <button class="w-9 h-9 rounded-xl hover:bg-gray-100 flex items-center justify-center text-gray-400 hover:text-gray-600 transition-colors">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/>
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                </svg>
+            </button>
+            
+            <!-- Credits / User -->
+            <div class="flex items-center gap-2 bg-gray-50 rounded-xl px-3 py-1.5 border border-gray-100">
+                <div class="flex items-center gap-1.5">
+                    <svg class="w-4 h-4 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                    </svg>
+                    <span class="text-xs font-medium text-gray-900">500</span>
+                </div>
+                <div class="w-px h-4 bg-gray-200"></div>
+                <div class="flex items-center gap-2">
+                    <div class="w-6 h-6 rounded-full bg-gradient-to-br from-purple-400 to-pink-400"></div>
+                    <span class="text-xs font-medium text-gray-700">子君</span>
+                </div>
+            </div>
+
+            <!-- Export Button -->
+            <div class="relative z-50">
+                <button onclick="toggleExportMenu()" class="flex items-center gap-2 px-4 py-2 rounded-xl bg-black text-white font-medium text-sm hover:bg-gray-800 transition-colors scale-on-active">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/>
+                    </svg>
+                    导出
+                </button>
+
+                <!-- Dropdown Menu -->
+                <div id="export-menu" class="hidden absolute right-0 top-full mt-2 w-64 bg-white rounded-2xl border border-gray-100 shadow-float p-2">
+                    <button class="flex items-center gap-3 w-full px-3 py-2.5 rounded-xl hover:bg-gray-50 transition-colors group">
+                        <div class="w-9 h-9 rounded-xl bg-gray-100 flex items-center justify-center text-gray-400 group-hover:text-gray-600 group-hover:bg-gray-200 transition-all">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"/>
+                            </svg>
+                        </div>
+                        <span class="text-sm font-medium text-gray-900">视频</span>
+                    </button>
+
+                    <button class="flex items-center gap-3 w-full px-3 py-2.5 rounded-xl hover:bg-gray-50 transition-colors group">
+                        <div class="w-9 h-9 rounded-xl bg-gray-100 flex items-center justify-center text-gray-400 group-hover:text-gray-600 group-hover:bg-gray-200 transition-all">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                            </svg>
+                        </div>
+                        <span class="text-sm font-medium text-gray-900">PR 文件</span>
+                    </button>
+
+                    <button class="flex items-center gap-3 w-full px-3 py-2.5 rounded-xl hover:bg-gray-50 transition-colors group">
+                        <div class="w-9 h-9 rounded-xl bg-gray-100 flex items-center justify-center text-gray-400 group-hover:text-gray-600 group-hover:bg-gray-200 transition-all">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M5 19a2 2 0 01-2-2V7a2 2 0 012-2h4l2 2h4a2 2 0 012 2v1M5 19h14a2 2 0 002-2v-5a2 2 0 00-2-2H9a2 2 0 00-2 2v5a2 2 0 01-2 2z"/>
+                            </svg>
+                        </div>
+                        <span class="text-sm font-medium text-gray-900">所有文件</span>
+                    </button>
+
+                    <div class="h-px bg-gray-100 my-2 mx-2"></div>
+
+                    <div class="flex items-center justify-between px-3 py-2.5">
+                        <div class="flex items-center gap-2">
+                            <svg class="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+                            </svg>
+                            <span class="text-xs font-medium text-gray-700">无水印导出</span>
+                        </div>
+                        <div id="watermark-toggle" onclick="toggleWatermark(event)" class="relative inline-flex h-5 w-9 items-center rounded-full bg-gradient-to-r from-orange-400 to-pink-500 cursor-pointer transition-colors duration-300">
+                            <span class="inline-block h-3.5 w-3.5 transform translate-x-5 rounded-full bg-white shadow-sm transition-transform duration-300"></span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Layout Container -->
+    <div class="flex flex-1 overflow-hidden p-4 gap-4">
+        
+        <!-- PANEL 1: Workspace -->
+        <div class="flex-1 flex flex-col bg-white rounded-2xl overflow-hidden shadow-card relative border border-gray-100">
+            
+            <!-- Tab Bar -->
+            <div class="h-11 border-b border-gray-100 flex items-center px-0 bg-gray-50/50 shrink-0">
+                <button class="h-full w-14 flex items-center justify-center border-r border-gray-100 hover:bg-gray-100 transition-colors shrink-0">
+                    <div class="flex gap-0.5">
+                        <div class="w-1 h-1 rounded-full bg-gray-400"></div>
+                        <div class="w-1 h-1 rounded-full bg-gray-400"></div>
+                        <div class="w-1 h-1 rounded-full bg-gray-400"></div>
+                    </div>
+                </button>
+                <button class="h-full px-4 flex items-center gap-2 border-r border-gray-100 bg-white text-gray-900 relative">
+                    <svg class="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M7 4v16M17 4v16M3 8h4m10 0h4M3 12h18M3 16h4m10 0h4M4 20h16a1 1 0 001-1V5a1 1 0 00-1-1H4a1 1 0 00-1 1v14a1 1 0 001 1z"/>
+                    </svg>
+                    <span class="text-xs font-medium">故事板</span>
+                    <div class="absolute top-0 left-0 w-full h-0.5 bg-black"></div>
+                </button>
+                <div class="flex-1"></div>
+            </div>
+
+            <!-- Workspace Content -->
+            <div class="flex flex-1 overflow-hidden">
+                <!-- Left Sidebar (Tools) -->
+                <aside class="w-14 bg-white border-r border-gray-100 flex flex-col items-center py-4 gap-4 shrink-0 z-20">
+                    <div class="sidebar-tool flex flex-col items-center gap-1.5 group cursor-pointer relative" onclick="selectTool(this)">
+                        <div class="tool-indicator absolute -left-0.5 top-1/2 -translate-y-1/2 w-0.5 h-6 bg-black rounded-r-full"></div>
+                        <div class="tool-icon w-9 h-9 rounded-xl bg-black text-white flex items-center justify-center hover:bg-gray-800 transition-all">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M7 4v16M17 4v16M3 8h4m10 0h4M3 12h18M3 16h4m10 0h4M4 20h16a1 1 0 001-1V5a1 1 0 00-1-1H4a1 1 0 00-1 1v14a1 1 0 001 1z"/>
+                            </svg>
+                        </div>
+                        <span class="tool-text text-[10px] font-medium text-gray-900">故事板</span>
+                    </div>
+
+                    <div class="sidebar-tool flex flex-col items-center gap-1.5 group cursor-pointer opacity-60 hover:opacity-100 transition-opacity" onclick="selectTool(this)">
+                        <div class="tool-indicator absolute -left-0.5 top-1/2 -translate-y-1/2 w-0.5 h-6 bg-black rounded-r-full hidden"></div>
+                        <div class="tool-icon w-9 h-9 rounded-xl flex items-center justify-center text-gray-400 group-hover:bg-gray-100 transition-all">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M7 4v16M17 4v16M3 8h4m10 0h4M3 12h18M3 16h4m10 0h4M4 20h16a1 1 0 001-1V5a1 1 0 00-1-1H4a1 1 0 00-1 1v14a1 1 0 001 1z"/>
+                            </svg>
+                        </div>
+                        <span class="tool-text text-[10px] font-medium text-gray-500">时间线</span>
+                    </div>
+
+                    <div class="sidebar-tool flex flex-col items-center gap-1.5 group cursor-pointer opacity-60 hover:opacity-100 transition-opacity" onclick="selectTool(this)">
+                        <div class="tool-indicator absolute -left-0.5 top-1/2 -translate-y-1/2 w-0.5 h-6 bg-black rounded-r-full hidden"></div>
+                        <div class="tool-icon w-9 h-9 rounded-xl flex items-center justify-center text-gray-400 group-hover:bg-gray-100 transition-all">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M8 14v3m4-3v3m4-3v3M3 21h18M3 10h18M3 7l9-4 9 4M4 10h16v11H4V10z"/>
+                            </svg>
+                        </div>
+                        <span class="tool-text text-[10px] font-medium text-gray-500">素材库</span>
+                    </div>
+                </aside>
+
+                <!-- Canvas -->
+                <main class="flex-1 bg-white bg-dot-pattern relative flex items-center justify-center overflow-hidden">
+                    <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-gradient-to-tr from-purple-500/5 via-pink-500/5 to-orange-500/5 rounded-full blur-[100px] pointer-events-none opacity-50"></div>
+
+                    <!-- Empty State -->
+                    <div class="flex flex-col items-center justify-center text-center z-10">
+                        <div class="relative mb-8 group cursor-pointer">
+                            <div class="absolute inset-0 bg-gradient-to-r from-orange-500 to-pink-500 rounded-3xl blur-2xl opacity-10 group-hover:opacity-20 transition-opacity duration-500"></div>
+                            
+                            <div class="relative w-24 h-24 bg-white border border-gray-200 rounded-3xl flex items-center justify-center shadow-float group-hover:scale-105 transition-transform duration-300">
+                                <svg class="w-10 h-10 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M7 4v16M17 4v16M3 8h4m10 0h4M3 12h18M3 16h4m10 0h4M4 20h16a1 1 0 001-1V5a1 1 0 00-1-1H4a1 1 0 00-1 1v14a1 1 0 001 1z"/>
+                                </svg>
+                                <div class="absolute -bottom-3 -right-6 -rotate-12">
+                                    <span class="text-gradient text-4xl font-serif italic opacity-90 select-none drop-shadow-lg">Creator</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <h1 class="text-3xl font-bold text-gray-900 mb-3 tracking-tight">开始！</h1>
+                        <p class="text-gray-500 text-sm max-w-sm leading-relaxed">
+                            请在右侧聊天框中输入您的创作需求，<br>开始创作吧！
+                        </p>
+                    </div>
+                </main>
+            </div>
+        </div>
+
+        <!-- PANEL 2: AI Assistant -->
+        <aside class="w-[380px] bg-white rounded-2xl overflow-hidden shadow-card flex flex-col shrink-0 border border-gray-100">
+            <!-- Header -->
+            <header class="h-11 border-b border-gray-100 flex items-center px-4 gap-2 shrink-0 bg-gray-50/50">
+                <svg class="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z"/>
+                </svg>
+                <span class="text-xs font-semibold text-gray-900 tracking-wide">AI 助手</span>
+            </header>
+
+            <!-- Chat Area -->
+            <div class="flex-1 flex items-center justify-center p-4">
+                <div class="text-gray-400 text-xs font-medium tracking-wide">暂无消息</div>
+            </div>
+
+            <!-- Input Area -->
+            <div class="p-4 pt-2 shrink-0">
+                <!-- Quick Tags -->
+                <div class="flex gap-2 mb-3 overflow-x-auto scrollbar-hide pb-1">
+                    <button class="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-gray-100 border border-gray-200 hover:border-gray-300 hover:bg-gray-50 transition-all shrink-0 group">
+                        <svg class="w-3.5 h-3.5 text-gray-500 group-hover:text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 5a1 1 0 011-1h14a1 1 0 011 1v2a1 1 0 01-1 1H5a1 1 0 01-1-1V5zM4 13a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H5a1 1 0 01-1-1v-6zM16 13a1 1 0 011-1h2a1 1 0 011 1v6a1 1 0 01-1 1h-2a1 1 0 01-1-1v-6z"/>
+                        </svg>
+                        <span class="text-xs font-medium text-gray-500 group-hover:text-gray-700">模型</span>
+                    </button>
+                    <button class="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-gray-100 border border-gray-200 hover:border-gray-300 hover:bg-gray-50 transition-all shrink-0 group">
+                        <svg class="w-3.5 h-3.5 text-gray-500 group-hover:text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M13 10V3L4 14h7v7l9-11h-7z"/>
+                        </svg>
+                        <span class="text-xs font-medium text-gray-500 group-hover:text-gray-700">技能</span>
+                    </button>
+                    <button class="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-gray-100 border border-gray-200 hover:border-gray-300 hover:bg-gray-50 transition-all shrink-0 group">
+                        <svg class="w-3.5 h-3.5 text-gray-500 group-hover:text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"/>
+                        </svg>
+                        <span class="text-xs font-medium text-gray-500 group-hover:text-gray-700">元素</span>
+                    </button>
+                    <button class="w-8 h-8 rounded-xl bg-gray-100 border border-gray-200 flex items-center justify-center hover:bg-gray-50 text-gray-500 hover:text-gray-700 shrink-0 transition-all">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 4v16m8-8H4"/>
+                        </svg>
+                    </button>
+                </div>
+
+                <!-- Input Box -->
+                <div class="relative group">
+                    <textarea 
+                        placeholder="请输入你的消息..." 
+                        class="w-full h-24 bg-gray-50 text-gray-900 text-xs leading-relaxed placeholder:text-gray-400 p-4 rounded-xl border border-gray-200 focus:outline-none focus:border-gray-300 focus:bg-white resize-none transition-all"
+                    ></textarea>
+                    
+                    <!-- Send Button -->
+                    <button class="absolute right-3 bottom-3 w-8 h-8 rounded-xl bg-black hover:bg-gray-800 flex items-center justify-center transition-colors shadow-lg scale-on-active">
+                        <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 10l7-7m0 0l7 7m-7-7v18"/>
+                        </svg>
+                    </button>
+                </div>
+            </div>
+        </aside>
+
+    </div>
+
+    <script>
+        function toggleExportMenu() {
+            const menu = document.getElementById('export-menu');
+            menu.classList.toggle('hidden');
+        }
+
+        function toggleWatermark(event) {
+            event.stopPropagation();
+            const toggle = document.getElementById('watermark-toggle');
+            const span = toggle.querySelector('span');
+            const isOn = span.classList.contains('translate-x-5');
+            
+            if (isOn) {
+                span.classList.remove('translate-x-5');
+                span.classList.add('translate-x-1');
+                toggle.classList.remove('bg-gradient-to-r', 'from-orange-400', 'to-pink-500');
+                toggle.classList.add('bg-gray-300');
+            } else {
+                span.classList.remove('translate-x-1');
+                span.classList.add('translate-x-5');
+                toggle.classList.add('bg-gradient-to-r', 'from-orange-400', 'to-pink-500');
+                toggle.classList.remove('bg-gray-300');
+            }
+        }
+
+        function selectTool(el) {
+            document.querySelectorAll('.sidebar-tool').forEach(tool => {
+                tool.classList.add('opacity-60', 'hover:opacity-100');
+                tool.querySelector('.tool-indicator').classList.add('hidden');
+                
+                const icon = tool.querySelector('.tool-icon');
+                icon.className = 'tool-icon w-9 h-9 rounded-xl flex items-center justify-center text-gray-400 group-hover:bg-gray-100 transition-all';
+                
+                const text = tool.querySelector('.tool-text');
+                text.className = 'tool-text text-[10px] font-medium text-gray-500';
+            });
+
+            el.classList.remove('opacity-60', 'hover:opacity-100');
+            el.querySelector('.tool-indicator').classList.remove('hidden');
+            
+            const icon = el.querySelector('.tool-icon');
+            icon.className = 'tool-icon w-9 h-9 rounded-xl bg-black text-white flex items-center justify-center hover:bg-gray-800 transition-all';
+            
+            const text = el.querySelector('.tool-text');
+            text.className = 'tool-text text-[10px] font-medium text-gray-900';
+        }
+
+        document.addEventListener('click', function(event) {
+            const menu = document.getElementById('export-menu');
+            const button = event.target.closest('button[onclick="toggleExportMenu()"]');
+            
+            if (!button && !menu.contains(event.target)) {
+                menu.classList.add('hidden');
+            }
+        });
+    </script>
+</body>
+</html>

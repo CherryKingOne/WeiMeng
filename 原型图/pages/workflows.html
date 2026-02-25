@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WeiMeng - My Workflows</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        * { font-family: 'Inter', sans-serif; }
+        
+        /* 简洁卡片设计 */
+        .wf-card {
+            background: white;
+            border: 1px solid #e5e7eb;
+            transition: all 0.25s ease;
+        }
+        .wf-card:hover {
+            border-color: #d1d5db;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+            transform: translateY(-2px);
+        }
+        
+        /* 新建卡片 */
+        .wf-create {
+            border: 1px dashed #d1d5db;
+            background: #fafafa;
+        }
+        .wf-create:hover {
+            border-color: #9ca3af;
+            background: #f3f4f6;
+        }
+        
+        /* 缩略图区域 */
+        .wf-thumb {
+            background: linear-gradient(135deg, #f3f4f6 0%, #e5e7eb 100%);
+            position: relative;
+            overflow: hidden;
+        }
+        .wf-thumb::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background-image: 
+                radial-gradient(circle at 30% 40%, #6366f1 3px, transparent 3px),
+                radial-gradient(circle at 60% 30%, #8b5cf6 3px, transparent 3px),
+                radial-gradient(circle at 45% 65%, #06b6d4 3px, transparent 3px),
+                radial-gradient(circle at 75% 55%, #10b981 3px, transparent 3px);
+            opacity: 0.6;
+        }
+        
+        /* 状态标签 - 简洁版 */
+        .wf-status {
+            font-size: 11px;
+            font-weight: 500;
+            padding: 3px 8px;
+            border-radius: 4px;
+        }
+        .status-run { background: #dcfce7; color: #166534; }
+        .status-draft { background: #f3f4f6; color: #6b7280; }
+        .status-pub { background: #dbeafe; color: #1e40af; }
+        .status-temp { background: #fef3c7; color: #92400e; }
+        
+        /* 运行中动画 */
+        .status-dot {
+            width: 6px;
+            height: 6px;
+            background: #22c55e;
+            border-radius: 50%;
+            animation: blink 1.5s ease-in-out infinite;
+        }
+        @keyframes blink {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.4; }
+        }
+        
+        /* 头像 */
+        .wf-avatars img {
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            border: 2px solid white;
+            margin-left: -8px;
+        }
+        .wf-avatars img:first-child { margin-left: 0; }
+        
+        /* 网格 */
+        .wf-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 20px;
+        }
+    </style>
+</head>
+<body class="bg-white text-gray-900">
+    <div class="flex h-screen">
+        <!-- Sidebar -->
+        <aside class="w-64 bg-[#F9FAFB] border-r border-gray-100 flex flex-col">
+            <div class="p-6">
+                <div class="flex items-center gap-3">
+                    <div class="w-8 h-8 bg-black rounded-xl flex items-center justify-center">
+                        <span class="text-white font-bold text-sm">W</span>
+                    </div>
+                    <span class="font-semibold text-lg tracking-tight">WeiMeng</span>
+                </div>
+            </div>
+            
+            <nav class="flex-1 px-4 space-y-1">
+                <p class="px-3 text-xs font-medium text-gray-400 uppercase tracking-wider mb-2 mt-4">主要功能</p>
+                <a href="dashboard.html" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-gray-600 hover:bg-gray-100 text-sm font-medium transition-colors">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>
+                    首页
+                </a>
+                <a href="projects.html" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-gray-600 hover:bg-gray-100 text-sm font-medium transition-colors">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"/></svg>
+                    项目
+                </a>
+                <a href="workflows.html" class="flex items-center gap-3 px-3 py-2.5 rounded-xl bg-black text-white text-sm font-medium">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+                    工作流
+                </a>
+                
+                <p class="px-3 text-xs font-medium text-gray-400 uppercase tracking-wider mb-2 mt-6">资源中心</p>
+                <a href="assets.html" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-gray-600 hover:bg-gray-100 text-sm font-medium transition-colors">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+                    资产
+                </a>
+                <a href="scripts.html" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-gray-600 hover:bg-gray-100 text-sm font-medium transition-colors">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+                    剧本库
+                </a>
+                <a href="plugins.html" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-gray-600 hover:bg-gray-100 text-sm font-medium transition-colors">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M14 10l-2 1m0 0l-2-1m2 1v2.5M20 7l-2 1m2-1l-2-1m2 1v2.5M14 4l-2-1-2 1M4 7l2-1M4 7l2 1M4 7v2.5M12 21l-2-1m2 1l2-1m-2 1v-2.5M6 18l-2-1v-2.5M18 18l2-1v-2.5"/></svg>
+                    插件
+                </a>
+            </nav>
+            
+            <div class="p-4 border-t border-gray-200">
+                <a href="settings.html" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-gray-600 hover:bg-gray-100 text-sm font-medium transition-colors">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+                    设置
+                </a>
+            </div>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="flex-1 overflow-y-auto bg-gray-50/50">
+            <div class="max-w-7xl mx-auto px-8 py-8">
+                <!-- Header -->
+                <div class="flex items-center justify-between mb-8">
+                    <h1 class="text-2xl font-semibold text-gray-900">工作流</h1>
+                    <div class="flex items-center gap-3">
+                        <div class="relative">
+                            <svg class="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+                            <input type="text" placeholder="搜索..." class="pl-9 pr-4 py-2 bg-white border border-gray-200 rounded-lg text-sm outline-none focus:border-gray-400 transition-colors w-56">
+                        </div>
+                        <a href="workflow-editor.html" class="flex items-center gap-2 px-4 py-2 bg-gray-900 text-white text-sm font-medium rounded-lg hover:bg-gray-800 transition-colors">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+                            新建
+                        </a>
+                    </div>
+                </div>
+
+                <!-- Filter Tabs -->
+                <div class="flex items-center gap-1 mb-6 border-b border-gray-200">
+                    <button class="px-4 py-2.5 text-sm font-medium text-gray-900 border-b-2 border-gray-900">全部</button>
+                    <button class="px-4 py-2.5 text-sm font-medium text-gray-500 hover:text-gray-700">草稿</button>
+                    <button class="px-4 py-2.5 text-sm font-medium text-gray-500 hover:text-gray-700">已发布</button>
+                    <button class="px-4 py-2.5 text-sm font-medium text-gray-500 hover:text-gray-700">模板</button>
+                </div>
+
+                <!-- Workflow Grid -->
+                <div class="wf-grid">
+                    <!-- Create Card -->
+                    <a href="workflow-editor.html" class="wf-create wf-card rounded-xl flex flex-col items-center justify-center gap-3 text-gray-500 hover:text-gray-700" style="min-height: 220px;">
+                        <div class="w-12 h-12 rounded-full bg-white border border-gray-200 flex items-center justify-center">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+                        </div>
+                        <span class="text-sm font-medium">新建工作流</span>
+                    </a>
+
+                    <!-- Workflow Card 1 - Running -->
+                    <a href="workflow-editor.html" class="wf-card rounded-xl overflow-hidden block">
+                        <div class="wf-thumb h-32"></div>
+                        <div class="p-4">
+                            <div class="flex items-start justify-between mb-2">
+                                <h3 class="font-medium text-gray-900 text-sm">3D 角色生成器</h3>
+                                <div class="wf-status status-run flex items-center gap-1.5">
+                                    <span class="status-dot"></span>
+                                    运行中
+                                </div>
+                            </div>
+                            <p class="text-xs text-gray-500 mb-3">用于快速生成3D角色模型</p>
+                            <div class="flex items-center justify-between">
+                                <span class="text-xs text-gray-400">2 小时前</span>
+                                <div class="wf-avatars flex">
+                                    <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=Felix" alt="">
+                                    <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=Aneka" alt="">
+                                    <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=Bob" alt="">
+                                </div>
+                            </div>
+                        </div>
+                    </a>
+
+                    <!-- Workflow Card 2 - Draft -->
+                    <a href="workflow-editor.html" class="wf-card rounded-xl overflow-hidden block">
+                        <div class="wf-thumb h-32"></div>
+                        <div class="p-4">
+                            <div class="flex items-start justify-between mb-2">
+                                <h3 class="font-medium text-gray-900 text-sm">产品海报自动化</h3>
+                                <span class="wf-status status-draft">草稿</span>
+                            </div>
+                            <p class="text-xs text-gray-500 mb-3">自动生成电商产品海报</p>
+                            <div class="flex items-center justify-between">
+                                <span class="text-xs text-gray-400">昨天</span>
+                                <div class="wf-avatars flex">
+                                    <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=Carol" alt="">
+                                </div>
+                            </div>
+                        </div>
+                    </a>
+
+                    <!-- Workflow Card 3 - Published -->
+                    <a href="workflow-editor.html" class="wf-card rounded-xl overflow-hidden block">
+                        <div class="wf-thumb h-32"></div>
+                        <div class="p-4">
+                            <div class="flex items-start justify-between mb-2">
+                                <h3 class="font-medium text-gray-900 text-sm">社交媒体内容生成</h3>
+                                <span class="wf-status status-pub">已发布</span>
+                            </div>
+                            <p class="text-xs text-gray-500 mb-3">一键生成多平台内容</p>
+                            <div class="flex items-center justify-between">
+                                <span class="text-xs text-gray-400">3 天前</span>
+                                <div class="wf-avatars flex">
+                                    <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=David" alt="">
+                                    <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=Eve" alt="">
+                                </div>
+                            </div>
+                        </div>
+                    </a>
+
+                    <!-- Workflow Card 4 - Template -->
+                    <a href="workflow-editor.html" class="wf-card rounded-xl overflow-hidden block">
+                        <div class="wf-thumb h-32"></div>
+                        <div class="p-4">
+                            <div class="flex items-start justify-between mb-2">
+                                <h3 class="font-medium text-gray-900 text-sm">头像风格迁移</h3>
+                                <span class="wf-status status-temp">模板</span>
+                            </div>
+                            <p class="text-xs text-gray-500 mb-3">将照片转换为艺术风格</p>
+                            <div class="flex items-center justify-between">
+                                <span class="text-xs text-gray-400">1 周前</span>
+                                <div class="wf-avatars flex">
+                                    <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=Frank" alt="">
+                                </div>
+                            </div>
+                        </div>
+                    </a>
+
+                    <!-- Workflow Card 5 -->
+                    <a href="workflow-editor.html" class="wf-card rounded-xl overflow-hidden block">
+                        <div class="wf-thumb h-32"></div>
+                        <div class="p-4">
+                            <div class="flex items-start justify-between mb-2">
+                                <h3 class="font-medium text-gray-900 text-sm">批量图像处理</h3>
+                                <span class="wf-status status-draft">草稿</span>
+                            </div>
+                            <p class="text-xs text-gray-500 mb-3">批量调整尺寸和格式</p>
+                            <div class="flex items-center justify-between">
+                                <span class="text-xs text-gray-400">2 周前</span>
+                                <div class="wf-avatars flex">
+                                    <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=Grace" alt="">
+                                    <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=Henry" alt="">
+                                </div>
+                            </div>
+                        </div>
+                    </a>
+                </div>
+            </div>
+        </main>
+    </div>
+</body>
+</html>

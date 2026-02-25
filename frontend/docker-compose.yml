@@ -1,0 +1,16 @@
+version: '3'
+
+services:
+  frontend:
+    image: vmengs/weimeng-web:latest
+    container_name: weimeng-web
+    build:
+      context: .
+      dockerfile: Dockerfile
+    restart: always
+    ports:
+      - 5678:5678
+    environment:
+      - NODE_ENV=production
+      - HOSTNAME=0.0.0.0
+      - PORT=5678

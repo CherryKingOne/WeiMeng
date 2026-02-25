@@ -1,0 +1,295 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WeiMeng - Projects</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        * { font-family: 'Inter', sans-serif; }
+        .hover-lift { transition: transform 0.2s ease, box-shadow 0.2s ease; }
+        .hover-lift:hover { transform: translateY(-4px); box-shadow: 0 12px 40px rgba(0,0,0,0.08); }
+        .scale-on-active:active { transform: scale(0.95); }
+        .context-menu {
+            animation: fadeIn 0.15s ease;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: scale(0.95); }
+            to { opacity: 1; transform: scale(1); }
+        }
+    </style>
+</head>
+<body class="bg-white text-gray-900">
+    <div class="flex h-screen">
+        <!-- Sidebar -->
+        <aside class="w-64 bg-[#F9FAFB] border-r border-gray-100 flex flex-col">
+            <div class="p-6">
+                <div class="flex items-center gap-3">
+                    <div class="w-8 h-8 bg-black rounded-xl flex items-center justify-center">
+                <span class="text-white font-bold text-sm">W</span>
+            </div>
+            <span class="font-semibold text-lg tracking-tight">WeiMeng</span>
+                </div>
+            </div>
+            
+            <nav class="flex-1 px-4 space-y-1">
+                <p class="px-3 text-xs font-medium text-gray-400 uppercase tracking-wider mb-2 mt-4">主要功能</p>
+                <a href="dashboard.html" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-gray-600 hover:bg-gray-100 text-sm font-medium transition-colors">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>
+                    首页
+                </a>
+                <a href="projects.html" class="flex items-center gap-3 px-3 py-2.5 rounded-xl bg-black text-white text-sm font-medium">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"/></svg>
+                    项目
+                </a>
+                <a href="workflows.html" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-gray-600 hover:bg-gray-100 text-sm font-medium transition-colors">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+                    工作流
+                </a>
+                
+                <p class="px-3 text-xs font-medium text-gray-400 uppercase tracking-wider mb-2 mt-6">资源中心</p>
+                <a href="assets.html" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-gray-600 hover:bg-gray-100 text-sm font-medium transition-colors">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+                    资产
+                </a>
+                <a href="scripts.html" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-gray-600 hover:bg-gray-100 text-sm font-medium transition-colors">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+                    剧本库
+                </a>
+                <a href="plugins.html" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-gray-600 hover:bg-gray-100 text-sm font-medium transition-colors">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M14 10l-2 1m0 0l-2-1m2 1v2.5M20 7l-2 1m2-1l-2-1m2 1v2.5M14 4l-2-1-2 1M4 7l2-1M4 7l2 1M4 7v2.5M12 21l-2-1m2 1l2-1m-2 1v-2.5M6 18l-2-1v-2.5M18 18l2-1v-2.5"/></svg>
+                    插件
+                </a>
+            </nav>
+            
+            <div class="p-4 border-t border-gray-200">
+                <a href="settings.html" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-gray-600 hover:bg-gray-100 text-sm font-medium transition-colors">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+                    设置
+                </a>
+            </div>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="flex-1 overflow-y-auto">
+            <div class="max-w-7xl mx-auto px-8 py-8">
+                <!-- Header -->
+                <div class="flex items-center justify-between mb-8">
+                    <h1 class="text-2xl font-semibold text-gray-900">我的项目</h1>
+                    <div class="flex items-center gap-3">
+                        <!-- Search -->
+                        <div class="relative">
+                            <svg class="w-5 h-5 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+                            <input type="text" placeholder="搜索项目..." class="pl-10 pr-4 py-2 bg-gray-100 rounded-xl text-sm outline-none focus:bg-white focus:ring-2 focus:ring-gray-200 transition-all w-64">
+                        </div>
+                        <!-- View Toggle -->
+                        <div class="flex items-center bg-gray-100 rounded-xl p-1">
+                            <button class="p-2 rounded-lg bg-white shadow-sm text-gray-900">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"/></svg>
+                            </button>
+                            <button class="p-2 rounded-lg text-gray-500 hover:text-gray-900">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/></svg>
+                            </button>
+                        </div>
+                        <!-- New Folder Button -->
+                        <button class="flex items-center gap-2 px-4 py-2 bg-black text-white text-sm rounded-xl hover:bg-gray-800 transition-colors scale-on-active">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 13h6m-3-3v6m-9 1V7a2 2 0 012-2h6l2 2h6a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2z"/></svg>
+                            新建文件夹
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Folders Section -->
+                <div class="mb-8">
+                    <h2 class="text-sm font-medium text-gray-500 uppercase tracking-wider mb-4">文件夹</h2>
+                    <div class="grid grid-cols-4 gap-4">
+                        <!-- Folder 1 -->
+                        <div class="flex items-center gap-4 p-4 bg-amber-50 rounded-2xl hover:bg-amber-100 transition-colors cursor-pointer scale-on-active">
+                            <div class="w-12 h-10 bg-amber-200 rounded-lg relative">
+                                <div class="absolute -top-1 left-0 w-8 h-3 bg-amber-300 rounded-t-lg"></div>
+                            </div>
+                            <div>
+                                <h3 class="font-medium text-gray-900 text-sm">品牌设计</h3>
+                                <p class="text-xs text-gray-500">12 个项目</p>
+                            </div>
+                        </div>
+                        <!-- Folder 2 -->
+                        <div class="flex items-center gap-4 p-4 bg-blue-50 rounded-2xl hover:bg-blue-100 transition-colors cursor-pointer scale-on-active">
+                            <div class="w-12 h-10 bg-blue-200 rounded-lg relative">
+                                <div class="absolute -top-1 left-0 w-8 h-3 bg-blue-300 rounded-t-lg"></div>
+                            </div>
+                            <div>
+                                <h3 class="font-medium text-gray-900 text-sm">3D 模型</h3>
+                                <p class="text-xs text-gray-500">8 个项目</p>
+                            </div>
+                        </div>
+                        <!-- Folder 3 -->
+                        <div class="flex items-center gap-4 p-4 bg-purple-50 rounded-2xl hover:bg-purple-100 transition-colors cursor-pointer scale-on-active">
+                            <div class="w-12 h-10 bg-purple-200 rounded-lg relative">
+                                <div class="absolute -top-1 left-0 w-8 h-3 bg-purple-300 rounded-t-lg"></div>
+                            </div>
+                            <div>
+                                <h3 class="font-medium text-gray-900 text-sm">插画素材</h3>
+                                <p class="text-xs text-gray-500">24 个项目</p>
+                            </div>
+                        </div>
+                        <!-- New Folder -->
+                        <div class="flex items-center gap-4 p-4 border-2 border-dashed border-gray-200 rounded-2xl hover:border-gray-300 hover:bg-gray-50 transition-colors cursor-pointer scale-on-active">
+                            <div class="w-12 h-10 flex items-center justify-center">
+                                <svg class="w-6 h-6 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+                            </div>
+                            <span class="text-sm text-gray-500">新建文件夹</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Files Section -->
+                <div>
+                    <h2 class="text-sm font-medium text-gray-500 uppercase tracking-wider mb-4">文件</h2>
+                    <div class="grid grid-cols-4 gap-5">
+                        <!-- File Card 1 -->
+                        <div class="group rounded-2xl bg-white shadow-[0_8px_30px_rgba(0,0,0,0.04)] overflow-hidden hover-lift cursor-pointer relative" oncontextmenu="showContextMenu(event, this)">
+                            <div class="aspect-[4/3] bg-gradient-to-br from-rose-100 to-orange-100 relative">
+                                <div class="absolute inset-0 bg-black/0 group-hover:bg-black/40 transition-colors flex items-center justify-center opacity-0 group-hover:opacity-100">
+                                    <button class="w-10 h-10 bg-white rounded-full flex items-center justify-center text-gray-900 scale-on-active">
+                                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="p-4 flex items-center justify-between">
+                                <div>
+                                    <h3 class="font-medium text-gray-900 text-sm truncate">产品展示海报</h3>
+                                    <p class="text-xs text-gray-400 mt-0.5">2 小时前</p>
+                                </div>
+                                <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=Felix" alt="avatar" class="w-6 h-6 rounded-full bg-gray-100">
+                            </div>
+                        </div>
+
+                        <!-- File Card 2 -->
+                        <div class="group rounded-2xl bg-white shadow-[0_8px_30px_rgba(0,0,0,0.04)] overflow-hidden hover-lift cursor-pointer relative" oncontextmenu="showContextMenu(event, this)">
+                            <div class="aspect-[4/3] bg-gradient-to-br from-cyan-100 to-blue-100 relative">
+                                <div class="absolute inset-0 bg-black/0 group-hover:bg-black/40 transition-colors flex items-center justify-center opacity-0 group-hover:opacity-100">
+                                    <button class="w-10 h-10 bg-white rounded-full flex items-center justify-center text-gray-900 scale-on-active">
+                                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="p-4 flex items-center justify-between">
+                                <div>
+                                    <h3 class="font-medium text-gray-900 text-sm truncate">科技感背景</h3>
+                                    <p class="text-xs text-gray-400 mt-0.5">昨天</p>
+                                </div>
+                                <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=Aneka" alt="avatar" class="w-6 h-6 rounded-full bg-gray-100">
+                            </div>
+                        </div>
+
+                        <!-- File Card 3 -->
+                        <div class="group rounded-2xl bg-white shadow-[0_8px_30px_rgba(0,0,0,0.04)] overflow-hidden hover-lift cursor-pointer relative" oncontextmenu="showContextMenu(event, this)">
+                            <div class="aspect-[4/3] bg-gradient-to-br from-violet-100 to-purple-100 relative">
+                                <div class="absolute inset-0 bg-black/0 group-hover:bg-black/40 transition-colors flex items-center justify-center opacity-0 group-hover:opacity-100">
+                                    <button class="w-10 h-10 bg-white rounded-full flex items-center justify-center text-gray-900 scale-on-active">
+                                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="p-4 flex items-center justify-between">
+                                <div>
+                                    <h3 class="font-medium text-gray-900 text-sm truncate">抽象艺术</h3>
+                                    <p class="text-xs text-gray-400 mt-0.5">3 天前</p>
+                                </div>
+                                <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=Bob" alt="avatar" class="w-6 h-6 rounded-full bg-gray-100">
+                            </div>
+                        </div>
+
+                        <!-- File Card 4 -->
+                        <div class="group rounded-2xl bg-white shadow-[0_8px_30px_rgba(0,0,0,0.04)] overflow-hidden hover-lift cursor-pointer relative" oncontextmenu="showContextMenu(event, this)">
+                            <div class="aspect-[4/3] bg-gradient-to-br from-emerald-100 to-teal-100 relative">
+                                <div class="absolute inset-0 bg-black/0 group-hover:bg-black/40 transition-colors flex items-center justify-center opacity-0 group-hover:opacity-100">
+                                    <button class="w-10 h-10 bg-white rounded-full flex items-center justify-center text-gray-900 scale-on-active">
+                                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="p-4 flex items-center justify-between">
+                                <div>
+                                    <h3 class="font-medium text-gray-900 text-sm truncate">自然风景</h3>
+                                    <p class="text-xs text-gray-400 mt-0.5">1 周前</p>
+                                </div>
+                                <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=Carol" alt="avatar" class="w-6 h-6 rounded-full bg-gray-100">
+                            </div>
+                        </div>
+
+                        <!-- File Card 5 -->
+                        <div class="group rounded-2xl bg-white shadow-[0_8px_30px_rgba(0,0,0,0.04)] overflow-hidden hover-lift cursor-pointer relative" oncontextmenu="showContextMenu(event, this)">
+                            <div class="aspect-[4/3] bg-gradient-to-br from-pink-100 to-rose-100 relative">
+                                <div class="absolute inset-0 bg-black/0 group-hover:bg-black/40 transition-colors flex items-center justify-center opacity-0 group-hover:opacity-100">
+                                    <button class="w-10 h-10 bg-white rounded-full flex items-center justify-center text-gray-900 scale-on-active">
+                                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="p-4 flex items-center justify-between">
+                                <div>
+                                    <h3 class="font-medium text-gray-900 text-sm truncate">社交媒体封面</h3>
+                                    <p class="text-xs text-gray-400 mt-0.5">1 周前</p>
+                                </div>
+                                <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=David" alt="avatar" class="w-6 h-6 rounded-full bg-gray-100">
+                            </div>
+                        </div>
+
+                        <!-- File Card 6 -->
+                        <div class="group rounded-2xl bg-white shadow-[0_8px_30px_rgba(0,0,0,0.04)] overflow-hidden hover-lift cursor-pointer relative" oncontextmenu="showContextMenu(event, this)">
+                            <div class="aspect-[4/3] bg-gradient-to-br from-amber-100 to-yellow-100 relative">
+                                <div class="absolute inset-0 bg-black/0 group-hover:bg-black/40 transition-colors flex items-center justify-center opacity-0 group-hover:opacity-100">
+                                    <button class="w-10 h-10 bg-white rounded-full flex items-center justify-center text-gray-900 scale-on-active">
+                                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="p-4 flex items-center justify-between">
+                                <div>
+                                    <h3 class="font-medium text-gray-900 text-sm truncate">暖色调插画</h3>
+                                    <p class="text-xs text-gray-400 mt-0.5">2 周前</p>
+                                </div>
+                                <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=Eve" alt="avatar" class="w-6 h-6 rounded-full bg-gray-100">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Context Menu -->
+    <div id="contextMenu" class="context-menu fixed hidden bg-white rounded-xl shadow-[0_8px_30px_rgba(0,0,0,0.12)] py-2 min-w-[160px] z-50">
+        <button class="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2">
+            <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
+            重命名
+        </button>
+        <button class="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2">
+            <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"/></svg>
+            移动到
+        </button>
+        <div class="h-px bg-gray-100 my-1"></div>
+        <button class="w-full px-4 py-2 text-left text-sm text-red-600 hover:bg-red-50 flex items-center gap-2">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+            删除
+        </button>
+    </div>
+
+    <script>
+        function showContextMenu(e, element) {
+            e.preventDefault();
+            const menu = document.getElementById('contextMenu');
+            menu.style.left = e.pageX + 'px';
+            menu.style.top = e.pageY + 'px';
+            menu.classList.remove('hidden');
+        }
+
+        document.addEventListener('click', function() {
+            document.getElementById('contextMenu').classList.add('hidden');
+        });
+    </script>
+</body>
+</html>

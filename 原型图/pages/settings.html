@@ -1,0 +1,269 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WeiMeng - Settings</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        * { font-family: 'Inter', sans-serif; }
+        .scale-on-active:active { transform: scale(0.95); }
+        .ios-toggle {
+            appearance: none;
+            width: 48px;
+            height: 28px;
+            background: #E5E7EB;
+            border-radius: 14px;
+            position: relative;
+            cursor: pointer;
+            transition: background 0.3s ease;
+        }
+        .ios-toggle::after {
+            content: '';
+            position: absolute;
+            width: 24px;
+            height: 24px;
+            background: white;
+            border-radius: 50%;
+            top: 2px;
+            left: 2px;
+            transition: transform 0.3s ease;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .ios-toggle:checked {
+            background: #000000;
+        }
+        .ios-toggle:checked::after {
+            transform: translateX(20px);
+        }
+        .input-field {
+            background: #F3F4F6;
+            border: 2px solid transparent;
+            transition: all 0.2s ease;
+        }
+        .input-field:focus {
+            background: white;
+            border-color: #E5E7EB;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+            outline: none;
+        }
+    </style>
+</head>
+<body class="bg-white text-gray-900">
+    <div class="flex h-screen">
+        <!-- Sidebar -->
+        <aside class="w-64 bg-[#F9FAFB] border-r border-gray-100 flex flex-col">
+            <div class="p-6">
+                <div class="flex items-center gap-3">
+                    <div class="w-8 h-8 bg-black rounded-xl flex items-center justify-center">
+                        <span class="text-white font-bold text-sm">W</span>
+                    </div>
+                    <span class="font-semibold text-lg tracking-tight">WeiMeng</span>
+                </div>
+            </div>
+            
+            <nav class="flex-1 px-4 space-y-1">
+                <p class="px-3 text-xs font-medium text-gray-400 uppercase tracking-wider mb-2 mt-4">主要功能</p>
+                <a href="dashboard.html" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-gray-600 hover:bg-gray-100 text-sm font-medium transition-colors">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>
+                    首页
+                </a>
+                <a href="projects.html" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-gray-600 hover:bg-gray-100 text-sm font-medium transition-colors">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"/></svg>
+                    项目
+                </a>
+                <a href="workflows.html" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-gray-600 hover:bg-gray-100 text-sm font-medium transition-colors">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+                    工作流
+                </a>
+                
+                <p class="px-3 text-xs font-medium text-gray-400 uppercase tracking-wider mb-2 mt-6">资源中心</p>
+                <a href="assets.html" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-gray-600 hover:bg-gray-100 text-sm font-medium transition-colors">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+                    资产
+                </a>
+                <a href="scripts.html" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-gray-600 hover:bg-gray-100 text-sm font-medium transition-colors">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+                    剧本库
+                </a>
+                <a href="plugins.html" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-gray-600 hover:bg-gray-100 text-sm font-medium transition-colors">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M14 10l-2 1m0 0l-2-1m2 1v2.5M20 7l-2 1m2-1l-2-1m2 1v2.5M14 4l-2-1-2 1M4 7l2-1M4 7l2 1M4 7v2.5M12 21l-2-1m2 1l2-1m-2 1v-2.5M6 18l-2-1v-2.5M18 18l2-1v-2.5"/></svg>
+                    插件
+                </a>
+            </nav>
+            
+            <div class="p-4 border-t border-gray-200">
+                <a href="settings.html" class="flex items-center gap-3 px-3 py-2.5 rounded-xl bg-black text-white text-sm font-medium">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+                    设置
+                </a>
+            </div>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="flex-1 overflow-y-auto">
+            <div class="max-w-5xl mx-auto px-8 py-8">
+                <h1 class="text-2xl font-semibold text-gray-900 mb-8">设置</h1>
+
+                <div class="flex gap-8">
+                    <!-- Settings Navigation -->
+                    <nav class="w-48 space-y-1">
+                        <a href="#account" class="flex items-center gap-3 px-4 py-3 rounded-xl bg-gray-100 text-gray-900 text-sm font-medium">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>
+                            账号
+                        </a>
+                        <a href="#billing" class="flex items-center gap-3 px-4 py-3 rounded-xl text-gray-600 hover:bg-gray-50 text-sm font-medium transition-colors">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"/></svg>
+                            会员
+                        </a>
+                        <a href="#api" class="flex items-center gap-3 px-4 py-3 rounded-xl text-gray-600 hover:bg-gray-50 text-sm font-medium transition-colors">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"/></svg>
+                            API Key
+                        </a>
+                        <a href="#notifications" class="flex items-center gap-3 px-4 py-3 rounded-xl text-gray-600 hover:bg-gray-50 text-sm font-medium transition-colors">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/></svg>
+                            通知
+                        </a>
+                    </nav>
+
+                    <!-- Settings Content -->
+                    <div class="flex-1 space-y-6">
+                        <!-- Membership Card -->
+                        <div id="billing" class="bg-gradient-to-br from-gray-900 to-gray-800 rounded-2xl p-6 text-white">
+                            <div class="flex items-start justify-between mb-6">
+                                <div>
+                                    <span class="text-xs font-medium text-gray-400 uppercase tracking-wider">当前方案</span>
+                                    <h2 class="text-2xl font-semibold mt-1">Pro Plan</h2>
+                                    <p class="text-sm text-gray-400 mt-1">每月 1000 积分 · 下月 2 月 1 日重置</p>
+                                </div>
+                                <div class="w-12 h-12 bg-white/10 rounded-xl flex items-center justify-center">
+                                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z"/></svg>
+                                </div>
+                            </div>
+                            
+                            <!-- Credit Usage -->
+                            <div class="mb-6">
+                                <div class="flex items-center justify-between text-sm mb-2">
+                                    <span class="text-gray-400">积分使用</span>
+                                    <span class="font-medium">650 / 1000</span>
+                                </div>
+                                <div class="h-2 bg-white/10 rounded-full overflow-hidden">
+                                    <div class="h-full w-[65%] bg-white rounded-full"></div>
+                                </div>
+                            </div>
+
+                            <button class="px-6 py-2.5 bg-white text-gray-900 text-sm font-medium rounded-xl hover:bg-gray-100 transition-colors scale-on-active">
+                                升级方案
+                            </button>
+                        </div>
+
+                        <!-- Account Settings -->
+                        <div id="account" class="bg-white rounded-2xl shadow-[0_8px_30px_rgba(0,0,0,0.04)] p-6">
+                            <h3 class="text-lg font-semibold text-gray-900 mb-6">账号信息</h3>
+                            
+                            <div class="space-y-5">
+                                <!-- Avatar -->
+                                <div class="flex items-center gap-4">
+                                    <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=Felix" alt="avatar" class="w-16 h-16 rounded-2xl bg-gray-100">
+                                    <div>
+                                        <button class="px-4 py-2 bg-gray-100 text-gray-900 text-sm font-medium rounded-xl hover:bg-gray-200 transition-colors scale-on-active">更换头像</button>
+                                        <p class="text-xs text-gray-400 mt-2">支持 JPG、PNG 格式，最大 2MB</p>
+                                    </div>
+                                </div>
+
+                                <!-- Name -->
+                                <div>
+                                    <label class="text-sm font-medium text-gray-700 mb-2 block">显示名称</label>
+                                    <input type="text" value="设计师小明" class="input-field w-full px-4 py-3 rounded-xl text-sm">
+                                </div>
+
+                                <!-- Email -->
+                                <div>
+                                    <label class="text-sm font-medium text-gray-700 mb-2 block">邮箱地址</label>
+                                    <input type="email" value="designer@example.com" class="input-field w-full px-4 py-3 rounded-xl text-sm">
+                                </div>
+
+                                <!-- Bio -->
+                                <div>
+                                    <label class="text-sm font-medium text-gray-700 mb-2 block">个人简介</label>
+                                    <textarea rows="3" class="input-field w-full px-4 py-3 rounded-xl text-sm resize-none">热爱设计，专注于 AI 辅助创作</textarea>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- API Key Settings -->
+                        <div id="api" class="bg-white rounded-2xl shadow-[0_8px_30px_rgba(0,0,0,0.04)] p-6">
+                            <h3 class="text-lg font-semibold text-gray-900 mb-6">API Key</h3>
+                            
+                            <div class="space-y-4">
+                                <div class="flex items-center gap-3 p-4 bg-gray-50 rounded-xl">
+                                    <code class="flex-1 text-sm text-gray-600 font-mono">sk-weimeng-xxxxxxxxxxxxxxxxxxxx</code>
+                                    <button class="p-2 text-gray-500 hover:text-gray-900 transition-colors">
+                                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"/></svg>
+                                    </button>
+                                    <button class="p-2 text-gray-500 hover:text-red-600 transition-colors">
+                                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+                                    </button>
+                                </div>
+                                <button class="px-4 py-2 bg-gray-100 text-gray-900 text-sm font-medium rounded-xl hover:bg-gray-200 transition-colors scale-on-active">
+                                    生成新 Key
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Notification Settings -->
+                        <div id="notifications" class="bg-white rounded-2xl shadow-[0_8px_30px_rgba(0,0,0,0.04)] p-6">
+                            <h3 class="text-lg font-semibold text-gray-900 mb-6">通知设置</h3>
+                            
+                            <div class="space-y-5">
+                                <div class="flex items-center justify-between">
+                                    <div>
+                                        <h4 class="font-medium text-gray-900">邮件通知</h4>
+                                        <p class="text-sm text-gray-500">接收关于账户和项目的重要更新</p>
+                                    </div>
+                                    <input type="checkbox" class="ios-toggle" checked>
+                                </div>
+                                <div class="h-px bg-gray-100"></div>
+                                <div class="flex items-center justify-between">
+                                    <div>
+                                        <h4 class="font-medium text-gray-900">生成完成提醒</h4>
+                                        <p class="text-sm text-gray-500">当 AI 生成任务完成时通知我</p>
+                                    </div>
+                                    <input type="checkbox" class="ios-toggle" checked>
+                                </div>
+                                <div class="h-px bg-gray-100"></div>
+                                <div class="flex items-center justify-between">
+                                    <div>
+                                        <h4 class="font-medium text-gray-900">营销邮件</h4>
+                                        <p class="text-sm text-gray-500">接收产品更新和优惠信息</p>
+                                    </div>
+                                    <input type="checkbox" class="ios-toggle">
+                                </div>
+                                <div class="h-px bg-gray-100"></div>
+                                <div class="flex items-center justify-between">
+                                    <div>
+                                        <h4 class="font-medium text-gray-900">社区动态</h4>
+                                        <p class="text-sm text-gray-500">当有人点赞或评论我的作品时通知</p>
+                                    </div>
+                                    <input type="checkbox" class="ios-toggle" checked>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Save Button -->
+                        <div class="flex justify-end gap-3 pt-4">
+                            <button class="px-6 py-2.5 text-gray-600 text-sm font-medium rounded-xl hover:bg-gray-100 transition-colors">
+                                取消
+                            </button>
+                            <button class="px-6 py-2.5 bg-black text-white text-sm font-medium rounded-xl hover:bg-gray-800 transition-colors scale-on-active">
+                                保存更改
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+</body>
+</html>

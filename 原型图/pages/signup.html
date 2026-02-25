@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WeiMeng - 注册</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Playfair+Display:ital@1&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                        serif: ['Playfair Display', 'serif'],
+                    },
+                    animation: {
+                        'float': 'float 7s ease-in-out infinite',
+                        'pulse-slow': 'pulse 4s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+                    },
+                    keyframes: {
+                        float: {
+                            '0%, 100%': { transform: 'translateY(0)' },
+                            '50%': { transform: 'translateY(-15px)' },
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        .input-group:focus-within .input-icon { color: #000000; }
+        .input-group:focus-within input { border-color: #000000; }
+        .input-group:focus-within { box-shadow: 0 0 0 4px rgba(243, 244, 246, 1); }
+        
+        /* Strength Bar Animation */
+        .strength-bar { transition: width 0.3s ease, background-color 0.3s ease; }
+    </style>
+</head>
+<body class="bg-white overflow-hidden h-screen w-screen flex">
+
+    <!-- Success Overlay (Hidden by default) -->
+    <div id="successOverlay" class="fixed inset-0 z-50 bg-white flex flex-col items-center justify-center opacity-0 pointer-events-none transition-opacity duration-1000">
+        <div class="w-16 h-16 bg-black rounded-3xl flex items-center justify-center mb-6 scale-0 transition-transform duration-500 delay-300" id="successLogo">
+            <span class="text-white font-bold text-2xl">W</span>
+        </div>
+        <h2 class="text-2xl font-semibold text-black mb-2 opacity-0 transition-opacity duration-500 delay-500" id="successText">欢迎加入 WeiMeng</h2>
+        <p class="text-gray-500 opacity-0 transition-opacity duration-500 delay-700" id="successSub">正在为您准备工作台...</p>
+    </div>
+
+    <!-- Left: Interaction Area (40%) -->
+    <div class="w-full lg:w-[40%] h-full bg-white flex flex-col relative z-10">
+        <!-- Logo -->
+        <a href="login.html" class="absolute top-2 left-10 flex items-center gap-3">
+            <div class="w-10 h-10 bg-black rounded-xl flex items-center justify-center">
+                <span class="text-white font-bold text-base">W</span>
+            </div>
+            <span class="font-semibold text-xl tracking-tight">WeiMeng</span>
+        </a>
+
+        <!-- Content Container -->
+        <div class="flex-1 flex items-center justify-center px-10">
+            <div class="w-full max-w-[420px]">
+                <!-- Header -->
+                <div class="mb-8">
+                    <h1 class="text-[32px] font-bold text-gray-900 mb-2">创建账户</h1>
+                    <p class="text-[#9CA3AF]">免费试用 Pro 功能 14 天，无需信用卡</p>
+                </div>
+
+                <!-- Form -->
+                <form id="signupForm" class="space-y-5" onsubmit="handleSignup(event)">
+                    <!-- Name -->
+                    <div class="space-y-1">
+                        <div class="input-group relative transition-all duration-200 rounded-xl">
+                            <input type="text" required placeholder="全名" 
+                                class="w-full h-14 bg-[#F9FAFB] rounded-xl px-4 pl-12 border-2 border-transparent outline-none transition-all placeholder-gray-400 text-gray-900">
+                            <div class="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 input-icon transition-colors">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Email -->
+                    <div class="space-y-1">
+                        <div class="input-group relative transition-all duration-200 rounded-xl">
+                            <input type="email" required placeholder="name@example.com" 
+                                class="w-full h-14 bg-[#F9FAFB] rounded-xl px-4 pl-12 border-2 border-transparent outline-none transition-all placeholder-gray-400 text-gray-900">
+                            <div class="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 input-icon transition-colors">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Password with Strength Meter -->
+                    <div class="space-y-1 relative">
+                        <div class="input-group relative transition-all duration-200 rounded-xl overflow-hidden">
+                            <input type="password" id="passwordInput" required placeholder="创建密码" 
+                                class="w-full h-14 bg-[#F9FAFB] rounded-xl px-4 pl-12 border-2 border-transparent outline-none transition-all placeholder-gray-400 text-gray-900">
+                            <div class="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 input-icon transition-colors">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/></svg>
+                            </div>
+                            <!-- Strength Bar -->
+                            <div class="absolute bottom-0 left-0 h-[2px] w-0 bg-transparent strength-bar" id="strengthBar"></div>
+                        </div>
+                    </div>
+
+                    <!-- Terms -->
+                    <div class="flex items-start pt-2">
+                        <label class="flex items-center cursor-pointer group">
+                            <input type="checkbox" required class="peer sr-only">
+                            <div class="w-5 h-5 border-2 border-gray-300 rounded-full peer-checked:bg-black peer-checked:border-black transition-all relative flex-shrink-0">
+                                <svg class="w-3 h-3 text-white absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 opacity-0 peer-checked:opacity-100" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"/></svg>
+                            </div>
+                            <span class="ml-3 text-sm text-gray-500 leading-tight">我同意 WeiMeng 的 <a href="#" class="text-black hover:underline">服务条款</a> 和 <a href="#" class="text-black hover:underline">隐私政策</a></span>
+                        </label>
+                    </div>
+
+                    <!-- Submit Button -->
+                    <button type="submit" id="submitBtn" class="w-full h-14 bg-black text-white rounded-xl font-medium text-lg hover:bg-gray-800 active:scale-[0.98] transition-all duration-200 flex items-center justify-center gap-2">
+                        <span>开始创作</span>
+                        <div class="loading-dots hidden flex gap-1">
+                            <div class="w-1.5 h-1.5 bg-white rounded-full animate-bounce"></div>
+                            <div class="w-1.5 h-1.5 bg-white rounded-full animate-bounce" style="animation-delay: 0.1s"></div>
+                            <div class="w-1.5 h-1.5 bg-white rounded-full animate-bounce" style="animation-delay: 0.2s"></div>
+                        </div>
+                    </button>
+                </form>
+
+                <!-- Bottom Link -->
+                <div class="mt-8 text-center">
+                    <p class="text-gray-500">已有账号？ <a href="login.html" class="text-black font-bold hover:underline">直接登录</a></p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Footer -->
+        <div class="absolute bottom-6 left-0 w-full text-center">
+            <p class="text-xs text-gray-400">© WeiMeng Inc.</p>
+        </div>
+    </div>
+
+    <!-- Right: Visual Showcase (60%) -->
+    <div class="hidden lg:flex w-[60%] h-full bg-[#1a1a1a] relative overflow-hidden items-center justify-center">
+        <!-- Darker Theme for variety -->
+        <div class="absolute inset-0 opacity-20" style="background-image: radial-gradient(#444 1px, transparent 1px); background-size: 30px 30px;"></div>
+        
+        <!-- Abstract Art -->
+        <div class="relative w-[500px] h-[500px] animate-float">
+            <!-- Glowing Orbs -->
+            <div class="absolute top-1/4 left-1/4 w-64 h-64 bg-blue-500 rounded-full mix-blend-screen filter blur-[80px] opacity-40 animate-pulse-slow"></div>
+            <div class="absolute bottom-1/4 right-1/4 w-64 h-64 bg-purple-500 rounded-full mix-blend-screen filter blur-[80px] opacity-40 animate-pulse-slow" style="animation-delay: 2s"></div>
+            
+            <!-- Geometric Shape (CSS Only) -->
+            <div class="absolute inset-0 flex items-center justify-center">
+                <div class="w-64 h-64 border border-white/20 backdrop-blur-md rounded-2xl transform rotate-45 shadow-2xl flex items-center justify-center">
+                    <div class="w-48 h-48 border border-white/10 rounded-full bg-white/5"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Quote -->
+        <div class="absolute bottom-12 right-12 text-right">
+            <p class="font-serif italic text-2xl text-white opacity-50">"Unleash your creativity."</p>
+        </div>
+    </div>
+
+    <script>
+        // Password Strength Logic
+        const passwordInput = document.getElementById('passwordInput');
+        const strengthBar = document.getElementById('strengthBar');
+
+        passwordInput.addEventListener('input', (e) => {
+            const val = e.target.value;
+            let strength = 0;
+            if (val.length > 5) strength += 1;
+            if (val.length > 8 && /[A-Z]/.test(val)) strength += 1;
+            if (val.length > 10 && /[0-9]/.test(val)) strength += 1;
+
+            if (val.length === 0) {
+                strengthBar.style.width = '0%';
+                strengthBar.style.backgroundColor = 'transparent';
+            } else if (strength === 1) {
+                strengthBar.style.width = '30%';
+                strengthBar.style.backgroundColor = '#EF4444'; // Red
+            } else if (strength === 2) {
+                strengthBar.style.width = '60%';
+                strengthBar.style.backgroundColor = '#F59E0B'; // Yellow
+            } else if (strength === 3) {
+                strengthBar.style.width = '100%';
+                strengthBar.style.backgroundColor = '#10B981'; // Green
+            }
+        });
+
+        // Signup Simulation
+        function handleSignup(e) {
+            e.preventDefault();
+            const btn = document.getElementById('submitBtn');
+            const span = btn.querySelector('span');
+            const dots = btn.querySelector('.loading-dots');
+            
+            // Loading State
+            span.classList.add('hidden');
+            dots.classList.remove('hidden');
+            btn.disabled = true;
+
+            // Simulate API call
+            setTimeout(() => {
+                // Success Overlay Animation
+                const overlay = document.getElementById('successOverlay');
+                const logo = document.getElementById('successLogo');
+                const text = document.getElementById('successText');
+                const sub = document.getElementById('successSub');
+
+                overlay.classList.remove('pointer-events-none', 'opacity-0');
+                logo.classList.remove('scale-0');
+                text.classList.remove('opacity-0');
+                sub.classList.remove('opacity-0');
+
+                // Redirect
+                setTimeout(() => {
+                    window.location.href = 'dashboard.html';
+                }, 2000);
+            }, 1500);
+        }
+    </script>
+</body>
+</html>

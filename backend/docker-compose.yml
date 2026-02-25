@@ -1,0 +1,53 @@
+version: '3.8'
+
+services:
+  weimeng-api:
+    build: .
+    container_name: weimeng-api
+    ports:
+      - "5607:5607"
+    environment:
+      # Database connection (internal docker network)
+      - POSTGRESQL_HOST=weimeng-postgre
+      - POSTGRESQL_PORT=5432
+      - POSTGRESQL_USER=weimeng
+      - POSTGRESQL_PASSWORD=weimeng
+      - POSTGRESQL_DB=weimeng
+      # Redis connection (internal docker network)
+      - REDIS_HOST=weimeng-redis
+      - REDIS_PORT=6379
+      - REDIS_PASSWORD=weimeng
+      # App Settings
+      - APP_ENV=development
+    env_file:
+      - .env
+    depends_on:
+      - weimeng-postgre
+      - weimeng-redis
+    volumes:
+      - .:/app
+
+  weimeng-postgre:
+    image: vmengs/postgres:latest
+    container_name: weimeng-postgre
+    environment:
+      - POSTGRES_USER=weimeng
+      - POSTGRES_PASSWORD=weimeng
+      - POSTGRES_DB=weimeng
+    ports:
+      - "5400:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+  weimeng-redis:
+    image: vmengs/redis:latest
+    container_name: weimeng-redis
+    command: redis-server --requirepass weimeng
+    ports:
+      - "6300:6379"
+    volumes:
+      - redis_data:/data
+
+volumes:
+  postgres_data:
+  redis_data:
