@@ -4,32 +4,30 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-WeiMeng is an intelligent video production platform currently under active development. The project aims to build a multi-agent collaboration system powered by Large Language Models (LLMs) for automated video production workflows.
+WeiMeng-Agent is a multi-agent system for automated video production built with:
+- **Backend**: FastAPI + Python 3.10+ with DDD architecture
+- **Frontend**: Next.js 16.1 + React 19 + TypeScript + Tailwind CSS 4
+- **Database**: PostgreSQL + SQLAlchemy 2.0 async
+- **Cache**: Redis
+- **AI Integration**: LangChain, LangGraph, LangFuse, OpenAI
 
-**Current Development Status:**
+## Common Commands
 
-- **Implemented Features:**
-  - User authentication (registration, login, password reset)
-  - Email verification code (captcha) service
-  - Frontend dashboard with project management, asset library, and workflow editor interfaces
-  - DDD-based backend architecture with clean layer separation
-
-- **Planned Features (Not Yet Implemented):**
-  - Multi-agent system with 7 specialized agents (Screenwriter, Director, Storyboard, Scene Design, Character Design, Art Design, Editing)
-  - LangChain/LangGraph-based agent orchestration
-  - Central dispatcher and task orchestrator for agent coordination
-  - LLM provider abstraction supporting multiple vendors (OpenAI, Anthropic, Azure, Google, DeepSeek, local models)
-
-**Technology Selection:**
-- Agent framework: LangChain, LangGraph, LangFuse (dependencies declared, implementation pending)
-- The `backend/src/modules/agent/` directory structure is scaffolded but empty
-
-## Development Commands
-
-### Backend (FastAPI + Python 3.10+)
-
+### Docker Development (Recommended)
 ```bash
-# Install dependencies (uses uv package manager)
+# Start full stack (backend, frontend, PostgreSQL, Redis)
+cd docker && cp .env.example .env && docker compose up -d --build
+
+# View logs
+docker compose logs -f
+
+# Stop services
+docker compose down
+```
+
+### Backend Development
+```bash
+# Install dependencies (uses uv)
 cd backend && uv sync
 
 # Run development server
@@ -38,15 +36,17 @@ cd backend && uv run uvicorn main:app --host 0.0.0.0 --port 5607 --reload
 # Run tests
 cd backend && uv run pytest
 
-# Run specific test
-cd backend && uv run pytest tests/unit/auth/test_login.py -v
-
 # Run tests with coverage
 cd backend && uv run pytest --cov=src --cov-report=html
+
+# Code formatting
+cd backend && uv run black src tests
+
+# Linting
+cd backend && uv run ruff check src tests
 ```
 
-### Frontend (Next.js 16 + React 19)
-
+### Frontend Development
 ```bash
 # Install dependencies
 cd frontend && npm install
@@ -57,192 +57,254 @@ cd frontend && npm run dev
 # Build for production
 cd frontend && npm run build
 
-# Run production server
-cd frontend && npm start
+# Start production server
+cd frontend && npm run start
 
-# Lint check
+# Linting
 cd frontend && npm run lint
-```
-
-### Docker Deployment
-
-```bash
-# Start all services (API, frontend, PostgreSQL, Redis)
-cd docker && docker compose up -d --build
-
-# View logs
-cd docker && docker compose logs -f
-
-# Stop services
-cd docker && docker compose down
 ```
 
 ## Architecture Overview
 
-### Backend Architecture (DDD-based)
-
-The backend follows Domain-Driven Design with clear layer separation:
-
-- **API Layer** (`src/api/v1/`): FastAPI routes and endpoint definitions
-- **Application Layer** (`modules/*/application/`): Use cases, DTOs, and application services
-- **Domain Layer** (`modules/*/domain/`): Business entities, domain services, repository interfaces
-- **Infrastructure Layer** (`modules/*/infrastructure/`): Repository implementations, ORM models, external integrations
-
-### Module Structure Pattern
-
-Each business module (auth, captcha, agent) follows this structure:
+### Backend Structure (DDD Architecture)
 ```
-module_name/
-├── api/              # HTTP endpoints and routing
-├── application/      # Application services and DTOs
-│   ├── dto/
-│   └── services/
-├── domain/           # Core business logic
-│   ├── entities/
-│   ├── repositories/
-│   └── services/
-└── infrastructure/   # External integrations
-    ├── models/       # SQLAlchemy models
-    ├── repositories/ # Repository implementations
-    └── mappers/      # Domain-to-model mapping
+backend/src/
+├── api/v1/                    # API routes and routers
+├── modules/                   # Business modules
+│   ├── auth/                  # Authentication module
+│   │   ├── api/              # API layer (HTTP endpoints)
+│   │   ├── application/      # Application layer (services, DTOs)
+│   │   ├── domain/           # Domain layer (entities, value objects, repositories)
+│   │   └── infrastructure/   # Infrastructure layer (models, mappers, repositories)
+│   ├── captcha/              # Captcha module (same structure)
+│   └── agent/                # Agent core module
+├── shared/                   # Shared infrastructure
+│   ├── domain/               # Domain base classes (BaseEntity, BaseValueObject)
+│   ├── infrastructure/       # Database, Redis, Unit of Work
+│   ├── security/             # JWT, password hashing
+│   ├── middleware/           # Error handling, logging, request context
+│   ├── extensions/           # Email service
+│   └── common/               # Response utilities, dependencies
+└── main.py                   # Application entry point
 ```
 
-### Shared Infrastructure
+**Dependency Flow**: `API → Application → Domain → Infrastructure` (strictly single-direction)
 
-Located in `backend/src/shared/`:
-- **infrastructure/**: Database (SQLAlchemy 2.0 async), Redis, Unit of Work
-- **security/**: JWT token handling, password hashing
-- **middleware/**: Logging, error handling
-- **domain/**: Base classes for entities, value objects, exceptions
-- **extensions/**: Email service (aiosmtplib)
+### Frontend Structure
+```
+frontend/
+├── app/                      # Next.js App Router
+│   ├── (auth)/              # Authentication pages (login, signup, forgot-password)
+│   ├── (dashboard)/         # Dashboard pages (dashboard, projects, workflows, etc.)
+│   ├── workflow-editor/     # Workflow editor page
+│   ├── layout.tsx           # Root layout
+│   └── globals.css          # Global styles
+├── components/
+│   ├── features/            # Business components
+│   ├── layout/              # Layout components
+│   └── ui/                  # Reusable UI components (Card, Button, Input, etc.)
+├── services/                # API service layer (auth.service.ts, workflow.service.ts, etc.)
+├── stores/                  # Zustand state management (auth.store.ts, workflow.store.ts, etc.)
+├── types/                   # TypeScript type definitions
+├── hooks/                   # Custom React hooks
+└── utils/                   # Utility functions
+```
 
-### Agent Architecture
+### Docker Architecture
+```
+docker/
+├── docker-compose.yaml      # Full stack orchestration
+├── .env.example             # Environment variables template
+├── postgres/                # PostgreSQL initialization scripts
+└── redis/                   # Redis configuration
+```
 
-The agent module is designed for LangChain/LangGraph integration with a planned 7-agent system. Key concepts from `目录结构.md`:
+## Key Development Workflows
 
-- **LLM Provider Abstraction**: Factory pattern supporting multiple providers (OpenAI, Anthropic, Azure, Google, DeepSeek, local models via Ollama)
-- **Agent Base Classes**: BaseAgent with execute(), memory management, and tool integration
-- **Team Coordination**: LangGraph StateGraph for workflow orchestration with conditional routing
-- **Task State Management**: Traceable, interruptible, reversible task states
+### Adding a New Backend Module
+1. Create module directory under `backend/src/modules/`
+2. Follow DDD layers: `api/`, `application/`, `domain/`, `infrastructure/`
+3. Register router in `backend/src/api/v1/router.py`
+4. Add tests in `backend/tests/`
+5. Run: `uv run pytest` to verify
 
-The agent workflow follows: Researcher → Planner → Code Generator → Reviewer (conditional) → Executor → QA (conditional) → Reporter
+### Adding a New Frontend Feature
+1. Create page in `frontend/app/` (use route groups like `(dashboard)/`)
+2. Create reusable components in `frontend/components/`
+3. Add API service in `frontend/services/`
+4. Add state management in `frontend/stores/`
+5. Run: `npm run lint` to verify
 
-## Important Implementation Notes
+### Running Tests
+```bash
+# Backend tests
+cd backend && uv run pytest
 
-### Database and ORM
+# Run specific test file
+cd backend && uv run pytest tests/unit/test_auth.py
 
-- Uses **SQLAlchemy 2.0** with async support (`AsyncSession`, `create_async_engine`)
-- Database initialization happens in `main.py` lifespan context
-- Models are in `infrastructure/models/`, domain entities in `domain/entities/`
-- Use mappers to convert between ORM models and domain entities
-- Unit of Work pattern for transaction management
+# Run specific test function
+cd backend && uv run pytest tests/unit/test_auth.py::test_login_success
 
-### Authentication and Security
+# Frontend linting (no automated tests yet)
+cd frontend && npm run lint
+```
 
-- JWT tokens with expiration tracking
-- Password hashing via bcrypt
-- Token validation through FastAPI dependencies
-- Session management via Redis
+## Environment Configuration
 
-### Configuration
+### Backend (.env in docker/ or backend/)
+```bash
+# Application
+APP_ENV=development
+APP_NAME=WeiMeng
+SECRET_KEY=your-secret-key
 
-All configuration is centralized in `backend/config/`:
-- `settings.py`: Application settings
-- `database.py`: PostgreSQL configuration
-- `redis.py`: Redis configuration
-- `email.py`: SMTP configuration
-- `ai.py`: LLM API keys (OpenAI, LangFuse)
+# Database
+POSTGRESQL_HOST=localhost
+POSTGRESQL_PORT=5432
+POSTGRESQL_USER=weimeng
+POSTGRESQL_PASSWORD=weimeng
+POSTGRESQL_NAME=weimeng
 
-Environment variables are loaded from `.env` file using pydantic-settings.
+# Redis
+REDIS_HOST=localhost
+REDIS_PORT=6379
+REDIS_PASSWORD=weimeng
 
-### Testing Strategy
+# Email
+SMTP_HOST=smtp.example.com
+SMTP_PORT=587
+SMTP_USER=user@example.com
+SMTP_PASSWORD=secret
 
-- Test framework: pytest with async support
-- Test database: Separate PostgreSQL instance (configured in `conftest.py`)
-- Fixtures: `db_session` for database tests, `client` for API tests
-- Test organization: `unit/` for isolated tests, `integration/test_api/` for API endpoint tests
-- All test functions must be async and use `async with` for session management
+# AI Services
+OPENAI_API_KEY=your-openai-key
+```
 
-### Frontend Architecture
+### Frontend (.env.local)
+```bash
+NEXT_PUBLIC_API_URL=http://localhost:5607
+NEXT_PUBLIC_APP_URL=http://localhost:5678
+```
 
-- **App Router** structure in `frontend/app/`
-- **State Management**: Zustand stores in `frontend/stores/`
-- **API Layer**: HTTP clients in `frontend/services/`
-- **Component Organization**:
-  - `components/ui/`: Reusable UI components
-  - `components/features/`: Business-specific components
-  - `components/layout/`: Layout components
-- **Styling**: Tailwind CSS 4 with utility classes
+## API Endpoints
 
-## Coding Conventions
+### Authentication
+- `POST /api/v1/auth/register` - User registration
+- `POST /api/v1/auth/login` - User login
+- `POST /api/v1/auth/reset-password` - Password reset
 
-### Python Style
-- 4-space indentation
-- snake_case for variables, functions, modules
-- PascalCase for classes
-- Type hints required for function signatures
-- Async/await for all I/O operations
+### Captcha
+- `POST /api/v1/captcha/email/send` - Send email verification code
 
-### TypeScript Style
-- 2-space indentation
-- Functional components preferred
-- Path aliases: Use `@/` for imports (e.g., `@/components/ui/Button`)
-- Prop types: Use TypeScript interfaces, not PropTypes
+### Health Check
+- `GET /health` - Service health status
 
-### No Emoji Policy
-- **Never** include emoji characters in code, comments, UI text, or commit messages
-- This is enforced through the `no-emoji-policy` skill
+### API Documentation
+- Swagger UI: http://localhost:5607/docs
+- ReDoc: http://localhost:5607/redoc
+
+## Development Guidelines
+
+### Backend
+- **Python Style**: PEP 8, 4-space indentation, `snake_case` for functions/variables, `PascalCase` for classes
+- **Testing**: pytest with async fixtures, tests in `backend/tests/`
+- **Code Quality**: Use `black` for formatting, `ruff` for linting
+- **Architecture**: Strict DDD layering, no direct infrastructure calls from API layer
+
+### Frontend
+- **TypeScript**: Strict typing required
+- **Components**: Use `PascalCase.tsx` for component files
+- **State**: Zustand for global state, React hooks for local state
+- **Styling**: Tailwind CSS 4 with utility-first approach
+- **Imports**: Use `@/` absolute imports
+- **Testing**: No automated tests yet, run `npm run lint` and manual verification
+
+### Git & Commits
+- Follow conventional commit format
+- Use Chinese summary-style commits (e.g., `backend: 修复登录令牌校验`)
+- Include scope in commit messages
+
+## Important Files
+
+### Backend
+- `backend/main.py` - Application entry point
+- `backend/pyproject.toml` - Python dependencies and build configuration
+- `backend/src/api/v1/router.py` - Main API router
+- `backend/src/shared/infrastructure/database.py` - Database configuration
+
+### Frontend
+- `frontend/package.json` - Dependencies and scripts
+- `frontend/app/layout.tsx` - Root layout
+- `frontend/app/(dashboard)/layout.tsx` - Dashboard layout
+- `frontend/stores/index.ts` - Store exports
+
+### Docker
+- `docker/docker-compose.yaml` - Service orchestration
+- `docker/.env.example` - Environment template
+
+## Troubleshooting
+
+### Backend Issues
+- **Database connection**: Ensure PostgreSQL is running (`docker compose up -d postgres`)
+- **Redis connection**: Ensure Redis is running (`docker compose up -d redis`)
+- **Port conflicts**: Default ports are 5607 (backend), 5678 (frontend), 5432 (PostgreSQL), 6379 (Redis)
+
+### Frontend Issues
+- **Build errors**: Run `npm run lint` to check for TypeScript errors
+- **API connection**: Ensure `NEXT_PUBLIC_API_URL` points to running backend
+- **Port conflicts**: Change port in `package.json` dev script if needed
+
+### Docker Issues
+- **Build failures**: Check Dockerfile in backend/ and frontend/
+- **Container not starting**: Run `docker compose logs -f` to see errors
+- **Volume issues**: Remove volumes with `docker compose down -v` and restart
 
 ## Key Dependencies
 
 ### Backend
-- **Web**: FastAPI 0.128+, Uvicorn 0.40+
-- **AI/ML**: LangChain 1.2+, LangGraph 1.0+, LangSmith 0.6+, LangFuse 3.12+
-- **Database**: SQLAlchemy 2.0+, asyncpg 0.31+, psycopg 3.3+
-- **Cache**: redis 7.1+
-- **Security**: python-jose, bcrypt 4.0+
-- **LLM Integration**: openai 1.0+, langchain-openai 1.1+
+- FastAPI 0.128+ - Web framework
+- SQLAlchemy 2.0+ - ORM with async support
+- LangChain 1.2+ - LLM orchestration
+- LangGraph 1.0+ - Agent workflows
+- LangFuse 3.12+ - LLM observability
+- Pydantic 2.12+ - Data validation
+- Redis 7.1+ - Caching
+- AsyncPG 0.31+ - PostgreSQL async driver
 
 ### Frontend
-- **Framework**: Next.js 16.1, React 19.2
-- **State**: Zustand 5.0
-- **HTTP**: Axios 1.13+
-- **Styling**: Tailwind CSS 4
-- **Icons**: lucide-react 0.563+
+- Next.js 16.1 - React framework
+- React 19 - UI library
+- TypeScript 5 - Type system
+- Tailwind CSS 4 - Styling
+- Zustand 5 - State management
+- Axios 1.13 - HTTP client
+- Lucide React 0.563 - Icons
 
-## Service Ports
+## Testing Strategy
 
-- Frontend: `5678`
-- Backend API: `5607`
-- PostgreSQL: `5400` (external), `5432` (container)
-- Redis: `6379`
-- API Documentation: http://localhost:5607/docs
+### Backend
+- Unit tests: `backend/tests/unit/`
+- Integration tests: `backend/tests/integration/test_api/`
+- Test files: `test_*.py`
+- Fixtures: `backend/tests/conftest.py`
 
-## When Adding New Features
+### Frontend
+- No automated test suite currently
+- Manual verification required
+- Run `npm run lint` for static analysis
 
-### Backend Module
-1. Create domain entities first in `domain/entities/`
-2. Define repository interface in `domain/repositories/`
-3. Implement application service in `application/services/`
-4. Create DTOs for request/response in `application/dto/`
-5. Implement repository in `infrastructure/repositories/`
-6. Add API routes in `api/router.py`
-7. Write unit tests for domain logic and integration tests for API
+## Deployment
 
-### Frontend Feature
-1. Define TypeScript types in `types/`
-2. Create API client in `services/`
-3. Build UI components in `components/features/`
-4. Add Zustand store if state management needed
-5. Create route in appropriate `app/` subdirectory
-6. Test manually and verify with `npm run lint`
+### Docker Deployment
+```bash
+cd docker
+cp .env.example .env
+# Edit .env with your configuration
+docker compose up -d --build
+```
 
-## Multi-Agent System Guidelines
-
-When working with the agent system:
-- Each agent should be self-contained with its own tools and prompt
-- Use LangGraph's StateGraph for orchestration, not direct agent-to-agent calls
-- Implement conditional edges for decision points (e.g., review approval, QA pass/fail)
-- Store task state in the database for traceability and resumability
-- Design agents to be provider-agnostic through the LLM factory pattern
-- Use LangFuse for observability and debugging of agent interactions
+### Local Development
+- Backend: `uv run uvicorn main:app --host 0.0.0.0 --port 5607 --reload`
+- Frontend: `npm run dev` (port 5678)
+- Access: http://localhost:5678 (frontend), http://localhost:5607/docs (API docs)

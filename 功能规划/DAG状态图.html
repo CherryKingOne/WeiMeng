@@ -1,0 +1,334 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WeiMeng-Agent DAG 状态图</title>
+    <script src="https://cdn.jsdelivr.net/npm/mermaid/dist/mermaid.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1600px;
+            margin: 0 auto;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .header h1 {
+            color: #fff;
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            text-shadow: 0 0 20px rgba(255, 107, 107, 0.5);
+        }
+
+        .header p {
+            color: #a0a0a0;
+            font-size: 1.1rem;
+        }
+
+        .legend {
+            display: flex;
+            justify-content: center;
+            flex-wrap: wrap;
+            gap: 15px;
+            margin-bottom: 30px;
+            padding: 20px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 12px;
+            backdrop-filter: blur(10px);
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            color: #fff;
+            font-size: 0.9rem;
+        }
+
+        .legend-color {
+            width: 20px;
+            height: 20px;
+            border-radius: 4px;
+            border: 2px solid #333;
+        }
+
+        .legend-color.emma { background: #FF6B6B; }
+        .legend-color.decision { background: #F39C12; }
+        .legend-color.dormant { background: #95A5A6; }
+        .legend-color.engaged { background: #9B59B6; }
+        .legend-color.user { background: #3498DB; }
+
+        .diagram-container {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 16px;
+            padding: 30px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            overflow-x: auto;
+        }
+
+        .mermaid {
+            display: flex;
+            justify-content: center;
+        }
+
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-top: 30px;
+        }
+
+        .stat-card {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 12px;
+            padding: 20px;
+            text-align: center;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .stat-card h3 {
+            color: #fff;
+            font-size: 2rem;
+            margin-bottom: 5px;
+        }
+
+        .stat-card p {
+            color: #a0a0a0;
+            font-size: 0.9rem;
+        }
+
+        .stat-card:nth-child(1) h3 { color: #FF6B6B; }
+        .stat-card:nth-child(2) h3 { color: #2ECC71; }
+        .stat-card:nth-child(3) h3 { color: #9B59B6; }
+        .stat-card:nth-child(4) h3 { color: #3498DB; }
+
+        .flow-description {
+            margin-top: 30px;
+            padding: 25px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 12px;
+            backdrop-filter: blur(10px);
+        }
+
+        .flow-description h2 {
+            color: #fff;
+            margin-bottom: 15px;
+            font-size: 1.3rem;
+        }
+
+        .flow-description ul {
+            list-style: none;
+            color: #d0d0d0;
+        }
+
+        .flow-description li {
+            padding: 8px 0;
+            padding-left: 25px;
+            position: relative;
+        }
+
+        .flow-description li::before {
+            content: '→';
+            position: absolute;
+            left: 0;
+            color: #FF6B6B;
+        }
+
+        @media (max-width: 768px) {
+            .header h1 {
+                font-size: 1.8rem;
+            }
+
+            .diagram-container {
+                padding: 15px;
+            }
+
+            .legend {
+                padding: 15px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>WeiMeng-Agent DAG 状态图</h1>
+            <p>多Agent协作系统架构 - Emma常驻调度 + 专业Agent动态激活</p>
+        </div>
+
+        <div class="legend">
+            <div class="legend-item">
+                <div class="legend-color emma"></div>
+                <span>Emma 常驻层</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color decision"></div>
+                <span>决策节点</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color dormant"></div>
+                <span>Agent 休眠态 (Dormant)</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color engaged"></div>
+                <span>Agent 活跃态 (Engaged)</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color user"></div>
+                <span>用户层</span>
+            </div>
+        </div>
+
+        <div class="diagram-container">
+            <div class="mermaid">
+graph TD
+    subgraph 用户层
+        USER[("👤 用户输入")]
+    end
+
+    subgraph Emma常驻层["Emma 常驻层 (Active)"]
+        EMMA_LISTEN["Emma 监听<br/>始终在线"]
+        EMMA_ANALYZE["Emma 需求解析<br/>意图识别"]
+        EMMA_DECIDE{"Emma 决策<br/>需要哪个专业Agent?"}
+        EMMA_SUMMARY["Emma 生成任务摘要<br/>(非完整上下文)"]
+        EMMA_INVITE["Emma 邀请Agent<br/>状态: Dormant → Engaged"]
+        EMMA_MONITOR["Emma 旁听<br/>(不干预直接对话)"]
+        EMMA_RECEIVE["Emma 接收完成通知"]
+        EMMA_EVALUATE{"Emma 评估<br/>是否需要下一个Agent?"}
+        EMMA_DISMISS["Emma 释放Agent<br/>状态: Engaged → Dormant"]
+        EMMA_RESPOND["Emma 汇总结果<br/>回复用户"]
+    end
+
+    subgraph 专业Agent层["专业 Agent 层 (Dormant ↔ Engaged)"]
+        SARAH["📝 Sarah 编剧<br/>初始: Dormant"]
+        OLIVER["🎬 Oliver 动画师<br/>初始: Dormant"]
+        DAVID["📐 David 分镜师<br/>初始: Dormant"]
+        ALEX["✂️ Alex 剪辑师<br/>初始: Dormant"]
+        BOB["🎨 Bob 角色设计<br/>初始: Dormant"]
+        ROBERT["🔊 Robert 音效师<br/>初始: Dormant"]
+    end
+
+    subgraph 交互态["活跃交互区 (Engaged)"]
+        AGENT_ACTIVE["专业Agent 活跃态"]
+        AGENT_WORK["Agent 执行专业任务"]
+        AGENT_INTERACT["Agent ↔ 用户 直接对话"]
+        AGENT_COMPLETE["Agent 任务完成通知"]
+        AGENT_HANDOFF["Agent 请求流转<br/>需要其他Agent协助"]
+    end
+
+    USER -->|"所有消息先到"| EMMA_LISTEN
+    EMMA_LISTEN --> EMMA_ANALYZE
+    EMMA_ANALYZE --> EMMA_DECIDE
+
+    EMMA_DECIDE -->|"需要编剧"| SARAH
+    EMMA_DECIDE -->|"需要动画师"| OLIVER
+    EMMA_DECIDE -->|"需要分镜师"| DAVID
+    EMMA_DECIDE -->|"需要剪辑师"| ALEX
+    EMMA_DECIDE -->|"需要角色设计"| BOB
+    EMMA_DECIDE -->|"需要音效师"| ROBERT
+    EMMA_DECIDE -->|"Emma可直接处理"| EMMA_RESPOND
+
+    SARAH & OLIVER & DAVID & ALEX & BOB & ROBERT -.->|"被选中"| EMMA_SUMMARY
+    EMMA_SUMMARY -->|"任务摘要<br/>非完整历史"| EMMA_INVITE
+    EMMA_INVITE --> AGENT_ACTIVE
+
+    AGENT_ACTIVE --> AGENT_WORK
+    AGENT_WORK --> AGENT_INTERACT
+    USER -.->|"直接对话<br/>绕过Emma"| AGENT_INTERACT
+    EMMA_MONITOR -.->|"旁听不干预"| AGENT_INTERACT
+
+    AGENT_INTERACT --> AGENT_COMPLETE
+    AGENT_INTERACT --> AGENT_HANDOFF
+
+    AGENT_COMPLETE -->|"通知Emma"| EMMA_RECEIVE
+    AGENT_HANDOFF -->|"通知Emma需要其他Agent"| EMMA_RECEIVE
+
+    EMMA_RECEIVE --> EMMA_EVALUATE
+
+    EMMA_EVALUATE -->|"需要下一个Agent"| EMMA_DISMISS
+    EMMA_DISMISS -->|"释放当前Agent"| EMMA_DECIDE
+    EMMA_EVALUATE -->|"全部完成"| EMMA_DISMISS
+    EMMA_DISMISS -->|"所有任务完成"| EMMA_RESPOND
+    EMMA_RESPOND --> USER
+
+    classDef emma fill:#FF6B6B,stroke:#333,stroke-width:3px,color:#fff
+    classDef dormant fill:#95A5A6,stroke:#333,stroke-width:1px,color:#fff
+    classDef engaged fill:#2ECC71,stroke:#333,stroke-width:2px,color:#fff
+    classDef user fill:#3498DB,stroke:#333,stroke-width:2px,color:#fff
+    classDef decision fill:#F39C12,stroke:#333,stroke-width:2px,color:#fff
+    classDef active fill:#9B59B6,stroke:#333,stroke-width:2px,color:#fff
+
+    class EMMA_LISTEN,EMMA_ANALYZE,EMMA_SUMMARY,EMMA_INVITE,EMMA_MONITOR,EMMA_RECEIVE,EMMA_DISMISS,EMMA_RESPOND emma
+    class EMMA_DECIDE,EMMA_EVALUATE decision
+    class SARAH,OLIVER,DAVID,ALEX,BOB,ROBERT dormant
+    class AGENT_ACTIVE,AGENT_WORK,AGENT_INTERACT,AGENT_COMPLETE,AGENT_HANDOFF active
+    class USER user
+            </div>
+        </div>
+
+        <div class="stats">
+            <div class="stat-card">
+                <h3>1</h3>
+                <p>常驻调度Agent (Emma)</p>
+            </div>
+            <div class="stat-card">
+                <h3>6</h3>
+                <p>专业Agent</p>
+            </div>
+            <div class="stat-card">
+                <h3>2</h3>
+                <p>Agent状态 (Dormant/Engaged)</p>
+            </div>
+            <div class="stat-card">
+                <h3>10</h3>
+                <p>Emma工作节点</p>
+            </div>
+        </div>
+
+        <div class="flow-description">
+            <h2>📋 核心流程说明</h2>
+            <ul>
+                <li><strong>入口:</strong> 所有用户消息首先到达 Emma 监听节点</li>
+                <li><strong>解析:</strong> Emma 分析需求意图，决策需要哪个专业Agent</li>
+                <li><strong>激活:</strong> 选中的 Agent 从 Dormant 状态转为 Engaged 状态</li>
+                <li><strong>交互:</strong> 用户与专业Agent直接对话，Emma 仅旁听不干预</li>
+                <li><strong>流转:</strong> Agent 可请求流转到其他Agent协作</li>
+                <li><strong>释放:</strong> 任务完成后 Agent 回到 Dormant 状态</li>
+                <li><strong>响应:</strong> Emma 汇总结果回复用户</li>
+            </ul>
+        </div>
+    </div>
+
+    <script>
+        mermaid.initialize({
+            startOnLoad: true,
+            theme: 'default',
+            flowchart: {
+                useMaxWidth: true,
+                htmlLabels: true,
+                curve: 'basis',
+                rankSpacing: 80,
+                nodeSpacing: 50
+            },
+            securityLevel: 'loose'
+        });
+    </script>
+</body>
+</html>
