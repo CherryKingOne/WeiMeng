@@ -154,7 +154,7 @@
   "code": 0,
   "message": "success",
   "data": {
-    "session_id": "sess_abc123",
+    "session_id": "550e8400-e29b-41d4-a716-446655440000",
     "user_message": "帮我创作一个关于小兔子探险的动画故事",
     "reference_picture": "https://example.com/images/ref_001.jpg",
     "meta_info": {
@@ -195,7 +195,7 @@
   "data": {
     "items": [
       {
-        "session_id": "sess_abc123",
+        "session_id": "550e8400-e29b-41d4-a716-446655440000",
         "title": "创作一个动画短片",
         "status": "active",
         "created_at": 1706246400000,
@@ -231,7 +231,7 @@
   "code": 0,
   "message": "success",
   "data": {
-    "session_id": "sess_abc123",
+    "session_id": "550e8400-e29b-41d4-a716-446655440000",
     "title": "创作一个动画短片",
     "status": "active",
     "created_at": 1706246400000,
@@ -335,7 +335,7 @@ event: message
 data: {"type": "message", "agent_id": "bob", "content": "我已经设计了角色形象...", "timestamp": 1706246401000}
 
 event: complete
-data: {"type": "complete", "session_id": "sess_abc123", "summary": "已完成角色设计和故事创作"}
+data: {"type": "complete", "session_id": "550e8400-e29b-41d4-a716-446655440000", "summary": "已完成角色设计和故事创作"}
 ```
 
 **事件类型说明**:
@@ -378,7 +378,7 @@ data: {"type": "complete", "session_id": "sess_abc123", "summary": "已完成角
   "message": "success",
   "data": {
     "message_id": "msg_001",
-    "session_id": "sess_abc123",
+    "session_id": "550e8400-e29b-41d4-a716-446655440000",
     "content": "我已经为您创作了一个关于小兔子探险的动画故事，并设计了主要角色形象。",
     "agents_involved": ["sarah", "bob"],
     "created_at": 1706246400000
@@ -628,7 +628,7 @@ data: {"type": "complete", "session_id": "sess_abc123", "summary": "已完成角
   "code": 0,
   "message": "success",
   "data": {
-    "session_id": "sess_abc123",
+    "session_id": "550e8400-e29b-41d4-a716-446655440000",
     "agent_id": "sarah",
     "state": "engaged",
     "activated_at": 1706246400000
@@ -657,7 +657,7 @@ data: {"type": "complete", "session_id": "sess_abc123", "summary": "已完成角
   "code": 0,
   "message": "success",
   "data": {
-    "session_id": "sess_abc123",
+    "session_id": "550e8400-e29b-41d4-a716-446655440000",
     "agent_id": "sarah",
     "state": "dormant",
     "dismissed_at": 1706246400000
@@ -699,7 +699,7 @@ data: {"type": "complete", "session_id": "sess_abc123", "summary": "已完成角
     "items": [
       {
         "task_id": "task_001",
-        "session_id": "sess_abc123",
+        "session_id": "550e8400-e29b-41d4-a716-446655440000",
         "agent_id": "sarah",
         "description": "创作动画故事",
         "status": "completed",
@@ -714,7 +714,7 @@ data: {"type": "complete", "session_id": "sess_abc123", "summary": "已完成角
       },
       {
         "task_id": "task_002",
-        "session_id": "sess_abc123",
+        "session_id": "550e8400-e29b-41d4-a716-446655440000",
         "agent_id": "bob",
         "description": "设计角色形象",
         "status": "running",
@@ -751,7 +751,7 @@ data: {"type": "complete", "session_id": "sess_abc123", "summary": "已完成角
   "message": "success",
   "data": {
     "task_id": "task_001",
-    "session_id": "sess_abc123",
+    "session_id": "550e8400-e29b-41d4-a716-446655440000",
     "agent_id": "sarah",
     "description": "创作动画故事",
     "status": "completed",
@@ -868,7 +868,7 @@ data: {"type": "complete", "session_id": "sess_abc123", "summary": "已完成角
   "code": 0,
   "message": "success",
   "data": {
-    "session_id": "sess_abc123",
+    "session_id": "550e8400-e29b-41d4-a716-446655440000",
     "current_node": "AGENT_WORK",
     "current_agent": "sarah",
     "agent_states": {
@@ -1003,7 +1003,7 @@ data: {"type": "complete", "session_id": "sess_abc123", "summary": "已完成角
   "timestamp": 1706246400000,
   "data": {
     "task_id": "task_001",
-    "session_id": "sess_abc123",
+    "session_id": "550e8400-e29b-41d4-a716-446655440000",
     "agent_id": "sarah",
     "result": {
       "outline": "...",
@@ -1021,7 +1021,7 @@ data: {"type": "complete", "session_id": "sess_abc123", "summary": "已完成角
   "event": "agent.handoff",
   "timestamp": 1706246400000,
   "data": {
-    "session_id": "sess_abc123",
+    "session_id": "550e8400-e29b-41d4-a716-446655440000",
     "from_agent": "sarah",
     "to_agent": "oliver",
     "reason": "需要动画制作",
