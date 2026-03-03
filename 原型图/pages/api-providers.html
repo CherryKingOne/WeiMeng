@@ -1,0 +1,1106 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>厂商资源池</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Noto+Sans+SC:wght@400;500;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg-main: #eceff3;
+      --bg-soft: #e4e8ee;
+      --card: #eef1f5;
+      --line: #d9dde5;
+      --text: #111827;
+      --muted: #6b7280;
+      --subtle: #9ca3af;
+      --primary: #2563eb;
+      --primary-dark: #1d4ed8;
+      --pill: #e7ebf2;
+      --ok: #10b981;
+      --warn: #fb923c;
+      --danger: #ef4444;
+    }
+
+    * {
+      font-family: "Inter", "Noto Sans SC", sans-serif;
+      box-sizing: border-box;
+    }
+
+    body {
+      background:
+        radial-gradient(1200px 520px at 0% -10%, #f1f3f7 0%, transparent 65%),
+        radial-gradient(900px 420px at 95% 0%, #eceff5 0%, transparent 68%),
+        linear-gradient(180deg, var(--bg-main) 0%, #e5e9ef 100%);
+      color: var(--text);
+    }
+
+    .title-font {
+      letter-spacing: -0.03em;
+    }
+
+    .provider-card {
+      background: var(--card);
+      border: 1px solid rgba(217, 221, 229, 0.95);
+      border-radius: 24px;
+      box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.85),
+        0 10px 30px rgba(15, 23, 42, 0.07);
+      animation: cardEnter 420ms cubic-bezier(0.16, 1, 0.3, 1) both;
+      animation-delay: var(--delay, 0ms);
+    }
+
+    @keyframes cardEnter {
+      from {
+        opacity: 0;
+        transform: translateY(18px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    .pill-btn {
+      border-radius: 9999px;
+      transition: all 180ms ease;
+      white-space: nowrap;
+    }
+
+    .pill-btn:hover {
+      transform: translateY(-1px);
+    }
+
+    .pill-outline {
+      border: 1px solid transparent;
+      background: transparent;
+      color: #6b7280;
+    }
+
+    .pill-outline .icon {
+      color: #6b7280;
+    }
+
+    .pill-outline.active {
+      background: #ffffff;
+      color: #111827;
+      border-color: #d1d5db;
+      box-shadow: 0 1px 2px rgba(15, 23, 42, 0.08);
+    }
+
+    .pill-outline.active .icon {
+      color: #111827;
+    }
+
+    .credential-row {
+      justify-content: space-between;
+      border-radius: 18px;
+      border: 1px solid #e4e8ef;
+      background: #f7f8fb;
+      padding: 10px 14px;
+    }
+
+    .connect-btn {
+      background: linear-gradient(135deg, #3b82f6 0%, #60a5fa 100%);
+      color: #ffffff;
+      box-shadow: 0 4px 10px rgba(59, 130, 246, 0.24);
+    }
+
+    .connect-btn:hover {
+      background: linear-gradient(135deg, #2563eb 0%, #3b82f6 100%);
+    }
+
+    .type-switcher {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 4px;
+      border-radius: 16px;
+      border: 1px solid #dce1e9;
+      background: #e8ebf1;
+      padding: 4px;
+    }
+
+    .type-switcher .pill-btn {
+      flex: 1 1 88px;
+      justify-content: center;
+    }
+
+    .model-section {
+      border-radius: 20px;
+      border: 1px solid #dfe4ec;
+      background: #edf0f5;
+      padding: 12px;
+    }
+
+    .count-pill {
+      display: inline-flex;
+      min-width: 28px;
+      height: 28px;
+      align-items: center;
+      justify-content: center;
+      border-radius: 999px;
+      background: #dfe4ec;
+      color: #374151;
+      font-size: 13px;
+      font-weight: 700;
+    }
+
+    .model-empty {
+      border-radius: 16px;
+      border: 1px dashed #d3d9e3;
+      background: #f7f8fa;
+      padding: 32px 12px;
+      text-align: center;
+      font-size: 14px;
+      color: #9ca3af;
+    }
+
+    .model-list {
+      max-height: 220px;
+      overflow-y: auto;
+      border-radius: 16px;
+      border: 1px solid #dde3eb;
+      background: #f7f8fa;
+      padding: 6px;
+    }
+
+    .model-list::-webkit-scrollbar {
+      width: 6px;
+    }
+
+    .model-list::-webkit-scrollbar-track {
+      background: #edf0f4;
+      border-radius: 999px;
+    }
+
+    .model-list::-webkit-scrollbar-thumb {
+      background: #c6ceda;
+      border-radius: 999px;
+    }
+
+    .model-row {
+      position: relative;
+      border-radius: 0;
+      transition: background 0.16s ease;
+    }
+
+    .model-row + .model-row::before {
+      content: "";
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      border-top: 1px solid #e4e8ef;
+      pointer-events: none;
+    }
+
+    .model-row:hover {
+      background: #eff3f8;
+    }
+
+    .model-row.is-unavailable p {
+      color: #9ca3af;
+    }
+
+    .model-actions {
+      opacity: 0;
+      transform: translateX(4px);
+      transition: all 180ms ease;
+      pointer-events: none;
+    }
+
+    .model-row:hover .model-actions {
+      opacity: 1;
+      transform: translateX(0);
+      pointer-events: auto;
+    }
+
+    .ios-switch {
+      appearance: none;
+      width: 44px;
+      height: 24px;
+      border-radius: 999px;
+      border: 1px solid #c9d0dc;
+      background: #d9dfe8;
+      position: relative;
+      cursor: pointer;
+      transition: background 0.22s ease, border-color 0.22s ease;
+      flex: none;
+    }
+
+    .ios-switch::after {
+      content: "";
+      position: absolute;
+      top: 1px;
+      left: 1px;
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      background: #ffffff;
+      box-shadow: 0 1px 2px rgba(15, 23, 42, 0.22);
+      transition: transform 0.22s ease;
+    }
+
+    .ios-switch:checked {
+      background: #000000;
+      border-color: #000000;
+    }
+
+    .ios-switch:checked::after {
+      transform: translateX(20px);
+    }
+
+    .ios-switch:disabled {
+      cursor: not-allowed;
+      opacity: 0.62;
+      background: #d1d5db;
+      border-color: #c9d0dc;
+    }
+
+    .ios-switch:disabled::after {
+      background: #f9fafb;
+    }
+
+    .modal-backdrop {
+      background: rgba(0, 0, 0, 0.22);
+      backdrop-filter: blur(4px);
+    }
+
+    .modal-panel {
+      border-radius: 18px;
+      border: 1px solid rgba(229, 231, 235, 0.9);
+      box-shadow: 0 16px 40px rgba(0, 0, 0, 0.18);
+      animation: modalIn 240ms ease-out both;
+    }
+
+    @keyframes modalIn {
+      from {
+        opacity: 0;
+        transform: translateY(14px) scale(0.98);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+      }
+    }
+
+    .status-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      box-shadow: 0 0 0 3px rgba(0, 0, 0, 0.04);
+      flex: none;
+    }
+
+    .icon-btn {
+      border-radius: 10px;
+      transition: all 160ms ease;
+    }
+
+    .icon-btn:hover {
+      background: #e9edf3;
+      color: #1f2937;
+    }
+
+    .icon-btn.delete:hover {
+      background: #fef2f2;
+      color: var(--danger);
+    }
+  </style>
+</head>
+<body class="min-h-screen px-4 py-8 sm:px-8 sm:py-10">
+  <div class="mx-auto max-w-[1320px]">
+    <header class="mb-8 flex flex-wrap items-center justify-between gap-4 sm:mb-10">
+      <h1 class="title-font text-3xl font-extrabold text-gray-900 sm:text-4xl">厂商资源池</h1>
+      <button
+        type="button"
+        class="pill-btn inline-flex items-center gap-2 bg-black px-6 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-gray-800"
+      >
+        <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+        </svg>
+        新增模型服务商
+      </button>
+    </header>
+
+    <main id="provider-grid" class="grid grid-cols-1 gap-8 lg:grid-cols-2"></main>
+  </div>
+
+  <div id="connect-modal" class="modal-backdrop fixed inset-0 z-50 hidden items-center justify-center p-4">
+    <div class="modal-panel w-full max-w-md bg-white p-6">
+      <div class="mb-6 flex items-center justify-between">
+        <h2 id="modal-title" class="text-lg font-bold text-gray-900">连接供应商</h2>
+        <button id="modal-close" type="button" class="icon-btn p-2 text-gray-400 hover:text-gray-600" aria-label="关闭">
+          <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+          </svg>
+        </button>
+      </div>
+
+      <div class="space-y-2">
+        <div id="generic-key-field">
+          <label for="modal-api-key" class="block text-sm font-medium text-gray-700">API Key</label>
+          <div class="relative mt-1">
+            <input
+              id="modal-api-key"
+              type="password"
+              placeholder="请输入 API Key"
+              class="h-12 w-full rounded-xl border border-gray-200 bg-white px-4 pr-12 text-sm text-gray-900 placeholder:text-gray-400 focus:border-gray-900 focus:outline-none"
+            >
+            <button id="toggle-password" type="button" class="absolute right-3 top-1/2 -translate-y-1/2 rounded-lg p-2 text-gray-400 hover:bg-gray-100 hover:text-gray-600" aria-label="切换可见">
+              <svg id="eye-icon" class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0"/>
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7"/>
+              </svg>
+            </button>
+          </div>
+        </div>
+        <div id="compatible-fields" class="hidden space-y-2 pt-1">
+          <div>
+            <label for="modal-model-name" class="block text-sm font-medium text-gray-700">模型名称 <span class="text-red-500">*</span></label>
+            <input
+              id="modal-model-name"
+              type="text"
+              required
+              placeholder="qwen-plus / gpt-4o-mini"
+              class="mt-1 h-11 w-full rounded-xl border border-gray-200 bg-white px-4 text-sm text-gray-900 placeholder:text-gray-400 focus:border-gray-900 focus:outline-none"
+            >
+          </div>
+          <div>
+            <label for="modal-compatible-key" class="block text-sm font-medium text-gray-700">Key <span class="text-red-500">*</span></label>
+            <input
+              id="modal-compatible-key"
+              type="password"
+              required
+              placeholder="请输入兼容服务 Key"
+              class="mt-1 h-11 w-full rounded-xl border border-gray-200 bg-white px-4 text-sm text-gray-900 placeholder:text-gray-400 focus:border-gray-900 focus:outline-none"
+            >
+          </div>
+          <div>
+            <label for="modal-base-url" class="block text-sm font-medium text-gray-700">URL <span class="text-red-500">*</span></label>
+            <input
+              id="modal-base-url"
+              type="text"
+              required
+              placeholder="https://api.example.com/v1"
+              class="mt-1 h-11 w-full rounded-xl border border-gray-200 bg-white px-4 text-sm text-gray-900 placeholder:text-gray-400 focus:border-gray-900 focus:outline-none"
+            >
+          </div>
+          <div>
+            <label for="modal-max-tokens" class="block text-sm font-medium text-gray-700">Max Tokens（可选）</label>
+            <input
+              id="modal-max-tokens"
+              type="number"
+              min="1"
+              placeholder="例如 8192"
+              class="mt-1 h-11 w-full rounded-xl border border-gray-200 bg-white px-4 text-sm text-gray-900 placeholder:text-gray-400 focus:border-gray-900 focus:outline-none"
+            >
+          </div>
+        </div>
+        <p id="modal-status" class="h-5 text-xs"></p>
+      </div>
+
+      <div class="mt-6 flex items-center justify-end gap-3">
+        <button id="test-connect" type="button" class="pill-btn rounded-xl border border-gray-300 px-4 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50">测试连接</button>
+        <button id="save-connect" type="button" class="pill-btn rounded-xl bg-black px-4 py-2 text-sm font-semibold text-white hover:bg-gray-800">保存</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const TYPE_META = {
+      text: {
+        label: "文本",
+        icon: '<svg class="h-4 w-4 icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h7"/></svg>'
+      },
+      image: {
+        label: "图像",
+        icon: '<svg class="h-4 w-4 icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>'
+      },
+      video: {
+        label: "视频",
+        icon: '<svg class="h-4 w-4 icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14m0-4v4m-10 4h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"/></svg>'
+      }
+    };
+
+    const defaultPresets = {
+      ark: {
+        text: [
+          { name: "Doubao Seed 2.0 Pro", pricing: "输入 ¥3.2 / 输出 ¥1b", modelId: "doubao-seed-2-0-pro-260215", enabled: true },
+          { name: "Doubao Pro 32k", pricing: "输入 ¥2.4 / 输出 ¥3.2", modelId: "doubao-pro-32k", enabled: true },
+          { name: "Doubao Lite 4k", pricing: "输入 ¥0.8 / 输出 ¥0.8", modelId: "doubao-lite-4k", enabled: true },
+          { name: "Doubao Fast", pricing: "输入 ¥0.2 / 输出 ¥0.2", modelId: "doubao-fast", enabled: false },
+          { name: "Doubao Reasoning", pricing: "输入 ¥4.8 / 输出 ¥6.0", modelId: "doubao-reasoning", enabled: false },
+          { name: "Doubao Mini", pricing: "输入 ¥0.1 / 输出 ¥0.1", modelId: "doubao-mini", enabled: true }
+        ],
+        image: [
+          { name: "Seedream V3", pricing: "输入 ¥0.08 / 张", modelId: "seedream-v3", enabled: true },
+          { name: "Pixel Art Gen", pricing: "输入 ¥0.05 / 张", modelId: "pixel-art-gen", enabled: false }
+        ],
+        video: [
+          { name: "Volc Video 1.2", pricing: "输入 ¥0.45 / 秒", modelId: "volc-video-1-2", enabled: true }
+        ]
+      },
+      google: {
+        text: [
+          { name: "Gemini 2.0 Flash", pricing: "输入 $0.35 / 输出 $0.53", modelId: "gemini-2.0-flash", enabled: true },
+          { name: "Gemini 2.0 Pro", pricing: "输入 $3.5 / 输出 $10.5", modelId: "gemini-2.0-pro", enabled: true },
+          { name: "Gemini 1.5 Flash", pricing: "输入 $0.08 / 输出 $0.30", modelId: "gemini-1.5-flash", enabled: false }
+        ],
+        image: [
+          { name: "Imagen 3", pricing: "输入 $0.04 / 张", modelId: "imagen-3", enabled: true }
+        ],
+        video: [
+          { name: "Veo 2", pricing: "输入 $0.52 / 秒", modelId: "veo-2", enabled: false }
+        ]
+      },
+      openrouter: {
+        text: [
+          { name: "Claude Sonnet", pricing: "输入 $3 / 输出 $15", modelId: "anthropic/claude-3-7-sonnet", enabled: true },
+          { name: "GPT-4.1", pricing: "输入 $2 / 输出 $8", modelId: "openai/gpt-4.1", enabled: true }
+        ],
+        image: [
+          { name: "FLUX Schnell", pricing: "输入 $0.03 / 张", modelId: "black-forest-labs/flux-schnell", enabled: true }
+        ],
+        video: [
+          { name: "Luma Ray 2", pricing: "输入 $0.32 / 秒", modelId: "luma/ray-2", enabled: false }
+        ]
+      },
+      anthropic: {
+        text: [
+          { name: "Claude 3.7 Sonnet", pricing: "输入 $3 / 输出 $15", modelId: "claude-3-7-sonnet-20250219", enabled: true },
+          { name: "Claude 3.5 Haiku", pricing: "输入 $0.8 / 输出 $4", modelId: "claude-3-5-haiku", enabled: true }
+        ],
+        image: [],
+        video: []
+      },
+      compatible: {
+        text: [],
+        image: [],
+        video: []
+      }
+    };
+
+    function deepClone(value) {
+      return JSON.parse(JSON.stringify(value));
+    }
+
+    const providers = [
+      {
+        id: "ark",
+        name: "火山引擎 Ark",
+        tutorialUrl: "#",
+        connected: true,
+        key: "",
+        allowModelManagement: false,
+        activeType: "text",
+        logo: '<div class="flex h-10 w-10 items-center justify-center rounded-xl bg-orange-500 text-white"><svg class="h-5 w-5" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2L4 7v10c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V7l-8-5z"/></svg></div>',
+        models: deepClone(defaultPresets.ark)
+      },
+      {
+        id: "google",
+        name: "Google",
+        tutorialUrl: "#",
+        connected: true,
+        key: "google_live_xxxx9xy8",
+        allowModelManagement: false,
+        activeType: "text",
+        logo: '<div class="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-600 text-base font-bold text-white">G</div>',
+        models: deepClone(defaultPresets.google)
+      },
+      {
+        id: "compatible",
+        name: "OpenAI 兼容",
+        tutorialUrl: "#",
+        connected: false,
+        key: "",
+        baseUrl: "",
+        modelName: "",
+        maxTokens: "",
+        allowModelManagement: true,
+        activeType: "text",
+        logo: '<div class="flex h-10 w-10 items-center justify-center rounded-xl bg-slate-900 text-white"><svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 18l6-6-6-6M8 6l-6 6 6 6"/></svg></div>',
+        models: deepClone(defaultPresets.compatible)
+      },
+      {
+        id: "openrouter",
+        name: "OpenRouter",
+        tutorialUrl: "#",
+        connected: false,
+        key: "",
+        allowModelManagement: false,
+        activeType: "text",
+        logo: '<div class="flex h-10 w-10 items-center justify-center rounded-xl bg-slate-800 text-white"><svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 3L4 14h7v7l9-11h-7z"/></svg></div>',
+        models: { text: [], image: [], video: [] }
+      },
+      {
+        id: "anthropic",
+        name: "Anthropic",
+        tutorialUrl: "#",
+        connected: false,
+        key: "",
+        allowModelManagement: false,
+        activeType: "text",
+        logo: '<div class="flex h-10 w-10 items-center justify-center rounded-xl bg-orange-600 text-white"><svg class="h-5 w-5" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2l10 20H2L12 2z"/></svg></div>',
+        models: { text: [], image: [], video: [] }
+      }
+    ];
+
+    const providerGrid = document.getElementById("provider-grid");
+    const modal = document.getElementById("connect-modal");
+    const modalTitle = document.getElementById("modal-title");
+    const genericKeyField = document.getElementById("generic-key-field");
+    const modalApiKey = document.getElementById("modal-api-key");
+    const modalCompatibleKey = document.getElementById("modal-compatible-key");
+    const modalBaseUrl = document.getElementById("modal-base-url");
+    const modalModelName = document.getElementById("modal-model-name");
+    const modalMaxTokens = document.getElementById("modal-max-tokens");
+    const compatibleFields = document.getElementById("compatible-fields");
+    const modalStatus = document.getElementById("modal-status");
+    const testBtn = document.getElementById("test-connect");
+    const saveBtn = document.getElementById("save-connect");
+    const modalClose = document.getElementById("modal-close");
+    const togglePasswordBtn = document.getElementById("toggle-password");
+    const eyeIcon = document.getElementById("eye-icon");
+
+    let activeProviderId = null;
+
+    function getProvider(providerId) {
+      return providers.find((item) => item.id === providerId);
+    }
+
+    function maskKey(key) {
+      if (!key) {
+        return "••••••••";
+      }
+      const tail = key.slice(-4);
+      return `••••••••${tail}`;
+    }
+
+    function titleCaseType(type) {
+      return TYPE_META[type] ? TYPE_META[type].label : type;
+    }
+
+    function isProviderReady(provider) {
+      return Boolean(provider.connected && provider.key && provider.key.trim());
+    }
+
+    function isCompatibleProvider(provider) {
+      return Boolean(provider && provider.id === "compatible");
+    }
+
+    function getVisibleTypes(provider) {
+      return Object.keys(TYPE_META).filter((type) => Array.isArray(provider.models[type]));
+    }
+
+    function ensurePresetModels(provider) {
+      if (!provider.connected) {
+        return;
+      }
+      const currentTotal = Object.values(provider.models).reduce((acc, list) => acc + list.length, 0);
+      if (currentTotal > 0) {
+        return;
+      }
+      provider.models = deepClone(defaultPresets[provider.id] || {
+        text: [{ name: "基础文本模型", pricing: "输入 ¥1 / 输出 ¥1", modelId: `${provider.id}-base-text`, enabled: true }],
+        image: [],
+        video: []
+      });
+    }
+
+    function buildFilterRow(provider) {
+      const types = getVisibleTypes(provider);
+      return `
+        <div class="type-switcher">
+          ${types.map((type) => {
+            const active = provider.activeType === type;
+            return `
+              <button
+                type="button"
+                class="pill-btn pill-outline inline-flex items-center gap-1.5 px-4 py-2 text-sm font-medium ${active ? "active" : ""}"
+                data-action="switch-type"
+                data-provider-id="${provider.id}"
+                data-type="${type}"
+              >
+                ${TYPE_META[type].icon}
+                ${TYPE_META[type].label}
+              </button>
+            `;
+          }).join("")}
+        </div>
+      `;
+    }
+
+    function buildModelRows(provider) {
+      const currentType = provider.activeType;
+      const models = provider.models[currentType] || [];
+      const providerReady = isProviderReady(provider);
+      const canManageModels = Boolean(provider.allowModelManagement);
+
+      if (models.length === 0) {
+        return '<div class="model-empty">暂无模型，请点击右上角添加</div>';
+      }
+
+      return `
+        <div class="model-list">
+          ${models.map((model, index) => `
+            <div class="model-row flex items-center justify-between px-2 py-3 ${providerReady ? "" : "is-unavailable"}" data-provider-id="${provider.id}" data-type="${currentType}" data-index="${index}">
+              <div class="min-w-0 pr-3">
+                <p class="model-name truncate text-sm font-semibold text-black">${model.name}</p>
+                <p class="text-xs text-gray-500">${model.pricing}</p>
+                <p class="truncate text-xs text-gray-400">${model.modelId}</p>
+              </div>
+              <div class="flex items-center gap-2">
+                ${
+                  canManageModels
+                    ? `<div class="model-actions flex items-center gap-1">
+                  <button type="button" class="icon-btn delete p-1.5 text-gray-400" data-action="delete-model" data-provider-id="${provider.id}" data-type="${currentType}" data-index="${index}" title="删除">
+                    <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+                    </svg>
+                  </button>
+                  <button type="button" class="icon-btn p-1.5 text-gray-400" data-action="edit-model" data-provider-id="${provider.id}" data-type="${currentType}" data-index="${index}" title="编辑">
+                    <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
+                    </svg>
+                  </button>
+                </div>`
+                    : ""
+                }
+                <input
+                  type="checkbox"
+                  class="ios-switch"
+                  ${providerReady && model.enabled ? "checked" : ""}
+                  ${providerReady ? "" : "disabled"}
+                  data-action="toggle-model"
+                  data-provider-id="${provider.id}"
+                  data-type="${currentType}"
+                  data-index="${index}"
+                  aria-label="切换模型状态"
+                  title="${providerReady ? "切换模型状态" : "请先配置 API Key"}"
+                >
+              </div>
+            </div>
+          `).join("")}
+        </div>
+      `;
+    }
+
+    function buildConnectedSection(provider) {
+      const currentType = provider.activeType;
+      const currentCount = (provider.models[currentType] || []).length;
+      const canManageModels = Boolean(provider.allowModelManagement);
+      const listHeaderIcon = '<svg class="h-4 w-4 text-gray-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/></svg>';
+      const compatibleSummary = provider.id === "compatible"
+        ? `
+        <section class="model-section mb-3">
+          <div class="mb-3 flex items-center justify-between">
+            <p class="text-sm font-semibold text-gray-800">兼容性配置</p>
+            <button
+              type="button"
+              class="pill-btn rounded-full border border-gray-200 bg-white px-3 py-1 text-xs font-semibold text-gray-700 hover:text-gray-900"
+              data-action="edit-compatible"
+              data-provider-id="${provider.id}"
+            >
+              ${isProviderReady(provider) ? "修改" : "去配置"}
+            </button>
+          </div>
+          <div class="space-y-1 text-xs text-gray-600">
+            <p><span class="font-medium text-gray-700">URL:</span> ${provider.baseUrl || "未配置"}</p>
+            <p><span class="font-medium text-gray-700">模型:</span> ${provider.modelName || "未配置"}</p>
+            <p><span class="font-medium text-gray-700">Max Tokens:</span> ${provider.maxTokens || "未设置"}</p>
+          </div>
+        </section>`
+        : "";
+
+      return `
+        ${buildFilterRow(provider)}
+        ${compatibleSummary}
+        <section class="model-section">
+          <div class="mb-3 flex items-center justify-between px-1">
+            <div class="flex items-center gap-2 text-sm font-medium text-gray-700">
+              ${listHeaderIcon}
+              <span>${titleCaseType(currentType)}</span>
+              <span class="count-pill">${currentCount}</span>
+            </div>
+            ${
+              canManageModels
+                ? `<button
+              type="button"
+              class="pill-btn inline-flex items-center gap-1 rounded-full bg-white px-3 py-1.5 text-sm font-semibold text-gray-600 shadow-sm hover:bg-gray-50 hover:text-gray-800"
+              data-action="add-model"
+              data-provider-id="${provider.id}"
+              data-type="${currentType}"
+            >
+              <svg class="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+              </svg>
+              添加
+            </button>`
+                : `<span class="text-xs text-gray-500">官方模型，不支持自定义增删改</span>`
+            }
+          </div>
+          ${buildModelRows(provider)}
+        </section>
+      `;
+    }
+
+    function buildProviderCard(provider, index) {
+      const providerReady = isProviderReady(provider);
+      const statusColor = providerReady ? "var(--ok)" : "var(--warn)";
+      const keySection = provider.connected
+        ? `
+          <div class="credential-row flex items-center gap-4">
+            <span class="text-sm font-medium text-gray-600">API Key</span>
+            <div class="flex min-w-0 items-center gap-2">
+              ${
+                providerReady
+                  ? `<span class="max-w-[180px] truncate text-sm font-medium text-gray-900 sm:max-w-[240px]">${maskKey(provider.key)}</span>
+              <button type="button" class="pill-btn rounded-full border border-gray-200 bg-white px-3 py-1 text-xs font-semibold text-gray-700 hover:text-gray-900" data-action="edit-key" data-provider-id="${provider.id}">修改</button>`
+                  : `<span class="text-sm font-medium text-amber-600">未配置</span>
+              <button
+                type="button"
+                class="pill-btn connect-btn inline-flex items-center gap-1 rounded-full px-3 py-1 text-xs font-semibold"
+                data-action="connect"
+                data-provider-id="${provider.id}"
+              >
+                <svg class="h-3 w-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+                </svg>
+                去配置
+              </button>`
+              }
+            </div>
+          </div>
+        `
+        : `
+          <div class="credential-row flex items-center gap-4">
+            <span class="text-sm font-medium text-gray-600">API Key</span>
+            <button
+              type="button"
+              class="pill-btn connect-btn inline-flex items-center gap-1.5 px-4 py-1.5 text-sm font-semibold"
+              data-action="connect"
+              data-provider-id="${provider.id}"
+            >
+              <svg class="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+              </svg>
+              ${provider.id === "compatible" ? "去配置" : "连接"}
+            </button>
+          </div>
+        `;
+
+      return `
+        <article class="provider-card flex flex-col gap-y-6 p-6" data-provider-id="${provider.id}" style="--delay:${index * 80}ms">
+          <header class="flex items-center justify-between gap-3">
+            <div class="flex min-w-0 items-center gap-3">
+              ${provider.logo}
+              <div class="flex min-w-0 items-center gap-2">
+                <h3 class="truncate text-base font-bold text-gray-900">${provider.name}</h3>
+                <span class="status-dot" style="background:${statusColor}"></span>
+              </div>
+            </div>
+            <a href="${provider.tutorialUrl}" class="inline-flex items-center gap-1 text-sm text-gray-500 transition hover:text-gray-700">
+              <svg class="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/>
+              </svg>
+              开通教程
+            </a>
+          </header>
+
+          ${keySection}
+
+          ${provider.connected ? buildConnectedSection(provider) : ""}
+        </article>
+      `;
+    }
+
+    function renderProviders() {
+      providers.forEach((provider) => {
+        if (!provider.activeType || !provider.models[provider.activeType]) {
+          provider.activeType = "text";
+        }
+      });
+      providerGrid.innerHTML = providers.map((provider, index) => buildProviderCard(provider, index)).join("");
+    }
+
+    function setModalStatus(message, type = "neutral") {
+      const colorMap = {
+        neutral: "text-gray-400",
+        success: "text-emerald-600",
+        error: "text-red-500",
+        info: "text-gray-700"
+      };
+      modalStatus.className = `h-5 text-xs ${colorMap[type] || colorMap.neutral}`;
+      modalStatus.textContent = message;
+    }
+
+    function openModal(providerId, mode = "connect") {
+      const provider = getProvider(providerId);
+      if (!provider) {
+        return;
+      }
+      const isCompatible = isCompatibleProvider(provider);
+      activeProviderId = providerId;
+      modal.dataset.mode = mode;
+      modalTitle.textContent = isCompatible
+        ? `${mode === "edit" ? "修改" : "配置"} ${provider.name}`
+        : `${mode === "edit" ? "修改" : "连接"} ${provider.name}`;
+      genericKeyField.classList.toggle("hidden", isCompatible);
+      modalApiKey.value = mode === "edit" ? provider.key : "";
+      modalCompatibleKey.value = mode === "edit" ? (provider.key || "") : "";
+      modalBaseUrl.value = mode === "edit" ? (provider.baseUrl || "") : "";
+      modalModelName.value = mode === "edit" ? (provider.modelName || "") : "";
+      modalMaxTokens.value = mode === "edit" ? (provider.maxTokens || "") : "";
+      compatibleFields.classList.toggle("hidden", !isCompatible);
+      modalApiKey.type = "password";
+      eyeIcon.innerHTML = '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7"/>';
+      setModalStatus("", "neutral");
+      modal.classList.remove("hidden");
+      modal.classList.add("flex");
+      setTimeout(() => modalApiKey.focus(), 0);
+    }
+
+    function closeModal() {
+      activeProviderId = null;
+      modal.classList.add("hidden");
+      modal.classList.remove("flex");
+      genericKeyField.classList.remove("hidden");
+      compatibleFields.classList.add("hidden");
+      setModalStatus("", "neutral");
+      testBtn.disabled = false;
+      testBtn.textContent = "测试连接";
+    }
+
+    function togglePassword() {
+      const isPassword = modalApiKey.type === "password";
+      modalApiKey.type = isPassword ? "text" : "password";
+      eyeIcon.innerHTML = isPassword
+        ? '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21"/>'
+        : '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7"/>';
+    }
+
+    function testConnection() {
+      const provider = getProvider(activeProviderId);
+      if (!provider) {
+        return;
+      }
+      const key = isCompatibleProvider(provider)
+        ? modalCompatibleKey.value.trim()
+        : modalApiKey.value.trim();
+      if (!key) {
+        setModalStatus(isCompatibleProvider(provider) ? "请输入 Key 后再测试" : "请输入 API Key 后再测试", "error");
+        return;
+      }
+      if (isCompatibleProvider(provider)) {
+        const baseUrl = modalBaseUrl.value.trim();
+        const modelName = modalModelName.value.trim();
+        if (!baseUrl || !modelName) {
+          setModalStatus("兼容配置需填写 URL 和模型名称", "error");
+          return;
+        }
+      }
+
+      testBtn.disabled = true;
+      testBtn.textContent = "连接中...";
+      setModalStatus("正在验证凭证...", "info");
+
+      setTimeout(() => {
+        const success = key.length >= 12;
+        if (success) {
+          setModalStatus("连接测试通过", "success");
+          testBtn.textContent = "测试通过";
+        } else {
+          setModalStatus("连接失败：Key 长度不符合要求", "error");
+          testBtn.textContent = "重试测试";
+        }
+        testBtn.disabled = false;
+      }, 900);
+    }
+
+    function saveConnection() {
+      const provider = getProvider(activeProviderId);
+      if (!provider) {
+        return;
+      }
+      const key = isCompatibleProvider(provider)
+        ? modalCompatibleKey.value.trim()
+        : modalApiKey.value.trim();
+      if (!key) {
+        setModalStatus(isCompatibleProvider(provider) ? "请输入 Key" : "请输入 API Key", "error");
+        return;
+      }
+
+      if (isCompatibleProvider(provider)) {
+        const baseUrl = modalBaseUrl.value.trim();
+        const modelName = modalModelName.value.trim();
+        const maxTokens = modalMaxTokens.value.trim();
+        if (!baseUrl || !modelName) {
+          setModalStatus("请填写 URL 和模型名称", "error");
+          return;
+        }
+        provider.baseUrl = baseUrl;
+        provider.modelName = modelName;
+        provider.maxTokens = maxTokens;
+      }
+
+      provider.key = key;
+      provider.connected = true;
+      ensurePresetModels(provider);
+      if (!provider.activeType || !provider.models[provider.activeType]) {
+        provider.activeType = "text";
+      }
+      if (isCompatibleProvider(provider) && provider.modelName) {
+        const existing = provider.models.text || (provider.models.text = []);
+        const compatibleModel = {
+          name: provider.modelName,
+          pricing: provider.maxTokens ? `Max Tokens ${provider.maxTokens}` : "兼容模型",
+          modelId: provider.modelName,
+          enabled: true
+        };
+        if (existing.length === 0) {
+          existing.push(compatibleModel);
+        } else {
+          existing[0] = { ...existing[0], ...compatibleModel };
+        }
+      }
+
+      renderProviders();
+      closeModal();
+    }
+
+    function addModel(providerId, type) {
+      const provider = getProvider(providerId);
+      if (!provider || !provider.allowModelManagement) {
+        return;
+      }
+      const targetList = provider.models[type] || (provider.models[type] = []);
+      const seed = targetList.length + 1;
+      targetList.push({
+        name: `${titleCaseType(type)}模型 ${seed}`,
+        pricing: type === "text" ? "输入 ¥1.0 / 输出 ¥1.2" : type === "image" ? "输入 ¥0.06 / 张" : "输入 ¥0.3 / 秒",
+        modelId: `${provider.id}-${type}-${Date.now().toString().slice(-6)}`,
+        enabled: true
+      });
+      renderProviders();
+    }
+
+    providerGrid.addEventListener("click", (event) => {
+      const actionEl = event.target.closest("[data-action]");
+      if (!actionEl) {
+        return;
+      }
+
+      const action = actionEl.dataset.action;
+      const providerId = actionEl.dataset.providerId;
+      const type = actionEl.dataset.type;
+      const index = Number(actionEl.dataset.index);
+      const provider = getProvider(providerId);
+
+      if (!provider && action !== "connect") {
+        return;
+      }
+
+      if (action === "connect") {
+        openModal(providerId, "connect");
+        return;
+      }
+
+      if (action === "edit-key") {
+        openModal(providerId, "edit");
+        return;
+      }
+
+      if (action === "edit-compatible") {
+        openModal(providerId, "edit");
+        return;
+      }
+
+      if (action === "switch-type") {
+        provider.activeType = type;
+        renderProviders();
+        return;
+      }
+
+      if (action === "add-model") {
+        if (!provider.allowModelManagement) {
+          return;
+        }
+        addModel(providerId, type);
+        return;
+      }
+
+      if (action === "delete-model") {
+        if (!provider.allowModelManagement) {
+          return;
+        }
+        const list = provider.models[type] || [];
+        if (Number.isInteger(index) && list[index]) {
+          list.splice(index, 1);
+          renderProviders();
+        }
+        return;
+      }
+
+      if (action === "edit-model") {
+        if (!provider.allowModelManagement) {
+          return;
+        }
+        const list = provider.models[type] || [];
+        if (Number.isInteger(index) && list[index]) {
+          const target = list[index];
+          const nextName = prompt("修改模型名称", target.name);
+          if (nextName && nextName.trim()) {
+            target.name = nextName.trim();
+            renderProviders();
+          }
+        }
+      }
+    });
+
+    providerGrid.addEventListener("change", (event) => {
+      const target = event.target;
+      if (!(target instanceof HTMLInputElement) || target.dataset.action !== "toggle-model") {
+        return;
+      }
+      const provider = getProvider(target.dataset.providerId);
+      if (!provider) {
+        return;
+      }
+      if (!isProviderReady(provider)) {
+        target.checked = false;
+        return;
+      }
+      const type = target.dataset.type;
+      const index = Number(target.dataset.index);
+      const list = provider.models[type] || [];
+      if (!Number.isInteger(index) || !list[index]) {
+        return;
+      }
+      list[index].enabled = target.checked;
+    });
+
+    modal.addEventListener("click", (event) => {
+      if (event.target === modal) {
+        closeModal();
+      }
+    });
+
+    modalClose.addEventListener("click", closeModal);
+    togglePasswordBtn.addEventListener("click", togglePassword);
+    testBtn.addEventListener("click", testConnection);
+    saveBtn.addEventListener("click", saveConnection);
+
+    document.addEventListener("keydown", (event) => {
+      if (event.key === "Escape" && !modal.classList.contains("hidden")) {
+        closeModal();
+      }
+    });
+
+    renderProviders();
+  </script>
+</body>
+</html>
