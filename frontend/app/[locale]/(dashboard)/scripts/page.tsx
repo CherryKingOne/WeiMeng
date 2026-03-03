@@ -67,35 +67,365 @@ export default function ScriptsPage() {
         ))}
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-        {Array.from({ length: 4 }).map((_, i) => (
-          <div key={i} className="bg-white rounded-2xl border border-gray-100 p-5 hover:shadow-lg hover:border-gray-200 transition-all cursor-pointer group">
-            <div className="flex items-start justify-between mb-4">
-              <div className="w-12 h-12 bg-gradient-to-br from-blue-100 to-blue-200 rounded-xl flex items-center justify-center">
-                <svg className="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+      <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+        <div className="script-card bg-white rounded-xl overflow-hidden cursor-pointer group border border-[#F3F4F6] hover:border-gray-200 transition-all">
+          <div className="flex h-48">
+            <div className="w-1/3 border-r border-gray-200 p-6 flex flex-col justify-center gap-2 bg-white">
+              <div className="rhythm-line h-1.5 bg-black rounded-full w-full origin-left" />
+              <div className="rhythm-line h-0.5 bg-gray-300 rounded-full w-[90%] origin-left" />
+              <div className="rhythm-line h-0.5 bg-gray-300 rounded-full w-[75%] origin-left" />
+              <div className="rhythm-line h-0.5 bg-gray-300 rounded-full w-[85%] origin-left" />
+              <div className="flex justify-center">
+                <div className="rhythm-line h-0.5 bg-gray-400 rounded-full w-[60%] origin-center" />
+              </div>
+              <div className="flex justify-center">
+                <div className="rhythm-line h-0.5 bg-gray-400 rounded-full w-[50%] origin-center" />
+              </div>
+              <div className="rhythm-line h-0.5 bg-gray-300 rounded-full w-[80%] origin-left" />
+              <div className="rhythm-line h-0.5 bg-gray-300 rounded-full w-[70%] origin-left" />
+              <div className="rhythm-line h-1.5 bg-black rounded-full w-[80%] origin-left mt-2" />
+              <div className="rhythm-line h-0.5 bg-gray-300 rounded-full w-[65%] origin-left" />
+            </div>
+
+            <div className="w-2/3 p-6 flex flex-col justify-between relative">
+              <div className="flex items-start justify-between">
+                <span className="px-3 py-1 bg-green-100 rounded-full text-[10px] font-medium text-green-700 tracking-wider">科幻</span>
+                <div className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+              </div>
+
+              <div>
+                <h3 className="text-2xl font-semibold text-black tracking-tight">黑客帝国</h3>
+                <p className="text-xs text-gray-400 mt-1">经典开场片段</p>
+              </div>
+
+              <div className="flex items-center gap-8">
+                <div>
+                  <p className="text-[10px] text-gray-400 uppercase tracking-wider mb-0.5">场景</p>
+                  <p className="text-sm font-medium font-mono text-black">12</p>
+                </div>
+                <div>
+                  <p className="text-[10px] text-gray-400 uppercase tracking-wider mb-0.5">角色</p>
+                  <p className="text-sm font-medium font-mono text-black">08</p>
+                </div>
+                <div>
+                  <p className="text-[10px] text-gray-400 uppercase tracking-wider mb-0.5">字数</p>
+                  <p className="text-sm font-medium font-mono text-black">2.3k</p>
+                </div>
+                <div className="flex-1" />
+                <svg className="w-5 h-5 text-black opacity-0 -translate-x-2 transition-all duration-300 group-hover:opacity-100 group-hover:translate-x-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 8l4 4m0 0l-4 4m4-4H3" />
                 </svg>
               </div>
-              <span className={`px-3 py-1 text-xs font-medium rounded-full ${
-                i === 0 ? 'bg-gray-100 text-gray-700' :
-                i === 1 ? 'bg-blue-100 text-blue-700' :
-                'bg-green-100 text-green-700'
-              }`}>
-                {i === 0 ? text.status.draft : i === 1 ? text.status.reviewing : text.status.published}
-              </span>
-            </div>
-            <h3 className="text-lg font-semibold text-gray-900 mb-2 group-hover:text-black transition-colors">
-              剧本标题 {i + 1}
-            </h3>
-            <p className="text-sm text-gray-500 mb-4 line-clamp-2">这是剧本的描述内容，包含主要情节和角色设定...</p>
-            <div className="flex items-center gap-4 text-xs text-gray-400">
-              <span>{text.words(1000 + i * 500)}</span>
-              <span>{text.scenes(5 + i * 2)}</span>
-              <span>{text.updated(i + 1)}</span>
             </div>
           </div>
-        ))}
+        </div>
+
+        <div className="script-card bg-white rounded-xl overflow-hidden cursor-pointer group border border-[#F3F4F6] hover:border-gray-200 transition-all">
+          <div className="flex h-48">
+            <div className="w-1/3 border-r border-gray-200 p-6 flex flex-col justify-center gap-2 bg-white relative">
+              <div className="absolute inset-0 bg-blue-50/30 flex items-center justify-center">
+                <div className="w-8 h-8 border-2 border-blue-200 border-t-blue-500 rounded-full animate-spin" />
+              </div>
+              <div className="rhythm-line h-1.5 bg-gray-200 rounded-full w-full origin-left" />
+              <div className="rhythm-line h-0.5 bg-gray-200 rounded-full w-[85%] origin-left" />
+              <div className="rhythm-line h-0.5 bg-gray-200 rounded-full w-[70%] origin-left" />
+              <div className="flex justify-center">
+                <div className="rhythm-line h-0.5 bg-gray-300 rounded-full w-[55%] origin-center" />
+              </div>
+              <div className="rhythm-line h-0.5 bg-gray-200 rounded-full w-[75%] origin-left" />
+              <div className="rhythm-line h-1.5 bg-gray-200 rounded-full w-[70%] origin-left mt-2" />
+            </div>
+
+            <div className="w-2/3 p-6 flex flex-col justify-between relative">
+              <div className="flex items-start justify-between">
+                <span className="px-3 py-1 bg-blue-100 rounded-full text-[10px] font-medium text-blue-700 tracking-wider">冒险</span>
+                <div className="w-1.5 h-1.5 rounded-full bg-blue-500 animate-pulse" />
+              </div>
+
+              <div>
+                <h3 className="text-2xl font-semibold text-black tracking-tight">火星救援</h3>
+                <p className="text-xs text-blue-600 mt-1 font-mono">
+                  AI 分析中
+                  <span className="loading-dots" aria-hidden="true" />
+                </p>
+              </div>
+
+              <div className="flex items-center gap-8">
+                <div>
+                  <p className="text-[10px] text-gray-400 uppercase tracking-wider mb-0.5">场景</p>
+                  <p className="text-sm font-medium font-mono text-gray-400">--</p>
+                </div>
+                <div>
+                  <p className="text-[10px] text-gray-400 uppercase tracking-wider mb-0.5">角色</p>
+                  <p className="text-sm font-medium font-mono text-gray-400">--</p>
+                </div>
+                <div>
+                  <p className="text-[10px] text-gray-400 uppercase tracking-wider mb-0.5">字数</p>
+                  <p className="text-sm font-medium font-mono text-black">4.8k</p>
+                </div>
+                <div className="flex-1" />
+                <svg className="w-5 h-5 text-black opacity-0 -translate-x-2 transition-all duration-300 group-hover:opacity-100 group-hover:translate-x-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 8l4 4m0 0l-4 4m4-4H3" />
+                </svg>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div className="script-card bg-white rounded-xl overflow-hidden cursor-pointer group border border-[#F3F4F6] hover:border-gray-200 transition-all">
+          <div className="flex h-48">
+            <div className="w-1/3 border-r border-gray-200 p-6 flex flex-col justify-center gap-2 bg-white">
+              <div className="rhythm-line h-1.5 bg-black rounded-full w-[90%] origin-left" />
+              <div className="rhythm-line h-0.5 bg-gray-300 rounded-full w-full origin-left" />
+              <div className="rhythm-line h-0.5 bg-gray-300 rounded-full w-[80%] origin-left" />
+              <div className="flex justify-center">
+                <div className="rhythm-line h-0.5 bg-gray-400 rounded-full w-[70%] origin-center" />
+              </div>
+              <div className="flex justify-center">
+                <div className="rhythm-line h-0.5 bg-gray-400 rounded-full w-[55%] origin-center" />
+              </div>
+              <div className="flex justify-center">
+                <div className="rhythm-line h-0.5 bg-gray-400 rounded-full w-[65%] origin-center" />
+              </div>
+              <div className="rhythm-line h-0.5 bg-gray-300 rounded-full w-[75%] origin-left" />
+              <div className="rhythm-line h-1.5 bg-black rounded-full w-[85%] origin-left mt-2" />
+            </div>
+
+            <div className="w-2/3 p-6 flex flex-col justify-between relative">
+              <div className="flex items-start justify-between">
+                <span className="px-3 py-1 bg-green-100 rounded-full text-[10px] font-medium text-green-700 tracking-wider">剧情</span>
+                <div className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+              </div>
+
+              <div>
+                <h3 className="text-2xl font-semibold text-black tracking-tight">星际穿越</h3>
+                <p className="text-xs text-gray-400 mt-1">逃生舱片段</p>
+              </div>
+
+              <div className="flex items-center gap-8">
+                <div>
+                  <p className="text-[10px] text-gray-400 uppercase tracking-wider mb-0.5">场景</p>
+                  <p className="text-sm font-medium font-mono text-black">08</p>
+                </div>
+                <div>
+                  <p className="text-[10px] text-gray-400 uppercase tracking-wider mb-0.5">角色</p>
+                  <p className="text-sm font-medium font-mono text-black">05</p>
+                </div>
+                <div>
+                  <p className="text-[10px] text-gray-400 uppercase tracking-wider mb-0.5">字数</p>
+                  <p className="text-sm font-medium font-mono text-black">1.5k</p>
+                </div>
+                <div className="flex-1" />
+                <svg className="w-5 h-5 text-black opacity-0 -translate-x-2 transition-all duration-300 group-hover:opacity-100 group-hover:translate-x-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 8l4 4m0 0l-4 4m4-4H3" />
+                </svg>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div className="script-card bg-white rounded-xl overflow-hidden cursor-pointer group border border-[#F3F4F6] hover:border-gray-200 transition-all">
+          <div className="flex h-48">
+            <div className="w-1/3 border-r border-gray-200 p-6 flex flex-col justify-center gap-2 bg-white">
+              <div className="rhythm-line h-1.5 bg-black rounded-full w-full origin-left" />
+              <div className="rhythm-line h-0.5 bg-gray-300 rounded-full w-[85%] origin-left" />
+              <div className="rhythm-line h-0.5 bg-gray-300 rounded-full w-[90%] origin-left" />
+              <div className="rhythm-line h-0.5 bg-gray-300 rounded-full w-[70%] origin-left" />
+              <div className="flex justify-center">
+                <div className="rhythm-line h-0.5 bg-gray-400 rounded-full w-[60%] origin-center" />
+              </div>
+              <div className="rhythm-line h-0.5 bg-gray-300 rounded-full w-[80%] origin-left" />
+              <div className="rhythm-line h-1.5 bg-black rounded-full w-[75%] origin-left mt-2" />
+            </div>
+
+            <div className="w-2/3 p-6 flex flex-col justify-between relative">
+              <div className="flex items-start justify-between">
+                <span className="px-3 py-1 bg-green-100 rounded-full text-[10px] font-medium text-green-700 tracking-wider">奇幻</span>
+                <div className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+              </div>
+
+              <div>
+                <h3 className="text-2xl font-semibold text-black tracking-tight">指环王</h3>
+                <p className="text-xs text-gray-400 mt-1">森林之子</p>
+              </div>
+
+              <div className="flex items-center gap-8">
+                <div>
+                  <p className="text-[10px] text-gray-400 uppercase tracking-wider mb-0.5">场景</p>
+                  <p className="text-sm font-medium font-mono text-black">15</p>
+                </div>
+                <div>
+                  <p className="text-[10px] text-gray-400 uppercase tracking-wider mb-0.5">角色</p>
+                  <p className="text-sm font-medium font-mono text-black">12</p>
+                </div>
+                <div>
+                  <p className="text-[10px] text-gray-400 uppercase tracking-wider mb-0.5">字数</p>
+                  <p className="text-sm font-medium font-mono text-black">3.2k</p>
+                </div>
+                <div className="flex-1" />
+                <svg className="w-5 h-5 text-black opacity-0 -translate-x-2 transition-all duration-300 group-hover:opacity-100 group-hover:translate-x-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 8l4 4m0 0l-4 4m4-4H3" />
+                </svg>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div className="script-card bg-white rounded-xl overflow-hidden cursor-pointer group border border-[#F3F4F6] hover:border-gray-200 transition-all">
+          <div className="flex h-48">
+            <div className="w-1/3 border-r border-gray-200 p-6 flex flex-col justify-center gap-2 bg-white">
+              <div className="rhythm-line h-1.5 bg-black rounded-full w-[85%] origin-left" />
+              <div className="rhythm-line h-0.5 bg-gray-300 rounded-full w-[75%] origin-left" />
+              <div className="rhythm-line h-0.5 bg-gray-300 rounded-full w-[90%] origin-left" />
+              <div className="flex justify-center">
+                <div className="rhythm-line h-0.5 bg-gray-400 rounded-full w-[50%] origin-center" />
+              </div>
+              <div className="flex justify-center">
+                <div className="rhythm-line h-0.5 bg-gray-400 rounded-full w-[65%] origin-center" />
+              </div>
+              <div className="rhythm-line h-0.5 bg-gray-300 rounded-full w-[80%] origin-left" />
+              <div className="rhythm-line h-1.5 bg-black rounded-full w-[70%] origin-left mt-2" />
+            </div>
+
+            <div className="w-2/3 p-6 flex flex-col justify-between relative">
+              <div className="flex items-start justify-between">
+                <span className="px-3 py-1 bg-green-100 rounded-full text-[10px] font-medium text-green-700 tracking-wider">恐怖</span>
+                <div className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+              </div>
+
+              <div>
+                <h3 className="text-2xl font-semibold text-black tracking-tight">科学怪人</h3>
+                <p className="text-xs text-gray-400 mt-1">创造</p>
+              </div>
+
+              <div className="flex items-center gap-8">
+                <div>
+                  <p className="text-[10px] text-gray-400 uppercase tracking-wider mb-0.5">场景</p>
+                  <p className="text-sm font-medium font-mono text-black">06</p>
+                </div>
+                <div>
+                  <p className="text-[10px] text-gray-400 uppercase tracking-wider mb-0.5">角色</p>
+                  <p className="text-sm font-medium font-mono text-black">04</p>
+                </div>
+                <div>
+                  <p className="text-[10px] text-gray-400 uppercase tracking-wider mb-0.5">字数</p>
+                  <p className="text-sm font-medium font-mono text-black">2.8k</p>
+                </div>
+                <div className="flex-1" />
+                <svg className="w-5 h-5 text-black opacity-0 -translate-x-2 transition-all duration-300 group-hover:opacity-100 group-hover:translate-x-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 8l4 4m0 0l-4 4m4-4H3" />
+                </svg>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div className="script-card bg-white rounded-xl overflow-hidden cursor-pointer group border border-[#F3F4F6] hover:border-gray-200 transition-all">
+          <div className="flex h-48">
+            <div className="w-1/3 border-r border-gray-200 p-6 flex flex-col justify-center gap-2 bg-white">
+              <div className="rhythm-line h-1.5 bg-black rounded-full w-full origin-left" />
+              <div className="rhythm-line h-0.5 bg-gray-300 rounded-full w-[80%] origin-left" />
+              <div className="flex justify-center">
+                <div className="rhythm-line h-0.5 bg-gray-400 rounded-full w-[70%] origin-center" />
+              </div>
+              <div className="flex justify-center">
+                <div className="rhythm-line h-0.5 bg-gray-400 rounded-full w-[55%] origin-center" />
+              </div>
+              <div className="flex justify-center">
+                <div className="rhythm-line h-0.5 bg-gray-400 rounded-full w-[60%] origin-center" />
+              </div>
+              <div className="rhythm-line h-0.5 bg-gray-300 rounded-full w-[85%] origin-left" />
+              <div className="rhythm-line h-1.5 bg-black rounded-full w-[80%] origin-left mt-2" />
+            </div>
+
+            <div className="w-2/3 p-6 flex flex-col justify-between relative">
+              <div className="flex items-start justify-between">
+                <span className="px-3 py-1 bg-green-100 rounded-full text-[10px] font-medium text-green-700 tracking-wider">爱情</span>
+                <div className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+              </div>
+
+              <div>
+                <h3 className="text-2xl font-semibold text-black tracking-tight">泰坦尼克号</h3>
+                <p className="text-xs text-gray-400 mt-1">甲板日落</p>
+              </div>
+
+              <div className="flex items-center gap-8">
+                <div>
+                  <p className="text-[10px] text-gray-400 uppercase tracking-wider mb-0.5">场景</p>
+                  <p className="text-sm font-medium font-mono text-black">10</p>
+                </div>
+                <div>
+                  <p className="text-[10px] text-gray-400 uppercase tracking-wider mb-0.5">角色</p>
+                  <p className="text-sm font-medium font-mono text-black">06</p>
+                </div>
+                <div>
+                  <p className="text-[10px] text-gray-400 uppercase tracking-wider mb-0.5">字数</p>
+                  <p className="text-sm font-medium font-mono text-black">4.1k</p>
+                </div>
+                <div className="flex-1" />
+                <svg className="w-5 h-5 text-black opacity-0 -translate-x-2 transition-all duration-300 group-hover:opacity-100 group-hover:translate-x-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 8l4 4m0 0l-4 4m4-4H3" />
+                </svg>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
+
+      <style jsx>{`
+        @keyframes rhythm-pulse {
+          0%,
+          100% {
+            transform: scaleX(1);
+          }
+          50% {
+            transform: scaleX(0.95);
+          }
+        }
+
+        .script-card:hover .rhythm-line {
+          animation: rhythm-pulse 0.6s ease-in-out infinite;
+        }
+
+        .script-card:hover .rhythm-line:nth-child(2n) {
+          animation-delay: 0.1s;
+        }
+
+        .script-card:hover .rhythm-line:nth-child(3n) {
+          animation-delay: 0.2s;
+        }
+
+        .script-card:hover .rhythm-line:nth-child(4n) {
+          animation-delay: 0.15s;
+        }
+
+        .loading-dots {
+          display: inline-block;
+          width: 1ch;
+          overflow: hidden;
+          vertical-align: bottom;
+          animation: dots-loop 1.2s infinite;
+        }
+
+        .loading-dots::before {
+          content: '...';
+        }
+
+        @keyframes dots-loop {
+          0% {
+            width: 1ch;
+          }
+          33% {
+            width: 2ch;
+          }
+          66% {
+            width: 3ch;
+          }
+          100% {
+            width: 1ch;
+          }
+        }
+      `}</style>
     </div>
   );
 }
