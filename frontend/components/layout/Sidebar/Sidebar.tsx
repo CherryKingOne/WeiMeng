@@ -1,11 +1,13 @@
 'use client';
 
 import { useSettingsStore } from '@/stores';
+import { useLocalePath } from '@/hooks/useLocalePath';
 import { SidebarLogo } from './SidebarLogo';
 import { SidebarNav } from './SidebarNav';
 
 export function SidebarFooter() {
   const { openSettings } = useSettingsStore();
+  const { locale } = useLocalePath();
 
   return (
     <div className="p-4 border-t border-gray-100">
@@ -27,7 +29,7 @@ export function SidebarFooter() {
             d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
           />
         </svg>
-        设置
+        {locale === 'en' ? 'Settings' : '设置'}
       </button>
     </div>
   );

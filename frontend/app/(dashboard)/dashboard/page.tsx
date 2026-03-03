@@ -3,13 +3,34 @@
 import { useState, useRef } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import { useLocalePath } from '@/hooks/useLocalePath';
 
 export default function DashboardPage() {
   const router = useRouter();
+  const { withLocalePath, locale } = useLocalePath();
+  const isEn = locale === 'en';
   const [isAgentActive, setIsAgentActive] = useState(false);
   const [modelName, setModelName] = useState('DeepThink R1');
   const [isWebSearchActive, setIsWebSearchActive] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+  const text = {
+    title: isEn ? 'WeiMeng makes design simple' : 'WeiMeng 让设计更简单',
+    subtitle: isEn ? 'Type your idea, AI turns it into endless possibilities' : '输入灵感，AI 为你创造无限可能',
+    promptPlaceholder: isEn
+      ? 'Describe what you want to create, or type @ to invoke an Agent...'
+      : '描述你想要创建的内容，或者通过 @ 调用 Agent...',
+    uploadFile: isEn ? 'Upload files' : '上传文件',
+    webSearch: isEn ? 'Web search' : '联网搜索',
+    agentOn: isEn ? 'Agent enabled' : 'Agent 已开启',
+    agentOff: isEn ? 'Enable Agent' : '开启 Agent',
+    continueCreation: isEn ? 'Continue Creating' : '继续创作',
+    viewAll: isEn ? 'View all' : '查看全部',
+    newProject: isEn ? 'New Project' : '新建项目',
+    time2h: isEn ? '2 hours ago' : '2 小时前',
+    timeYesterday: isEn ? 'Yesterday' : '昨天',
+    time3d: isEn ? '3 days ago' : '3 天前',
+  };
 
   const toggleAgent = () => {
     setIsAgentActive(!isAgentActive);
@@ -40,7 +61,7 @@ export default function DashboardPage() {
   };
 
   const handleNavigate = () => {
-    router.push('/teams');
+    router.push(withLocalePath('/teams'));
   };
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
@@ -53,8 +74,8 @@ export default function DashboardPage() {
   return (
     <div className="max-w-6xl mx-auto px-8 py-12">
       <div className="flex flex-col items-center justify-center pt-16 pb-16">
-        <h1 className="text-4xl font-semibold text-gray-900 mb-2 tracking-tight">WeiMeng 让设计更简单</h1>
-        <p className="text-gray-500 mb-10 text-base">输入灵感，AI 为你创造无限可能</p>
+        <h1 className="text-4xl font-semibold text-gray-900 mb-2 tracking-tight">{text.title}</h1>
+        <p className="text-gray-500 mb-10 text-base">{text.subtitle}</p>
 
         <div className="w-full max-w-3xl relative group">
           <div className="bg-white rounded-3xl border border-gray-200 shadow-[0_8px_30px_rgba(0,0,0,0.04)] hover:shadow-[0_12px_40px_rgba(0,0,0,0.08)] transition-all duration-300 overflow-hidden focus-within:ring-2 focus-within:ring-black/5 focus-within:border-black/10 relative z-10">
@@ -64,7 +85,7 @@ export default function DashboardPage() {
                 ref={textareaRef}
                 onInput={handleInput}
                 onKeyDown={handleKeyDown}
-                placeholder="描述你想要创建的内容，或者通过 @ 调用 Agent..." 
+                placeholder={text.promptPlaceholder}
                 className="w-full min-h-[140px] max-h-[300px] text-lg bg-transparent outline-none resize-none placeholder-gray-400 text-gray-900 leading-relaxed overflow-hidden scrollbar-hide"
               ></textarea>
             </div>
@@ -86,7 +107,7 @@ export default function DashboardPage() {
 
                 <button className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors relative group/tooltip">
                   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13"/></svg>
-                  <span className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-2 py-1 bg-black text-white text-xs rounded opacity-0 group-hover/tooltip:opacity-100 transition-opacity pointer-events-none whitespace-nowrap">上传文件</span>
+                  <span className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-2 py-1 bg-black text-white text-xs rounded opacity-0 group-hover/tooltip:opacity-100 transition-opacity pointer-events-none whitespace-nowrap">{text.uploadFile}</span>
                 </button>
                 
                 <button 
@@ -94,7 +115,7 @@ export default function DashboardPage() {
                   className={`p-2 rounded-lg transition-colors relative group/tooltip ${isWebSearchActive ? 'text-blue-500 bg-blue-50' : 'text-gray-400 hover:text-blue-500 hover:bg-blue-50'}`}
                 >
                   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9"/></svg>
-                  <span className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-2 py-1 bg-black text-white text-xs rounded opacity-0 group-hover/tooltip:opacity-100 transition-opacity pointer-events-none whitespace-nowrap">联网搜索</span>
+                  <span className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-2 py-1 bg-black text-white text-xs rounded opacity-0 group-hover/tooltip:opacity-100 transition-opacity pointer-events-none whitespace-nowrap">{text.webSearch}</span>
                 </button>
 
                 <button 
@@ -103,7 +124,7 @@ export default function DashboardPage() {
                 >
                   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z"/></svg>
                   <span className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-2 py-1 bg-black text-white text-xs rounded opacity-0 group-hover/tooltip:opacity-100 transition-opacity pointer-events-none whitespace-nowrap">
-                    {isAgentActive ? 'Agent 已开启' : '开启 Agent'}
+                    {isAgentActive ? text.agentOn : text.agentOff}
                   </span>
                 </button>
               </div>
@@ -129,21 +150,21 @@ export default function DashboardPage() {
 
       <div className="mt-8">
         <div className="flex items-center justify-between mb-6">
-          <h2 className="text-lg font-semibold text-gray-900">继续创作</h2>
-          <Link href="#" className="text-sm text-gray-500 hover:text-gray-900 transition-colors">查看全部</Link>
+          <h2 className="text-lg font-semibold text-gray-900">{text.continueCreation}</h2>
+          <Link href="#" className="text-sm text-gray-500 hover:text-gray-900 transition-colors">{text.viewAll}</Link>
         </div>
         
         <div className="grid grid-cols-4 gap-5">
           <Link href="#" className="aspect-square rounded-2xl border-2 border-dashed border-gray-200 flex flex-col items-center justify-center gap-3 text-gray-400 hover:border-gray-300 hover:text-gray-600 hover:bg-gray-50 transition-all scale-on-active">
             <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 4v16m8-8H4"/></svg>
-            <span className="text-sm font-medium">新建项目</span>
+            <span className="text-sm font-medium">{text.newProject}</span>
           </Link>
           
           <div className="rounded-2xl bg-white shadow-[0_8px_30px_rgba(0,0,0,0.04)] overflow-hidden hover-lift cursor-pointer scale-on-active">
             <div className="aspect-[4/3] bg-gradient-to-br from-purple-100 to-pink-100"></div>
             <div className="p-4">
               <h3 className="font-medium text-gray-900 text-sm truncate">品牌视觉设计</h3>
-              <p className="text-xs text-gray-400 mt-1">2 小时前</p>
+              <p className="text-xs text-gray-400 mt-1">{text.time2h}</p>
             </div>
           </div>
           
@@ -151,7 +172,7 @@ export default function DashboardPage() {
             <div className="aspect-[4/3] bg-gradient-to-br from-blue-100 to-cyan-100"></div>
             <div className="p-4">
               <h3 className="font-medium text-gray-900 text-sm truncate">3D 产品展示</h3>
-              <p className="text-xs text-gray-400 mt-1">昨天</p>
+              <p className="text-xs text-gray-400 mt-1">{text.timeYesterday}</p>
             </div>
           </div>
           
@@ -159,7 +180,7 @@ export default function DashboardPage() {
             <div className="aspect-[4/3] bg-gradient-to-br from-amber-100 to-orange-100"></div>
             <div className="p-4">
               <h3 className="font-medium text-gray-900 text-sm truncate">社交媒体海报</h3>
-              <p className="text-xs text-gray-400 mt-1">3 天前</p>
+              <p className="text-xs text-gray-400 mt-1">{text.time3d}</p>
             </div>
           </div>
         </div>

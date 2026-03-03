@@ -3,9 +3,11 @@
 import Link from "next/link";
 import { useState, useRef } from "react";
 import { useRouter } from "next/navigation";
+import { useLocalePath } from "@/hooks/useLocalePath";
 
 export default function LoginPage() {
   const router = useRouter();
+  const { withLocalePath } = useLocalePath();
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [email, setEmail] = useState("");
@@ -55,7 +57,7 @@ export default function LoginPage() {
       // 保存 token
       localStorage.setItem("token", data.access_token);
 
-      router.push("/dashboard");
+      router.push(withLocalePath("/dashboard"));
     } catch (err: any) {
       console.error("Login error:", err);
       setError(err.message || "登录服务暂不可用");
@@ -222,7 +224,7 @@ export default function LoginPage() {
                   </span>
                 </label>
                 <Link
-                  href="/forgot-password"
+                  href={withLocalePath("/forgot-password")}
                   className="text-sm text-black hover:text-gray-600 transition-colors"
                 >
                   忘记密码?
@@ -258,7 +260,7 @@ export default function LoginPage() {
               <p className="text-gray-500">
                 还没有账号？{" "}
                 <Link
-                  href="/signup"
+                  href={withLocalePath("/signup")}
                   className="text-black font-bold hover:underline"
                 >
                   立即注册

@@ -2,6 +2,7 @@
 
 import React, { useState, useRef } from 'react';
 import Link from 'next/link';
+import { useLocalePath } from '@/hooks/useLocalePath';
 
 // Define Node Types
 type NodeType = 'media' | 'video' | 'text' | 'gen' | 'videogen' | 'post' | 'upscale' | 'controlnet';
@@ -43,6 +44,8 @@ const INITIAL_NODES: NodeData[] = [
 ];
 
 export default function WorkflowEditor() {
+  const { withLocalePath } = useLocalePath();
+  const workflowsPath = withLocalePath('/workflows');
   const [nodes, setNodes] = useState<NodeData[]>(INITIAL_NODES);
   const [activeTab, setActiveTab] = useState('assets');
   const [selectedNode, setSelectedNode] = useState<string | null>(null);
@@ -696,7 +699,7 @@ export default function WorkflowEditor() {
       </div>
 
       {/* Floating Back Button */}
-      <Link href="/workflows" className="fixed top-6 left-6 w-10 h-10 bg-white rounded-full shadow-lg border border-gray-100 flex items-center justify-center text-gray-600 hover:text-black hover:scale-110 transition-all z-50">
+      <Link href={workflowsPath} className="fixed top-6 left-6 w-10 h-10 bg-white rounded-full shadow-lg border border-gray-100 flex items-center justify-center text-gray-600 hover:text-black hover:scale-110 transition-all z-50">
         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/></svg>
       </Link>
 

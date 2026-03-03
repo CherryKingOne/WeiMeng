@@ -3,9 +3,11 @@
 import Link from "next/link";
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import { useLocalePath } from "@/hooks/useLocalePath";
 
 export default function ForgotPasswordPage() {
   const router = useRouter();
+  const { withLocalePath } = useLocalePath();
   const [email, setEmail] = useState("");
   const [isFlipped, setIsFlipped] = useState(false);
  const [countdown, setCountdown] = useState(60);
@@ -54,7 +56,7 @@ export default function ForgotPasswordPage() {
 
       if (response.ok) {
         showMessage('success', "密码重置成功，即将跳转登录页...");
-        setTimeout(() => router.push("/login"), 1500);
+        setTimeout(() => router.push(withLocalePath("/login")), 1500);
       } else {
         showMessage('error', data.detail || "密码重置失败，请重试");
       }
@@ -140,7 +142,7 @@ export default function ForgotPasswordPage() {
       <div className="w-full lg:w-[40%] h-full bg-white flex flex-col relative z-10">
         {/* Logo */}
         <div className="pt-2 pl-10">
-          <Link href="/login">
+          <Link href={withLocalePath("/login")}>
             <img
               src="/logo/logo-light-transparent.png"
               alt="Logo"
@@ -262,7 +264,7 @@ export default function ForgotPasswordPage() {
               {/* Back Link */}
               <div className="mt-8 text-center">
                 <Link
-                  href="/login"
+                  href={withLocalePath("/login")}
                   className="text-sm text-gray-500 hover:text-black flex items-center justify-center gap-2 transition-colors"
                 >
                   <svg
@@ -451,7 +453,7 @@ export default function ForgotPasswordPage() {
               {/* Back Link */}
               <div className="mt-4 text-center">
                 <Link
-                  href="/login"
+                  href={withLocalePath("/login")}
                   className="text-sm text-gray-500 hover:text-black flex items-center justify-center gap-2 transition-colors"
                 >
                   <svg

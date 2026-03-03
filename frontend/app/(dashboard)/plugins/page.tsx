@@ -1,40 +1,74 @@
 'use client';
 
 import { useState } from 'react';
+import { useLocalePath } from '@/hooks/useLocalePath';
 
 export default function PluginsPage() {
+  const { locale } = useLocalePath();
+  const isEn = locale === 'en';
   const [activeFilter, setActiveFilter] = useState('all');
 
+  type PluginCategoryKey = 'model' | 'image' | 'tool' | 'workflow';
+
+  const text = {
+    title: isEn ? 'Plugin Marketplace' : '插件市场',
+    searchPlaceholder: isEn ? 'Search plugins...' : '搜索插件...',
+    filters: {
+      all: isEn ? 'All' : '全部',
+      installed: isEn ? 'Installed' : '已安装',
+      model: isEn ? 'Model Training' : '模型训练',
+      image: isEn ? 'Image Generation' : '图像生成',
+      tool: isEn ? 'Tooling' : '工具增强',
+    },
+    categoryLabel: {
+      model: isEn ? 'Model Training' : '模型训练',
+      image: isEn ? 'Image Generation' : '图像生成',
+      tool: isEn ? 'Tooling' : '工具增强',
+      workflow: isEn ? 'Workflow' : '工作流',
+    },
+    downloadsSuffix: isEn ? 'downloads' : '下载',
+    enabled: isEn ? 'Enabled' : '已启用',
+    disabled: isEn ? 'Disabled' : '已禁用',
+    install: isEn ? 'Install' : '安装',
+  };
+
   const filters = [
-    { id: 'all', label: '全部' },
-    { id: 'installed', label: '已安装' },
-    { id: 'model', label: '模型训练' },
-    { id: 'image', label: '图像生成' },
-    { id: 'tool', label: '工具增强' },
+    { id: 'all', label: text.filters.all },
+    { id: 'installed', label: text.filters.installed },
+    { id: 'model', label: text.filters.model },
+    { id: 'image', label: text.filters.image },
+    { id: 'tool', label: text.filters.tool },
   ];
 
-  const plugins = [
-    { name: 'Stable Diffusion XL', category: '图像生成', rating: 4.8, downloads: '10K+', installed: true, active: true },
-    { name: 'LoRA Trainer', category: '模型训练', rating: 4.5, downloads: '5K+', installed: true, active: false },
-    { name: 'ControlNet', category: '图像生成', rating: 4.9, downloads: '20K+', installed: false, active: false },
-    { name: 'Batch Processor', category: '工具增强', rating: 4.3, downloads: '3K+', installed: false, active: false },
+  const plugins: Array<{
+    name: string;
+    category: PluginCategoryKey;
+    rating: number;
+    downloads: string;
+    installed: boolean;
+    active: boolean;
+  }> = [
+    { name: 'Stable Diffusion XL', category: 'image', rating: 4.8, downloads: '10K+', installed: true, active: true },
+    { name: 'LoRA Trainer', category: 'model', rating: 4.5, downloads: '5K+', installed: true, active: false },
+    { name: 'ControlNet', category: 'image', rating: 4.9, downloads: '20K+', installed: false, active: false },
+    { name: 'Batch Processor', category: 'tool', rating: 4.3, downloads: '3K+', installed: false, active: false },
   ];
 
-  const categoryColors: Record<string, string> = {
-    '模型训练': 'from-purple-500 to-pink-500',
-    '图像生成': 'from-blue-500 to-cyan-500',
-    '工具增强': 'from-green-500 to-emerald-500',
-    '工作流': 'from-orange-500 to-red-500',
+  const categoryColors: Record<PluginCategoryKey, string> = {
+    model: 'from-purple-500 to-pink-500',
+    image: 'from-blue-500 to-cyan-500',
+    tool: 'from-green-500 to-emerald-500',
+    workflow: 'from-orange-500 to-red-500',
   };
 
   return (
     <div className="max-w-7xl mx-auto px-8 py-8">
       <div className="flex items-center justify-between mb-6">
-        <h1 className="text-3xl font-bold text-gray-900">插件市场</h1>
+        <h1 className="text-3xl font-bold text-gray-900">{text.title}</h1>
         <div className="flex items-center gap-3">
           <div className="relative">
             <svg className="w-5 h-5 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
-            <input type="text" placeholder="搜索插件..." className="pl-10 pr-4 py-2.5 bg-gray-100 rounded-full text-sm outline-none focus:bg-white focus:ring-2 focus:ring-gray-200 transition-all w-64" />
+            <input type="text" placeholder={text.searchPlaceholder} className="pl-10 pr-4 py-2.5 bg-gray-100 rounded-full text-sm outline-none focus:bg-white focus:ring-2 focus:ring-gray-200 transition-all w-64" />
           </div>
         </div>
       </div>
@@ -66,7 +100,7 @@ export default function PluginsPage() {
               </div>
               <div className="flex-1 min-w-0">
                 <h3 className="text-lg font-semibold text-gray-900 mb-1">{plugin.name}</h3>
-                <p className="text-sm text-gray-500">{plugin.category}</p>
+                <p className="text-sm text-gray-500">{text.categoryLabel[plugin.category]}</p>
               </div>
             </div>
             <div className="flex items-center justify-between mt-4 pt-4 border-t border-gray-100">
@@ -77,7 +111,7 @@ export default function PluginsPage() {
                   </svg>
                   {plugin.rating}
                 </span>
-                <span>{plugin.downloads} 下载</span>
+                <span>{plugin.downloads} {text.downloadsSuffix}</span>
               </div>
               {plugin.installed ? (
                 <button className={`px-4 py-2 text-sm font-medium rounded-xl transition-colors ${
@@ -85,11 +119,11 @@ export default function PluginsPage() {
                     ? 'bg-black text-white'
                     : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                 }`}>
-                  {plugin.active ? '已启用' : '已禁用'}
+                  {plugin.active ? text.enabled : text.disabled}
                 </button>
               ) : (
                 <button className="px-4 py-2 text-sm font-medium bg-black text-white rounded-xl hover:bg-gray-800 transition-colors">
-                  安装
+                  {text.install}
                 </button>
               )}
             </div>

@@ -3,9 +3,11 @@
 import Link from "next/link";
 import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
+import { useLocalePath } from "@/hooks/useLocalePath";
 
 export default function SignupPage() {
   const router = useRouter();
+  const { withLocalePath } = useLocalePath();
   const [loading, setLoading] = useState(false);
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
@@ -111,7 +113,7 @@ export default function SignupPage() {
 
       // Redirect
       setTimeout(() => {
-        router.push("/login");
+        router.push(withLocalePath("/login"));
       }, 2000);
     } catch (error: any) {
       setError(error.message);
@@ -436,7 +438,7 @@ export default function SignupPage() {
               <p className="text-gray-500">
                 已有账号？{" "}
                 <Link
-                  href="/login"
+                  href={withLocalePath("/login")}
                   className="text-black font-bold hover:underline"
                 >
                   直接登录

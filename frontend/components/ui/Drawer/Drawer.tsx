@@ -8,9 +8,19 @@ interface DrawerProps {
   title?: string;
   children: React.ReactNode;
   width?: string;
+  headerAction?: React.ReactNode;
+  hideCloseButton?: boolean;
 }
 
-export function Drawer({ isOpen, onClose, title, children, width = '400px' }: DrawerProps) {
+export function Drawer({
+  isOpen,
+  onClose,
+  title,
+  children,
+  width = '400px',
+  headerAction,
+  hideCloseButton = false,
+}: DrawerProps) {
   return (
     <>
       <div
@@ -32,14 +42,20 @@ export function Drawer({ isOpen, onClose, title, children, width = '400px' }: Dr
         {title && (
           <div className="flex items-center justify-between p-6 border-b border-gray-100">
             <h2 className="text-lg font-semibold text-gray-900">{title}</h2>
-            <button
-              onClick={onClose}
-              className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-gray-100 transition-colors"
-            >
-              <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-              </svg>
-            </button>
+            {headerAction ? (
+              headerAction
+            ) : (
+              !hideCloseButton && (
+                <button
+                  onClick={onClose}
+                  className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-gray-100 transition-colors"
+                >
+                  <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              )
+            )}
           </div>
         )}
         <div className="p-6 overflow-y-auto h-[calc(100%-80px)]">{children}</div>
