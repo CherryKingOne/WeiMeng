@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef, useCallback, useEffect } from 'react';
+import { Suspense, useState, useRef, useCallback, useEffect } from 'react';
 import { useSearchParams } from 'next/navigation';
 
 interface Message {
@@ -62,7 +62,7 @@ const mockProjects: Record<string, Project> = {
   },
 };
 
-export default function TeamsPage() {
+function TeamsPageContent() {
   const searchParams = useSearchParams();
   const projectId = searchParams.get('projectId');
   const isNew = searchParams.get('new');
@@ -464,5 +464,13 @@ export default function TeamsPage() {
         </aside>
       </div>
     </div>
+  );
+}
+
+export default function TeamsPage() {
+  return (
+    <Suspense fallback={<div className="h-screen bg-white" />}>
+      <TeamsPageContent />
+    </Suspense>
   );
 }
