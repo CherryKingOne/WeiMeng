@@ -180,19 +180,20 @@
                 <!-- Plugin Grid -->
                 <div class="grid grid-cols-3 gap-5">
                     <!-- Plugin Card 1 - Installed -->
-                    <div class="bg-white rounded-2xl p-5 shadow-[0_8px_30px_rgba(0,0,0,0.04)] hover-lift relative">
-                        <!-- Active Indicator -->
-                        <div class="absolute top-5 right-5 flex items-center gap-1.5">
-                            <span class="w-2 h-2 bg-green-500 rounded-full"></span>
-                            <span class="text-xs text-gray-400">Active</span>
-                        </div>
+                    <div class="bg-white rounded-2xl p-5 shadow-[0_8px_30px_rgba(0,0,0,0.04)] hover-lift">
                         <div class="flex items-start justify-between mb-4">
                             <div class="w-12 h-12 bg-gradient-to-br from-blue-400 to-cyan-400 rounded-xl flex items-center justify-center">
                                 <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
                             </div>
-                            <button onclick="openConfigDrawer('LoRA Trainer', '模型训练')" class="px-4 py-1.5 bg-gray-100 text-gray-700 text-sm font-medium rounded-lg hover:bg-gray-200 transition-colors scale-on-active">
-                                配置
-                            </button>
+                            <div class="flex items-center gap-2">
+                                <span class="inline-flex items-center gap-1.5 px-2.5 py-1 bg-green-50 text-green-700 text-xs font-medium rounded-full">
+                                    <span class="w-1.5 h-1.5 bg-green-500 rounded-full"></span>
+                                    Active
+                                </span>
+                                <button onclick="openConfigDrawer('LoRA Trainer', '模型训练')" class="px-4 py-1.5 bg-gray-100 text-gray-700 text-sm font-medium rounded-lg hover:bg-gray-200 transition-colors scale-on-active">
+                                    配置
+                                </button>
+                            </div>
                         </div>
                         <h3 class="font-semibold text-gray-900 mb-1">LoRA Trainer</h3>
                         <p class="text-sm text-gray-500 mb-4 line-clamp-2">快速训练自定义 LoRA 模型，支持多种基础模型和参数调优。</p>
@@ -233,18 +234,20 @@
                     </div>
 
                     <!-- Plugin Card 3 - Installed -->
-                    <div class="bg-white rounded-2xl p-5 shadow-[0_8px_30px_rgba(0,0,0,0.04)] hover-lift relative">
-                        <div class="absolute top-5 right-5 flex items-center gap-1.5">
-                            <span class="w-2 h-2 bg-green-500 rounded-full"></span>
-                            <span class="text-xs text-gray-400">Active</span>
-                        </div>
+                    <div class="bg-white rounded-2xl p-5 shadow-[0_8px_30px_rgba(0,0,0,0.04)] hover-lift">
                         <div class="flex items-start justify-between mb-4">
                             <div class="w-12 h-12 bg-gradient-to-br from-amber-400 to-orange-400 rounded-xl flex items-center justify-center">
                                 <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
                             </div>
-                            <button onclick="openConfigDrawer('Prompt Enhancer', '工具增强')" class="px-4 py-1.5 bg-gray-100 text-gray-700 text-sm font-medium rounded-lg hover:bg-gray-200 transition-colors scale-on-active">
-                                配置
-                            </button>
+                            <div class="flex items-center gap-2">
+                                <span class="inline-flex items-center gap-1.5 px-2.5 py-1 bg-green-50 text-green-700 text-xs font-medium rounded-full">
+                                    <span class="w-1.5 h-1.5 bg-green-500 rounded-full"></span>
+                                    Active
+                                </span>
+                                <button onclick="openConfigDrawer('Prompt Enhancer', '工具增强')" class="px-4 py-1.5 bg-gray-100 text-gray-700 text-sm font-medium rounded-lg hover:bg-gray-200 transition-colors scale-on-active">
+                                    配置
+                                </button>
+                            </div>
                         </div>
                         <h3 class="font-semibold text-gray-900 mb-1">Prompt Enhancer</h3>
                         <p class="text-sm text-gray-500 mb-4 line-clamp-2">智能优化你的提示词，让 AI 生成效果更加出色。</p>
@@ -309,18 +312,20 @@
                     </div>
 
                     <!-- Plugin Card 6 - Installed -->
-                    <div class="bg-white rounded-2xl p-5 shadow-[0_8px_30px_rgba(0,0,0,0.04)] hover-lift relative">
-                        <div class="absolute top-5 right-5 flex items-center gap-1.5">
-                            <span class="w-2 h-2 bg-green-500 rounded-full"></span>
-                            <span class="text-xs text-gray-400">Active</span>
-                        </div>
+                    <div class="bg-white rounded-2xl p-5 shadow-[0_8px_30px_rgba(0,0,0,0.04)] hover-lift">
                         <div class="flex items-start justify-between mb-4">
                             <div class="w-12 h-12 bg-gradient-to-br from-indigo-400 to-blue-400 rounded-xl flex items-center justify-center">
                                 <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
                             </div>
-                            <button onclick="openConfigDrawer('Auto Caption', '工具增强')" class="px-4 py-1.5 bg-gray-100 text-gray-700 text-sm font-medium rounded-lg hover:bg-gray-200 transition-colors scale-on-active">
-                                配置
-                            </button>
+                            <div class="flex items-center gap-2">
+                                <span class="inline-flex items-center gap-1.5 px-2.5 py-1 bg-green-50 text-green-700 text-xs font-medium rounded-full">
+                                    <span class="w-1.5 h-1.5 bg-green-500 rounded-full"></span>
+                                    Active
+                                </span>
+                                <button onclick="openConfigDrawer('Auto Caption', '工具增强')" class="px-4 py-1.5 bg-gray-100 text-gray-700 text-sm font-medium rounded-lg hover:bg-gray-200 transition-colors scale-on-active">
+                                    配置
+                                </button>
+                            </div>
                         </div>
                         <h3 class="font-semibold text-gray-900 mb-1">Auto Caption</h3>
                         <p class="text-sm text-gray-500 mb-4 line-clamp-2">自动生成图像描述，支持多语言和多种描述风格。</p>
