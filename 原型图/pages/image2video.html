@@ -1,0 +1,530 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>视频生成工作区 - WeiMeng</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <style>
+        * { font-family: 'Inter', sans-serif; }
+        
+        /* Custom scrollbar */
+        .custom-scrollbar::-webkit-scrollbar { width: 4px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #E5E7EB; border-radius: 2px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #D1D5DB; }
+        
+        /* Shimmer effect for generating cards */
+        @keyframes shimmer {
+            0% { transform: translateX(-100%); }
+            100% { transform: translateX(100%); }
+        }
+        .shimmer-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.6), rgba(139, 92, 246, 0.2), rgba(99, 102, 241, 0.2), transparent);
+            animation: shimmer 2s infinite;
+        }
+        
+        /* Breathing aurora background */
+        @keyframes auroraBreathe {
+            0%, 100% { opacity: 0.5; transform: scale(1); }
+            50% { opacity: 0.8; transform: scale(1.1); }
+        }
+        .aurora-bg {
+            animation: auroraBreathe 6s ease-in-out infinite;
+        }
+        
+        /* Pill toggle animation */
+        .pill-toggle {
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        
+        /* Button press effect */
+        .press-effect:active {
+            transform: scale(0.95);
+        }
+        
+        /* Card hover toolbar */
+        .card-toolbar {
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+        .video-card:hover .card-toolbar {
+            opacity: 1;
+        }
+        
+        /* Auto-resize textarea */
+        textarea {
+            field-sizing: content;
+            min-height: 100px;
+            max-height: 200px;
+        }
+        
+        /* Dropdown menu */
+        .dropdown-menu {
+            opacity: 0;
+            visibility: hidden;
+            transform: translateY(-8px);
+            transition: all 0.2s ease;
+        }
+        .dropdown-menu.show {
+            opacity: 1;
+            visibility: visible;
+            transform: translateY(0);
+        }
+        
+        /* Fade in animation */
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .fade-in {
+            animation: fadeIn 0.5s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+        }
+        
+        /* Glassmorphism */
+        .glass {
+            background: rgba(255, 255, 255, 0.7);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.8);
+        }
+        
+        /* Video placeholder skeleton */
+        .skeleton-card {
+            background: linear-gradient(135deg, #F3F4F6 0%, #E5E7EB 100%);
+        }
+    </style>
+</head>
+<body class="bg-white text-gray-900">
+    <div class="flex w-screen h-screen overflow-hidden">
+        <!-- Left: Control Panel -->
+        <aside class="w-[360px] flex-shrink-0 bg-[#F9FAFB] flex flex-col relative">
+            <!-- Left panel border-shadow -->
+            <div class="absolute top-0 right-0 w-[1px] h-full bg-gradient-to-b from-transparent via-white to-transparent"></div>
+            
+            <!-- Header: Back + Mode Switcher -->
+            <header class="px-6 pt-6 pb-4">
+                <div class="flex items-center justify-between">
+                    <!-- Back button -->
+                    <button class="flex items-center gap-1 text-gray-500 hover:text-gray-900 transition-colors press-effect">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M15 19l-7-7 7-7"/>
+                        </svg>
+                        <span class="text-sm font-medium">返回</span>
+                    </button>
+                    
+                    <!-- Segmented Control -->
+                    <div class="bg-gray-100 rounded-full p-1 flex">
+                        <button onclick="setMode('reference')" id="btn-reference" class="px-3 py-1.5 text-sm font-medium rounded-full transition-all duration-200">
+                            参考生视频
+                        </button>
+                        <button onclick="setMode('image')" id="btn-image" class="px-3 py-1.5 text-sm font-medium rounded-full bg-white shadow-sm transition-all duration-200">
+                            图生视频
+                        </button>
+                        <button onclick="setMode('text')" id="btn-text" class="px-3 py-1.5 text-sm font-medium rounded-full transition-all duration-200">
+                            文生视频
+                        </button>
+                    </div>
+                </div>
+            </header>
+            
+            <!-- Scrollable Content -->
+            <div class="flex-1 overflow-y-auto custom-scrollbar px-6 pb-32">
+                <!-- Section A: First Frame Image (only for image mode) -->
+                <div id="first-frame-section" class="mb-6">
+                    <h3 class="text-xs font-medium text-gray-400 uppercase tracking-wider mb-3">首帧图片</h3>
+                    <div 
+                        id="first-frame-upload"
+                        class="aspect-video rounded-2xl bg-[#F3F4F6] border-2 border-dashed border-gray-200 flex flex-col items-center justify-center cursor-pointer transition-all duration-300 hover:bg-[#EEF0F2] hover:border-gray-300 group"
+                        onclick="triggerFileUpload()"
+                    >
+                        <div class="text-center transition-transform duration-300 group-hover:-translate-y-1">
+                            <svg class="w-8 h-8 mx-auto text-gray-400 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 4v16m8-8H4"/>
+                            </svg>
+                            <p class="text-sm text-gray-500">添加首帧</p>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Section B: Prompt Area -->
+                <div class="mb-6">
+                    <h3 class="text-xs font-medium text-gray-400 uppercase tracking-wider mb-3">提示词</h3>
+                    <div class="relative">
+                        <textarea 
+                            id="prompt-input"
+                            class="w-full bg-[#F3F4F6] border-0 rounded-xl p-4 text-sm text-gray-700 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-gray-200 focus:bg-white transition-all resize-none"
+                            rows="3"
+                            placeholder="描述你想要生成的画面动态、镜头运动..."
+                            oninput="autoResize(this); checkInput()"
+                        ></textarea>
+                        <!-- AI Optimize Button -->
+                        <button class="absolute bottom-3 right-3 p-1.5 text-gray-400 hover:text-gray-600 hover:bg-gray-200 rounded-lg transition-colors press-effect">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z"/>
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- Section C: Settings -->
+                <div class="mb-6">
+                    <h3 class="text-xs font-medium text-gray-400 uppercase tracking-wider mb-3">参数设置</h3>
+                    
+                    <!-- Model -->
+                    <div class="flex items-center justify-between mb-4">
+                        <span class="text-sm text-gray-500">模型</span>
+                        <div class="relative">
+                            <button 
+                                onclick="toggleDropdown('model-dropdown')" 
+                                class="flex items-center gap-2 px-3 py-2 bg-transparent border border-gray-200 rounded-lg text-sm text-gray-700 hover:border-gray-300 transition-colors press-effect"
+                            >
+                                <span>Vidu Q3 v</span>
+                                <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+                                </svg>
+                            </button>
+                            <div id="model-dropdown" class="dropdown-menu absolute right-0 mt-2 w-40 bg-white rounded-xl shadow-lg border border-gray-100 py-1 z-50">
+                                <button class="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-50 transition-colors">Vidu Q3 v</button>
+                                <button class="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-50 transition-colors">Kling Pro</button>
+                                <button class="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-50 transition-colors">Sora</button>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Resolution -->
+                    <div class="flex items-center justify-between mb-4">
+                        <span class="text-sm text-gray-500">清晰度</span>
+                        <div class="relative">
+                            <button 
+                                onclick="toggleDropdown('resolution-dropdown')" 
+                                class="flex items-center gap-2 px-3 py-2 bg-transparent border border-gray-200 rounded-lg text-sm text-gray-700 hover:border-gray-300 transition-colors press-effect"
+                            >
+                                <span>720p</span>
+                                <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+                                </svg>
+                            </button>
+                            <div id="resolution-dropdown" class="dropdown-menu absolute right-0 mt-2 w-32 bg-white rounded-xl shadow-lg border border-gray-100 py-1 z-50">
+                                <button class="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-50 transition-colors">480p</button>
+                                <button class="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-50 transition-colors">720p</button>
+                                <button class="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-50 transition-colors">1080p</button>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Generation Mode -->
+                    <div class="flex items-center justify-between mb-4">
+                        <span class="text-sm text-gray-500">生成模式</span>
+                        <div class="relative">
+                            <button 
+                                onclick="toggleDropdown('mode-dropdown')" 
+                                class="flex items-center gap-2 px-3 py-2 bg-transparent border border-gray-200 rounded-lg text-sm text-gray-700 hover:border-gray-300 transition-colors press-effect"
+                            >
+                                <span>标准</span>
+                                <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+                                </svg>
+                            </button>
+                            <div id="mode-dropdown" class="dropdown-menu absolute right-0 mt-2 w-32 bg-white rounded-xl shadow-lg border border-gray-100 py-1 z-50">
+                                <button class="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-50 transition-colors">快速</button>
+                                <button class="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-50 transition-colors">标准</button>
+                                <button class="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-50 transition-colors">高画质</button>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Quantity -->
+                    <div class="flex items-center justify-between">
+                        <span class="text-sm text-gray-500">生成数量</span>
+                        <div class="flex items-center bg-gray-100 rounded-full p-1">
+                            <button onclick="setQuantity(1)" id="qty-1" class="pill-toggle w-8 h-8 rounded-full text-sm font-medium text-gray-500 hover:text-gray-900 transition-colors">1</button>
+                            <button onclick="setQuantity(2)" id="qty-2" class="pill-toggle w-8 h-8 rounded-full text-sm font-medium bg-black text-white transition-colors">2</button>
+                            <button onclick="setQuantity(3)" id="qty-3" class="pill-toggle w-8 h-8 rounded-full text-sm font-medium text-gray-500 hover:text-gray-900 transition-colors">3</button>
+                            <button onclick="setQuantity(4)" id="qty-4" class="pill-toggle w-8 h-8 rounded-full text-sm font-medium text-gray-500 hover:text-gray-900 transition-colors">4</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Bottom Action Area with gradient mask -->
+            <div class="absolute bottom-0 left-0 right-0">
+                <div class="h-8 bg-gradient-to-t from-[#F9FAFB] to-transparent pointer-events-none"></div>
+                <div class="px-6 pb-6 pt-2 bg-[#F9FAFB]">
+                    <button 
+                        id="generate-btn"
+                        onclick="startGeneration()"
+                        class="w-full h-[52px] bg-gray-200 text-gray-400 rounded-2xl text-base font-medium transition-all duration-300 cursor-not-allowed"
+                        disabled
+                    >
+                        开始创作
+                    </button>
+                </div>
+            </div>
+        </aside>
+        
+        <!-- Right: Canvas / Preview Area -->
+        <main class="flex-1 bg-white relative overflow-hidden flex items-center justify-center">
+            
+            <!-- State 1: Empty State -->
+            <div id="empty-state" class="flex flex-col items-center justify-center">
+                <!-- Aurora Background -->
+                <div class="absolute inset-0 flex items-center justify-center">
+                    <div class="w-[600px] h-[400px] bg-gradient-to-r from-purple-100 via-blue-50 to-purple-100 rounded-full blur-3xl aurora-bg"></div>
+                </div>
+                
+                <!-- Glassmorphism Clapperboard -->
+                <div class="relative z-10 glass rounded-3xl p-12 flex flex-col items-center">
+                    <!-- Abstract Film Reel Design -->
+                    <div class="w-32 h-24 mb-8 relative">
+                        <!-- Film reel circles -->
+                        <svg viewBox="0 0 128 96" class="w-full h-full">
+                            <!-- Main frame -->
+                            <rect x="8" y="16" width="112" height="64" rx="4" fill="none" stroke="#E5E7EB" stroke-width="1"/>
+                            <!-- Top holes -->
+                            <circle cx="24" cy="8" r="4" fill="#E5E7EB"/>
+                            <circle cx="48" cy="8" r="4" fill="#E5E7EB"/>
+                            <circle cx="80" cy="8" r="4" fill="#E5E7EB"/>
+                            <circle cx="104" cy="8" r="4" fill="#E5E7EB"/>
+                            <!-- Bottom holes -->
+                            <circle cx="24" cy="88" r="4" fill="#E5E7EB"/>
+                            <circle cx="48" cy="88" r="4" fill="#E5E7EB"/>
+                            <circle cx="80" cy="88" r="4" fill="#E5E7EB"/>
+                            <circle cx="104" cy="88" r="4" fill="#E5E7EB"/>
+                            <!-- Center decorative lines -->
+                            <line x1="24" y1="40" x2="104" y2="40" stroke="#E5E7EB" stroke-width="0.5"/>
+                            <line x1="24" y1="56" x2="104" y2="56" stroke="#E5E7EB" stroke-width="0.5"/>
+                            <!-- Side reels -->
+                            <circle cx="20" cy="48" r="12" fill="none" stroke="#D1D5DB" stroke-width="1"/>
+                            <circle cx="20" cy="48" r="4" fill="#D1D5DB"/>
+                            <circle cx="108" cy="48" r="12" fill="none" stroke="#D1D5DB" stroke-width="1"/>
+                            <circle cx="108" cy="48" r="4" fill="#D1D5DB"/>
+                        </svg>
+                    </div>
+                    
+                    <h2 class="text-2xl font-semibold text-gray-900 mb-3">一切就绪，等待你的灵感</h2>
+                    <p class="text-sm text-gray-500">在左侧输入设定，生成你的第一支大片</p>
+                </div>
+            </div>
+            
+            <!-- State 2: Generating State (hidden by default) -->
+            <div id="generating-state" class="hidden flex-col items-center">
+                <div class="relative w-[640px] aspect-video skeleton-card rounded-xl overflow-hidden">
+                    <!-- Shimmer effect -->
+                    <div class="shimmer-overlay"></div>
+                </div>
+                <div class="mt-6 flex flex-col items-center gap-2">
+                    <p class="text-sm text-gray-600">正在构建场景 <span id="progress-text">35%</span>...</p>
+                    <div class="w-48 h-1 bg-gray-100 rounded-full overflow-hidden">
+                        <div id="progress-bar" class="h-full bg-gray-400 rounded-full transition-all duration-500" style="width: 35%"></div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- State 3: Result State (hidden by default) -->
+            <div id="result-state" class="hidden flex-col items-center gap-6 fade-in">
+                <div class="video-card relative w-[640px] aspect-video bg-gray-900 rounded-xl overflow-hidden group">
+                    <!-- Video placeholder -->
+                    <div class="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-gray-800 to-gray-900">
+                        <svg class="w-16 h-16 text-gray-600" fill="currentColor" viewBox="0 0 24 24">
+                            <path d="M8 5v14l11-7z"/>
+                        </svg>
+                    </div>
+                    
+                    <!-- Hover toolbar -->
+                    <div class="card-toolbar absolute bottom-0 left-0 right-0 h-14 glass flex items-center justify-center gap-8">
+                        <button class="p-2 hover:bg-white/10 rounded-full transition-colors press-effect">
+                            <svg class="w-5 h-5 text-white" fill="currentColor" viewBox="0 0 24 24">
+                                <path d="M8 5v14l11-7z"/>
+                            </svg>
+                        </button>
+                        <button class="p-2 hover:bg-white/10 rounded-full transition-colors press-effect">
+                            <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
+                            </svg>
+                        </button>
+                        <button class="p-2 hover:bg-white/10 rounded-full transition-colors press-effect">
+                            <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z"/>
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+    
+    <!-- Hidden file input -->
+    <input type="file" id="file-input" class="hidden" accept="image/*" onchange="handleFileUpload(event)">
+    
+    <script>
+        // Mode management
+        let currentMode = 'image';
+        
+        function setMode(mode) {
+            currentMode = mode;
+            
+            // Update segmented control
+            document.querySelectorAll('.bg-gray-100.rounded-full button').forEach(btn => {
+                btn.classList.remove('bg-white', 'shadow-sm');
+            });
+            document.getElementById(`btn-${mode}`).classList.add('bg-white', 'shadow-sm');
+            
+            // Show/hide first frame section
+            const firstFrameSection = document.getElementById('first-frame-section');
+            if (mode === 'image') {
+                firstFrameSection.classList.remove('hidden');
+            } else {
+                firstFrameSection.classList.add('hidden');
+            }
+            
+            checkInput();
+        }
+        
+        // Quantity toggle
+        let currentQuantity = 2;
+        
+        function setQuantity(qty) {
+            currentQuantity = qty;
+            for (let i = 1; i <= 4; i++) {
+                const btn = document.getElementById(`qty-${i}`);
+                if (i === qty) {
+                    btn.classList.remove('text-gray-500');
+                    btn.classList.add('bg-black', 'text-white');
+                } else {
+                    btn.classList.add('text-gray-500');
+                    btn.classList.remove('bg-black', 'text-white');
+                }
+            }
+        }
+        
+        // Auto-resize textarea
+        function autoResize(textarea) {
+            textarea.style.height = 'auto';
+            textarea.style.height = Math.min(textarea.scrollHeight, 200) + 'px';
+        }
+        
+        // Check if input is ready
+        let hasInput = false;
+        
+        function checkInput() {
+            const prompt = document.getElementById('prompt-input').value.trim();
+            const btn = document.getElementById('generate-btn');
+            
+            hasInput = prompt.length > 0 || currentMode === 'reference';
+            
+            if (hasInput) {
+                btn.classList.remove('bg-gray-200', 'text-gray-400', 'cursor-not-allowed');
+                btn.classList.add('bg-black', 'text-white', 'hover:shadow-[0_4px_20px_rgba(0,0,0,0.15)]');
+                btn.disabled = false;
+            } else {
+                btn.classList.add('bg-gray-200', 'text-gray-400', 'cursor-not-allowed');
+                btn.classList.remove('bg-black', 'text-white', 'hover:shadow-[0_4px_20px_rgba(0,0,0,0.15)]');
+                btn.disabled = true;
+            }
+        }
+        
+        // File upload
+        function triggerFileUpload() {
+            document.getElementById('file-input').click();
+        }
+        
+        function handleFileUpload(event) {
+            const file = event.target.files[0];
+            if (file) {
+                const container = document.getElementById('first-frame-upload');
+                const url = URL.createObjectURL(file);
+                
+                container.innerHTML = `
+                    <img src="${url}" class="absolute inset-0 w-full h-full object-cover rounded-2xl">
+                    <div class="absolute inset-0 bg-black/20 rounded-2xl"></div>
+                    <button onclick="removeImage(event)" class="absolute top-3 right-3 w-8 h-8 bg-white/90 rounded-full flex items-center justify-center shadow-lg hover:bg-white transition-colors press-effect">
+                        <svg class="w-4 h-4 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                        </svg>
+                    </button>
+                `;
+                
+                checkInput();
+            }
+        }
+        
+        function removeImage(event) {
+            event.stopPropagation();
+            const container = document.getElementById('first-frame-upload');
+            container.innerHTML = `
+                <div class="text-center transition-transform duration-300 group-hover:-translate-y-1">
+                    <svg class="w-8 h-8 mx-auto text-gray-400 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 4v16m8-8H4"/>
+                    </svg>
+                    <p class="text-sm text-gray-500">添加首帧</p>
+                </div>
+            `;
+            document.getElementById('file-input').value = '';
+            checkInput();
+        }
+        
+        // Dropdown toggle
+        function toggleDropdown(dropdownId) {
+            const dropdown = document.getElementById(dropdownId);
+            dropdown.classList.toggle('show');
+            
+            // Close dropdown when clicking outside
+            document.addEventListener('click', function closeDropdown(e) {
+                if (!dropdown.contains(e.target) && !e.target.closest('button')) {
+                    dropdown.classList.remove('show');
+                    document.removeEventListener('click', closeDropdown);
+                }
+            });
+        }
+        
+        // Generation simulation
+        function startGeneration() {
+            // Hide empty state
+            document.getElementById('empty-state').classList.add('hidden');
+            
+            // Show generating state
+            document.getElementById('generating-state').classList.remove('hidden');
+            document.getElementById('generating-state').classList.add('flex');
+            
+            // Hide result state
+            document.getElementById('result-state').classList.add('hidden');
+            document.getElementById('result-state').classList.remove('flex');
+            
+            // Simulate progress
+            let progress = 0;
+            const progressBar = document.getElementById('progress-bar');
+            const progressText = document.getElementById('progress-text');
+            
+            const interval = setInterval(() => {
+                progress += Math.random() * 15;
+                if (progress >= 100) {
+                    progress = 100;
+                    clearInterval(interval);
+                    
+                    // Show result
+                    setTimeout(() => {
+                        document.getElementById('generating-state').classList.add('hidden');
+                        document.getElementById('generating-state').classList.remove('flex');
+                        document.getElementById('result-state').classList.remove('hidden');
+                        document.getElementById('result-state').classList.add('flex');
+                    }, 500);
+                }
+                
+                progressBar.style.width = progress + '%';
+                progressText.textContent = Math.floor(progress) + '%';
+            }, 500);
+        }
+        
+        // Initialize
+        setMode('image');
+        setQuantity(2);
+    </script>
+</body>
+</html>

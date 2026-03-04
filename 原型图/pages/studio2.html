@@ -1,0 +1,817 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Agent Workspace - WeiMeng</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <style>
+        * { font-family: 'Inter', sans-serif; }
+        .font-mono { font-family: 'JetBrains Mono', monospace; }
+
+        /* Hide global scrollbar */
+        html, body { overflow: hidden; }
+
+        /* Custom scrollbar for panels */
+        .custom-scrollbar::-webkit-scrollbar { width: 4px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #E5E7EB; border-radius: 2px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #D1D5DB; }
+
+        /* Breathing dot animation */
+        @keyframes breathe {
+            0%, 100% { transform: scale(1); opacity: 0.6; }
+            50% { transform: scale(1.3); opacity: 1; }
+        }
+        .breathing-dot { animation: breathe 2s ease-in-out infinite; }
+
+        /* Active gradient pulse */
+        @keyframes gradientPulse {
+            0%, 100% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+        }
+        .gradient-pulse {
+            background: linear-gradient(90deg, #6366F1, #8B5CF6, #EC4899, #6366F1);
+            background-size: 300% 300%;
+            animation: gradientPulse 2s ease infinite;
+        }
+
+        /* Spinner star */
+        @keyframes spinStar {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+        .spinning-star { animation: spinStar 1.5s linear infinite; }
+
+        /* Accordion transition */
+        .accordion-content {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.3s ease, opacity 0.3s ease;
+            opacity: 0;
+        }
+        .accordion-content.open {
+            max-height: 300px;
+            opacity: 1;
+        }
+        .accordion-icon { transition: transform 0.3s ease; }
+        .accordion-icon.open { transform: rotate(180deg); }
+
+        /* Input focus glow */
+        .input-glow:focus-within {
+            box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.15), 0 0 20px rgba(139, 92, 246, 0.1);
+        }
+
+        /* Dot grid background */
+        .dot-grid {
+            background-image: radial-gradient(circle, #F3F4F6 1px, transparent 1px);
+            background-size: 32px 32px;
+        }
+
+        /* Shimmer effect for generating cards */
+        @keyframes shimmer {
+            0% { transform: translateX(-100%); }
+            100% { transform: translateX(100%); }
+        }
+        .shimmer-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.4), rgba(139, 92, 246, 0.1), rgba(99, 102, 241, 0.1), transparent);
+            animation: shimmer 2s infinite;
+        }
+
+        /* Card hover overlay */
+        .card-overlay {
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+        .artifact-card:hover .card-overlay { opacity: 1; }
+
+        /* Snap animation for new cards */
+        @keyframes snapIn {
+            0% { transform: scale(0.95); opacity: 0; }
+            60% { transform: scale(1.02); }
+            100% { transform: scale(1); opacity: 1; }
+        }
+        .snap-in {
+            animation: snapIn 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+        }
+
+        /* Floating toolbar glass */
+        .glass-toolbar {
+            background: rgba(255, 255, 255, 0.7);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+        }
+
+        /* Connection line */
+        .connection-line {
+            stroke-dasharray: 4 4;
+            animation: dashFlow 1s linear infinite;
+        }
+        @keyframes dashFlow {
+            to { stroke-dashoffset: -8; }
+        }
+
+        /* Canvas pan cursor */
+        .pan-mode { cursor: grab; }
+        .pan-mode:active { cursor: grabbing; }
+
+        /* Instruction item hover */
+        .instruction-item {
+            transition: all 0.2s ease;
+        }
+        .instruction-item:hover {
+            background: rgba(0, 0, 0, 0.02);
+        }
+
+        /* View mode buttons */
+        .view-btn { transition: all 0.2s ease; }
+        .view-btn.active { background: rgba(0, 0, 0, 0.9); color: white; }
+
+        /* Hide scrollbar for canvas */
+        .scrollbar-hide {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+        .scrollbar-hide::-webkit-scrollbar { display: none; }
+    </style>
+</head>
+<body class="bg-white text-gray-900">
+    <div class="flex w-screen h-screen">
+        <!-- Left: Agent Console Panel -->
+        <aside class="w-[350px] flex-shrink-0 bg-white border-r border-gray-100 flex flex-col relative shadow-[4px_0_24px_rgba(0,0,0,0.02)]">
+            <!-- Header -->
+            <header class="px-5 py-4 flex items-center justify-between border-b border-gray-50">
+                <button onclick="goBack()" class="p-2 hover:bg-gray-100 rounded-xl transition-colors">
+                    <svg class="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/>
+                    </svg>
+                </button>
+
+                <!-- Agent Status -->
+                <div class="flex items-center gap-2">
+                    <div id="status-dot" class="w-2 h-2 rounded-full bg-gray-300 breathing-dot"></div>
+                    <span class="text-sm font-medium text-gray-700">Director Agent</span>
+                </div>
+
+                <button onclick="toggleSettings()" class="p-2 hover:bg-gray-100 rounded-xl transition-colors">
+                    <svg class="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/>
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                    </svg>
+                </button>
+            </header>
+
+            <!-- Thought Stream -->
+            <div id="thought-stream" class="flex-1 overflow-y-auto custom-scrollbar px-5 py-4 space-y-6">
+                <!-- Welcome Message -->
+                <div class="text-center py-8">
+                    <div class="w-12 h-12 mx-auto mb-4 rounded-2xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center">
+                        <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
+                        </svg>
+                    </div>
+                    <p class="text-sm text-gray-400">Agent 已就绪</p>
+                    <p class="text-xs text-gray-300 mt-1">输入指令开始创作</p>
+                </div>
+
+                <!-- Dynamic content will be inserted here -->
+            </div>
+
+            <!-- Command Palette (Floating) -->
+            <div class="px-4 pb-6 pt-2">
+                <div class="input-glow bg-white rounded-full shadow-lg border border-gray-100 transition-all duration-300">
+                    <div class="flex items-center px-4 py-3">
+                        <input
+                            id="command-input"
+                            type="text"
+                            placeholder="输入指令..."
+                            class="flex-1 bg-transparent outline-none text-sm text-gray-900 placeholder-gray-400"
+                            onkeydown="handleCommandKeydown(event)"
+                        />
+                        <button onclick="sendCommand()" class="w-8 h-8 bg-black rounded-full flex items-center justify-center hover:bg-gray-800 transition-colors">
+                            <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 10l7-7m0 0l7 7m-7-7v18"/>
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+                <div class="text-center mt-2">
+                    <span class="text-[10px] text-gray-300">Cmd/Ctrl + K 聚焦</span>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Right: Infinite Canvas -->
+        <main id="canvas-container" class="flex-1 relative bg-[#F9FAFB] dot-grid overflow-hidden">
+            <!-- Floating Toolbar -->
+            <div class="absolute top-6 left-1/2 -translate-x-1/2 z-20">
+                <div class="glass-toolbar rounded-full px-2 py-1.5 shadow-lg border border-white/50 flex items-center gap-1">
+                    <button onclick="setViewMode('grid')" id="view-grid" class="view-btn active px-4 py-2 rounded-full text-xs font-medium text-gray-600 hover:text-gray-900 flex items-center gap-2">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"/>
+                        </svg>
+                        网格
+                    </button>
+                    <button onclick="setViewMode('storyboard')" id="view-storyboard" class="view-btn px-4 py-2 rounded-full text-xs font-medium text-gray-600 hover:text-gray-900 flex items-center gap-2">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 4v16M17 4v16M3 8h4m10 0h4M3 12h18M3 16h4m10 0h4M4 20h16a1 1 0 001-1V5a1 1 0 00-1-1H4a1 1 0 00-1 1v14a1 1 0 001 1z"/>
+                        </svg>
+                        分镜
+                    </button>
+                    <button onclick="setViewMode('fullscreen')" id="view-fullscreen" class="view-btn px-4 py-2 rounded-full text-xs font-medium text-gray-600 hover:text-gray-900 flex items-center gap-2">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4"/>
+                        </svg>
+                        全屏
+                    </button>
+                </div>
+            </div>
+
+            <!-- Canvas Content Area -->
+            <div id="canvas-content" class="absolute inset-0 overflow-auto scrollbar-hide pan-mode" onmousedown="startPan(event)" onmousemove="pan(event)" onmouseup="endPan()" onmouseleave="endPan()">
+                <div id="canvas-inner" class="min-w-full min-h-full p-8 pt-24 pb-32">
+                    <!-- Empty State -->
+                    <div id="canvas-empty" class="flex flex-col items-center justify-center h-[70vh]">
+                        <div class="w-24 h-24 rounded-3xl bg-gradient-to-br from-gray-100 to-gray-200 flex items-center justify-center mb-6">
+                            <svg class="w-10 h-10 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+                            </svg>
+                        </div>
+                        <p class="text-gray-400 text-sm">画布为空</p>
+                        <p class="text-gray-300 text-xs mt-1">在左侧输入指令生成内容</p>
+                    </div>
+
+                    <!-- Artifacts Grid -->
+                    <div id="artifacts-grid" class="hidden grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 max-w-7xl mx-auto">
+                        <!-- Cards will be inserted here -->
+                    </div>
+
+                    <!-- Storyboard View -->
+                    <div id="storyboard-view" class="hidden flex gap-6 overflow-x-auto pb-4 max-w-7xl mx-auto">
+                        <!-- Storyboard cards will be inserted here -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- Canvas Controls -->
+            <div class="absolute bottom-6 right-6 flex flex-col gap-2">
+                <button onclick="resetCanvasView()" class="w-10 h-10 bg-white rounded-xl shadow-lg border border-gray-100 flex items-center justify-center hover:bg-gray-50 transition-colors" title="重置视图">
+                    <svg class="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+                    </svg>
+                </button>
+            </div>
+
+            <!-- SVG Connection Layer -->
+            <svg id="connection-layer" class="absolute inset-0 pointer-events-none z-10" style="width: 100%; height: 100%;">
+                <!-- Connection lines will be drawn here -->
+            </svg>
+        </main>
+    </div>
+
+    <!-- Settings Modal -->
+    <div id="settings-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-black/20 backdrop-blur-sm">
+        <div class="bg-white rounded-2xl shadow-2xl w-96 p-6">
+            <div class="flex items-center justify-between mb-4">
+                <h3 class="font-semibold text-gray-900">设置</h3>
+                <button onclick="toggleSettings()" class="p-1 hover:bg-gray-100 rounded-lg">
+                    <svg class="w-5 h-5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                    </svg>
+                </button>
+            </div>
+            <div class="space-y-4">
+                <div class="flex items-center justify-between">
+                    <span class="text-sm text-gray-700">显示思考过程</span>
+                    <button id="toggle-thoughts" onclick="toggleThoughts()" class="w-11 h-6 bg-indigo-500 rounded-full relative transition-colors">
+                        <span class="absolute right-1 top-1 w-4 h-4 bg-white rounded-full transition-transform"></span>
+                    </button>
+                </div>
+                <div class="flex items-center justify-between">
+                    <span class="text-sm text-gray-700">自动保存</span>
+                    <button class="w-11 h-6 bg-gray-200 rounded-full relative transition-colors">
+                        <span class="absolute left-1 top-1 w-4 h-4 bg-white rounded-full transition-transform"></span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Image Preview Modal -->
+    <div id="preview-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-black/90" onclick="closePreview()">
+        <button class="absolute top-6 right-6 p-2 text-white/80 hover:text-white">
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+            </svg>
+        </button>
+        <img id="preview-image" src="" class="max-w-[90vw] max-h-[90vh] rounded-2xl shadow-2xl" onclick="event.stopPropagation()">
+    </div>
+
+    <script>
+        // State
+        let state = {
+            isGenerating: false,
+            showThoughts: true,
+            viewMode: 'grid', // grid, storyboard, fullscreen
+            instructionCount: 0,
+            panning: false,
+            panStart: { x: 0, y: 0 },
+            scrollStart: { x: 0, y: 0 },
+            artifacts: []
+        };
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', () => {
+            // Keyboard shortcuts
+            document.addEventListener('keydown', handleGlobalKeydown);
+        });
+
+        // Global keyboard handler
+        function handleGlobalKeydown(e) {
+            // Cmd/Ctrl + K to focus input
+            if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+                e.preventDefault();
+                document.getElementById('command-input').focus();
+            }
+
+            // Escape to close modals
+            if (e.key === 'Escape') {
+                closePreview();
+                document.getElementById('settings-modal').classList.add('hidden');
+            }
+
+            // Space for pan mode
+            if (e.code === 'Space' && !e.repeat && e.target.tagName !== 'INPUT') {
+                document.getElementById('canvas-content').style.cursor = 'grab';
+            }
+        }
+
+        // Command input handler
+        function handleCommandKeydown(e) {
+            if (e.key === 'Enter') {
+                sendCommand();
+            }
+        }
+
+        // Send command
+        function sendCommand() {
+            const input = document.getElementById('command-input');
+            const command = input.value.trim();
+
+            if (!command || state.isGenerating) return;
+
+            state.instructionCount++;
+
+            // Add user instruction to thought stream
+            addUserInstruction(command, state.instructionCount);
+
+            // Clear input
+            input.value = '';
+
+            // Start generation
+            startGeneration(command, state.instructionCount);
+        }
+
+        // Add user instruction to stream
+        function addUserInstruction(text, id) {
+            const stream = document.getElementById('thought-stream');
+
+            const item = document.createElement('div');
+            item.className = 'instruction-item py-3 px-3 -mx-3 rounded-xl cursor-pointer';
+            item.dataset.instructionId = id;
+            item.onmouseenter = () => highlightConnectedArtifacts(id);
+            item.onmouseleave = () => clearHighlight();
+
+            item.innerHTML = `
+                <div class="flex items-start gap-3">
+                    <span class="text-gray-300 mt-1">-</span>
+                    <div class="flex-1">
+                        <p class="text-base font-semibold text-gray-900 leading-relaxed">${escapeHtml(text)}</p>
+                        <p class="text-[10px] text-gray-400 mt-1">#${String(id).padStart(3, '0')}</p>
+                    </div>
+                </div>
+            `;
+
+            // Remove welcome message if exists
+            const welcome = stream.querySelector('.text-center');
+            if (welcome) welcome.remove();
+
+            stream.appendChild(item);
+            stream.scrollTop = stream.scrollHeight;
+        }
+
+        // Start generation process
+        function startGeneration(command, instructionId) {
+            state.isGenerating = true;
+
+            // Update status dot
+            const dot = document.getElementById('status-dot');
+            dot.className = 'w-2 h-2 rounded-full gradient-pulse';
+
+            // Add thinking process
+            const stream = document.getElementById('thought-stream');
+            const thinkingId = `thinking-${instructionId}`;
+
+            const thinking = document.createElement('div');
+            thinking.id = thinkingId;
+            thinking.className = 'mt-2 mb-4';
+            thinking.innerHTML = `
+                <button onclick="toggleAccordion(this)" class="w-full flex items-center justify-between py-2 text-left group">
+                    <div class="flex items-center gap-2">
+                        <svg class="w-3 h-3 text-indigo-500 spinning-star" fill="currentColor" viewBox="0 0 24 24">
+                            <path d="M12 2L14.09 8.26L21 9.27L16.5 14.14L17.82 21.02L12 17.77L6.18 21.02L7.5 14.14L3 9.27L9.91 8.26L12 2Z"/>
+                        </svg>
+                        <span class="text-xs font-mono text-gray-500">思考过程</span>
+                    </div>
+                    <svg class="w-4 h-4 text-gray-400 accordion-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+                    </svg>
+                </button>
+                <div class="accordion-content open pl-5 space-y-1">
+                    <div class="thinking-step flex items-center gap-2 text-xs font-mono text-gray-400">
+                        <span class="w-1.5 h-1.5 rounded-full bg-gray-300"></span>
+                        <span>> 分析指令...</span>
+                    </div>
+                </div>
+            `;
+
+            stream.appendChild(thinking);
+            stream.scrollTop = stream.scrollHeight;
+
+            // Simulate thinking steps
+            const steps = [
+                { msg: '> 分析指令...', delay: 500 },
+                { msg: '> 提取场景元素...', delay: 1200 },
+                { msg: '> 构建提示词...', delay: 2000 },
+                { msg: '> 正在调用 Flux.1 模型...', delay: 2800 }
+            ];
+
+            steps.forEach((step, index) => {
+                setTimeout(() => {
+                    const content = thinking.querySelector('.accordion-content');
+                    const steps = content.querySelectorAll('.thinking-step');
+
+                    // Mark previous as done
+                    if (index > 0 && steps[index - 1]) {
+                        steps[index - 1].querySelector('span:first-child').className = 'w-1.5 h-1.5 rounded-full bg-green-400';
+                        steps[index - 1].querySelector('span:last-child').textContent = steps[index - 1].querySelector('span:last-child').textContent.replace('...', ' Done');
+                    }
+
+                    // Add new step
+                    if (index < steps.length) {
+                        const newStep = document.createElement('div');
+                        newStep.className = 'thinking-step flex items-center gap-2 text-xs font-mono text-gray-400';
+                        newStep.innerHTML = `
+                            <span class="w-1.5 h-1.5 rounded-full ${index === steps.length - 1 ? 'bg-indigo-500 spinning-star' : 'bg-gray-300'}"></span>
+                            <span>${step.msg}</span>
+                        `;
+                        content.appendChild(newStep);
+                    }
+
+                    stream.scrollTop = stream.scrollHeight;
+                }, step.delay);
+            });
+
+            // Hide empty state
+            document.getElementById('canvas-empty').classList.add('hidden');
+            document.getElementById('artifacts-grid').classList.remove('hidden');
+
+            // Add generating placeholder card
+            const cardId = `card-${instructionId}`;
+            const placeholder = createGeneratingCard(cardId, command);
+            document.getElementById('artifacts-grid').appendChild(placeholder);
+
+            // Simulate completion
+            setTimeout(() => {
+                completeGeneration(cardId, instructionId, command);
+            }, 5000);
+        }
+
+        // Create generating placeholder card
+        function createGeneratingCard(id, prompt) {
+            const card = document.createElement('div');
+            card.id = id;
+            card.className = 'artifact-card rounded-3xl overflow-hidden bg-white shadow-xl relative';
+            card.style.aspectRatio = '3/4';
+
+            card.innerHTML = `
+                <div class="absolute inset-0 bg-gradient-to-br from-gray-100 to-gray-200">
+                    <div class="shimmer-overlay"></div>
+                </div>
+                <div class="absolute inset-0 flex items-center justify-center">
+                    <div class="text-center">
+                        <div class="w-16 h-16 mx-auto mb-4 rounded-2xl bg-white/80 backdrop-blur flex items-center justify-center">
+                            <svg class="w-8 h-8 text-indigo-400 spinning-star" fill="currentColor" viewBox="0 0 24 24">
+                                <path d="M12 2L14.09 8.26L21 9.27L16.5 14.14L17.82 21.02L12 17.77L6.18 21.02L7.5 14.14L3 9.27L9.91 8.26L12 2Z"/>
+                            </svg>
+                        </div>
+                        <p class="text-xs text-gray-400 font-mono">Generating...</p>
+                    </div>
+                </div>
+                <div class="absolute bottom-0 left-0 right-0 p-4 bg-white">
+                    <p class="text-xs text-gray-400 truncate">${escapeHtml(prompt)}</p>
+                </div>
+            `;
+
+            return card;
+        }
+
+        // Complete generation
+        function completeGeneration(cardId, instructionId, prompt) {
+            const card = document.getElementById(cardId);
+            if (!card) return;
+
+            // Generate a random image URL
+            const images = [
+                'https://images.unsplash.com/photo-1514888286974-6c03e2ca1dba?w=600&h=800&fit=crop',
+                'https://images.unsplash.com/photo-1579783902614-a3fb3927b6a5?w=600&h=800&fit=crop',
+                'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=600&h=800&fit=crop',
+                'https://images.unsplash.com/photo-1534447677768-27c92cdde4e3?w=600&h=800&fit=crop',
+                'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=600&h=800&fit=crop',
+                'https://images.unsplash.com/photo-1518837695005-2083093ee35b?w=600&h=800&fit=crop'
+            ];
+            const imageUrl = images[Math.floor(Math.random() * images.length)];
+
+            // Update card with result
+            card.className = 'artifact-card rounded-3xl overflow-hidden bg-white shadow-xl relative snap-in';
+            card.dataset.instructionId = instructionId;
+            card.innerHTML = `
+                <div class="relative h-[80%] overflow-hidden">
+                    <img src="${imageUrl}" class="w-full h-full object-cover" loading="lazy">
+                    <div class="card-overlay absolute inset-0 bg-black/30 flex items-center justify-center">
+                        <div class="flex items-center gap-2">
+                            <button onclick="expandImage('${imageUrl}')" class="w-10 h-10 rounded-full bg-white/20 backdrop-blur flex items-center justify-center hover:bg-white/30 transition-colors">
+                                <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM10 7v3m0 0v3m0-3h3m-3 0H7"/>
+                                </svg>
+                            </button>
+                            <button onclick="regenerate('${cardId}', '${escapeHtml(prompt)}')" class="w-10 h-10 rounded-full bg-white/20 backdrop-blur flex items-center justify-center hover:bg-white/30 transition-colors">
+                                <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+                                </svg>
+                            </button>
+                            <button onclick="downloadImage('${imageUrl}')" class="w-10 h-10 rounded-full bg-white/20 backdrop-blur flex items-center justify-center hover:bg-white/30 transition-colors">
+                                <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
+                                </svg>
+                            </button>
+                            <button onclick="deleteCard('${cardId}')" class="w-10 h-10 rounded-full bg-white/20 backdrop-blur flex items-center justify-center hover:bg-red-500/50 transition-colors">
+                                <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+                                </svg>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                <div class="h-[20%] bg-white p-4 flex flex-col justify-center">
+                    <p class="text-xs font-medium text-gray-900">Scene ${String(state.instructionCount).padStart(2, '0')}</p>
+                    <p class="text-[10px] text-gray-400 truncate mt-0.5">${escapeHtml(prompt)}</p>
+                </div>
+            `;
+
+            // Store artifact
+            state.artifacts.push({
+                id: cardId,
+                instructionId: instructionId,
+                imageUrl: imageUrl,
+                prompt: prompt
+            });
+
+            // Update thinking to complete
+            const thinking = document.getElementById(`thinking-${instructionId}`);
+            if (thinking) {
+                const star = thinking.querySelector('.spinning-star');
+                if (star) star.classList.remove('spinning-star');
+
+                const lastStep = thinking.querySelector('.thinking-step:last-child');
+                if (lastStep) {
+                    lastStep.querySelector('span:first-child').className = 'w-1.5 h-1.5 rounded-full bg-green-400';
+                    lastStep.querySelector('span:last-child').textContent = '> 生成完成 Done';
+                }
+            }
+
+            // Reset status
+            state.isGenerating = false;
+            const dot = document.getElementById('status-dot');
+            dot.className = 'w-2 h-2 rounded-full bg-green-400 breathing-dot';
+
+            // Scroll card into view
+            card.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        }
+
+        // View mode switcher
+        function setViewMode(mode) {
+            state.viewMode = mode;
+
+            // Update buttons
+            document.querySelectorAll('.view-btn').forEach(btn => btn.classList.remove('active'));
+            document.getElementById(`view-${mode}`).classList.add('active');
+
+            // Update content
+            const grid = document.getElementById('artifacts-grid');
+            const storyboard = document.getElementById('storyboard-view');
+
+            if (mode === 'grid') {
+                grid.classList.remove('hidden');
+                storyboard.classList.add('hidden');
+            } else if (mode === 'storyboard') {
+                grid.classList.add('hidden');
+                storyboard.classList.remove('hidden');
+                syncStoryboard();
+            } else if (mode === 'fullscreen') {
+                // Toggle fullscreen
+                if (!document.fullscreenElement) {
+                    document.documentElement.requestFullscreen();
+                } else {
+                    document.exitFullscreen();
+                }
+            }
+        }
+
+        // Sync storyboard view
+        function syncStoryboard() {
+            const storyboard = document.getElementById('storyboard-view');
+            storyboard.innerHTML = '';
+
+            state.artifacts.forEach(artifact => {
+                const card = document.createElement('div');
+                card.className = 'flex-shrink-0 w-64 snap-in';
+                card.innerHTML = `
+                    <div class="artifact-card rounded-3xl overflow-hidden bg-white shadow-xl">
+                        <div class="relative aspect-[3/4] overflow-hidden">
+                            <img src="${artifact.imageUrl}" class="w-full h-full object-cover">
+                        </div>
+                        <div class="p-4 bg-white">
+                            <p class="text-xs font-medium text-gray-900">Scene ${String(artifact.instructionId).padStart(2, '0')}</p>
+                        </div>
+                    </div>
+                `;
+                storyboard.appendChild(card);
+            });
+        }
+
+        // Canvas pan functionality
+        function startPan(e) {
+            if (e.button === 1 || (e.button === 0 && e.code === 'Space')) {
+                state.panning = true;
+                state.panStart = { x: e.clientX, y: e.clientY };
+                const container = document.getElementById('canvas-content');
+                state.scrollStart = { x: container.scrollLeft, y: container.scrollTop };
+                container.style.cursor = 'grabbing';
+            }
+        }
+
+        function pan(e) {
+            if (!state.panning) return;
+            e.preventDefault();
+
+            const dx = e.clientX - state.panStart.x;
+            const dy = e.clientY - state.panStart.y;
+
+            const container = document.getElementById('canvas-content');
+            container.scrollLeft = state.scrollStart.x - dx;
+            container.scrollTop = state.scrollStart.y - dy;
+        }
+
+        function endPan() {
+            state.panning = false;
+            document.getElementById('canvas-content').style.cursor = 'grab';
+        }
+
+        function resetCanvasView() {
+            const container = document.getElementById('canvas-content');
+            container.scrollTo({ top: 0, left: 0, behavior: 'smooth' });
+        }
+
+        // Highlight connected artifacts
+        function highlightConnectedArtifacts(instructionId) {
+            // Remove previous highlights
+            clearHighlight();
+
+            // Highlight cards
+            document.querySelectorAll('.artifact-card').forEach(card => {
+                if (parseInt(card.dataset.instructionId) === instructionId) {
+                    card.style.transform = 'scale(1.02)';
+                    card.style.boxShadow = '0 25px 50px -12px rgba(99, 102, 241, 0.25)';
+                    card.style.zIndex = '10';
+
+                    // Draw connection line
+                    drawConnectionLine(card);
+                }
+            });
+        }
+
+        function clearHighlight() {
+            document.querySelectorAll('.artifact-card').forEach(card => {
+                card.style.transform = '';
+                card.style.boxShadow = '';
+                card.style.zIndex = '';
+            });
+
+            // Clear connection lines
+            document.getElementById('connection-layer').innerHTML = '';
+        }
+
+        function drawConnectionLine(targetCard) {
+            // This is a simplified version - in a real implementation,
+            // you would calculate the actual coordinates
+            const svg = document.getElementById('connection-layer');
+            // SVG line drawing would go here
+        }
+
+        // Card actions
+        function expandImage(url) {
+            const modal = document.getElementById('preview-modal');
+            const img = document.getElementById('preview-image');
+            img.src = url;
+            modal.classList.remove('hidden');
+        }
+
+        function closePreview() {
+            document.getElementById('preview-modal').classList.add('hidden');
+        }
+
+        function regenerate(cardId, prompt) {
+            const card = document.getElementById(cardId);
+            if (card) {
+                card.replaceWith(createGeneratingCard(cardId, prompt));
+
+                setTimeout(() => {
+                    const artifact = state.artifacts.find(a => a.id === cardId);
+                    if (artifact) {
+                        completeGeneration(cardId, artifact.instructionId, prompt);
+                    }
+                }, 3000);
+            }
+        }
+
+        function downloadImage(url) {
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'weimeng-artifact.png';
+            a.click();
+        }
+
+        function deleteCard(cardId) {
+            const card = document.getElementById(cardId);
+            if (card) {
+                card.style.transform = 'scale(0.9)';
+                card.style.opacity = '0';
+                setTimeout(() => card.remove(), 200);
+
+                // Remove from state
+                state.artifacts = state.artifacts.filter(a => a.id !== cardId);
+            }
+        }
+
+        // Settings
+        function toggleSettings() {
+            const modal = document.getElementById('settings-modal');
+            modal.classList.toggle('hidden');
+        }
+
+        function toggleThoughts() {
+            state.showThoughts = !state.showThoughts;
+            const btn = document.getElementById('toggle-thoughts');
+            const knob = btn.querySelector('span');
+
+            if (state.showThoughts) {
+                btn.classList.remove('bg-gray-200');
+                btn.classList.add('bg-indigo-500');
+                knob.style.transform = 'translateX(0)';
+            } else {
+                btn.classList.remove('bg-indigo-500');
+                btn.classList.add('bg-gray-200');
+                knob.style.transform = 'translateX(-20px)';
+            }
+        }
+
+        // Accordion toggle
+        function toggleAccordion(btn) {
+            const content = btn.nextElementSibling;
+            const icon = btn.querySelector('.accordion-icon');
+
+            content.classList.toggle('open');
+            icon.classList.toggle('open');
+        }
+
+        // Navigation
+        function goBack() {
+            window.location.href = 'dashboard.html';
+        }
+
+        // Utility
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,1193 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Storyboarding Studio - 故事板工作室</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        * {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+        }
+        
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #4B5563;
+            border-radius: 3px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #6B7280;
+        }
+        
+        /* Aurora Shader Animation for Generating State */
+        @keyframes aurora {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+        
+        .aurora-shader {
+            background: linear-gradient(
+                -45deg,
+                #1a1a2e,
+                #16213e,
+                #0f3460,
+                #533483,
+                #e94560,
+                #533483,
+                #0f3460,
+                #16213e
+            );
+            background-size: 400% 400%;
+            animation: aurora 8s ease infinite;
+        }
+        
+        /* Glassmorphism Effects */
+        .glass-panel {
+            background: rgba(31, 41, 55, 0.7);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+        }
+        
+        .glass-input {
+            background: rgba(17, 24, 39, 0.6);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        /* Shot Card Glow Effect */
+        .shot-card {
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            box-shadow: 
+                inset 0 1px 1px rgba(255, 255, 255, 0.05),
+                0 1px 3px rgba(0, 0, 0, 0.3);
+        }
+        
+        .shot-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 
+                inset 0 1px 1px rgba(255, 255, 255, 0.08),
+                0 8px 32px rgba(0, 0, 0, 0.4);
+        }
+        
+        .shot-card.active {
+            border-color: #8B5CF6;
+            box-shadow: 
+                inset 0 1px 1px rgba(255, 255, 255, 0.1),
+                0 0 0 2px rgba(139, 92, 246, 0.3),
+                0 8px 32px rgba(139, 92, 246, 0.15);
+        }
+        
+        /* Message Animations */
+        @keyframes messageSlideIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        .message-enter {
+            animation: messageSlideIn 0.3s ease-out forwards;
+        }
+        
+        /* Typing Indicator */
+        @keyframes typing {
+            0%, 60%, 100% { transform: translateY(0); }
+            30% { transform: translateY(-4px); }
+        }
+        
+        .typing-dot {
+            animation: typing 1.4s infinite ease-in-out both;
+        }
+        
+        .typing-dot:nth-child(1) { animation-delay: -0.32s; }
+        .typing-dot:nth-child(2) { animation-delay: -0.16s; }
+        
+        /* Drag and Drop */
+        .dragging {
+            opacity: 0.5;
+            transform: scale(0.95);
+        }
+        
+        .drag-over {
+            border: 2px dashed #8B5CF6;
+            background: rgba(139, 92, 246, 0.1);
+        }
+        
+        /* Accordion Animation */
+        .accordion-content {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.3s ease-out;
+        }
+        
+        .accordion-content.open {
+            max-height: 500px;
+        }
+        
+        /* Visual Asset Block */
+        .asset-block {
+            transition: all 0.3s ease;
+        }
+        
+        .asset-block:hover {
+            transform: scale(1.02);
+        }
+        
+        /* Update Animation for Storyboard */
+        @keyframes updateFlash {
+            0% { box-shadow: 0 0 0 0 rgba(139, 92, 246, 0.7); }
+            70% { box-shadow: 0 0 0 20px rgba(139, 92, 246, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(139, 92, 246, 0); }
+        }
+        
+        .updating {
+            animation: updateFlash 0.6s ease-out;
+        }
+        
+        /* Fullscreen Preview */
+        .fullscreen-preview {
+            position: fixed;
+            inset: 0;
+            z-index: 100;
+            background: #000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        /* Gradient Text */
+        .gradient-text {
+            background: linear-gradient(135deg, #8B5CF6 0%, #EC4899 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        
+        /* Pulse Glow for Generate Button */
+        @keyframes pulseGlow {
+            0%, 100% { box-shadow: 0 0 20px rgba(139, 92, 246, 0.4); }
+            50% { box-shadow: 0 0 40px rgba(139, 92, 246, 0.6); }
+        }
+        
+        .pulse-glow {
+            animation: pulseGlow 2s ease-in-out infinite;
+        }
+    </style>
+</head>
+<body class="bg-[#111827] text-gray-100 h-screen overflow-hidden">
+    <!-- Top Bar -->
+    <header class="h-14 border-b border-gray-800 flex items-center justify-between px-6 bg-[#111827]/80 backdrop-blur-xl">
+        <div class="flex items-center gap-4">
+            <div class="w-8 h-8 rounded-lg bg-gradient-to-br from-violet-500 to-fuchsia-500 flex items-center justify-center">
+                <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 4v16M17 4v16M3 8h4m10 0h4M3 12h18M3 16h4m10 0h4M4 20h16a1 1 0 001-1V5a1 1 0 00-1-1H4a1 1 0 00-1 1v14a1 1 0 001 1z"/>
+                </svg>
+            </div>
+            <h1 class="font-semibold text-lg">未命名故事板</h1>
+            <span class="text-xs text-gray-500 bg-gray-800/50 px-2 py-0.5 rounded-full">自动保存</span>
+        </div>
+        
+        <div class="flex items-center gap-3">
+            <button onclick="exportProject()" class="px-4 py-1.5 text-sm bg-gray-800 hover:bg-gray-700 rounded-lg transition-colors flex items-center gap-2">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z"/>
+                </svg>
+                分享
+            </button>
+            <div class="h-6 w-px bg-gray-700"></div>
+            <div class="flex items-center gap-2 text-sm text-gray-400">
+                <svg class="w-4 h-4 text-yellow-500" fill="currentColor" viewBox="0 0 20 20">
+                    <path d="M10 2a6 6 0 00-6 6v3.586l-.707.707A1 1 0 004 14h12a1 1 0 00.707-1.707L16 11.586V8a6 6 0 00-6-6zM10 18a3 3 0 01-3-3h6a3 3 0 01-3 3z"/>
+                </svg>
+                <span>128 点数</span>
+            </div>
+            <div class="w-8 h-8 rounded-full bg-gradient-to-br from-violet-500 to-fuchsia-500 flex items-center justify-center text-sm font-medium">
+                U
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Layout -->
+    <div class="flex h-[calc(100vh-56px)]">
+        <!-- Left Panel: Script & Elements -->
+        <aside class="w-[300px] border-r border-gray-800 flex flex-col bg-[#111827]">
+            <!-- Story Outline -->
+            <div class="p-4 border-b border-gray-800">
+                <h2 class="text-sm font-medium text-gray-300 mb-3 flex items-center gap-2">
+                    <svg class="w-4 h-4 text-violet-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                    </svg>
+                    故事大纲
+                </h2>
+                <textarea 
+                    id="storyOutline"
+                    placeholder="在此描述你的故事..."
+                    class="w-full h-32 bg-gray-800/50 border border-gray-700 rounded-xl p-3 text-sm text-gray-300 placeholder-gray-500 resize-none focus:outline-none focus:border-violet-500/50 focus:ring-1 focus:ring-violet-500/30 transition-all"
+                ></textarea>
+            </div>
+
+            <!-- Key Elements -->
+            <div class="flex-1 overflow-y-auto p-4">
+                <div class="flex items-center justify-between mb-3">
+                    <h2 class="text-sm font-medium text-gray-300 flex items-center gap-2">
+                        <svg class="w-4 h-4 text-violet-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"/>
+                        </svg>
+                        关键元素
+                    </h2>
+                    <button onclick="addElement()" class="text-xs text-violet-400 hover:text-violet-300 flex items-center gap-1 transition-colors">
+                        <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+                        </svg>
+                        添加元素
+                    </button>
+                </div>
+
+                <!-- Elements List -->
+                <div id="elementsList" class="space-y-2">
+                    <!-- Sample Element 1 -->
+                    <div class="element-card bg-gray-800/50 rounded-xl border border-gray-700 overflow-hidden">
+                        <div class="p-3 flex items-center gap-3 cursor-pointer hover:bg-gray-700/30 transition-colors" onclick="toggleAccordion(this)">
+                            <div class="w-10 h-10 rounded-lg bg-gray-700 flex items-center justify-center overflow-hidden">
+                                <img src="https://images.unsplash.com/photo-1633409361618-c73427e4e206?w=100&h=100&fit=crop" alt="Logo" class="w-full h-full object-cover">
+                            </div>
+                            <div class="flex-1 min-w-0">
+                                <p class="text-sm font-medium text-gray-200 truncate">Element_Logo_Character</p>
+                                <p class="text-xs text-gray-500 truncate">烟灰色风格Logo角色</p>
+                            </div>
+                            <svg class="w-4 h-4 text-gray-500 transform transition-transform accordion-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+                            </svg>
+                        </div>
+                        <div class="accordion-content px-3 pb-3">
+                            <div class="pt-2 border-t border-gray-700/50">
+                                <p class="text-xs text-gray-400 mb-2">元素描述:</p>
+                                <p class="text-xs text-gray-300 bg-gray-900/50 rounded-lg p-2">一个烟灰色风格的黑色Logo角色，具有未来感的设计，眼睛发出微弱的蓝光。</p>
+                                <div class="flex gap-2 mt-2">
+                                    <button class="text-xs text-gray-400 hover:text-white transition-colors">编辑</button>
+                                    <button class="text-xs text-red-400 hover:text-red-300 transition-colors">删除</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Sample Element 2 -->
+                    <div class="element-card bg-gray-800/50 rounded-xl border border-gray-700 overflow-hidden">
+                        <div class="p-3 flex items-center gap-3 cursor-pointer hover:bg-gray-700/30 transition-colors" onclick="toggleAccordion(this)">
+                            <div class="w-10 h-10 rounded-lg bg-gray-700 flex items-center justify-center overflow-hidden">
+                                <img src="https://images.unsplash.com/photo-1518709268805-4e9042af9f23?w=100&h=100&fit=crop" alt="Scene" class="w-full h-full object-cover">
+                            </div>
+                            <div class="flex-1 min-w-0">
+                                <p class="text-sm font-medium text-gray-200 truncate">Scene_Cyberpunk_City</p>
+                                <p class="text-xs text-gray-500 truncate">赛博朋克城市背景</p>
+                            </div>
+                            <svg class="w-4 h-4 text-gray-500 transform transition-transform accordion-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+                            </svg>
+                        </div>
+                        <div class="accordion-content px-3 pb-3">
+                            <div class="pt-2 border-t border-gray-700/50">
+                                <p class="text-xs text-gray-400 mb-2">元素描述:</p>
+                                <p class="text-xs text-gray-300 bg-gray-900/50 rounded-lg p-2">霓虹灯闪烁的赛博朋克城市夜景，高楼林立，雨后的街道反射着彩色光芒。</p>
+                                <div class="flex gap-2 mt-2">
+                                    <button class="text-xs text-gray-400 hover:text-white transition-colors">编辑</button>
+                                    <button class="text-xs text-red-400 hover:text-red-300 transition-colors">删除</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Usage Tip -->
+                <div class="mt-4 p-3 bg-violet-500/10 border border-violet-500/20 rounded-xl">
+                    <p class="text-xs text-violet-300 flex items-start gap-2">
+                        <svg class="w-4 h-4 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                        </svg>
+                        <span>在右侧与AI对话时，使用 <code class="bg-violet-500/20 px-1 rounded">@元素名</code> 引用这些元素以保持角色一致性。</span>
+                    </p>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Center: Storyboard Canvas -->
+        <main class="flex-1 flex flex-col bg-[#0B0F19] relative">
+            <!-- Toolbar -->
+            <div class="h-12 border-b border-gray-800 flex items-center justify-between px-4">
+                <div class="flex items-center gap-2">
+                    <span class="text-sm text-gray-400">故事板</span>
+                    <span class="text-xs text-gray-600">•</span>
+                    <span class="text-xs text-gray-500" id="shotCount">3 个镜头</span>
+                </div>
+                <div class="flex items-center gap-2">
+                    <button onclick="playPreview()" class="p-2 hover:bg-gray-800 rounded-lg transition-colors flex items-center gap-2 text-sm text-gray-300">
+                        <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z" clip-rule="evenodd"/>
+                        </svg>
+                        预览
+                    </button>
+                    <div class="h-4 w-px bg-gray-700"></div>
+                    <button class="p-2 hover:bg-gray-800 rounded-lg transition-colors" title="网格视图">
+                        <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"/>
+                        </svg>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Storyboard Grid -->
+            <div class="flex-1 overflow-y-auto p-6">
+                <div id="storyboardGrid" class="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                    <!-- Shot 01 -->
+                    <div class="shot-card bg-gray-800 rounded-2xl overflow-hidden border border-gray-700 cursor-pointer relative group" 
+                         data-shot-id="1"
+                         draggable="true"
+                         onclick="selectShot(1)"
+                         ondragstart="handleDragStart(event, 1)"
+                         ondragover="handleDragOver(event)"
+                         ondrop="handleDrop(event, 1)"
+                         ondragend="handleDragEnd(event)">
+                        <div class="absolute top-3 left-3 z-10">
+                            <span class="text-xs font-medium text-gray-400 bg-gray-900/80 backdrop-blur px-2 py-1 rounded-lg">镜头 01</span>
+                        </div>
+                        <div class="absolute top-3 right-3 z-10 opacity-0 group-hover:opacity-100 transition-opacity">
+                            <button class="p-1.5 bg-gray-900/80 backdrop-blur rounded-lg hover:bg-gray-800 transition-colors" onclick="event.stopPropagation(); showShotMenu(1)">
+                                <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z"/>
+                                </svg>
+                            </button>
+                        </div>
+                        <div class="aspect-[4/3] bg-gray-700 relative overflow-hidden">
+                            <img src="https://images.unsplash.com/photo-1635322966219-b75ed372eb01?w=400&h=300&fit=crop" 
+                                 alt="Shot 1" 
+                                 class="w-full h-full object-cover">
+                            <div class="absolute inset-0 bg-gradient-to-t from-gray-900/60 to-transparent"></div>
+                            <button class="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity" onclick="event.stopPropagation(); regenerateShot(1)">
+                                <div class="p-3 bg-gray-900/80 backdrop-blur rounded-full hover:bg-gray-800 transition-colors">
+                                    <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+                                    </svg>
+                                </div>
+                            </button>
+                        </div>
+                        <div class="p-3">
+                            <p class="text-xs text-gray-400 line-clamp-2">开场镜头：Logo角色从黑暗中浮现，眼睛发出微弱的蓝光，背景是雨夜的赛博朋克城市。</p>
+                        </div>
+                    </div>
+
+                    <!-- Shot 02 -->
+                    <div class="shot-card bg-gray-800 rounded-2xl overflow-hidden border border-gray-700 cursor-pointer relative group" 
+                         data-shot-id="2"
+                         draggable="true"
+                         onclick="selectShot(2)"
+                         ondragstart="handleDragStart(event, 2)"
+                         ondragover="handleDragOver(event)"
+                         ondrop="handleDrop(event, 2)"
+                         ondragend="handleDragEnd(event)">
+                        <div class="absolute top-3 left-3 z-10">
+                            <span class="text-xs font-medium text-gray-400 bg-gray-900/80 backdrop-blur px-2 py-1 rounded-lg">镜头 02</span>
+                        </div>
+                        <div class="absolute top-3 right-3 z-10 opacity-0 group-hover:opacity-100 transition-opacity">
+                            <button class="p-1.5 bg-gray-900/80 backdrop-blur rounded-lg hover:bg-gray-800 transition-colors" onclick="event.stopPropagation(); showShotMenu(2)">
+                                <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z"/>
+                                </svg>
+                            </button>
+                        </div>
+                        <div class="aspect-[4/3] bg-gray-700 relative overflow-hidden">
+                            <img src="https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=400&h=300&fit=crop" 
+                                 alt="Shot 2" 
+                                 class="w-full h-full object-cover">
+                            <div class="absolute inset-0 bg-gradient-to-t from-gray-900/60 to-transparent"></div>
+                            <button class="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity" onclick="event.stopPropagation(); regenerateShot(2)">
+                                <div class="p-3 bg-gray-900/80 backdrop-blur rounded-full hover:bg-gray-800 transition-colors">
+                                    <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+                                    </svg>
+                                </div>
+                            </button>
+                        </div>
+                        <div class="p-3">
+                            <p class="text-xs text-gray-400 line-clamp-2">特写镜头：角色面部细节，烟灰色的金属质感，霓虹灯在脸上反射出紫红色的光。</p>
+                        </div>
+                    </div>
+
+                    <!-- Shot 03 -->
+                    <div class="shot-card bg-gray-800 rounded-2xl overflow-hidden border border-gray-700 cursor-pointer relative group" 
+                         data-shot-id="3"
+                         draggable="true"
+                         onclick="selectShot(3)"
+                         ondragstart="handleDragStart(event, 3)"
+                         ondragover="handleDragOver(event)"
+                         ondrop="handleDrop(event, 3)"
+                         ondragend="handleDragEnd(event)">
+                        <div class="absolute top-3 left-3 z-10">
+                            <span class="text-xs font-medium text-gray-400 bg-gray-900/80 backdrop-blur px-2 py-1 rounded-lg">镜头 03</span>
+                        </div>
+                        <div class="absolute top-3 right-3 z-10 opacity-0 group-hover:opacity-100 transition-opacity">
+                            <button class="p-1.5 bg-gray-900/80 backdrop-blur rounded-lg hover:bg-gray-800 transition-colors" onclick="event.stopPropagation(); showShotMenu(3)">
+                                <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z"/>
+                                </svg>
+                            </button>
+                        </div>
+                        <div class="aspect-[4/3] bg-gray-700 relative overflow-hidden">
+                            <!-- Aurora Shader for Generating State Demo -->
+                            <div class="aurora-shader w-full h-full"></div>
+                            <div class="absolute inset-0 flex items-center justify-center">
+                                <div class="text-center">
+                                    <div class="flex gap-1 justify-center mb-2">
+                                        <div class="w-2 h-2 bg-white/60 rounded-full typing-dot"></div>
+                                        <div class="w-2 h-2 bg-white/60 rounded-full typing-dot"></div>
+                                        <div class="w-2 h-2 bg-white/60 rounded-full typing-dot"></div>
+                                    </div>
+                                    <p class="text-xs text-white/80">生成中...</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="p-3">
+                            <p class="text-xs text-gray-400 line-clamp-2">广角镜头：角色站在高楼边缘，俯瞰整个赛博朋克城市，雨丝在霓虹灯下闪烁。</p>
+                        </div>
+                    </div>
+
+                    <!-- Add New Shot Card -->
+                    <button onclick="addNewShot()" class="shot-card border-2 border-dashed border-gray-700 rounded-2xl flex flex-col items-center justify-center gap-3 text-gray-500 hover:border-violet-500/50 hover:text-violet-400 hover:bg-violet-500/5 transition-all min-h-[200px]">
+                        <div class="w-12 h-12 rounded-full bg-gray-800 flex items-center justify-center">
+                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+                            </svg>
+                        </div>
+                        <span class="text-sm font-medium">添加镜头</span>
+                    </button>
+                </div>
+            </div>
+        </main>
+
+        <!-- Right Panel: AI Co-pilot -->
+        <aside class="w-[360px] border-l border-gray-800 flex flex-col bg-[#111827]">
+            <!-- Panel Header -->
+            <div class="h-14 border-b border-gray-800 flex items-center px-4">
+                <div class="flex items-center gap-3">
+                    <div class="w-8 h-8 rounded-full bg-gradient-to-br from-violet-500 to-fuchsia-500 flex items-center justify-center">
+                        <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
+                        </svg>
+                    </div>
+                    <div>
+                        <h2 class="text-sm font-medium text-gray-200">AI 助手</h2>
+                        <p class="text-xs text-gray-500">随时为你生成创意</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Chat Messages -->
+            <div id="chatMessages" class="flex-1 overflow-y-auto p-4 space-y-4">
+                <!-- AI Welcome Message -->
+                <div class="flex gap-3 message-enter">
+                    <div class="w-8 h-8 rounded-full bg-gradient-to-br from-violet-500 to-fuchsia-500 flex items-center justify-center flex-shrink-0">
+                        <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
+                        </svg>
+                    </div>
+                    <div class="flex-1">
+                        <div class="bg-gray-800 rounded-2xl rounded-tl-sm p-3">
+                            <p class="text-sm text-gray-300">你好！我是你的AI创作助手。告诉我你想要什么样的故事，我会帮你生成精美的故事板镜头。</p>
+                        </div>
+                        <p class="text-xs text-gray-600 mt-1 ml-1">刚刚</p>
+                    </div>
+                </div>
+
+                <!-- User Message -->
+                <div class="flex gap-3 justify-end message-enter">
+                    <div class="flex-1 max-w-[85%]">
+                        <div class="bg-violet-600 rounded-2xl rounded-tr-sm p-3">
+                            <p class="text-sm text-white">帮我生成一个赛博朋克风格的角色登场镜头，使用 <span class="bg-violet-500/50 px-1 rounded">@Element_Logo_Character</span> 作为主角，背景是雨夜的城市。</p>
+                        </div>
+                        <p class="text-xs text-gray-600 mt-1 mr-1 text-right">2分钟前</p>
+                    </div>
+                </div>
+
+                <!-- AI Response with Visual Asset Block -->
+                <div class="flex gap-3 message-enter">
+                    <div class="w-8 h-8 rounded-full bg-gradient-to-br from-violet-500 to-fuchsia-500 flex items-center justify-center flex-shrink-0">
+                        <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
+                        </svg>
+                    </div>
+                    <div class="flex-1">
+                        <div class="bg-gray-800 rounded-2xl rounded-tl-sm p-3">
+                            <p class="text-sm text-gray-300 mb-3">好的！我为你生成了以下镜头，你可以直接添加到故事板中：</p>
+                            
+                            <!-- Visual Asset Block -->
+                            <div class="asset-block bg-gray-900 rounded-xl overflow-hidden border border-gray-700">
+                                <div class="aspect-video bg-gray-800 relative">
+                                    <img src="https://images.unsplash.com/photo-1635322966219-b75ed372eb01?w=400&h=225&fit=crop" 
+                                         alt="Generated shot" 
+                                         class="w-full h-full object-cover">
+                                    <div class="absolute inset-0 bg-gradient-to-t from-gray-900/80 to-transparent"></div>
+                                    <div class="absolute bottom-3 left-3 right-3">
+                                        <p class="text-xs text-gray-300 line-clamp-2">赛博朋克角色登场镜头 - 雨夜城市背景，Logo角色从黑暗中浮现</p>
+                                    </div>
+                                </div>
+                                <div class="p-3 flex gap-2">
+                                    <button onclick="addToShot(2)" class="flex-1 py-2 bg-violet-600 hover:bg-violet-500 rounded-lg text-xs font-medium text-white transition-colors">
+                                        添加到镜头 02
+                                    </button>
+                                    <button onclick="replaceShot(1)" class="flex-1 py-2 bg-gray-700 hover:bg-gray-600 rounded-lg text-xs font-medium text-gray-300 transition-colors">
+                                        替换镜头 01
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                        <p class="text-xs text-gray-600 mt-1 ml-1">1分钟前</p>
+                    </div>
+                </div>
+
+                <!-- Typing Indicator -->
+                <div id="typingIndicator" class="flex gap-3 hidden">
+                    <div class="w-8 h-8 rounded-full bg-gradient-to-br from-violet-500 to-fuchsia-500 flex items-center justify-center flex-shrink-0">
+                        <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
+                        </svg>
+                    </div>
+                    <div class="bg-gray-800 rounded-2xl rounded-tl-sm px-4 py-3">
+                        <div class="flex gap-1">
+                            <div class="w-2 h-2 bg-gray-500 rounded-full typing-dot"></div>
+                            <div class="w-2 h-2 bg-gray-500 rounded-full typing-dot"></div>
+                            <div class="w-2 h-2 bg-gray-500 rounded-full typing-dot"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Model Selection Pills -->
+            <div class="px-4 py-2 border-t border-gray-800">
+                <div class="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
+                    <button class="model-pill active px-3 py-1.5 bg-violet-600/20 border border-violet-500/30 rounded-full text-xs text-violet-300 whitespace-nowrap transition-all" onclick="selectModel(this, 'text2image')">
+                        文生图
+                    </button>
+                    <button class="model-pill px-3 py-1.5 bg-gray-800 border border-gray-700 rounded-full text-xs text-gray-400 whitespace-nowrap transition-all hover:border-gray-600" onclick="selectModel(this, 'image2video')">
+                        图生视频
+                    </button>
+                    <button class="model-pill px-3 py-1.5 bg-gray-800 border border-gray-700 rounded-full text-xs text-gray-400 whitespace-nowrap transition-all hover:border-gray-600" onclick="selectModel(this, 'style')">
+                        风格迁移
+                    </button>
+                    <button class="model-pill px-3 py-1.5 bg-gray-800 border border-gray-700 rounded-full text-xs text-gray-400 whitespace-nowrap transition-all hover:border-gray-600" onclick="selectModel(this, 'upscale')">
+                        超分辨率
+                    </button>
+                </div>
+            </div>
+
+            <!-- Input Area -->
+            <div class="p-4 border-t border-gray-800">
+                <div class="glass-input rounded-2xl p-2 flex items-end gap-2">
+                    <button class="p-2 hover:bg-gray-700/50 rounded-xl transition-colors flex-shrink-0" title="添加附件">
+                        <svg class="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+                        </svg>
+                    </button>
+                    <textarea 
+                        id="chatInput"
+                        placeholder="描述你想要的镜头... 使用 @ 引用元素"
+                        class="flex-1 bg-transparent border-none resize-none text-sm text-gray-200 placeholder-gray-500 focus:outline-none max-h-24 py-2"
+                        rows="1"
+                        oninput="autoResize(this)"
+                        onkeydown="handleEnter(event)"
+                    ></textarea>
+                    <button onclick="sendMessage()" class="p-2 bg-violet-600 hover:bg-violet-500 rounded-xl transition-colors flex-shrink-0 pulse-glow">
+                        <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"/>
+                        </svg>
+                    </button>
+                </div>
+                <p class="text-xs text-gray-600 mt-2 text-center">按 Enter 发送，Shift + Enter 换行</p>
+            </div>
+        </aside>
+    </div>
+
+    <!-- Export Modal -->
+    <div id="exportModal" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 hidden items-center justify-center">
+        <div class="bg-gray-800 rounded-2xl border border-gray-700 p-6 w-96 max-w-[90%]">
+            <h3 class="text-lg font-semibold text-gray-200 mb-4">导出项目</h3>
+            <div class="space-y-3">
+                <button onclick="exportAsPDF()" class="w-full p-4 bg-gray-700/50 hover:bg-gray-700 rounded-xl flex items-center gap-3 transition-colors group">
+                    <div class="w-10 h-10 rounded-lg bg-red-500/20 flex items-center justify-center group-hover:bg-red-500/30 transition-colors">
+                        <svg class="w-5 h-5 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"/>
+                        </svg>
+                    </div>
+                    <div class="text-left">
+                        <p class="text-sm font-medium text-gray-200">导出为 PDF</p>
+                        <p class="text-xs text-gray-500">生成分镜脚本文档</p>
+                    </div>
+                </button>
+                <button onclick="exportAsVideo()" class="w-full p-4 bg-gray-700/50 hover:bg-gray-700 rounded-xl flex items-center gap-3 transition-colors group">
+                    <div class="w-10 h-10 rounded-lg bg-violet-500/20 flex items-center justify-center group-hover:bg-violet-500/30 transition-colors">
+                        <svg class="w-5 h-5 text-violet-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"/>
+                        </svg>
+                    </div>
+                    <div class="text-left">
+                        <p class="text-sm font-medium text-gray-200">生成预览视频</p>
+                        <p class="text-xs text-gray-500">将所有镜头合成为视频</p>
+                    </div>
+                </button>
+            </div>
+            <button onclick="closeExportModal()" class="w-full mt-4 py-2 bg-gray-700 hover:bg-gray-600 rounded-lg text-sm text-gray-300 transition-colors">
+                取消
+            </button>
+        </div>
+    </div>
+
+    <!-- Fullscreen Preview Modal -->
+    <div id="previewModal" class="fullscreen-preview hidden">
+        <button onclick="closePreview()" class="absolute top-6 right-6 p-3 bg-gray-900/80 backdrop-blur rounded-full hover:bg-gray-800 transition-colors z-10">
+            <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+            </svg>
+        </button>
+        <div class="max-w-5xl max-h-[80vh] relative">
+            <img id="previewImage" src="" alt="Preview" class="max-w-full max-h-[80vh] object-contain rounded-lg">
+            <div class="absolute bottom-0 left-0 right-0 p-6 bg-gradient-to-t from-black/80 to-transparent">
+                <p id="previewCaption" class="text-white text-lg font-medium"></p>
+                <p id="previewShotNum" class="text-gray-400 text-sm mt-1"></p>
+            </div>
+        </div>
+        <div class="absolute bottom-8 left-1/2 -translate-x-1/2 flex items-center gap-4">
+            <button onclick="prevShot()" class="p-3 bg-gray-900/80 backdrop-blur rounded-full hover:bg-gray-800 transition-colors">
+                <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
+                </svg>
+            </button>
+            <span id="shotIndicator" class="text-white font-medium">1 / 3</span>
+            <button onclick="nextShot()" class="p-3 bg-gray-900/80 backdrop-blur rounded-full hover:bg-gray-800 transition-colors">
+                <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+                </svg>
+            </button>
+        </div>
+    </div>
+
+    <script>
+        // State Management
+        let state = {
+            currentModel: 'text2image',
+            selectedShot: null,
+            shots: [
+                { id: 1, image: 'https://images.unsplash.com/photo-1635322966219-b75ed372eb01?w=400&h=300&fit=crop', caption: '开场镜头：Logo角色从黑暗中浮现，眼睛发出微弱的蓝光，背景是雨夜的赛博朋克城市。' },
+                { id: 2, image: 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=400&h=300&fit=crop', caption: '特写镜头：角色面部细节，烟灰色的金属质感，霓虹灯在脸上反射出紫红色的光。' },
+                { id: 3, image: null, caption: '广角镜头：角色站在高楼边缘，俯瞰整个赛博朋克城市，雨丝在霓虹灯下闪烁。', generating: true }
+            ],
+            currentPreviewIndex: 0,
+            draggedShot: null
+        };
+
+        // Auto-resize textarea
+        function autoResize(textarea) {
+            textarea.style.height = 'auto';
+            textarea.style.height = Math.min(textarea.scrollHeight, 96) + 'px';
+        }
+
+        // Handle Enter key
+        function handleEnter(event) {
+            if (event.key === 'Enter' && !event.shiftKey) {
+                event.preventDefault();
+                sendMessage();
+            }
+        }
+
+        // Select Model
+        function selectModel(btn, model) {
+            state.currentModel = model;
+            document.querySelectorAll('.model-pill').forEach(pill => {
+                pill.classList.remove('active', 'bg-violet-600/20', 'border-violet-500/30', 'text-violet-300');
+                pill.classList.add('bg-gray-800', 'border-gray-700', 'text-gray-400');
+            });
+            btn.classList.remove('bg-gray-800', 'border-gray-700', 'text-gray-400');
+            btn.classList.add('active', 'bg-violet-600/20', 'border-violet-500/30', 'text-violet-300');
+        }
+
+        // Send Message
+        function sendMessage() {
+            const input = document.getElementById('chatInput');
+            const message = input.value.trim();
+            if (!message) return;
+
+            // Add user message
+            addMessage(message, 'user');
+            input.value = '';
+            input.style.height = 'auto';
+
+            // Show typing indicator
+            document.getElementById('typingIndicator').classList.remove('hidden');
+
+            // Simulate AI response
+            setTimeout(() => {
+                document.getElementById('typingIndicator').classList.add('hidden');
+                addMessage('我为你生成了一个新的镜头，你可以查看并添加到故事板中。', 'ai', true);
+            }, 2000);
+        }
+
+        // Add Message to Chat
+        function addMessage(text, sender, withAsset = false) {
+            const container = document.getElementById('chatMessages');
+            const time = new Date().toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' });
+            
+            let html = '';
+            if (sender === 'user') {
+                html = `
+                    <div class="flex gap-3 justify-end message-enter">
+                        <div class="flex-1 max-w-[85%]">
+                            <div class="bg-violet-600 rounded-2xl rounded-tr-sm p-3">
+                                <p class="text-sm text-white">${text}</p>
+                            </div>
+                            <p class="text-xs text-gray-600 mt-1 mr-1 text-right">${time}</p>
+                        </div>
+                    </div>
+                `;
+            } else {
+                const assetBlock = withAsset ? `
+                    <div class="asset-block bg-gray-900 rounded-xl overflow-hidden border border-gray-700 mt-3">
+                        <div class="aspect-video bg-gray-800 relative">
+                            <img src="https://images.unsplash.com/photo-1614728263952-84ea256f9679?w=400&h=225&fit=crop" 
+                                 alt="Generated shot" 
+                                 class="w-full h-full object-cover">
+                            <div class="absolute inset-0 bg-gradient-to-t from-gray-900/80 to-transparent"></div>
+                            <div class="absolute bottom-3 left-3 right-3">
+                                <p class="text-xs text-gray-300 line-clamp-2">新镜头：赛博朋克城市全景，飞行器穿梭其中</p>
+                            </div>
+                        </div>
+                        <div class="p-3 flex gap-2">
+                            <button onclick="addToShot(${state.shots.length + 1})" class="flex-1 py-2 bg-violet-600 hover:bg-violet-500 rounded-lg text-xs font-medium text-white transition-colors">
+                                添加到新镜头
+                            </button>
+                        </div>
+                    </div>
+                ` : '';
+                
+                html = `
+                    <div class="flex gap-3 message-enter">
+                        <div class="w-8 h-8 rounded-full bg-gradient-to-br from-violet-500 to-fuchsia-500 flex items-center justify-center flex-shrink-0">
+                            <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
+                            </svg>
+                        </div>
+                        <div class="flex-1">
+                            <div class="bg-gray-800 rounded-2xl rounded-tl-sm p-3">
+                                <p class="text-sm text-gray-300">${text}</p>
+                                ${assetBlock}
+                            </div>
+                            <p class="text-xs text-gray-600 mt-1 ml-1">${time}</p>
+                        </div>
+                    </div>
+                `;
+            }
+            
+            container.insertAdjacentHTML('beforeend', html);
+            container.scrollTop = container.scrollHeight;
+        }
+
+        // Select Shot
+        function selectShot(id) {
+            state.selectedShot = id;
+            document.querySelectorAll('.shot-card').forEach(card => {
+                card.classList.remove('active');
+            });
+            const card = document.querySelector(`[data-shot-id="${id}"]`);
+            if (card) card.classList.add('active');
+        }
+
+        // Add New Shot
+        function addNewShot() {
+            const newId = state.shots.length + 1;
+            state.shots.push({
+                id: newId,
+                image: null,
+                caption: '新镜头：等待生成内容...',
+                generating: true
+            });
+            
+            const grid = document.getElementById('storyboardGrid');
+            const addButton = grid.lastElementChild;
+            
+            const newCard = document.createElement('div');
+            newCard.className = 'shot-card bg-gray-800 rounded-2xl overflow-hidden border border-gray-700 cursor-pointer relative group';
+            newCard.setAttribute('data-shot-id', newId);
+            newCard.setAttribute('draggable', 'true');
+            newCard.onclick = () => selectShot(newId);
+            newCard.ondragstart = (e) => handleDragStart(e, newId);
+            newCard.ondragover = handleDragOver;
+            newCard.ondrop = (e) => handleDrop(e, newId);
+            newCard.ondragend = handleDragEnd;
+            
+            newCard.innerHTML = `
+                <div class="absolute top-3 left-3 z-10">
+                    <span class="text-xs font-medium text-gray-400 bg-gray-900/80 backdrop-blur px-2 py-1 rounded-lg">镜头 ${String(newId).padStart(2, '0')}</span>
+                </div>
+                <div class="absolute top-3 right-3 z-10 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <button class="p-1.5 bg-gray-900/80 backdrop-blur rounded-lg hover:bg-gray-800 transition-colors" onclick="event.stopPropagation(); showShotMenu(${newId})">
+                        <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z"/>
+                        </svg>
+                    </button>
+                </div>
+                <div class="aspect-[4/3] bg-gray-700 relative overflow-hidden">
+                    <div class="aurora-shader w-full h-full"></div>
+                    <div class="absolute inset-0 flex items-center justify-center">
+                        <div class="text-center">
+                            <div class="flex gap-1 justify-center mb-2">
+                                <div class="w-2 h-2 bg-white/60 rounded-full typing-dot"></div>
+                                <div class="w-2 h-2 bg-white/60 rounded-full typing-dot"></div>
+                                <div class="w-2 h-2 bg-white/60 rounded-full typing-dot"></div>
+                            </div>
+                            <p class="text-xs text-white/80">生成中...</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="p-3">
+                    <p class="text-xs text-gray-400 line-clamp-2">新镜头：等待生成内容...</p>
+                </div>
+            `;
+            
+            grid.insertBefore(newCard, addButton);
+            updateShotCount();
+            
+            // Simulate generation completion
+            setTimeout(() => {
+                state.shots[newId - 1].generating = false;
+                state.shots[newId - 1].image = 'https://images.unsplash.com/photo-1614728263952-84ea256f9679?w=400&h=300&fit=crop';
+                state.shots[newId - 1].caption = '新镜头：赛博朋克城市全景，飞行器穿梭其中，霓虹灯光映照在雨后的街道上。';
+                
+                const imgContainer = newCard.querySelector('.aspect-\\[4\\/3\\]');
+                imgContainer.innerHTML = `
+                    <img src="${state.shots[newId - 1].image}" alt="Shot ${newId}" class="w-full h-full object-cover">
+                    <div class="absolute inset-0 bg-gradient-to-t from-gray-900/60 to-transparent"></div>
+                    <button class="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity" onclick="event.stopPropagation(); regenerateShot(${newId})">
+                        <div class="p-3 bg-gray-900/80 backdrop-blur rounded-full hover:bg-gray-800 transition-colors">
+                            <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+                            </svg>
+                        </div>
+                    </button>
+                `;
+                newCard.querySelector('.line-clamp-2').textContent = state.shots[newId - 1].caption;
+                newCard.classList.add('updating');
+            }, 3000);
+        }
+
+        // Update Shot Count
+        function updateShotCount() {
+            document.getElementById('shotCount').textContent = `${state.shots.length} 个镜头`;
+        }
+
+        // Regenerate Shot
+        function regenerateShot(id) {
+            const card = document.querySelector(`[data-shot-id="${id}"]`);
+            const imgContainer = card.querySelector('.aspect-\\[4\\/3\\]');
+            
+            imgContainer.innerHTML = `
+                <div class="aurora-shader w-full h-full"></div>
+                <div class="absolute inset-0 flex items-center justify-center">
+                    <div class="text-center">
+                        <div class="flex gap-1 justify-center mb-2">
+                            <div class="w-2 h-2 bg-white/60 rounded-full typing-dot"></div>
+                            <div class="w-2 h-2 bg-white/60 rounded-full typing-dot"></div>
+                            <div class="w-2 h-2 bg-white/60 rounded-full typing-dot"></div>
+                        </div>
+                        <p class="text-xs text-white/80">重新生成中...</p>
+                    </div>
+                </div>
+            `;
+            
+            setTimeout(() => {
+                const images = [
+                    'https://images.unsplash.com/photo-1635322966219-b75ed372eb01?w=400&h=300&fit=crop',
+                    'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=400&h=300&fit=crop',
+                    'https://images.unsplash.com/photo-1614728263952-84ea256f9679?w=400&h=300&fit=crop'
+                ];
+                const randomImage = images[Math.floor(Math.random() * images.length)];
+                
+                imgContainer.innerHTML = `
+                    <img src="${randomImage}" alt="Shot ${id}" class="w-full h-full object-cover">
+                    <div class="absolute inset-0 bg-gradient-to-t from-gray-900/60 to-transparent"></div>
+                    <button class="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity" onclick="event.stopPropagation(); regenerateShot(${id})">
+                        <div class="p-3 bg-gray-900/80 backdrop-blur rounded-full hover:bg-gray-800 transition-colors">
+                            <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+                            </svg>
+                        </div>
+                    </button>
+                `;
+                card.classList.add('updating');
+            }, 2000);
+        }
+
+        // Drag and Drop
+        function handleDragStart(e, id) {
+            state.draggedShot = id;
+            e.target.classList.add('dragging');
+            e.dataTransfer.effectAllowed = 'move';
+        }
+
+        function handleDragOver(e) {
+            e.preventDefault();
+            e.dataTransfer.dropEffect = 'move';
+        }
+
+        function handleDrop(e, targetId) {
+            e.preventDefault();
+            if (state.draggedShot === targetId) return;
+            
+            // Swap shots in array
+            const fromIndex = state.shots.findIndex(s => s.id === state.draggedShot);
+            const toIndex = state.shots.findIndex(s => s.id === targetId);
+            
+            if (fromIndex !== -1 && toIndex !== -1) {
+                [state.shots[fromIndex], state.shots[toIndex]] = [state.shots[toIndex], state.shots[fromIndex]];
+                reorderShots();
+            }
+        }
+
+        function handleDragEnd(e) {
+            e.target.classList.remove('dragging');
+            state.draggedShot = null;
+        }
+
+        function reorderShots() {
+            const grid = document.getElementById('storyboardGrid');
+            const addButton = grid.lastElementChild;
+            
+            // Clear grid except add button
+            while (grid.firstChild !== addButton) {
+                grid.removeChild(grid.firstChild);
+            }
+            
+            // Rebuild in new order
+            state.shots.forEach((shot, index) => {
+                const card = createShotCard(shot, index + 1);
+                grid.insertBefore(card, addButton);
+            });
+        }
+
+        function createShotCard(shot, displayNum) {
+            const card = document.createElement('div');
+            card.className = 'shot-card bg-gray-800 rounded-2xl overflow-hidden border border-gray-700 cursor-pointer relative group';
+            card.setAttribute('data-shot-id', shot.id);
+            card.setAttribute('draggable', 'true');
+            card.onclick = () => selectShot(shot.id);
+            card.ondragstart = (e) => handleDragStart(e, shot.id);
+            card.ondragover = handleDragOver;
+            card.ondrop = (e) => handleDrop(e, shot.id);
+            card.ondragend = handleDragEnd;
+            
+            const imageContent = shot.generating ? `
+                <div class="aurora-shader w-full h-full"></div>
+                <div class="absolute inset-0 flex items-center justify-center">
+                    <div class="text-center">
+                        <div class="flex gap-1 justify-center mb-2">
+                            <div class="w-2 h-2 bg-white/60 rounded-full typing-dot"></div>
+                            <div class="w-2 h-2 bg-white/60 rounded-full typing-dot"></div>
+                            <div class="w-2 h-2 bg-white/60 rounded-full typing-dot"></div>
+                        </div>
+                        <p class="text-xs text-white/80">生成中...</p>
+                    </div>
+                </div>
+            ` : `
+                <img src="${shot.image}" alt="Shot ${displayNum}" class="w-full h-full object-cover">
+                <div class="absolute inset-0 bg-gradient-to-t from-gray-900/60 to-transparent"></div>
+                <button class="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity" onclick="event.stopPropagation(); regenerateShot(${shot.id})">
+                    <div class="p-3 bg-gray-900/80 backdrop-blur rounded-full hover:bg-gray-800 transition-colors">
+                        <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+                        </svg>
+                    </div>
+                </button>
+            `;
+            
+            card.innerHTML = `
+                <div class="absolute top-3 left-3 z-10">
+                    <span class="text-xs font-medium text-gray-400 bg-gray-900/80 backdrop-blur px-2 py-1 rounded-lg">镜头 ${String(displayNum).padStart(2, '0')}</span>
+                </div>
+                <div class="absolute top-3 right-3 z-10 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <button class="p-1.5 bg-gray-900/80 backdrop-blur rounded-lg hover:bg-gray-800 transition-colors" onclick="event.stopPropagation(); showShotMenu(${shot.id})">
+                        <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z"/>
+                        </svg>
+                    </button>
+                </div>
+                <div class="aspect-[4/3] bg-gray-700 relative overflow-hidden">
+                    ${imageContent}
+                </div>
+                <div class="p-3">
+                    <p class="text-xs text-gray-400 line-clamp-2">${shot.caption}</p>
+                </div>
+            `;
+            
+            return card;
+        }
+
+        // Accordion Toggle
+        function toggleAccordion(header) {
+            const content = header.nextElementSibling;
+            const icon = header.querySelector('.accordion-icon');
+            
+            content.classList.toggle('open');
+            icon.style.transform = content.classList.contains('open') ? 'rotate(180deg)' : '';
+        }
+
+        // Add Element
+        function addElement() {
+            const list = document.getElementById('elementsList');
+            const newElement = document.createElement('div');
+            newElement.className = 'element-card bg-gray-800/50 rounded-xl border border-gray-700 overflow-hidden';
+            newElement.innerHTML = `
+                <div class="p-3 flex items-center gap-3 cursor-pointer hover:bg-gray-700/30 transition-colors" onclick="toggleAccordion(this)">
+                    <div class="w-10 h-10 rounded-lg bg-gray-700 flex items-center justify-center">
+                        <svg class="w-5 h-5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+                        </svg>
+                    </div>
+                    <div class="flex-1 min-w-0">
+                        <p class="text-sm font-medium text-gray-200 truncate">新元素</p>
+                        <p class="text-xs text-gray-500 truncate">点击编辑描述</p>
+                    </div>
+                    <svg class="w-4 h-4 text-gray-500 transform transition-transform accordion-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+                    </svg>
+                </div>
+                <div class="accordion-content px-3 pb-3 open">
+                    <div class="pt-2 border-t border-gray-700/50 space-y-2">
+                        <input type="text" placeholder="元素名称" class="w-full bg-gray-900/50 border border-gray-700 rounded-lg px-3 py-2 text-sm text-gray-200 focus:outline-none focus:border-violet-500/50">
+                        <textarea placeholder="元素描述..." class="w-full h-16 bg-gray-900/50 border border-gray-700 rounded-lg px-3 py-2 text-xs text-gray-300 resize-none focus:outline-none focus:border-violet-500/50"></textarea>
+                        <div class="flex gap-2">
+                            <button class="flex-1 py-1.5 bg-violet-600 hover:bg-violet-500 rounded-lg text-xs text-white transition-colors">保存</button>
+                            <button onclick="this.closest('.element-card').remove()" class="py-1.5 px-3 bg-gray-700 hover:bg-gray-600 rounded-lg text-xs text-gray-300 transition-colors">删除</button>
+                        </div>
+                    </div>
+                </div>
+            `;
+            list.appendChild(newElement);
+        }
+
+        // Export Functions
+        function exportProject() {
+            document.getElementById('exportModal').classList.remove('hidden');
+            document.getElementById('exportModal').classList.add('flex');
+        }
+
+        function closeExportModal() {
+            document.getElementById('exportModal').classList.add('hidden');
+            document.getElementById('exportModal').classList.remove('flex');
+        }
+
+        function exportAsPDF() {
+            alert('正在生成 PDF 分镜脚本...');
+            closeExportModal();
+        }
+
+        function exportAsVideo() {
+            alert('正在合成预览视频...');
+            closeExportModal();
+        }
+
+        // Preview Functions
+        function playPreview() {
+            state.currentPreviewIndex = 0;
+            showPreview(0);
+        }
+
+        function showPreview(index) {
+            const shot = state.shots[index];
+            if (!shot || !shot.image) return;
+            
+            document.getElementById('previewImage').src = shot.image;
+            document.getElementById('previewCaption').textContent = shot.caption;
+            document.getElementById('previewShotNum').textContent = `镜头 ${String(index + 1).padStart(2, '0')} / ${state.shots.length}`;
+            document.getElementById('shotIndicator').textContent = `${index + 1} / ${state.shots.length}`;
+            
+            document.getElementById('previewModal').classList.remove('hidden');
+        }
+
+        function closePreview() {
+            document.getElementById('previewModal').classList.add('hidden');
+        }
+
+        function prevShot() {
+            if (state.currentPreviewIndex > 0) {
+                state.currentPreviewIndex--;
+                showPreview(state.currentPreviewIndex);
+            }
+        }
+
+        function nextShot() {
+            if (state.currentPreviewIndex < state.shots.length - 1) {
+                state.currentPreviewIndex++;
+                showPreview(state.currentPreviewIndex);
+            }
+        }
+
+        // Visual Asset Block Actions
+        function addToShot(shotId) {
+            const card = document.querySelector(`[data-shot-id="${shotId}"]`);
+            if (card) {
+                card.classList.add('updating');
+                setTimeout(() => card.classList.remove('updating'), 600);
+            }
+            addMessage(`已添加到镜头 ${String(shotId).padStart(2, '0')}`, 'system');
+        }
+
+        function replaceShot(shotId) {
+            regenerateShot(shotId);
+            addMessage(`正在替换镜头 ${String(shotId).padStart(2, '0')}...`, 'system');
+        }
+
+        function showShotMenu(shotId) {
+            // Simple confirmation for delete
+            if (confirm(`确定要删除镜头 ${String(shotId).padStart(2, '0')} 吗？`)) {
+                const card = document.querySelector(`[data-shot-id="${shotId}"]`);
+                if (card) {
+                    card.style.transform = 'scale(0.9)';
+                    card.style.opacity = '0';
+                    setTimeout(() => {
+                        card.remove();
+                        state.shots = state.shots.filter(s => s.id !== shotId);
+                        updateShotCount();
+                    }, 300);
+                }
+            }
+        }
+
+        // Close modals on outside click
+        document.getElementById('exportModal').addEventListener('click', (e) => {
+            if (e.target === e.currentTarget) closeExportModal();
+        });
+
+        document.getElementById('previewModal').addEventListener('click', (e) => {
+            if (e.target === e.currentTarget) closePreview();
+        });
+
+        // Keyboard shortcuts
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') {
+                closeExportModal();
+                closePreview();
+            }
+        });
+    </script>
+</body>
+</html>

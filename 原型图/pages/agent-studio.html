@@ -1,0 +1,843 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WeiMeng - Agent Studio</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Playfair+Display:wght@400;500;600&display=swap" rel="stylesheet">
+    <style>
+        * { font-family: 'Inter', sans-serif; }
+        .font-serif { font-family: 'Playfair Display', serif; }
+        
+        /* Custom scrollbar */
+        .custom-scrollbar::-webkit-scrollbar { width: 6px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #E5E7EB; border-radius: 3px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #D1D5DB; }
+        
+        /* Gradient noise animation */
+        @keyframes gradientNoise {
+            0%, 100% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+        }
+        .generating-placeholder {
+            background: linear-gradient(-45deg, #f0f0f0, #e8e8e8, #f4f4f4, #ececec);
+            background-size: 400% 400%;
+            animation: gradientNoise 4s ease infinite;
+        }
+        
+        /* Pulse glow animation */
+        @keyframes pulseGlow {
+            0%, 100% { box-shadow: 0 0 0 0 rgba(0, 0, 0, 0.4); }
+            50% { box-shadow: 0 0 20px 4px rgba(0, 0, 0, 0.2); }
+        }
+        .pulse-glow { animation: pulseGlow 2s ease-in-out infinite; }
+        
+        /* Rotate animation */
+        @keyframes rotate { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+        .animate-rotate { animation: rotate 2s linear infinite; }
+        
+        /* Panel transitions */
+        .panel-slide-left { transition: transform 0.3s ease, opacity 0.3s ease; }
+        .panel-slide-right { transition: transform 0.3s ease; }
+        
+        /* Accordion */
+        .accordion-content { max-height: 0; overflow: hidden; transition: max-height 0.3s ease; }
+        .accordion-content.open { max-height: 500px; }
+        
+        /* Slider */
+        .slider-track { height: 4px; background: #E5E7EB; border-radius: 2px; }
+        .slider-thumb { width: 16px; height: 16px; background: #000; border-radius: 50%; cursor: pointer; transition: transform 0.15s ease; }
+        .slider-thumb:hover { transform: scale(1.2); }
+        
+        /* Hover toolbar */
+        .result-card .hover-toolbar { opacity: 0; transform: translateY(8px); transition: all 0.2s ease; }
+        .result-card:hover .hover-toolbar { opacity: 1; transform: translateY(0); }
+        
+        /* Model card */
+        .model-card { transition: all 0.2s ease; }
+        .model-card.selected { border-color: #000; background: #FAFAFA; }
+        .model-card:hover { border-color: #D1D5DB; }
+        
+        /* Style preset */
+        .style-preset { transition: all 0.2s ease; }
+        .style-preset.selected { ring: 2px solid #000; }
+        .style-preset:hover { transform: scale(1.05); }
+        
+        /* Prompt tag */
+        .prompt-tag { animation: fadeIn 0.2s ease; }
+        @keyframes fadeIn { from { opacity: 0; transform: scale(0.9); } to { opacity: 1; transform: scale(1); } }
+        
+        /* Image fade in */
+        @keyframes imageFadeIn { from { opacity: 0; transform: scale(0.98); } to { opacity: 1; transform: scale(1); } }
+        .image-fade-in { animation: imageFadeIn 0.5s ease forwards; }
+        
+        /* Drawer animation */
+        @keyframes slideInRight { from { transform: translateX(100%); } to { transform: translateX(0); } }
+        .drawer-enter { animation: slideInRight 0.3s ease forwards; }
+        
+        /* Glass effect */
+        .glass { background: rgba(255, 255, 255, 0.7); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); }
+        
+        /* Hide scrollbar but keep functionality */
+        .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
+        .scrollbar-hide::-webkit-scrollbar { display: none; }
+    </style>
+</head>
+<body class="bg-[#F1F2F4] text-gray-900 overflow-hidden">
+    <div class="flex h-screen">
+        <!-- Left Inspector Panel -->
+        <aside id="inspector-panel" class="panel-slide-left w-80 flex-shrink-0 relative z-20">
+            <div class="h-full m-3 mr-0 bg-white rounded-3xl shadow-sm overflow-hidden flex flex-col">
+                <!-- Panel Header -->
+                <div class="p-5 border-b border-gray-100 flex items-center justify-between">
+                    <h2 class="font-semibold text-gray-900">参数检查器</h2>
+                    <button onclick="toggleInspector()" class="p-1.5 hover:bg-gray-100 rounded-lg transition-colors">
+                        <svg class="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 19l-7-7 7-7m8 14l-7-7 7-7"/>
+                        </svg>
+                    </button>
+                </div>
+                
+                <!-- Panel Content -->
+                <div class="flex-1 overflow-y-auto custom-scrollbar p-5 space-y-6">
+                    <!-- Model Section -->
+                    <div class="accordion-section">
+                        <button onclick="toggleAccordion(this)" class="w-full flex items-center justify-between py-2 text-left">
+                            <span class="font-medium text-gray-900">模型</span>
+                            <svg class="w-4 h-4 text-gray-400 transform transition-transform accordion-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+                            </svg>
+                        </button>
+                        <div class="accordion-content open mt-3">
+                            <div class="grid grid-cols-2 gap-3">
+                                <!-- Lovart XL -->
+                                <div class="model-card selected p-3 border-2 border-gray-200 rounded-xl cursor-pointer" onclick="selectModel(this, 'Lovart XL')">
+                                    <div class="w-10 h-10 bg-black rounded-xl flex items-center justify-center mb-2">
+                                        <span class="text-white font-bold text-sm">L</span>
+                                    </div>
+                                    <p class="text-sm font-medium text-gray-900">Lovart XL</p>
+                                    <p class="text-xs text-gray-500 mt-0.5">推荐</p>
+                                </div>
+                                <!-- DALL-E 3 -->
+                                <div class="model-card p-3 border-2 border-gray-200 rounded-xl cursor-pointer" onclick="selectModel(this, 'DALL-E 3')">
+                                    <div class="w-10 h-10 bg-gradient-to-br from-emerald-400 to-cyan-500 rounded-xl flex items-center justify-center mb-2">
+                                        <span class="text-white font-bold text-sm">D</span>
+                                    </div>
+                                    <p class="text-sm font-medium text-gray-900">DALL-E 3</p>
+                                    <p class="text-xs text-gray-500 mt-0.5">OpenAI</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Composition Section -->
+                    <div class="accordion-section">
+                        <button onclick="toggleAccordion(this)" class="w-full flex items-center justify-between py-2 text-left">
+                            <span class="font-medium text-gray-900">构图</span>
+                            <svg class="w-4 h-4 text-gray-400 transform transition-transform accordion-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+                            </svg>
+                        </button>
+                        <div class="accordion-content open mt-3 space-y-4">
+                            <!-- Aspect Ratio -->
+                            <div>
+                                <label class="text-xs font-medium text-gray-500 uppercase tracking-wider mb-2 block">长宽比</label>
+                                <div class="flex gap-2">
+                                    <button onclick="selectAspect(this, '1:1')" class="aspect-btn flex-1 p-3 bg-gray-50 hover:bg-gray-100 rounded-xl border-2 border-transparent transition-all flex flex-col items-center gap-1 selected border-black">
+                                        <div class="w-6 h-6 border-2 border-gray-600 rounded"></div>
+                                        <span class="text-xs text-gray-600">1:1</span>
+                                    </button>
+                                    <button onclick="selectAspect(this, '16:9')" class="aspect-btn flex-1 p-3 bg-gray-50 hover:bg-gray-100 rounded-xl border-2 border-transparent transition-all flex flex-col items-center gap-1">
+                                        <div class="w-8 h-5 border-2 border-gray-600 rounded"></div>
+                                        <span class="text-xs text-gray-600">16:9</span>
+                                    </button>
+                                    <button onclick="selectAspect(this, '9:16')" class="aspect-btn flex-1 p-3 bg-gray-50 hover:bg-gray-100 rounded-xl border-2 border-transparent transition-all flex flex-col items-center gap-1">
+                                        <div class="w-4 h-7 border-2 border-gray-600 rounded"></div>
+                                        <span class="text-xs text-gray-600">9:16</span>
+                                    </button>
+                                </div>
+                            </div>
+                            
+                            <!-- Style Presets -->
+                            <div>
+                                <label class="text-xs font-medium text-gray-500 uppercase tracking-wider mb-2 block">风格预设</label>
+                                <div class="grid grid-cols-3 gap-2">
+                                    <button onclick="selectStyle(this, '电影感', 'cinematic lighting, epic composition')" class="style-preset group relative rounded-xl overflow-hidden aspect-square">
+                                        <img src="https://images.unsplash.com/photo-1536440136628-849c44e66578?w=200&h=200&fit=crop" class="w-full h-full object-cover">
+                                        <div class="absolute inset-0 bg-black/40 flex items-end p-2">
+                                            <span class="text-xs text-white font-medium">电影感</span>
+                                        </div>
+                                    </button>
+                                    <button onclick="selectStyle(this, '动漫风', 'anime style, vibrant colors')" class="style-preset group relative rounded-xl overflow-hidden aspect-square">
+                                        <img src="https://images.unsplash.com/photo-1578632767115-351597cf2477?w=200&h=200&fit=crop" class="w-full h-full object-cover">
+                                        <div class="absolute inset-0 bg-black/40 flex items-end p-2">
+                                            <span class="text-xs text-white font-medium">动漫风</span>
+                                        </div>
+                                    </button>
+                                    <button onclick="selectStyle(this, '水彩', 'watercolor painting, soft edges')" class="style-preset group relative rounded-xl overflow-hidden aspect-square">
+                                        <img src="https://images.unsplash.com/photo-1579783902614-a3fb3927b6a5?w=200&h=200&fit=crop" class="w-full h-full object-cover">
+                                        <div class="absolute inset-0 bg-black/40 flex items-end p-2">
+                                            <span class="text-xs text-white font-medium">水彩</span>
+                                        </div>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Advanced Section -->
+                    <div class="accordion-section">
+                        <button onclick="toggleAccordion(this)" class="w-full flex items-center justify-between py-2 text-left">
+                            <span class="font-medium text-gray-900">高级设置</span>
+                            <svg class="w-4 h-4 text-gray-400 transform transition-transform accordion-icon -rotate-90" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+                            </svg>
+                        </button>
+                        <div class="accordion-content mt-3 space-y-5">
+                            <!-- Seed -->
+                            <div>
+                                <div class="flex items-center justify-between mb-2">
+                                    <label class="text-xs font-medium text-gray-500 uppercase tracking-wider">种子 (Seed)</label>
+                                    <span class="text-xs text-gray-400" id="seed-value">随机</span>
+                                </div>
+                                <input type="number" placeholder="随机" class="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-gray-300 transition-colors">
+                            </div>
+                            
+                            <!-- CFG Scale -->
+                            <div>
+                                <div class="flex items-center justify-between mb-2">
+                                    <label class="text-xs font-medium text-gray-500 uppercase tracking-wider">CFG Scale</label>
+                                    <span class="text-xs text-gray-400" id="cfg-value">7.5</span>
+                                </div>
+                                <div class="relative">
+                                    <div class="slider-track w-full relative">
+                                        <div class="absolute top-1/2 -translate-y-1/2 left-0 h-full bg-black rounded-full" style="width: 75%"></div>
+                                        <div class="slider-thumb absolute top-1/2 -translate-y-1/2" style="left: calc(75% - 8px)"></div>
+                                    </div>
+                                </div>
+                                <div class="flex justify-between mt-1">
+                                    <span class="text-xs text-gray-400">1</span>
+                                    <span class="text-xs text-gray-400">20</span>
+                                </div>
+                            </div>
+                            
+                            <!-- Steps -->
+                            <div>
+                                <div class="flex items-center justify-between mb-2">
+                                    <label class="text-xs font-medium text-gray-500 uppercase tracking-wider">步数 (Steps)</label>
+                                    <span class="text-xs text-gray-400" id="steps-value">30</span>
+                                </div>
+                                <div class="relative">
+                                    <div class="slider-track w-full relative">
+                                        <div class="absolute top-1/2 -translate-y-1/2 left-0 h-full bg-black rounded-full" style="width: 60%"></div>
+                                        <div class="slider-thumb absolute top-1/2 -translate-y-1/2" style="left: calc(60% - 8px)"></div>
+                                    </div>
+                                </div>
+                                <div class="flex justify-between mt-1">
+                                    <span class="text-xs text-gray-400">10</span>
+                                    <span class="text-xs text-gray-400">50</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </aside>
+        
+        <!-- Collapsed Inspector Button -->
+        <button id="inspector-toggle" onclick="toggleInspector()" class="hidden fixed left-4 top-1/2 -translate-y-1/2 z-30 w-10 h-10 bg-white rounded-full shadow-lg flex items-center justify-center hover:bg-gray-50 transition-colors">
+            <svg class="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 5l7 7-7 7M5 5l7 7-7 7"/>
+            </svg>
+        </button>
+        
+        <!-- Main Canvas Area -->
+        <main class="flex-1 flex flex-col relative overflow-hidden">
+            <!-- Top Header -->
+            <header class="absolute top-0 left-0 right-0 z-10 px-6 py-4 flex items-center justify-between">
+                <!-- Left: Back & Title -->
+                <div class="flex items-center gap-4">
+                    <a href="dashboard.html" class="p-2 hover:bg-white/50 rounded-xl transition-colors">
+                        <svg class="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/>
+                        </svg>
+                    </a>
+                    <div>
+                        <h1 class="font-semibold text-gray-900">Agent Studio</h1>
+                        <p class="text-xs text-gray-500">创作空间</p>
+                    </div>
+                </div>
+                
+                <!-- Right: Actions -->
+                <div class="flex items-center gap-2">
+                    <button onclick="toggleHistory()" class="p-2.5 hover:bg-white/50 rounded-xl transition-colors relative group">
+                        <svg class="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                        </svg>
+                        <span class="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-2 py-1 bg-black text-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap">历史记录</span>
+                    </button>
+                    <button onclick="toggleAssets()" class="p-2.5 hover:bg-white/50 rounded-xl transition-colors relative group">
+                        <svg class="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"/>
+                        </svg>
+                        <span class="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-2 py-1 bg-black text-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap">我的资产</span>
+                    </button>
+                </div>
+            </header>
+            
+            <!-- Canvas Scroll Area -->
+            <div id="canvas-area" class="flex-1 overflow-y-auto custom-scrollbar px-6 pt-20 pb-40">
+                <div id="canvas-content" class="max-w-4xl mx-auto space-y-12">
+                    <!-- Empty State -->
+                    <div id="empty-state" class="flex flex-col items-center justify-center min-h-[60vh]">
+                        <!-- Logo -->
+                        <div class="w-24 h-24 mb-6 opacity-20">
+                            <svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                <rect x="10" y="10" width="80" height="80" rx="20" stroke="currentColor" stroke-width="3" class="text-gray-400"/>
+                                <path d="M35 50L45 60L65 40" stroke="currentColor" stroke-width="4" stroke-linecap="round" stroke-linejoin="round" class="text-gray-400"/>
+                            </svg>
+                        </div>
+                        <p class="font-serif text-xl text-gray-400 text-center">描述你的愿景，让创造开始</p>
+                        <p class="text-sm text-gray-300 mt-2">按 Cmd/Ctrl + Enter 快速生成</p>
+                    </div>
+                    
+                    <!-- Results will be appended here -->
+                    <div id="results-container"></div>
+                </div>
+            </div>
+            
+            <!-- Bottom Prompt Bar -->
+            <div class="absolute bottom-0 left-0 right-0 px-6 pb-6 pt-4 bg-gradient-to-t from-[#F1F2F4] via-[#F1F2F4] to-transparent">
+                <div class="max-w-3xl mx-auto">
+                    <!-- Prompt Tags Container -->
+                    <div id="prompt-tags" class="flex flex-wrap gap-2 mb-3 px-4 min-h-[28px]"></div>
+                    
+                    <!-- Main Prompt Bar -->
+                    <div class="glass rounded-full shadow-[0_8px_32px_rgba(0,0,0,0.08)] border border-white/50 relative">
+                        <div class="flex items-end p-2">
+                            <!-- Attachment Button -->
+                            <div class="relative">
+                                <button id="attach-btn" onclick="toggleAttachMenu()" class="w-11 h-11 rounded-full bg-gray-100 hover:bg-gray-200 flex items-center justify-center transition-colors">
+                                    <svg class="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+                                    </svg>
+                                </button>
+                                <!-- Attachment Menu -->
+                                <div id="attach-menu" class="hidden absolute bottom-full left-0 mb-2 bg-white rounded-2xl shadow-xl border border-gray-100 overflow-hidden w-48">
+                                    <button onclick="uploadReference()" class="w-full px-4 py-3 text-left text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-3 transition-colors">
+                                        <svg class="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+                                        </svg>
+                                        上传参考图
+                                    </button>
+                                    <button onclick="selectFromAssets()" class="w-full px-4 py-3 text-left text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-3 transition-colors">
+                                        <svg class="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4"/>
+                                        </svg>
+                                        选择资产
+                                    </button>
+                                </div>
+                            </div>
+                            
+                            <!-- Textarea -->
+                            <div class="flex-1 px-2 py-2">
+                                <textarea 
+                                    id="prompt-input"
+                                    placeholder="例如：一只穿着宇航服的猫，坐在月球上看地球，电影感，超现实主义..."
+                                    class="w-full bg-transparent outline-none resize-none text-gray-900 placeholder-gray-400 leading-relaxed max-h-32 scrollbar-hide"
+                                    rows="1"
+                                    onkeydown="handlePromptKeydown(event)"
+                                    oninput="autoResize(this)"
+                                ></textarea>
+                            </div>
+                            
+                            <!-- Generate Button -->
+                            <div class="flex items-center gap-3">
+                                <span class="text-xs text-gray-400">1 Credit</span>
+                                <button id="generate-btn" onclick="generate()" class="w-11 h-11 bg-black rounded-full flex items-center justify-center hover:bg-gray-800 transition-all active:scale-95">
+                                    <svg id="generate-icon" class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z"/>
+                                    </svg>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Reference Images Preview -->
+                    <div id="reference-preview" class="hidden mt-3 flex gap-2 flex-wrap"></div>
+                </div>
+            </div>
+        </main>
+        
+        <!-- Right History & Assets Drawer -->
+        <aside id="history-drawer" class="panel-slide-right fixed right-0 top-0 bottom-0 w-96 bg-white shadow-2xl z-30 transform translate-x-full">
+            <div class="h-full flex flex-col">
+                <!-- Drawer Header -->
+                <div class="p-5 border-b border-gray-100 flex items-center justify-between">
+                    <div class="flex gap-4">
+                        <button onclick="switchDrawerTab('history')" id="history-tab" class="text-sm font-medium text-black pb-1 border-b-2 border-black">历史记录</button>
+                        <button onclick="switchDrawerTab('assets')" id="assets-tab" class="text-sm font-medium text-gray-400 pb-1 border-b-2 border-transparent hover:text-gray-600 transition-colors">我的资产</button>
+                    </div>
+                    <button onclick="closeDrawer()" class="p-1.5 hover:bg-gray-100 rounded-lg transition-colors">
+                        <svg class="w-5 h-5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                        </svg>
+                    </button>
+                </div>
+                
+                <!-- History Content -->
+                <div id="history-content" class="flex-1 overflow-y-auto custom-scrollbar p-4">
+                    <div class="space-y-3">
+                        <!-- History Items -->
+                        <div class="group p-3 bg-gray-50 hover:bg-gray-100 rounded-xl cursor-pointer transition-colors">
+                            <div class="flex gap-3">
+                                <img src="https://images.unsplash.com/photo-1514888286974-6c03e2ca1dba?w=100&h=100&fit=crop" class="w-16 h-16 rounded-lg object-cover">
+                                <div class="flex-1 min-w-0">
+                                    <p class="text-sm text-gray-900 line-clamp-2">一只穿着宇航服的猫，坐在月球上看地球</p>
+                                    <p class="text-xs text-gray-400 mt-1">2分钟前</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="group p-3 bg-gray-50 hover:bg-gray-100 rounded-xl cursor-pointer transition-colors">
+                            <div class="flex gap-3">
+                                <img src="https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=100&h=100&fit=crop" class="w-16 h-16 rounded-lg object-cover">
+                                <div class="flex-1 min-w-0">
+                                    <p class="text-sm text-gray-900 line-clamp-2">雪山日出，金色光芒洒满山巅</p>
+                                    <p class="text-xs text-gray-400 mt-1">15分钟前</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="group p-3 bg-gray-50 hover:bg-gray-100 rounded-xl cursor-pointer transition-colors">
+                            <div class="flex gap-3">
+                                <img src="https://images.unsplash.com/photo-1534447677768-27c92cdde4e3?w=100&h=100&fit=crop" class="w-16 h-16 rounded-lg object-cover">
+                                <div class="flex-1 min-w-0">
+                                    <p class="text-sm text-gray-900 line-clamp-2">抽象艺术，流动的色彩与几何形状</p>
+                                    <p class="text-xs text-gray-400 mt-1">1小时前</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Assets Content -->
+                <div id="assets-content" class="hidden flex-1 overflow-y-auto custom-scrollbar p-4">
+                    <div class="grid grid-cols-3 gap-2">
+                        <div class="aspect-square rounded-xl overflow-hidden cursor-pointer hover:ring-2 hover:ring-black transition-all group" draggable="true" ondragstart="handleDragStart(event, 'https://images.unsplash.com/photo-1514888286974-6c03e2ca1dba?w=300&h=300&fit=crop')">
+                            <img src="https://images.unsplash.com/photo-1514888286974-6c03e2ca1dba?w=300&h=300&fit=crop" class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300">
+                        </div>
+                        <div class="aspect-square rounded-xl overflow-hidden cursor-pointer hover:ring-2 hover:ring-black transition-all group" draggable="true" ondragstart="handleDragStart(event, 'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=300&h=300&fit=crop')">
+                            <img src="https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=300&h=300&fit=crop" class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300">
+                        </div>
+                        <div class="aspect-square rounded-xl overflow-hidden cursor-pointer hover:ring-2 hover:ring-black transition-all group" draggable="true" ondragstart="handleDragStart(event, 'https://images.unsplash.com/photo-1534447677768-27c92cdde4e3?w=300&h=300&fit=crop')">
+                            <img src="https://images.unsplash.com/photo-1534447677768-27c92cdde4e3?w=300&h=300&fit=crop" class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300">
+                        </div>
+                        <div class="aspect-square rounded-xl overflow-hidden cursor-pointer hover:ring-2 hover:ring-black transition-all group" draggable="true" ondragstart="handleDragStart(event, 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=300&h=300&fit=crop')">
+                            <img src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=300&h=300&fit=crop" class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300">
+                        </div>
+                        <div class="aspect-square rounded-xl overflow-hidden cursor-pointer hover:ring-2 hover:ring-black transition-all group" draggable="true" ondragstart="handleDragStart(event, 'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=300&h=300&fit=crop')">
+                            <img src="https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=300&h=300&fit=crop" class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300">
+                        </div>
+                        <div class="aspect-square rounded-xl overflow-hidden cursor-pointer hover:ring-2 hover:ring-black transition-all group" draggable="true" ondragstart="handleDragStart(event, 'https://images.unsplash.com/photo-1518837695005-2083093ee35b?w=300&h=300&fit=crop')">
+                            <img src="https://images.unsplash.com/photo-1518837695005-2083093ee35b?w=300&h=300&fit=crop" class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300">
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </aside>
+        
+        <!-- Drawer Overlay -->
+        <div id="drawer-overlay" class="hidden fixed inset-0 bg-black/20 z-20" onclick="closeDrawer()"></div>
+    </div>
+    
+    <!-- Image Preview Modal -->
+    <div id="image-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-black/90" onclick="closeImageModal()">
+        <button class="absolute top-6 right-6 p-2 text-white/80 hover:text-white transition-colors">
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+            </svg>
+        </button>
+        <img id="modal-image" src="" class="max-w-[90vw] max-h-[90vh] rounded-2xl" onclick="event.stopPropagation()">
+    </div>
+
+    <script>
+        // State
+        let state = {
+            isGenerating: false,
+            selectedModel: 'Lovart XL',
+            selectedAspect: '1:1',
+            selectedStyles: [],
+            promptTags: [],
+            referenceImages: [],
+            inspectorOpen: true,
+            drawerOpen: false
+        };
+        
+        // Inspector Panel Toggle
+        function toggleInspector() {
+            const panel = document.getElementById('inspector-panel');
+            const toggleBtn = document.getElementById('inspector-toggle');
+            state.inspectorOpen = !state.inspectorOpen;
+            
+            if (state.inspectorOpen) {
+                panel.style.transform = 'translateX(0)';
+                panel.style.opacity = '1';
+                toggleBtn.classList.add('hidden');
+            } else {
+                panel.style.transform = 'translateX(-100%)';
+                panel.style.opacity = '0';
+                toggleBtn.classList.remove('hidden');
+            }
+        }
+        
+        // Accordion Toggle
+        function toggleAccordion(btn) {
+            const content = btn.nextElementSibling;
+            const icon = btn.querySelector('.accordion-icon');
+            
+            content.classList.toggle('open');
+            icon.classList.toggle('-rotate-90');
+        }
+        
+        // Model Selection
+        function selectModel(el, model) {
+            document.querySelectorAll('.model-card').forEach(card => card.classList.remove('selected'));
+            el.classList.add('selected');
+            state.selectedModel = model;
+        }
+        
+        // Aspect Ratio Selection
+        function selectAspect(el, aspect) {
+            document.querySelectorAll('.aspect-btn').forEach(btn => btn.classList.remove('selected', 'border-black'));
+            el.classList.add('selected', 'border-black');
+            state.selectedAspect = aspect;
+        }
+        
+        // Style Preset Selection
+        function selectStyle(el, name, keywords) {
+            el.classList.toggle('ring-2');
+            el.classList.toggle('ring-black');
+            
+            if (el.classList.contains('ring-2')) {
+                state.selectedStyles.push({ name, keywords });
+                addPromptTag(name, keywords);
+            } else {
+                state.selectedStyles = state.selectedStyles.filter(s => s.name !== name);
+                removePromptTag(name);
+            }
+        }
+        
+        // Prompt Tags
+        function addPromptTag(name, keywords) {
+            const container = document.getElementById('prompt-tags');
+            const tag = document.createElement('span');
+            tag.className = 'prompt-tag inline-flex items-center gap-1 px-3 py-1 bg-gray-100 rounded-full text-xs text-gray-700';
+            tag.dataset.name = name;
+            tag.innerHTML = `
+                ${name}
+                <button onclick="removePromptTag('${name}')" class="ml-1 hover:text-gray-900">
+                    <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                    </svg>
+                </button>
+            `;
+            container.appendChild(tag);
+        }
+        
+        function removePromptTag(name) {
+            const tag = document.querySelector(`[data-name="${name}"]`);
+            if (tag) tag.remove();
+            state.selectedStyles = state.selectedStyles.filter(s => s.name !== name);
+            
+            // Also remove ring from style preset
+            document.querySelectorAll('.style-preset').forEach(el => {
+                const styleName = el.querySelector('span').textContent;
+                if (styleName === name) {
+                    el.classList.remove('ring-2', 'ring-black');
+                }
+            });
+        }
+        
+        // Attachment Menu
+        function toggleAttachMenu() {
+            const menu = document.getElementById('attach-menu');
+            menu.classList.toggle('hidden');
+        }
+        
+        function uploadReference() {
+            toggleAttachMenu();
+            // Simulate file upload
+            addReferenceImage('https://images.unsplash.com/photo-1514888286974-6c03e2ca1dba?w=200&h=200&fit=crop');
+        }
+        
+        function selectFromAssets() {
+            toggleAttachMenu();
+            openDrawer();
+            switchDrawerTab('assets');
+        }
+        
+        function addReferenceImage(url) {
+            const container = document.getElementById('reference-preview');
+            container.classList.remove('hidden');
+            
+            const wrapper = document.createElement('div');
+            wrapper.className = 'relative group';
+            wrapper.innerHTML = `
+                <img src="${url}" class="w-16 h-16 rounded-xl object-cover">
+                <button onclick="this.parentElement.remove(); checkReferencePreview();" class="absolute -top-2 -right-2 w-5 h-5 bg-black rounded-full text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                    <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                    </svg>
+                </button>
+            `;
+            container.appendChild(wrapper);
+            state.referenceImages.push(url);
+        }
+        
+        function checkReferencePreview() {
+            const container = document.getElementById('reference-preview');
+            if (container.children.length === 0) {
+                container.classList.add('hidden');
+            }
+        }
+        
+        // History Drawer
+        function toggleHistory() {
+            openDrawer();
+            switchDrawerTab('history');
+        }
+        
+        function toggleAssets() {
+            openDrawer();
+            switchDrawerTab('assets');
+        }
+        
+        function openDrawer() {
+            const drawer = document.getElementById('history-drawer');
+            const overlay = document.getElementById('drawer-overlay');
+            drawer.classList.remove('translate-x-full');
+            drawer.classList.add('drawer-enter');
+            overlay.classList.remove('hidden');
+            state.drawerOpen = true;
+        }
+        
+        function closeDrawer() {
+            const drawer = document.getElementById('history-drawer');
+            const overlay = document.getElementById('drawer-overlay');
+            drawer.classList.add('translate-x-full');
+            overlay.classList.add('hidden');
+            state.drawerOpen = false;
+        }
+        
+        function switchDrawerTab(tab) {
+            const historyTab = document.getElementById('history-tab');
+            const assetsTab = document.getElementById('assets-tab');
+            const historyContent = document.getElementById('history-content');
+            const assetsContent = document.getElementById('assets-content');
+            
+            if (tab === 'history') {
+                historyTab.classList.add('text-black', 'border-black');
+                historyTab.classList.remove('text-gray-400', 'border-transparent');
+                assetsTab.classList.remove('text-black', 'border-black');
+                assetsTab.classList.add('text-gray-400', 'border-transparent');
+                historyContent.classList.remove('hidden');
+                assetsContent.classList.add('hidden');
+            } else {
+                assetsTab.classList.add('text-black', 'border-black');
+                assetsTab.classList.remove('text-gray-400', 'border-transparent');
+                historyTab.classList.remove('text-black', 'border-black');
+                historyTab.classList.add('text-gray-400', 'border-transparent');
+                assetsContent.classList.remove('hidden');
+                historyContent.classList.add('hidden');
+            }
+        }
+        
+        // Drag and Drop
+        function handleDragStart(e, url) {
+            e.dataTransfer.setData('text/plain', url);
+        }
+        
+        // Auto resize textarea
+        function autoResize(el) {
+            el.style.height = 'auto';
+            el.style.height = el.scrollHeight + 'px';
+        }
+        
+        // Handle keyboard shortcuts
+        function handlePromptKeydown(e) {
+            if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') {
+                e.preventDefault();
+                generate();
+            }
+        }
+        
+        // Generate
+        function generate() {
+            const input = document.getElementById('prompt-input');
+            const prompt = input.value.trim();
+            
+            if (!prompt && state.selectedStyles.length === 0) return;
+            if (state.isGenerating) return;
+            
+            state.isGenerating = true;
+            
+            // Update button state
+            const btn = document.getElementById('generate-btn');
+            const icon = document.getElementById('generate-icon');
+            btn.classList.add('pulse-glow');
+            icon.classList.add('animate-rotate');
+            
+            // Hide empty state
+            const emptyState = document.getElementById('empty-state');
+            if (emptyState) emptyState.style.display = 'none';
+            
+            // Add generating placeholder
+            const container = document.getElementById('results-container');
+            const fullPrompt = prompt + ' ' + state.selectedStyles.map(s => s.keywords).join(', ');
+            
+            const placeholder = document.createElement('div');
+            placeholder.className = 'result-card';
+            placeholder.innerHTML = `
+                <div class="mb-3">
+                    <p class="text-sm text-gray-500 line-clamp-1">${fullPrompt}</p>
+                </div>
+                <div class="generating-placeholder rounded-2xl aspect-square flex items-center justify-center">
+                    <div class="text-center">
+                        <div class="w-12 h-12 mx-auto mb-3 rounded-full bg-white/50 flex items-center justify-center">
+                            <svg class="w-6 h-6 text-gray-400 animate-rotate" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z"/>
+                            </svg>
+                        </div>
+                        <p class="text-sm text-gray-400">AI 正在创作中...</p>
+                    </div>
+                </div>
+            `;
+            container.appendChild(placeholder);
+            
+            // Scroll to placeholder
+            placeholder.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            
+            // Simulate generation (replace with actual API call)
+            setTimeout(() => {
+                // Remove placeholder and show result
+                placeholder.remove();
+                
+                const result = document.createElement('div');
+                result.className = 'result-card image-fade-in';
+                result.innerHTML = `
+                    <div class="mb-3">
+                        <button onclick="this.nextElementSibling.classList.toggle('line-clamp-1')" class="text-left w-full">
+                            <p class="text-sm text-gray-500 line-clamp-1 hover:text-gray-700 transition-colors">${fullPrompt}</p>
+                        </button>
+                    </div>
+                    <div class="relative group">
+                        <img src="https://images.unsplash.com/photo-1514888286974-6c03e2ca1dba?w=800&h=800&fit=crop" class="w-full rounded-2xl shadow-lg">
+                        
+                        <!-- Hover Toolbar -->
+                        <div class="hover-toolbar absolute bottom-4 left-1/2 -translate-x-1/2 flex items-center gap-1 px-2 py-2 bg-black/80 backdrop-blur-sm rounded-full">
+                            <button onclick="expandImage('https://images.unsplash.com/photo-1514888286974-6c03e2ca1dba?w=1600')" class="p-2 text-white/80 hover:text-white hover:bg-white/10 rounded-lg transition-colors" title="放大">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4"/>
+                                </svg>
+                            </button>
+                            <button onclick="generateVariant()" class="p-2 text-white/80 hover:text-white hover:bg-white/10 rounded-lg transition-colors" title="生成变体">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 5l7 7-7 7M5 5l7 7-7 7"/>
+                                </svg>
+                            </button>
+                            <button onclick="upscale()" class="p-2 text-white/80 hover:text-white hover:bg-white/10 rounded-lg transition-colors" title="高清化">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z"/>
+                                </svg>
+                            </button>
+                            <button onclick="downloadImage('https://images.unsplash.com/photo-1514888286974-6c03e2ca1dba?w=1600')" class="p-2 text-white/80 hover:text-white hover:bg-white/10 rounded-lg transition-colors" title="下载">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
+                                </svg>
+                            </button>
+                            <button onclick="addToAssets()" class="p-2 text-white/80 hover:text-white hover:bg-white/10 rounded-lg transition-colors" title="添加到资产库">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+                                </svg>
+                            </button>
+                        </div>
+                    </div>
+                `;
+                container.appendChild(result);
+                result.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                
+                // Reset state
+                state.isGenerating = false;
+                btn.classList.remove('pulse-glow');
+                icon.classList.remove('animate-rotate');
+                input.value = '';
+                autoResize(input);
+                
+            }, 3000);
+        }
+        
+        // Image actions
+        function expandImage(url) {
+            const modal = document.getElementById('image-modal');
+            const img = document.getElementById('modal-image');
+            img.src = url;
+            modal.classList.remove('hidden');
+        }
+        
+        function closeImageModal() {
+            document.getElementById('image-modal').classList.add('hidden');
+        }
+        
+        function generateVariant() {
+            // Trigger new generation with same prompt
+            generate();
+        }
+        
+        function upscale() {
+            alert('高清化功能即将上线');
+        }
+        
+        function downloadImage(url) {
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'weimeng-generated.png';
+            a.click();
+        }
+        
+        function addToAssets() {
+            alert('已添加到资产库');
+        }
+        
+        // Close menus on outside click
+        document.addEventListener('click', (e) => {
+            const attachBtn = document.getElementById('attach-btn');
+            const attachMenu = document.getElementById('attach-menu');
+            if (!attachBtn.contains(e.target) && !attachMenu.contains(e.target)) {
+                attachMenu.classList.add('hidden');
+            }
+        });
+        
+        // Keyboard shortcuts
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') {
+                closeDrawer();
+                closeImageModal();
+            }
+        });
+        
+        // Handle drop on prompt bar
+        document.getElementById('prompt-input').addEventListener('drop', (e) => {
+            e.preventDefault();
+            const url = e.dataTransfer.getData('text/plain');
+            if (url) {
+                addReferenceImage(url);
+            }
+        });
+        
+        document.getElementById('prompt-input').addEventListener('dragover', (e) => {
+            e.preventDefault();
+        });
+    </script>
+</body>
+</html>
