@@ -4,10 +4,12 @@ import Link from "next/link";
 import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { useLocalePath } from "@/hooks/useLocalePath";
+import { localizeRequestError } from "@/utils";
 
 export default function SignupPage() {
   const router = useRouter();
-  const { withLocalePath } = useLocalePath();
+  const { withLocalePath, locale } = useLocalePath();
+  const isEn = locale === "en";
   const [loading, setLoading] = useState(false);
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
@@ -24,6 +26,26 @@ export default function SignupPage() {
   const [shakeTerms, setShakeTerms] = useState(false);
   const checkboxRef = useRef<HTMLInputElement>(null);
 
+  const text = {
+    enterEmailFirst: isEn ? "Please enter your email first" : "请先输入邮箱",
+    sendFailed: isEn ? "Failed to send verification code" : "发送失败",
+    registerFailed: isEn ? "Registration failed" : "注册失败",
+    successTitle: isEn ? "Welcome to WeiMeng" : "欢迎加入 WeiMeng",
+    successSubtitle: isEn ? "Preparing your workspace..." : "正在为您准备工作台...",
+    pageTitle: isEn ? "Create Account" : "创建账户",
+    usernamePlaceholder: isEn ? "Username" : "用户名",
+    captchaPlaceholder: isEn ? "Verification code" : "验证码",
+    sendingCaptcha: isEn ? "Sending" : "发送中",
+    sendCaptcha: isEn ? "Send code" : "发送验证码",
+    passwordPlaceholder: isEn ? "Create password" : "创建密码",
+    termsOfService: isEn ? "Terms of Service" : "服务条款",
+    privacyPolicy: isEn ? "Privacy Policy" : "隐私政策",
+    submit: isEn ? "Start Creating" : "开始创作",
+    haveAccount: isEn ? "Already have an account?" : "已有账号？",
+    loginNow: isEn ? "Log in" : "直接登录",
+    quote: isEn ? "Unleash your creativity." : "释放你的创造力。",
+  };
+
   useEffect(() => {
     let timer: NodeJS.Timeout;
     if (countdown > 0) {
@@ -35,7 +57,7 @@ export default function SignupPage() {
   const handleSendCaptcha = async () => {
     setError("");
     if (!email) {
-      setError("请先输入邮箱");
+      setError(text.enterEmailFirst);
       return;
     }
 
@@ -50,12 +72,20 @@ export default function SignupPage() {
 
       if (!res.ok) {
         const data = await res.json();
-        throw new Error(data.detail || "发送失败");
+        throw new Error(data.detail || text.sendFailed);
       }
 
       setCountdown(60);
-    } catch (error: any) {
-      setError(error.message);
+    } catch (error: unknown) {
+      const rawMessage = error instanceof Error ? error.message : "";
+      setError(
+        localizeRequestError({
+          message: rawMessage,
+          routeLocale: locale,
+          zhFallback: "验证码服务暂不可用",
+          enFallback: "Verification code service is currently unavailable",
+        })
+      );
     } finally {
       setIsSending(false);
     }
@@ -105,7 +135,7 @@ export default function SignupPage() {
 
       if (!res.ok) {
         const data = await res.json();
-        throw new Error(data.detail || "注册失败");
+        throw new Error(data.detail || text.registerFailed);
       }
 
       // Success Overlay Animation
@@ -115,8 +145,16 @@ export default function SignupPage() {
       setTimeout(() => {
         router.push(withLocalePath("/login"));
       }, 2000);
-    } catch (error: any) {
-      setError(error.message);
+    } catch (error: unknown) {
+      const rawMessage = error instanceof Error ? error.message : "";
+      setError(
+        localizeRequestError({
+          message: rawMessage,
+          routeLocale: locale,
+          zhFallback: "注册服务暂不可用",
+          enFallback: "Registration service is currently unavailable",
+        })
+      );
     } finally {
       setLoading(false);
     }
@@ -139,13 +177,13 @@ export default function SignupPage() {
           className={`text-2xl font-semibold text-black mb-2 transition-opacity duration-500 delay-500 ${showSuccess ? "opacity-100" : "opacity-0"
             }`}
         >
-          欢迎加入 WeiMeng
+          {text.successTitle}
         </h2>
         <p
           className={`text-gray-500 transition-opacity duration-500 delay-700 ${showSuccess ? "opacity-100" : "opacity-0"
             }`}
         >
-          正在为您准备工作台...
+          {text.successSubtitle}
         </p>
       </div>
 
@@ -166,9 +204,8 @@ export default function SignupPage() {
             {/* Header */}
             <div className="mb-8">
               <h1 className="text-[32px] font-bold text-gray-900 mb-2">
-                创建账户
+                {text.pageTitle}
               </h1>
-              <p className="text-[#9CA3AF]">免费试用 Pro 功能 14 天，无需信用卡</p>
             </div>
 
             {/* Error Message */}
@@ -186,7 +223,7 @@ export default function SignupPage() {
                   <input
                     type="text"
                     required
-                    placeholder="用户名"
+                    placeholder={text.usernamePlaceholder}
                     value={name}
                     onChange={(e) => setName(e.target.value)}
                     onKeyDown={handleKeyDown}
@@ -247,7 +284,7 @@ export default function SignupPage() {
                     <input
                       type="text"
                       required
-                      placeholder="验证码"
+                      placeholder={text.captchaPlaceholder}
                       value={captcha}
                       onChange={(e) => setCaptcha(e.target.value)}
                       onKeyDown={handleKeyDown}
@@ -273,9 +310,28 @@ export default function SignupPage() {
                     type="button"
                     onClick={handleSendCaptcha}
                     disabled={isSending || countdown > 0}
-                    className="h-14 px-6 bg-gray-900 text-white rounded-xl font-medium hover:bg-gray-800 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors whitespace-nowrap min-w-[120px]"
+                    className="h-14 px-6 bg-gray-900 text-white rounded-xl font-medium hover:bg-gray-800 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors whitespace-nowrap min-w-[120px] flex items-center justify-center"
                   >
-                    {countdown > 0 ? `${countdown}s` : isSending ? "发送中..." : "发送验证码"}
+                    {countdown > 0 ? (
+                      `${countdown}s`
+                    ) : isSending ? (
+                      <span className="inline-flex items-end gap-1">
+                        <span>{text.sendingCaptcha}</span>
+                        <span className="flex h-3 items-end gap-0.5">
+                          <span className="w-1 h-1 bg-white rounded-full [animation:signup-wave_0.75s_ease-in-out_infinite]"></span>
+                          <span
+                            className="w-1 h-1 bg-white rounded-full [animation:signup-wave_0.75s_ease-in-out_infinite]"
+                            style={{ animationDelay: "0.12s" }}
+                          ></span>
+                          <span
+                            className="w-1 h-1 bg-white rounded-full [animation:signup-wave_0.75s_ease-in-out_infinite]"
+                            style={{ animationDelay: "0.24s" }}
+                          ></span>
+                        </span>
+                      </span>
+                    ) : (
+                      text.sendCaptcha
+                    )}
                   </button>
                 </div>
               </div>
@@ -286,7 +342,7 @@ export default function SignupPage() {
                   <input
                     type={showPassword ? "text" : "password"}
                     required
-                    placeholder="创建密码"
+                    placeholder={text.passwordPlaceholder}
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     onKeyDown={handleKeyDown}
@@ -397,14 +453,29 @@ export default function SignupPage() {
                     </svg>
                   </div>
                   <span className="ml-3 text-sm text-gray-500 leading-tight">
-                    我同意 WeiMeng 的{" "}
-                    <a href="#" className="text-black hover:underline">
-                      服务条款
-                    </a>{" "}
-                    和{" "}
-                    <a href="#" className="text-black hover:underline">
-                      隐私政策
-                    </a>
+                    {isEn ? (
+                      <>
+                        I agree to WeiMeng&apos;s{" "}
+                        <a href="#" className="text-black hover:underline">
+                          {text.termsOfService}
+                        </a>{" "}
+                        and{" "}
+                        <a href="#" className="text-black hover:underline">
+                          {text.privacyPolicy}
+                        </a>
+                      </>
+                    ) : (
+                      <>
+                        我同意 WeiMeng 的{" "}
+                        <a href="#" className="text-black hover:underline">
+                          {text.termsOfService}
+                        </a>{" "}
+                        和{" "}
+                        <a href="#" className="text-black hover:underline">
+                          {text.privacyPolicy}
+                        </a>
+                      </>
+                    )}
                   </span>
                 </label>
               </div>
@@ -416,19 +487,19 @@ export default function SignupPage() {
                 className="w-full h-14 bg-black text-white rounded-xl font-medium text-lg hover:bg-gray-800 active:scale-[0.98] transition-all duration-200 flex items-center justify-center gap-2"
               >
                 {loading ? (
-                  <div className="flex gap-1">
-                    <div className="w-1.5 h-1.5 bg-white rounded-full animate-bounce"></div>
+                  <div className="flex h-4 items-end gap-1.5">
+                    <div className="w-2 h-2 bg-white rounded-full [animation:signup-submit-wave_0.75s_ease-in-out_infinite]"></div>
                     <div
-                      className="w-1.5 h-1.5 bg-white rounded-full animate-bounce"
-                      style={{ animationDelay: "0.1s" }}
+                      className="w-2 h-2 bg-white rounded-full [animation:signup-submit-wave_0.75s_ease-in-out_infinite]"
+                      style={{ animationDelay: "0.12s" }}
                     ></div>
                     <div
-                      className="w-1.5 h-1.5 bg-white rounded-full animate-bounce"
-                      style={{ animationDelay: "0.2s" }}
+                      className="w-2 h-2 bg-white rounded-full [animation:signup-submit-wave_0.75s_ease-in-out_infinite]"
+                      style={{ animationDelay: "0.24s" }}
                     ></div>
                   </div>
                 ) : (
-                  "开始创作"
+                  text.submit
                 )}
               </button>
             </form>
@@ -436,12 +507,12 @@ export default function SignupPage() {
             {/* Bottom Link */}
             <div className="mt-8 text-center">
               <p className="text-gray-500">
-                已有账号？{" "}
+                {text.haveAccount}{" "}
                 <Link
                   href={withLocalePath("/login")}
                   className="text-black font-bold hover:underline"
                 >
-                  直接登录
+                  {text.loginNow}
                 </Link>
               </p>
             </div>
@@ -485,10 +556,38 @@ export default function SignupPage() {
         {/* Quote */}
         <div className="absolute bottom-12 right-12 text-right">
           <p className="font-serif italic text-2xl text-white opacity-50">
-            &quot;Unleash your creativity.&quot;
+            {`"${text.quote}"`}
           </p>
         </div>
       </div>
+
+      <style jsx>{`
+        @keyframes signup-wave {
+          0%,
+          60%,
+          100% {
+            transform: translateY(0);
+            opacity: 0.55;
+          }
+          30% {
+            transform: translateY(-4px);
+            opacity: 1;
+          }
+        }
+
+        @keyframes signup-submit-wave {
+          0%,
+          60%,
+          100% {
+            transform: translateY(0);
+            opacity: 0.55;
+          }
+          30% {
+            transform: translateY(-7px);
+            opacity: 1;
+          }
+        }
+      `}</style>
     </div>
   );
 }

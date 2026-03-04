@@ -4,10 +4,12 @@ import Link from "next/link";
 import { useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { useLocalePath } from "@/hooks/useLocalePath";
+import { localizeRequestError } from "@/utils";
 
 export default function LoginPage() {
   const router = useRouter();
-  const { withLocalePath } = useLocalePath();
+  const { withLocalePath, locale } = useLocalePath();
+  const isEn = locale === "en";
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [email, setEmail] = useState("");
@@ -15,6 +17,19 @@ export default function LoginPage() {
   const [error, setError] = useState("");
   const [shakeRemember, setShakeRemember] = useState(false);
   const checkboxRef = useRef<HTMLInputElement>(null);
+
+  const text = {
+    loginFailed: isEn ? "Login failed. Please check your email and password." : "登录失败，请检查账号密码",
+    pageTitle: isEn ? "Welcome back" : "欢迎回来",
+    pageSubtitle: isEn ? "Please enter your credentials to access the workspace" : "请输入您的凭证以访问工作台",
+    passwordPlaceholder: isEn ? "Enter password" : "请输入密码",
+    rememberMe: isEn ? "Remember me" : "记住我",
+    forgotPassword: isEn ? "Forgot password?" : "忘记密码?",
+    submit: isEn ? "Log In" : "登 录",
+    noAccount: isEn ? "Don't have an account?" : "还没有账号？",
+    signupNow: isEn ? "Sign up now" : "立即注册",
+    quote: isEn ? "Design at the speed of thought." : "以思维的速度设计。",
+  };
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     // 允许 Ctrl+A / Cmd+A 全选
@@ -51,16 +66,28 @@ export default function LoginPage() {
 
       if (!response.ok) {
         // 后端通常返回 {"detail": "错误信息"}
-        throw new Error(typeof data.detail === 'string' ? data.detail : "登录失败，请检查账号密码");
+        throw new Error(
+          typeof data.detail === "string"
+            ? data.detail
+            : text.loginFailed
+        );
       }
 
       // 保存 token
       localStorage.setItem("token", data.access_token);
 
       router.push(withLocalePath("/dashboard"));
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error("Login error:", err);
-      setError(err.message || "登录服务暂不可用");
+      const rawMessage = err instanceof Error ? err.message : "";
+      setError(
+        localizeRequestError({
+          message: rawMessage,
+          routeLocale: locale,
+          zhFallback: "登录服务暂不可用",
+          enFallback: "Login service is currently unavailable",
+        })
+      );
     } finally {
       setLoading(false);
     }
@@ -85,9 +112,9 @@ export default function LoginPage() {
             {/* Header */}
             <div className="mb-10">
               <h1 className="text-[32px] font-bold text-gray-900 mb-2">
-                欢迎回来
+                {text.pageTitle}
               </h1>
-              <p className="text-[#9CA3AF]">请输入您的凭证以访问工作台</p>
+              <p className="text-[#9CA3AF]">{text.pageSubtitle}</p>
             </div>
 
             {/* Error Message */}
@@ -135,7 +162,7 @@ export default function LoginPage() {
                   <input
                     type={showPassword ? "text" : "password"}
                     required
-                    placeholder="请输入密码"
+                    placeholder={text.passwordPlaceholder}
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     onKeyDown={handleKeyDown}
@@ -220,14 +247,14 @@ export default function LoginPage() {
                     </svg>
                   </div>
                   <span className="ml-2 text-sm text-gray-600 group-hover/checkbox:text-gray-900">
-                    记住我
+                    {text.rememberMe}
                   </span>
                 </label>
                 <Link
                   href={withLocalePath("/forgot-password")}
                   className="text-sm text-black hover:text-gray-600 transition-colors"
                 >
-                  忘记密码?
+                  {text.forgotPassword}
                 </Link>
               </div>
 
@@ -238,19 +265,19 @@ export default function LoginPage() {
                 className="w-full h-14 bg-black text-white rounded-xl font-medium text-lg hover:bg-gray-800 active:scale-[0.98] transition-all duration-200 flex items-center justify-center"
               >
                 {loading ? (
-                  <div className="flex gap-1">
-                    <div className="w-1.5 h-1.5 bg-white rounded-full animate-bounce"></div>
+                  <div className="flex h-4 items-end gap-1.5">
+                    <div className="w-2 h-2 bg-white rounded-full [animation:login-wave_0.75s_ease-in-out_infinite]"></div>
                     <div
-                      className="w-1.5 h-1.5 bg-white rounded-full animate-bounce"
-                      style={{ animationDelay: "0.1s" }}
+                      className="w-2 h-2 bg-white rounded-full [animation:login-wave_0.75s_ease-in-out_infinite]"
+                      style={{ animationDelay: "0.12s" }}
                     ></div>
                     <div
-                      className="w-1.5 h-1.5 bg-white rounded-full animate-bounce"
-                      style={{ animationDelay: "0.2s" }}
+                      className="w-2 h-2 bg-white rounded-full [animation:login-wave_0.75s_ease-in-out_infinite]"
+                      style={{ animationDelay: "0.24s" }}
                     ></div>
                   </div>
                 ) : (
-                  "登 录"
+                  text.submit
                 )}
               </button>
             </form>
@@ -258,12 +285,12 @@ export default function LoginPage() {
             {/* Bottom Link */}
             <div className="mt-8 text-center">
               <p className="text-gray-500">
-                还没有账号？{" "}
+                {text.noAccount}{" "}
                 <Link
                   href={withLocalePath("/signup")}
                   className="text-black font-bold hover:underline"
                 >
-                  立即注册
+                  {text.signupNow}
                 </Link>
               </p>
             </div>
@@ -316,10 +343,25 @@ export default function LoginPage() {
         {/* Quote */}
         <div className="absolute bottom-12 right-12 text-right">
           <p className="font-serif italic text-2xl text-black opacity-50">
-            &quot;Design at the speed of thought.&quot;
+            {`"${text.quote}"`}
           </p>
         </div>
       </div>
+
+      <style jsx>{`
+        @keyframes login-wave {
+          0%,
+          60%,
+          100% {
+            transform: translateY(0);
+            opacity: 0.55;
+          }
+          30% {
+            transform: translateY(-7px);
+            opacity: 1;
+          }
+        }
+      `}</style>
     </div>
   );
 }

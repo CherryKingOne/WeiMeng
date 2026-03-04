@@ -4,25 +4,75 @@ import Link from "next/link";
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useLocalePath } from "@/hooks/useLocalePath";
+import { localizeRequestError } from "@/utils";
 
 export default function ForgotPasswordPage() {
   const router = useRouter();
-  const { withLocalePath } = useLocalePath();
+  const { withLocalePath, locale } = useLocalePath();
+  const isEn = locale === "en";
   const [email, setEmail] = useState("");
   const [isFlipped, setIsFlipped] = useState(false);
- const [countdown, setCountdown] = useState(60);
+  const [countdown, setCountdown] = useState(60);
   const [isLoading, setIsLoading] = useState(false);
-  const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null);
+  const [message, setMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
 
   // New state for reset form
   const [code, setCode] = useState("");
   const [newPassword, setNewPassword] = useState("");
-  
-  const showMessage = (type: 'success' | 'error', text: string) => {
-    setMessage({ type, text });
-    if (type === 'error' || (type === 'success' && !text.includes('登录'))) {
-       setTimeout(() => setMessage(null), 3000);
+
+  const text = {
+    resetSuccessRedirect: isEn ? "Password reset successful. Redirecting to login..." : "密码重置成功，即将跳转登录页...",
+    resetFailed: isEn ? "Password reset failed. Please try again." : "密码重置失败，请重试",
+    sendCaptchaFailed: isEn ? "Failed to send verification code. Please try again." : "验证码发送失败，请重试",
+    resendCaptchaSuccess: isEn ? "Verification code has been resent" : "验证码已重新发送",
+    networkError: isEn ? "Network error. Please try again later." : "网络错误，请稍后重试",
+    frontTitle: isEn ? "Forgot Password?" : "忘记密码？",
+    frontSubtitle: isEn ? "Don't worry, we'll send a verification code to your email." : "别担心，我们会发送验证码到您的邮箱。",
+    sendingCaptcha: isEn ? "Sending..." : "发送中...",
+    sendCaptcha: isEn ? "Send verification code" : "发送验证码",
+    backToLogin: isEn ? "Back to login" : "返回登录",
+    resetTitle: isEn ? "Set New Password" : "设置新密码",
+    codeLabel: isEn ? "Verification code" : "验证码",
+    codePlaceholder: isEn ? "Enter verification code" : "输入验证码",
+    newPasswordLabel: isEn ? "New password" : "新密码",
+    newPasswordPlaceholder: isEn ? "Enter new password" : "输入新密码",
+    confirmPasswordLabel: isEn ? "Confirm new password" : "确认新密码",
+    confirmPasswordPlaceholder: isEn ? "Confirm new password" : "确认新密码",
+    ruleLength: isEn ? "At least 8 characters" : "至少 8 个字符",
+    ruleComplexity: isEn ? "Contains number or symbol" : "包含数字或符号",
+    ruleMatch: isEn ? "Passwords match" : "两次输入一致",
+    processing: isEn ? "Processing..." : "处理中...",
+    resetPassword: isEn ? "Reset password" : "重置密码",
+    noCode: isEn ? "Didn't receive the code?" : "没收到验证码？",
+    resend: isEn ? "Resend" : "重新发送",
+    quote: isEn ? "Simplicity is the ultimate sophistication." : "简约即极致的精妙。",
+  };
+
+  const showMessage = (type: "success" | "error", textValue: string) => {
+    setMessage({ type, text: textValue });
+    const keepMessageForRedirect = type === "success" && textValue === text.resetSuccessRedirect;
+    if (type === "error" || !keepMessageForRedirect) {
+      setTimeout(() => setMessage(null), 3000);
     }
+  };
+
+  const resendCountdownText = (seconds: number) => {
+    return isEn ? `Resend (${seconds}s)` : `重新发送 (${seconds}s)`;
+  };
+
+  const codeSentText = () => {
+    return isEn ? (
+      <>
+        Verification code has been sent to{" "}
+        <span className="text-black font-medium">{email}</span>.
+      </>
+    ) : (
+      <>
+        验证码已发送到{" "}
+        <span className="text-black font-medium">{email}</span>{" "}
+        中了
+      </>
+    );
   };
 
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -36,7 +86,7 @@ export default function ForgotPasswordPage() {
   const handleFinalReset = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!isLengthValid || !isComplexityValid || !isMatchValid) return;
-    
+
     setIsLoading(true);
     try {
       const response = await fetch("http://localhost:5607/api/v1/auth/reset-password", {
@@ -55,14 +105,23 @@ export default function ForgotPasswordPage() {
       const data = await response.json();
 
       if (response.ok) {
-        showMessage('success', "密码重置成功，即将跳转登录页...");
+        showMessage("success", text.resetSuccessRedirect);
         setTimeout(() => router.push(withLocalePath("/login")), 1500);
       } else {
-        showMessage('error', data.detail || "密码重置失败，请重试");
+        showMessage("error", data.detail || text.resetFailed);
       }
-    } catch (error) {
+    } catch (error: unknown) {
       console.error("Reset password error:", error);
-      showMessage('error', "网络错误，请稍后重试");
+      const rawMessage = error instanceof Error ? error.message : "";
+      showMessage(
+        "error",
+        localizeRequestError({
+          message: rawMessage,
+          routeLocale: locale,
+          zhFallback: "网络错误，请稍后重试",
+          enFallback: "Network error. Please try again later.",
+        })
+      );
     } finally {
       setIsLoading(false);
     }
@@ -87,11 +146,20 @@ export default function ForgotPasswordPage() {
         setCountdown(60);
         setMessage(null); // Clear any previous error
       } else {
-        showMessage('error', data.detail || "验证码发送失败，请重试");
+        showMessage("error", data.detail || text.sendCaptchaFailed);
       }
-    } catch (error) {
+    } catch (error: unknown) {
       console.error("Send captcha error:", error);
-      showMessage('error', "网络错误，请稍后重试");
+      const rawMessage = error instanceof Error ? error.message : "";
+      showMessage(
+        "error",
+        localizeRequestError({
+          message: rawMessage,
+          routeLocale: locale,
+          zhFallback: "网络错误，请稍后重试",
+          enFallback: "Network error. Please try again later.",
+        })
+      );
     } finally {
       setIsLoading(false);
     }
@@ -109,7 +177,7 @@ export default function ForgotPasswordPage() {
 
   const handleResend = async () => {
     if (countdown > 0 || isLoading) return;
-    
+
     setIsLoading(true);
     try {
       const response = await fetch("http://localhost:5607/api/v1/captcha/email/forgot-password", {
@@ -124,13 +192,22 @@ export default function ForgotPasswordPage() {
 
       if (response.ok) {
         setCountdown(60);
-        showMessage('success', "验证码已重新发送");
+        showMessage("success", text.resendCaptchaSuccess);
       } else {
-        showMessage('error', data.detail || "验证码发送失败，请重试");
+        showMessage("error", data.detail || text.sendCaptchaFailed);
       }
-    } catch (error) {
+    } catch (error: unknown) {
       console.error("Resend captcha error:", error);
-      showMessage('error', "网络错误，请稍后重试");
+      const rawMessage = error instanceof Error ? error.message : "";
+      showMessage(
+        "error",
+        localizeRequestError({
+          message: rawMessage,
+          routeLocale: locale,
+          zhFallback: "网络错误，请稍后重试",
+          enFallback: "Network error. Please try again later.",
+        })
+      );
     } finally {
       setIsLoading(false);
     }
@@ -205,10 +282,10 @@ export default function ForgotPasswordPage() {
               {/* Header */}
               <div className="mb-8">
                 <h1 className="text-[32px] font-bold text-gray-900 mb-2">
-                  忘记密码？
+                  {text.frontTitle}
                 </h1>
                 <p className="text-[#9CA3AF]">
-                  别担心，我们会发送验证码到您的邮箱。
+                  {text.frontSubtitle}
                 </p>
               </div>
 
@@ -253,10 +330,10 @@ export default function ForgotPasswordPage() {
                         <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                         <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                       </svg>
-                      <span>发送中...</span>
+                      <span>{text.sendingCaptcha}</span>
                     </>
                   ) : (
-                    "发送验证码"
+                    text.sendCaptcha
                   )}
                 </button>
               </form>
@@ -280,7 +357,7 @@ export default function ForgotPasswordPage() {
                       d="M10 19l-7-7m0 0l7-7m-7 7h18"
                     />
                   </svg>
-                  返回登录
+                  {text.backToLogin}
                 </Link>
               </div>
             </div>
@@ -316,11 +393,9 @@ export default function ForgotPasswordPage() {
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 11V7a4 4 0 118 0m-4 8v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2z" />
                   </svg>
                 </div>
-                <h1 className="text-[32px] font-bold text-gray-900 mb-2">设置新密码</h1>
+                <h1 className="text-[32px] font-bold text-gray-900 mb-2">{text.resetTitle}</h1>
                 <p className="text-[#9CA3AF]">
-                  验证码已发送到{" "}
-                  <span className="text-black font-medium">{email}</span>{" "}
-                  中了
+                  {codeSentText()}
                 </p>
               </div>
 
@@ -328,12 +403,12 @@ export default function ForgotPasswordPage() {
               <form onSubmit={handleFinalReset} className="space-y-4">
                  {/* Verification Code */}
                 <div className="space-y-1">
-                  <label className="block text-sm font-medium text-gray-700">验证码</label>
+                  <label className="block text-sm font-medium text-gray-700">{text.codeLabel}</label>
                   <div className="relative rounded-xl focus-within:shadow-[0_0_0_4px_rgba(243,244,246,1)] transition-all duration-200">
                     <input
                       type="text"
                       required
-                      placeholder="输入验证码"
+                      placeholder={text.codePlaceholder}
                       value={code}
                       onChange={(e) => setCode(e.target.value)}
                       className="w-full h-12 bg-[#F9FAFB] rounded-xl px-4 border-2 border-transparent outline-none transition-all placeholder-gray-400 text-gray-900 focus:border-black"
@@ -343,12 +418,12 @@ export default function ForgotPasswordPage() {
 
                 {/* New Password */}
                 <div className="space-y-1">
-                  <label className="block text-sm font-medium text-gray-700">新密码</label>
+                  <label className="block text-sm font-medium text-gray-700">{text.newPasswordLabel}</label>
                   <div className="relative rounded-xl focus-within:shadow-[0_0_0_4px_rgba(243,244,246,1)] transition-all duration-200">
                     <input
                       type={showNewPassword ? "text" : "password"}
                       required
-                      placeholder="输入新密码"
+                      placeholder={text.newPasswordPlaceholder}
                       value={newPassword}
                       onChange={(e) => setNewPassword(e.target.value)}
                       className="w-full h-12 bg-[#F9FAFB] rounded-xl px-4 pr-12 border-2 border-transparent outline-none transition-all placeholder-gray-400 text-gray-900 focus:border-black"
@@ -369,12 +444,12 @@ export default function ForgotPasswordPage() {
 
                 {/* Confirm Password */}
                 <div className="space-y-1">
-                  <label className="block text-sm font-medium text-gray-700">确认新密码</label>
+                  <label className="block text-sm font-medium text-gray-700">{text.confirmPasswordLabel}</label>
                   <div className={`relative rounded-xl focus-within:shadow-[0_0_0_4px_rgba(243,244,246,1)] transition-all duration-200 ${confirmPassword && !isMatchValid ? 'focus-within:!shadow-[0_0_0_4px_rgba(239,68,68,0.2)]' : ''}`}>
                     <input
                       type={showConfirmPassword ? "text" : "password"}
                       required
-                      placeholder="确认新密码"
+                      placeholder={text.confirmPasswordPlaceholder}
                       value={confirmPassword}
                       onChange={(e) => setConfirmPassword(e.target.value)}
                       className={`w-full h-12 bg-[#F9FAFB] rounded-xl px-4 pr-12 border-2 outline-none transition-all placeholder-gray-400 text-gray-900 focus:border-black ${confirmPassword ? (isMatchValid ? 'border-green-500' : 'border-red-500') : 'border-transparent'}`}
@@ -399,19 +474,19 @@ export default function ForgotPasswordPage() {
                         <div className={`w-3 h-3 border rounded-full flex items-center justify-center transition-all ${isLengthValid ? 'bg-green-500 border-green-500' : 'border-gray-300'}`}>
                             <svg className={`w-2 h-2 text-white ${isLengthValid ? '' : 'opacity-0'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M5 13l4 4L19 7"/></svg>
                         </div>
-                        <span>至少 8 个字符</span>
+                        <span>{text.ruleLength}</span>
                     </div>
                     <div className={`flex items-center gap-2 text-xs ${isComplexityValid ? 'text-black' : 'text-gray-400'}`}>
                          <div className={`w-3 h-3 border rounded-full flex items-center justify-center transition-all ${isComplexityValid ? 'bg-green-500 border-green-500' : 'border-gray-300'}`}>
                             <svg className={`w-2 h-2 text-white ${isComplexityValid ? '' : 'opacity-0'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M5 13l4 4L19 7"/></svg>
                         </div>
-                        <span>包含数字或符号</span>
+                        <span>{text.ruleComplexity}</span>
                     </div>
                      <div className={`flex items-center gap-2 text-xs ${isMatchValid ? 'text-black' : 'text-gray-400'}`}>
                          <div className={`w-3 h-3 border rounded-full flex items-center justify-center transition-all ${isMatchValid ? 'bg-green-500 border-green-500' : 'border-gray-300'}`}>
                             <svg className={`w-2 h-2 text-white ${isMatchValid ? '' : 'opacity-0'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M5 13l4 4L19 7"/></svg>
                         </div>
-                        <span>两次输入一致</span>
+                        <span>{text.ruleMatch}</span>
                     </div>
                 </div>
 
@@ -426,10 +501,10 @@ export default function ForgotPasswordPage() {
                         <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                         <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                       </svg>
-                      <span>处理中...</span>
+                      <span>{text.processing}</span>
                     </>
                   ) : (
-                    "重置密码"
+                    text.resetPassword
                   )}
                 </button>
               </form>
@@ -437,7 +512,7 @@ export default function ForgotPasswordPage() {
                {/* Actions */}
               <div className="mt-4 text-center">
                   <p className="text-sm text-gray-500">
-                    没收到验证码？{" "}
+                    {text.noCode}{" "}
                     <span
                       onClick={handleResend}
                       className={`transition-colors ${countdown > 0
@@ -445,7 +520,7 @@ export default function ForgotPasswordPage() {
                         : "text-black cursor-pointer font-medium"
                         }`}
                     >
-                      {countdown > 0 ? `重新发送 (${countdown}s)` : "重新发送"}
+                      {countdown > 0 ? resendCountdownText(countdown) : text.resend}
                     </span>
                   </p>
               </div>
@@ -469,7 +544,7 @@ export default function ForgotPasswordPage() {
                       d="M10 19l-7-7m0 0l7-7m-7 7h18"
                     />
                   </svg>
-                  返回登录
+                  {text.backToLogin}
                 </Link>
               </div>
             </div>
@@ -499,7 +574,7 @@ export default function ForgotPasswordPage() {
         {/* Quote */}
         <div className="absolute bottom-12 right-12 text-right">
           <p className="font-serif italic text-2xl text-indigo-900 opacity-40">
-            &quot;Simplicity is the ultimate sophistication.&quot;
+            {`"${text.quote}"`}
           </p>
         </div>
       </div>
