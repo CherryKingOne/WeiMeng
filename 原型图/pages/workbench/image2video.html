@@ -1,0 +1,542 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI视频生成 - WeiMeng</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        * { font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif; }
+        
+        /* Custom scrollbar */
+        .custom-scrollbar::-webkit-scrollbar { width: 4px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #d1d5db; border-radius: 2px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #9ca3af; }
+
+        /* Shimmer effect */
+        @keyframes shimmer {
+            0% { background-position: 200% 0; }
+            100% { background-position: -200% 0; }
+        }
+        .shimmer {
+            background: linear-gradient(90deg, #f3f4f6 25%, #e5e7eb 50%, #f3f4f6 75%);
+            background-size: 200% 100%;
+            animation: shimmer 1.5s infinite;
+        }
+
+        /* Typing animation */
+        @keyframes typing {
+            0%, 60%, 100% { transform: translateY(0); opacity: 0.4; }
+            30% { transform: translateY(-4px); opacity: 1; }
+        }
+        .typing-dot { animation: typing 1.4s infinite ease-in-out both; }
+        .typing-dot:nth-child(1) { animation-delay: -0.32s; }
+        .typing-dot:nth-child(2) { animation-delay: -0.16s; }
+
+        /* Tab active state */
+        .tab-active {
+            background: #171717;
+            color: white;
+            box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1);
+        }
+
+        /* Button styles */
+        .btn-primary {
+            background: #171717;
+            color: white;
+            transition: all 0.2s ease;
+            box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1);
+        }
+        .btn-primary:hover:not(:disabled) {
+            background: #404040;
+        }
+        .btn-primary:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        /* Card hover */
+        .hover-lift {
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+        .hover-lift:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 12px 40px rgba(0,0,0,0.08);
+        }
+
+        /* Number selector */
+        .num-btn {
+            transition: all 0.2s ease;
+        }
+        .num-btn.active {
+            background: #171717;
+            color: white;
+        }
+
+        /* Dot pattern background */
+        .bg-dot-pattern {
+            background-image: radial-gradient(#e5e7eb 1px, transparent 1px);
+            background-size: 20px 20px;
+        }
+
+        /* Result card animation */
+        .result-card {
+            animation: fadeIn 0.5s ease-out;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: scale(0.95); }
+            to { opacity: 1; transform: scale(1); }
+        }
+
+        /* Dropdown menu */
+        .dropdown-menu {
+            animation: dropdownIn 0.15s ease-out;
+        }
+        @keyframes dropdownIn {
+            from { opacity: 0; transform: translateY(-4px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* Duration buttons */
+        .duration-btn {
+            transition: all 0.2s ease;
+        }
+        .duration-btn.active {
+            background: #171717;
+            color: white;
+            border-color: #171717;
+        }
+    </style>
+</head>
+<body class="bg-white text-gray-900 min-h-screen">
+    <!-- Top Navigation -->
+    <header class="h-14 border-b border-gray-100 flex items-center justify-between px-4 bg-white sticky top-0 z-50">
+        <div class="flex items-center gap-3">
+            <button onclick="goHome()" class="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-gray-50 hover:bg-gray-100 transition-colors text-sm text-gray-600">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
+                </svg>
+                首页
+            </button>
+            <button onclick="goToImage()" class="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-gray-50 hover:bg-gray-100 transition-colors text-sm text-gray-600">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+                </svg>
+                切换至AI图片
+            </button>
+        </div>
+
+        <div class="flex items-center gap-3">
+            <button class="px-3 py-1.5 rounded-xl border border-gray-200 hover:bg-gray-50 transition-colors text-sm text-gray-600">
+                API开放平台
+            </button>
+            <button class="px-3 py-1.5 rounded-xl bg-gray-50 hover:bg-gray-100 transition-colors text-sm text-gray-600 flex items-center gap-1.5">
+                <svg class="w-4 h-4 text-amber-500" fill="currentColor" viewBox="0 0 20 20">
+                    <path d="M10 2a6 6 0 00-6 6v3.586l-.707.707A1 1 0 004 14h12a1 1 0 00.707-1.707L16 11.586V8a6 6 0 00-6-6zM10 18a3 3 0 01-3-3h6a3 3 0 01-3 3z"/>
+                </svg>
+                首购优惠
+            </button>
+            <div class="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-gray-50 text-sm">
+                <span class="text-gray-500">25</span>
+                <span class="text-amber-500 font-medium">积分</span>
+            </div>
+            <div class="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center text-sm font-medium text-gray-700 cursor-pointer hover:bg-gray-300 transition-colors">
+                U
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <div class="flex h-[calc(100vh-56px)]">
+        <!-- Left Panel: Configuration -->
+        <aside class="w-[420px] border-r border-gray-100 flex flex-col bg-gray-50/50 custom-scrollbar overflow-y-auto">
+            <div class="p-4 space-y-4">
+                <!-- Mode Tabs -->
+                <div class="grid grid-cols-4 gap-1 p-1 rounded-xl bg-gray-100">
+                    <button onclick="switchMode('text2image')" id="tab-text2image" class="tab-btn py-2.5 rounded-lg text-sm font-medium text-gray-500 hover:text-gray-700 transition-all">
+                        文生图
+                    </button>
+                    <button onclick="switchMode('image2image')" id="tab-image2image" class="tab-btn py-2.5 rounded-lg text-sm font-medium text-gray-500 hover:text-gray-700 transition-all">
+                        图生图
+                    </button>
+                    <button onclick="switchMode('image2video')" id="tab-image2video" class="tab-btn tab-active py-2.5 rounded-lg text-sm font-medium transition-all">
+                        图生视频
+                    </button>
+                    <button onclick="switchMode('text2video')" id="tab-text2video" class="tab-btn py-2.5 rounded-lg text-sm font-medium text-gray-500 hover:text-gray-700 transition-all">
+                        文生视频
+                    </button>
+                </div>
+
+                <!-- Frame Upload -->
+                <div id="firstFrameSection" class="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm">
+                    <div class="grid grid-cols-2 gap-4">
+                        <!-- First Frame -->
+                        <div>
+                            <div class="flex items-center justify-between mb-3">
+                                <span class="text-sm font-medium text-gray-700">首帧</span>
+                                <span class="text-xs text-gray-400">必填</span>
+                            </div>
+                            <div id="firstFrameUpload" onclick="uploadImage('first')" class="w-full h-24 rounded-xl border-2 border-dashed border-gray-300 hover:border-gray-400 hover:bg-gray-50 transition-all cursor-pointer flex flex-col items-center justify-center gap-2 group">
+                                <svg class="w-6 h-6 text-gray-400 group-hover:text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+                                </svg>
+                                <span class="text-xs text-gray-400">首帧</span>
+                            </div>
+                            <input type="file" id="imageInput-first" class="hidden" accept="image/*" onchange="handleImageUpload(event, 'first')">
+                            <!-- Preview -->
+                            <div id="firstFramePreview" class="hidden mt-2">
+                                <div class="relative w-full h-24 rounded-xl overflow-hidden border border-gray-200">
+                                    <img id="firstFrameImage" src="" alt="首帧" class="w-full h-full object-cover">
+                                    <button onclick="removeImage('first')" class="absolute top-1 right-1 p-1 rounded-lg bg-white/90 shadow-sm">
+                                        <svg class="w-3 h-3 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                                        </svg>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                        <!-- Last Frame -->
+                        <div>
+                            <div class="flex items-center justify-between mb-3">
+                                <span class="text-sm font-medium text-gray-700">尾帧</span>
+                                <span class="text-xs text-gray-400">可选</span>
+                            </div>
+                            <div id="lastFrameUpload" onclick="uploadImage('last')" class="w-full h-24 rounded-xl border-2 border-dashed border-gray-300 hover:border-gray-400 hover:bg-gray-50 transition-all cursor-pointer flex flex-col items-center justify-center gap-2 group">
+                                <svg class="w-6 h-6 text-gray-400 group-hover:text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+                                </svg>
+                                <span class="text-xs text-gray-400">尾帧</span>
+                            </div>
+                            <input type="file" id="imageInput-last" class="hidden" accept="image/*" onchange="handleImageUpload(event, 'last')">
+                            <!-- Preview -->
+                            <div id="lastFramePreview" class="hidden mt-2">
+                                <div class="relative w-full h-24 rounded-xl overflow-hidden border border-gray-200">
+                                    <img id="lastFrameImage" src="" alt="尾帧" class="w-full h-full object-cover">
+                                    <button onclick="removeImage('last')" class="absolute top-1 right-1 p-1 rounded-lg bg-white/90 shadow-sm">
+                                        <svg class="w-3 h-3 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                                        </svg>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Prompt Input -->
+                <div class="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm">
+                    <textarea 
+                        id="promptInput"
+                        placeholder="结合图片，描述想要生成的内容"
+                        class="w-full h-28 bg-transparent border-none resize-none text-sm text-gray-700 placeholder-gray-400 focus:outline-none custom-scrollbar"
+                    ></textarea>
+                </div>
+
+                <!-- Tutorial Links -->
+                <div class="flex items-center gap-4 px-1">
+                    <button class="flex items-center gap-1.5 text-xs text-gray-500 hover:text-gray-700 transition-colors">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                        </svg>
+                        使用教程
+                    </button>
+                    <button class="flex items-center gap-1.5 text-xs text-gray-500 hover:text-gray-700 transition-colors">
+                        试用样例
+                        <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+                        </svg>
+                    </button>
+                </div>
+
+                <!-- Advanced Settings -->
+                <div class="rounded-2xl border border-gray-200 bg-white shadow-sm overflow-hidden">
+                    <!-- Model -->
+                    <div class="p-4 border-b border-gray-100">
+                        <div class="flex items-center justify-between">
+                            <span class="text-sm font-medium text-gray-700">模型</span>
+                            <button onclick="toggleDropdown('modelDropdown')" class="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-gray-50 hover:bg-gray-100 transition-colors border border-gray-200">
+                                <div class="w-5 h-5 rounded bg-gray-900 flex items-center justify-center text-[10px] font-bold text-white">Q3</div>
+                                <span class="text-sm text-gray-700">Vidu Q3</span>
+                                <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+                                </svg>
+                            </button>
+                        </div>
+                        <!-- Model Dropdown -->
+                        <div id="modelDropdown" class="hidden dropdown-menu mt-3 space-y-1 bg-white border border-gray-200 rounded-xl p-1 shadow-lg">
+                            <button class="w-full flex items-center gap-2 px-3 py-2 rounded-lg bg-gray-100 text-gray-900 text-sm">
+                                <div class="w-5 h-5 rounded bg-gray-900 flex items-center justify-center text-[10px] font-bold text-white">Q3</div>
+                                Vidu Q3
+                            </button>
+                            <button class="w-full flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-gray-50 text-gray-600 text-sm transition-colors">
+                                <div class="w-5 h-5 rounded bg-gray-400 flex items-center justify-center text-[10px] font-bold text-white">Q2</div>
+                                Vidu Q2
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Resolution & Format -->
+                    <div class="p-4 border-b border-gray-100">
+                        <div class="flex items-center justify-between">
+                            <div class="flex items-center gap-1">
+                                <span class="text-sm font-medium text-gray-700">清晰度 & 编码格式</span>
+                            </div>
+                            <div class="flex items-center gap-2">
+                                <button onclick="toggleDropdown('resolutionDropdown')" class="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-gray-50 hover:bg-gray-100 transition-colors border border-gray-200 text-sm text-gray-700">
+                                    1080p
+                                    <svg class="w-3 h-3 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+                                    </svg>
+                                </button>
+                                <button class="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-gray-50 hover:bg-gray-100 transition-colors border border-gray-200 text-sm text-gray-700">
+                                    H265
+                                </button>
+                            </div>
+                        </div>
+                        <!-- Resolution Dropdown -->
+                        <div id="resolutionDropdown" class="hidden dropdown-menu mt-3 space-y-1 bg-white border border-gray-200 rounded-xl p-1 shadow-lg">
+                            <button class="w-full text-left px-3 py-2 rounded-lg bg-gray-100 text-gray-900 text-sm">1080p</button>
+                            <button class="w-full text-left px-3 py-2 rounded-lg hover:bg-gray-50 text-gray-600 text-sm transition-colors">720p</button>
+                        </div>
+                    </div>
+
+                    <!-- Duration -->
+                    <div class="p-4 border-b border-gray-100">
+                        <div class="flex items-center justify-between mb-3">
+                            <span class="text-sm font-medium text-gray-700">时长</span>
+                        </div>
+                        <div class="grid grid-cols-3 gap-2">
+                            <button onclick="selectDuration(4)" class="duration-btn active py-2 rounded-lg text-xs font-medium border border-gray-200 text-gray-600">
+                                4秒
+                            </button>
+                            <button onclick="selectDuration(8)" class="duration-btn py-2 rounded-lg text-xs font-medium border border-gray-200 text-gray-600 hover:border-gray-300">
+                                8秒
+                            </button>
+                            <button onclick="selectDuration(16)" class="duration-btn py-2 rounded-lg text-xs font-medium border border-gray-200 text-gray-600 hover:border-gray-300">
+                                16秒
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Generation Mode -->
+                    <div class="p-4 border-b border-gray-100">
+                        <div class="flex items-center justify-between">
+                            <span class="text-sm font-medium text-gray-700">生成模式</span>
+                            <button onclick="toggleDropdown('modeDropdown')" class="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-gray-50 hover:bg-gray-100 transition-colors border border-gray-200 text-sm text-gray-700">
+                                电影大片
+                                <svg class="w-3 h-3 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+                                </svg>
+                            </button>
+                        </div>
+                        <div id="modeDropdown" class="hidden dropdown-menu mt-3 space-y-1 bg-white border border-gray-200 rounded-xl p-1 shadow-lg">
+                            <button class="w-full text-left px-3 py-2 rounded-lg bg-gray-100 text-gray-900 text-sm">电影大片</button>
+                            <button class="w-full text-left px-3 py-2 rounded-lg hover:bg-gray-50 text-gray-600 text-sm">创意短片</button>
+                        </div>
+                    </div>
+
+                    <!-- Quantity -->
+                    <div class="p-4">
+                        <div class="flex items-center justify-between">
+                            <span class="text-sm font-medium text-gray-700">数量</span>
+                            <div class="flex items-center gap-1 bg-gray-100 rounded-lg p-1">
+                                <button onclick="selectQuantity(1)" class="num-btn active w-8 h-8 rounded-md text-sm font-medium">1</button>
+                                <button onclick="selectQuantity(2)" class="num-btn w-8 h-8 rounded-md text-sm font-medium text-gray-500 hover:text-gray-700">2</button>
+                                <button onclick="selectQuantity(3)" class="num-btn w-8 h-8 rounded-md text-sm font-medium text-gray-500 hover:text-gray-700">3</button>
+                                <button onclick="selectQuantity(4)" class="num-btn w-8 h-8 rounded-md text-sm font-medium text-gray-500 hover:text-gray-700">4</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Generate Button -->
+                <button id="generateBtn" onclick="generateVideo()" disabled class="btn-primary w-full py-3 rounded-xl font-medium text-sm">
+                    创作
+                </button>
+            </div>
+        </aside>
+
+        <!-- Right Panel: Preview -->
+        <main class="flex-1 bg-white flex flex-col">
+            <!-- Status Bar -->
+            <div class="h-12 border-b border-gray-100 flex items-center px-4">
+                <div class="flex items-center gap-2 text-sm text-gray-500">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
+                    </svg>
+                    <span>进行中</span>
+                </div>
+            </div>
+
+            <!-- Preview Area -->
+            <div id="previewArea" class="flex-1 flex items-center justify-center p-8 bg-dot-pattern">
+                <!-- Empty State -->
+                <div id="emptyState" class="text-center">
+                    <div class="mb-6 text-gray-300">
+                        <svg width="180" height="140" viewBox="0 0 180 140" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <rect x="30" y="30" width="55" height="75" rx="4" stroke="#e5e7eb" stroke-width="2" fill="none"/>
+                            <rect x="38" y="40" width="37" height="22" rx="2" fill="#f3f4f6"/>
+                            <rect x="38" y="72" width="37" height="22" rx="2" fill="#f3f4f6"/>
+                            <rect x="90" y="25" width="55" height="75" rx="4" stroke="#e5e7eb" stroke-width="2" fill="none" transform="rotate(6 117 62)"/>
+                            <circle cx="90" cy="65" r="18" fill="#f3f4f6"/>
+                            <path d="M85 57 L98 65 L85 73 Z" fill="#d1d5db"/>
+                            <circle cx="20" cy="40" r="2" fill="#e5e7eb"/>
+                            <circle cx="155" cy="35" r="2" fill="#e5e7eb"/>
+                        </svg>
+                    </div>
+                    <p class="text-gray-400 text-sm">开始创作您的第一个作品吧！</p>
+                </div>
+
+                <!-- Generating State -->
+                <div id="generatingState" class="hidden text-center">
+                    <div class="relative w-64 h-48 mb-6 rounded-2xl overflow-hidden bg-gray-100 shimmer">
+                        <div class="absolute inset-0 flex items-center justify-center">
+                            <div class="text-center">
+                                <div class="flex gap-2 justify-center mb-3">
+                                    <div class="w-3 h-3 bg-gray-400 rounded-full typing-dot"></div>
+                                    <div class="w-3 h-3 bg-gray-400 rounded-full typing-dot"></div>
+                                    <div class="w-3 h-3 bg-gray-400 rounded-full typing-dot"></div>
+                                </div>
+                                <p class="text-gray-500 text-sm">生成中...</p>
+                            </div>
+                        </div>
+                    </div>
+                    <p class="text-gray-400 text-sm">预计需要 2-3 分钟</p>
+                </div>
+
+                <!-- Result Grid -->
+                <div id="resultGrid" class="hidden grid grid-cols-2 gap-4 max-w-4xl w-full"></div>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        let state = {
+            currentMode: 'image2video',
+            quantity: 1,
+            duration: 4,
+            isGenerating: false,
+            uploadedImages: { first: null, last: null }
+        };
+
+        // Switch Mode
+        function switchMode(mode) {
+            if (mode === 'text2image') {
+                window.location.href = 'text2image.html';
+            } else if (mode === 'image2image') {
+                window.location.href = 'image2image.html';
+            } else if (mode === 'image2video') {
+                window.location.href = 'image2video.html';
+            } else if (mode === 'text2video') {
+                window.location.href = 'text2video.html';
+            }
+        }
+
+        // Upload Image
+        function uploadImage(slot) {
+            document.getElementById('imageInput-' + slot).click();
+        }
+
+        function handleImageUpload(event, slot) {
+            const file = event.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    state.uploadedImages[slot] = e.target.result;
+                    document.getElementById(slot + 'FrameUpload').classList.add('hidden');
+                    document.getElementById(slot + 'FramePreview').classList.remove('hidden');
+                    document.getElementById(slot + 'FrameImage').src = e.target.result;
+                    updateGenerateButton();
+                };
+                reader.readAsDataURL(file);
+            }
+        }
+
+        function removeImage(slot) {
+            state.uploadedImages[slot] = null;
+            document.getElementById(slot + 'FrameUpload').classList.remove('hidden');
+            document.getElementById(slot + 'FramePreview').classList.add('hidden');
+            updateGenerateButton();
+        }
+
+        function toggleDropdown(id) {
+            document.getElementById(id).classList.toggle('hidden');
+        }
+
+        function selectQuantity(num) {
+            state.quantity = num;
+            document.querySelectorAll('.num-btn').forEach((btn, index) => {
+                btn.classList.toggle('active', index + 1 === num);
+                btn.classList.toggle('text-gray-500', index + 1 !== num);
+            });
+        }
+
+        function selectDuration(duration) {
+            state.duration = duration;
+            document.querySelectorAll('.duration-btn').forEach(btn => {
+                btn.classList.toggle('active', parseInt(btn.textContent) === duration);
+            });
+        }
+
+        function updateGenerateButton() {
+            const btn = document.getElementById('generateBtn');
+            btn.disabled = !state.uploadedImages.first;
+        }
+
+        function generateVideo() {
+            const btn = document.getElementById('generateBtn');
+            if (btn.disabled) return;
+
+            state.isGenerating = true;
+            document.getElementById('emptyState').classList.add('hidden');
+            document.getElementById('resultGrid').classList.add('hidden');
+            document.getElementById('generatingState').classList.remove('hidden');
+            btn.disabled = true;
+            btn.innerHTML = '<svg class="animate-spin h-4 w-4 mr-2 inline" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg> 生成中...';
+
+            setTimeout(() => {
+                state.isGenerating = false;
+                showResults();
+                btn.disabled = false;
+                btn.innerHTML = '创作';
+            }, 3000);
+        }
+
+        function showResults() {
+            document.getElementById('generatingState').classList.add('hidden');
+            const resultGrid = document.getElementById('resultGrid');
+            resultGrid.classList.remove('hidden');
+
+            const sampleImages = [
+                'https://images.unsplash.com/photo-1635322966219-b75ed372eb01?w=400&h=300&fit=crop',
+                'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=400&h=300&fit=crop'
+            ];
+
+            let html = '';
+            for (let i = 0; i < state.quantity; i++) {
+                html += '<div class="result-card rounded-2xl overflow-hidden bg-white border border-gray-200 hover-lift cursor-pointer group"><div class="aspect-video relative overflow-hidden"><img src="' + sampleImages[i % sampleImages.length] + '" class="w-full h-full object-cover"><div class="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex items-end justify-between p-3"><button class="p-2 rounded-xl bg-white/90 shadow-sm"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg></button><button class="p-2 rounded-xl bg-white/90 shadow-sm"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"/></svg></button></div><div class="absolute bottom-2 left-2 px-2 py-1 bg-black/50 rounded text-white text-xs">' + state.duration + '秒</div></div><div class="p-3"><p class="text-xs text-gray-500">视频 ' + (i + 1) + '</p></div></div>';
+            }
+            resultGrid.innerHTML = html;
+        }
+
+        function goHome() {
+            window.location.href = '../dashboard.html';
+        }
+
+        function goToImage() {
+            window.location.href = 'text2image.html';
+        }
+
+        document.getElementById('promptInput').addEventListener('input', updateGenerateButton);
+        updateGenerateButton();
+
+        document.addEventListener('click', (e) => {
+            if (!e.target.closest('.rounded-2xl') && !e.target.closest('button')) {
+                document.querySelectorAll('[id$="Dropdown"]').forEach(el => el.classList.add('hidden'));
+            }
+        });
+    </script>
+</body>
+</html>
