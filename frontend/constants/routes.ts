@@ -10,6 +10,10 @@ export const ROUTES = {
   WORKFLOW_EDITOR: '/workflow-editor',
   ASSETS: '/assets',
   SCRIPTS: '/scripts',
+  TEXT2IMAGE: '/workbench/text2image',
+  IMAGE2IMAGE: '/workbench/image2image',
+  IMAGE2VIDEO: '/workbench/image2video',
+  TEXT2VIDEO: '/workbench/text2video',
   PLUGINS: '/plugins',
 } as const;
 

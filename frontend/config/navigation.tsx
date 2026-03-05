@@ -46,6 +46,47 @@ export const getMainNavItems = (locale: Locale): NavSection[] => [
     ],
   },
   {
+    title: locale === 'en' ? 'Tools' : '工具',
+    items: [
+      {
+        href: ROUTES.TEXT2IMAGE,
+        label: locale === 'en' ? 'Text to Image' : '文生图',
+        icon: (
+          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m0 0l1.586-1.586a2 2 0 012.828 0L21 16m-5 0h5M6 20h12a2 2 0 002-2V8a2 2 0 00-2-2h-3M8 8h.01M9 4h6" />
+          </svg>
+        ),
+      },
+      {
+        href: ROUTES.IMAGE2IMAGE,
+        label: locale === 'en' ? 'Image to Image' : '图生图',
+        icon: (
+          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 6h16M4 18h16M9 6l-4 4 4 4M15 18l4-4-4-4" />
+          </svg>
+        ),
+      },
+      {
+        href: ROUTES.IMAGE2VIDEO,
+        label: locale === 'en' ? 'Image to Video' : '图生视频',
+        icon: (
+          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14m-9 4h7a2 2 0 002-2V8a2 2 0 00-2-2H6a2 2 0 00-2 2v8a2 2 0 002 2z" />
+          </svg>
+        ),
+      },
+      {
+        href: ROUTES.TEXT2VIDEO,
+        label: locale === 'en' ? 'Text to Video' : '文生视频',
+        icon: (
+          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14m-9 4h7a2 2 0 002-2V8a2 2 0 00-2-2H6a2 2 0 00-2 2v8a2 2 0 002 2zM8 12h4M8 9h3" />
+          </svg>
+        ),
+      },
+    ],
+  },
+  {
     title: locale === 'en' ? 'Resources' : '资源中心',
     items: [
       {
