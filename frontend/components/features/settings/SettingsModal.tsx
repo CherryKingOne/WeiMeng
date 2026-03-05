@@ -433,7 +433,7 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                     <img src="/logo/logo-Icon-light.png" alt="WeiMeng Logo" className="w-full h-full object-contain" />
                   </div>
                   <h3 className="text-xl font-bold text-gray-900">WeiMeng</h3>
-                  <p className="text-sm text-gray-500 mt-1">{isEn ? 'Design made simple' : '让设计更简单'}</p>
+                  <p className="text-sm text-gray-500 mt-1">{isEn ? 'Creation made simple' : '让创作更简单'}</p>
                 </div>
 
                 <div className="grid grid-cols-2 gap-4">

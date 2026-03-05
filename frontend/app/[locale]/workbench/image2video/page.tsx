@@ -60,7 +60,7 @@ export default function Image2VideoPage() {
     required: isEn ? 'Required' : '必填',
     optional: isEn ? 'Optional' : '可选',
     uploadHint: isEn ? 'Click or drag to upload image' : '点击或拖拽上传图片',
-    uploadType: isEn ? 'Supports JPG, PNG, WebP' : '支持 JPG、PNG、WebP',
+    uploadType: isEn ? 'Supports JPG, PNG' : '支持 JPG、PNG',
     promptPlaceholder: isEn
       ? 'Describe motion, camera movement, and visual style'
       : '描述你想要生成的视频内容',
@@ -271,28 +271,6 @@ export default function Image2VideoPage() {
             </div>
           </div>
 
-          <div className="hidden md:flex items-center gap-2">
-            <button className="px-3 py-1.5 rounded-xl border border-gray-200 bg-white hover:bg-gray-50 transition-colors text-sm text-gray-600">
-              {text.apiPlatform}
-            </button>
-            <button className="px-3 py-1.5 rounded-xl bg-gray-50 hover:bg-gray-100 transition-colors text-sm text-gray-600 flex items-center gap-1.5">
-              <svg
-                className="w-4 h-4 text-gray-400"
-                fill="currentColor"
-                viewBox="0 0 20 20"
-              >
-                <path d="M10 2a6 6 0 00-6 6v3.586l-.707.707A1 1 0 004 14h12a1 1 0 00.707-1.707L16 11.586V8a6 6 0 00-6-6zM10 18a3 3 0 01-3-3h6a3 3 0 01-3 3z" />
-              </svg>
-              {text.firstDiscount}
-            </button>
-            <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-gray-200 bg-gray-50 text-sm">
-              <span className="text-gray-700 font-medium">25</span>
-              <span className="text-gray-500">{text.points}</span>
-            </div>
-            <div className="w-8 h-8 rounded-full border border-gray-200 bg-gray-100 flex items-center justify-center text-xs font-semibold text-gray-700 cursor-pointer hover:bg-gray-200 transition-colors">
-              U
-            </div>
-          </div>
         </div>
       </header>
 

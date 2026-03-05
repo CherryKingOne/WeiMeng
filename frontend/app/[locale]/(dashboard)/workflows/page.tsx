@@ -51,15 +51,15 @@ export default function WorkflowsPage() {
         <button className="px-4 py-2 bg-gray-100 text-gray-600 text-sm font-medium rounded-full hover:bg-gray-200 transition-colors">{text.filters.template}</button>
       </div>
 
-      <div className="grid grid-cols-3 gap-6">
-        <Link href={workflowEditorPath} className="aspect-[4/3] rounded-3xl border-2 border-dashed border-gray-200 flex flex-col items-center justify-center gap-3 text-gray-400 hover:border-gray-400 hover:text-gray-600 hover:bg-gray-50 transition-all">
+      <div className="grid grid-cols-3 gap-6 auto-rows-fr">
+        <Link href={workflowEditorPath} className="h-full rounded-3xl border-2 border-dashed border-gray-200 flex flex-col items-center justify-center gap-3 text-gray-400 hover:border-gray-400 hover:text-gray-600 hover:bg-gray-50 transition-all">
           <div className="w-16 h-16 rounded-2xl bg-gray-100 flex items-center justify-center">
             <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 4v16m8-8H4"/></svg>
           </div>
           <span className="text-sm font-medium">{text.newWorkflow}</span>
         </Link>
 
-        <Link href={workflowEditorPath} className="group bg-white rounded-3xl shadow-sm overflow-hidden hover:shadow-lg transition-all relative">
+        <Link href={workflowEditorPath} className="group h-full bg-white rounded-3xl shadow-sm overflow-hidden hover:shadow-lg transition-all relative">
           <div className="h-44 bg-gradient-to-br from-purple-100 to-pink-100 relative overflow-hidden">
             <div className="absolute top-4 left-4 flex items-center gap-2 px-2.5 py-1 bg-white/90 backdrop-blur-sm rounded-full">
               <span className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></span>
@@ -78,7 +78,7 @@ export default function WorkflowsPage() {
           </div>
         </Link>
 
-        <Link href={workflowEditorPath} className="group bg-white rounded-3xl shadow-sm overflow-hidden hover:shadow-lg transition-all relative">
+        <Link href={workflowEditorPath} className="group h-full bg-white rounded-3xl shadow-sm overflow-hidden hover:shadow-lg transition-all relative">
           <div className="h-44 bg-gradient-to-br from-blue-100 to-cyan-100 relative overflow-hidden">
             <div className="absolute top-4 left-4 flex items-center gap-2 px-2.5 py-1 bg-gray-100 rounded-full">
               <span className="text-xs font-medium text-gray-600">{text.statusDraft}</span>
@@ -93,7 +93,7 @@ export default function WorkflowsPage() {
           </div>
         </Link>
 
-        <Link href={workflowEditorPath} className="group bg-white rounded-3xl shadow-sm overflow-hidden hover:shadow-lg transition-all relative">
+        <Link href={workflowEditorPath} className="group h-full bg-white rounded-3xl shadow-sm overflow-hidden hover:shadow-lg transition-all relative">
           <div className="h-44 bg-gradient-to-br from-green-100 to-emerald-100 relative overflow-hidden">
             <div className="absolute top-4 left-4 flex items-center gap-2 px-2.5 py-1 bg-blue-50 rounded-full">
               <span className="text-xs font-medium text-blue-600">{text.statusPublished}</span>
@@ -110,7 +110,7 @@ export default function WorkflowsPage() {
           </div>
         </Link>
 
-        <Link href={workflowEditorPath} className="group bg-white rounded-3xl shadow-sm overflow-hidden hover:shadow-lg transition-all relative">
+        <Link href={workflowEditorPath} className="group h-full bg-white rounded-3xl shadow-sm overflow-hidden hover:shadow-lg transition-all relative">
           <div className="h-44 bg-gradient-to-br from-amber-100 to-orange-100 relative overflow-hidden">
             <div className="absolute top-4 left-4 flex items-center gap-2 px-2.5 py-1 bg-amber-50 rounded-full">
               <span className="text-xs font-medium text-amber-600">{text.statusTemplate}</span>

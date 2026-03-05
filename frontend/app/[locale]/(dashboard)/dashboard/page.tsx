@@ -15,7 +15,7 @@ export default function DashboardPage() {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   const text = {
-    title: isEn ? 'WeiMeng makes design simple' : 'WeiMeng 让设计更简单',
+    title: isEn ? 'WeiMeng makes creation simple' : 'WeiMeng 让创作更简单',
     subtitle: isEn ? 'Type your idea, AI turns it into endless possibilities' : '输入灵感，AI 为你创造无限可能',
     promptPlaceholder: isEn
       ? 'Describe what you want to create, or type @ to invoke an Agent...'
