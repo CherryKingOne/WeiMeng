@@ -1,0 +1,1209 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>baduanjinxk_s... - WeiMeng</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        * {
+            font-family: ui-sans-serif, system-ui, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
+        }
+
+        .mono {
+            font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
+        }
+
+        body {
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+
+        /* 自定义滚动条 */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #E5E7EB;
+            border-radius: 3px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: #D1D5DB;
+        }
+
+        /* 左侧导航项 */
+        .nav-item {
+            transition: all 0.15s ease;
+        }
+
+        .nav-item.active {
+            background: #F3F4F6;
+            color: #111827;
+        }
+
+        .nav-item:hover:not(.active) {
+            background: #F9FAFB;
+            color: #374151;
+        }
+
+        /* 表格行 */
+        .file-row {
+            transition: all 0.15s ease;
+            border-bottom: 1px solid #F3F4F6;
+            background: #FFFFFF;
+            cursor: pointer;
+        }
+
+        .file-row:hover {
+            background: #F9FAFB;
+        }
+
+        .file-row:last-child {
+            border-bottom: none;
+        }
+
+        /* 自定义复选框 */
+        .custom-checkbox {
+            appearance: none;
+            width: 16px;
+            height: 16px;
+            border: 1.5px solid #D1D5DB;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: all 0.15s ease;
+            position: relative;
+        }
+
+        .custom-checkbox:checked {
+            background-color: #262626;
+            border-color: #262626;
+        }
+
+        .custom-checkbox:checked::after {
+            content: '';
+            position: absolute;
+            left: 4px;
+            top: 1px;
+            width: 5px;
+            height: 9px;
+            border: solid white;
+            border-width: 0 1.5px 1.5px 0;
+            transform: rotate(45deg);
+        }
+
+        /* iOS 风格 Switch */
+        .ios-switch {
+            appearance: none;
+            width: 40px;
+            height: 22px;
+            background: #E5E7EB;
+            border-radius: 11px;
+            position: relative;
+            cursor: pointer;
+            transition: background 0.2s ease;
+        }
+
+        .ios-switch::after {
+            content: '';
+            position: absolute;
+            width: 18px;
+            height: 18px;
+            background: white;
+            border-radius: 50%;
+            top: 2px;
+            left: 2px;
+            transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+        }
+
+        .ios-switch:checked {
+            background: #262626;
+        }
+
+        .ios-switch:checked::after {
+            transform: translateX(18px);
+        }
+
+        /* 操作按钮 */
+        .action-btn {
+            opacity: 1;
+            transition: opacity 0.15s ease;
+        }
+
+        .action-hover-icons {
+            opacity: 0;
+            visibility: hidden;
+            pointer-events: none;
+            transition: opacity 0.15s ease, visibility 0.15s ease;
+        }
+
+        .file-row:hover .action-hover-icons {
+            opacity: 1;
+            visibility: visible;
+            pointer-events: auto;
+        }
+
+        /* 处理状态点：仅表示结果状态 */
+        .status-dot.success {
+            background-color: #10B981;
+        }
+
+        .status-dot.failed {
+            background-color: #EF4444;
+        }
+
+        /* 表头排序 */
+        .sortable {
+            cursor: pointer;
+            user-select: none;
+        }
+
+        .sortable:hover {
+            color: #374151;
+        }
+
+        /* 搜索框 */
+        .search-input {
+            border: 1px solid #E5E7EB;
+            transition: all 0.2s ease;
+        }
+
+        .search-input:focus {
+            outline: none;
+            border-color: #D1D5DB;
+            box-shadow: 0 0 0 3px rgba(0, 0, 0, 0.02);
+        }
+
+        /* 面包屑 */
+        .breadcrumb-item:not(:last-child)::after {
+            content: '>';
+            margin: 0 6px;
+            color: #9CA3AF;
+            font-size: 12px;
+        }
+
+        /* 文件表格列宽 */
+        .col-name {
+            width: 420px;
+            flex: 0 0 420px;
+            min-width: 0;
+        }
+
+        /* 新增文件弹窗 */
+        .upload-dropzone {
+            border: 1.5px dashed #D1D5DB;
+            background: #FAFAFA;
+            transition: all 0.2s ease;
+        }
+
+        .upload-dropzone:hover,
+        .upload-dropzone.drag-active {
+            border-color: #525252;
+            background: #F5F5F5;
+        }
+
+        .upload-file-item {
+            border: 1px solid #E5E7EB;
+            background: #FFFFFF;
+        }
+    </style>
+</head>
+
+<body class="bg-white text-gray-900 h-screen overflow-hidden">
+    <div class="flex h-full">
+        <!-- 左侧导航栏 -->
+        <aside class="w-64 bg-white border-r border-gray-100 flex flex-col shrink-0">
+            <!-- Logo/标题区 -->
+            <div class="p-4 border-b border-gray-100 space-y-3">
+                <button
+                    class="group flex items-center gap-2 px-1 py-1 text-sm font-medium text-gray-500 hover:text-gray-900 transition-colors">
+                    <div
+                        class="flex items-center justify-center w-6 h-6 rounded-full border border-gray-200 bg-white group-hover:border-gray-300 group-hover:shadow-sm group-hover:-translate-x-0.5 transition-all duration-200">
+                        <svg class="w-3 h-3 text-gray-500 group-hover:text-gray-700" fill="none" stroke="currentColor"
+                            viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5"
+                                d="M15 19l-7-7 7-7" />
+                        </svg>
+                    </div>
+                    <span>返回剧本库</span>
+                </button>
+                <div class="flex items-center gap-3">
+                    <div
+                        class="w-10 h-10 bg-gray-800 rounded-lg flex items-center justify-center text-white font-bold text-lg">
+                        B
+                    </div>
+                    <div class="min-w-0">
+                        <h2 class="text-sm font-semibold text-gray-900 truncate">baduanjinxk_s...</h2>
+                        <p class="text-xs text-gray-400">7 个文件 · 197 KB</p>
+                    </div>
+                </div>
+                <p class="text-xs text-gray-400 mt-2">创建于 02/03/2026</p>
+            </div>
+
+            <!-- 导航菜单 -->
+            <nav class="flex-1 px-3 py-4 space-y-1">
+                <a href="#"
+                    class="nav-item active flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-gray-900">
+                    <svg class="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
+                            d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                    </svg>
+                    <span>文件列表</span>
+                </a>
+                <a href="#"
+                    class="nav-item flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-gray-500">
+                    <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
+                            d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                    </svg>
+                    <span>场景</span>
+                </a>
+                <a href="#"
+                    class="nav-item flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-gray-500">
+                    <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
+                            d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                    </svg>
+                    <span>角色</span>
+                </a>
+                <a href="#"
+                    class="nav-item flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-gray-500">
+                    <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
+                            d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                    </svg>
+                    <span>分镜</span>
+                </a>
+                <a href="#"
+                    class="nav-item flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-gray-500">
+                    <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
+                            d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                    </svg>
+                    <span>日志</span>
+                </a>
+            </nav>
+
+            <!-- 底部配置 -->
+            <div class="p-3 border-t border-gray-100">
+                <a href="#"
+                    class="nav-item flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-gray-500">
+                    <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
+                            d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
+                            d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                    </svg>
+                    <span>配置</span>
+                </a>
+            </div>
+        </aside>
+
+        <!-- 右侧主内容区 -->
+        <main class="flex-1 flex flex-col bg-white overflow-hidden">
+            <!-- 文件列表内容 -->
+            <div class="flex-1 overflow-y-auto px-8 py-4">
+                <!-- 标题区 -->
+                <div class="mb-6 flex items-start justify-between gap-4">
+                    <div>
+                        <h1 class="text-xl font-semibold text-gray-900">文件列表</h1>
+                    </div>
+                    <div class="flex items-center gap-3 shrink-0">
+                        <button class="p-2 text-gray-400 hover:text-gray-600 transition-colors" title="筛选">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
+                                    d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
+                            </svg>
+                        </button>
+                        <div class="relative">
+                            <svg class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" fill="none"
+                                stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
+                                    d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                            </svg>
+                            <input type="text" placeholder="搜索文件..."
+                                class="search-input w-56 pl-9 pr-4 py-2 rounded-lg text-sm text-gray-900 placeholder:text-gray-400 bg-white">
+                        </div>
+                        <button id="openUploadModalBtn"
+                            class="inline-flex items-center gap-2 px-4 py-2 bg-black text-white rounded-lg text-sm font-medium hover:bg-gray-800 transition-colors">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
+                                    d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
+                            </svg>
+                            新增文件
+                        </button>
+                    </div>
+                </div>
+
+                <!-- 文件表格 -->
+                <div class="border border-gray-200 rounded-xl overflow-x-auto">
+                    <!-- 表头 -->
+                    <div
+                        class="flex items-center gap-4 px-4 py-3 bg-gray-50/50 border-b border-gray-200 text-xs font-medium text-gray-500">
+                        <div class="w-10 flex justify-center">
+                            <input type="checkbox" class="custom-checkbox" id="selectAll">
+                        </div>
+                        <div class="col-name sortable flex items-center gap-1">
+                            <span>名称</span>
+                            <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M5 15l7-7 7 7" />
+                            </svg>
+                        </div>
+                        <div class="w-44 sortable flex items-center gap-1">
+                            <span>上传日期</span>
+                            <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M19 9l-7 7-7-7" />
+                            </svg>
+                        </div>
+                        <div class="w-20 text-center">来源</div>
+                        <div class="w-16 text-center">启用</div>
+                        <div class="w-20 text-center">分块数</div>
+                        <div class="w-20 text-center">解析</div>
+                        <div class="w-52 text-center">动作</div>
+                    </div>
+
+                    <!-- 文件行 -->
+                    <div id="fileList">
+                        <!-- 文件 1 -->
+                        <div class="file-row flex items-center gap-4 px-4 py-3.5">
+                            <div class="w-10 flex justify-center">
+                                <input type="checkbox" class="custom-checkbox file-checkbox">
+                            </div>
+                            <div class="col-name flex items-center gap-3">
+                                <svg class="w-5 h-5 text-gray-500 shrink-0" fill="currentColor" viewBox="0 0 24 24">
+                                    <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8l-6-6z" />
+                                    <path d="M14 3v5h5M16 13H8M16 17H8M10 9H8" stroke="white" stroke-width="1.5"
+                                        stroke-linecap="round" />
+                                </svg>
+                                <span class="text-sm text-gray-900 truncate">1772419691_导学课动作.docx</span>
+                            </div>
+                            <div class="w-44 text-sm text-gray-600 mono whitespace-nowrap">2026/02/03 10:48:11</div>
+                            <div class="w-20 flex justify-center">
+                                <svg class="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"
+                                    stroke-width="2">
+                                    <path stroke-linecap="round" stroke-linejoin="round"
+                                        d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
+                                </svg>
+                            </div>
+                            <div class="w-16 flex justify-center">
+                                <input type="checkbox" class="ios-switch" checked>
+                            </div>
+                            <div class="w-20 text-center text-sm text-gray-600 mono">4</div>
+                            <div class="w-20 text-center">
+                                <span class="text-sm text-gray-500">general</span>
+                            </div>
+                            <div class="w-52 flex items-center justify-center gap-2 action-btn">
+                                <span class="h-5 w-px bg-gray-200"></span>
+                                <button class="p-1 text-gray-500 hover:text-gray-900 transition-colors" title="重新处理">
+                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8"
+                                            d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                                    </svg>
+                                </button>
+                                <span class="h-2 w-2 rounded-full status-dot success" title="处理成功"></span>
+                                <div class="flex items-center gap-3 action-hover-icons">
+                                    <button class="p-1 text-gray-500 hover:text-gray-700 transition-colors" title="编辑">
+                                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8"
+                                                d="M16.862 4.487a2.25 2.25 0 113.182 3.182L8.25 19.5 3 21l1.5-5.25L16.862 4.487z" />
+                                        </svg>
+                                    </button>
+                                    <button class="p-1 text-gray-500 hover:text-gray-700 transition-colors" title="查看">
+                                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8"
+                                                d="M2.458 12C3.732 7.943 7.523 5 12 5c4.477 0 8.268 2.943 9.542 7-1.274 4.057-5.065 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8"
+                                                d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                        </svg>
+                                    </button>
+                                    <button class="p-1 text-gray-500 hover:text-gray-700 transition-colors" title="下载">
+                                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8"
+                                                d="M12 3v12m0 0l4-4m-4 4l-4-4M4 21h16" />
+                                        </svg>
+                                    </button>
+                                    <button class="p-1 text-gray-500 hover:text-red-600 transition-colors" title="删除">
+                                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8"
+                                                d="M6 7h12M9 7V5h6v2m-8 0l1 12h8l1-12M10 11v6m4-6v6" />
+                                        </svg>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 文件 2 -->
+                        <div class="file-row flex items-center gap-4 px-4 py-3.5">
+                            <div class="w-10 flex justify-center">
+                                <input type="checkbox" class="custom-checkbox file-checkbox">
+                            </div>
+                            <div class="col-name flex items-center gap-3">
+                                <svg class="w-5 h-5 text-gray-500 shrink-0" fill="currentColor" viewBox="0 0 24 24">
+                                    <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8l-6-6z" />
+                                    <path d="M14 3v5h5M16 13H8M16 17H8M10 9H8" stroke="white" stroke-width="1.5"
+                                        stroke-linecap="round" />
+                                </svg>
+                                <span class="text-sm text-gray-900 truncate">1772419678_接量期常见问题.docx</span>
+                            </div>
+                            <div class="w-44 text-sm text-gray-600 mono whitespace-nowrap">2026/02/03 10:48:00</div>
+                            <div class="w-20 flex justify-center">
+                                <svg class="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"
+                                    stroke-width="2">
+                                    <path stroke-linecap="round" stroke-linejoin="round"
+                                        d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
+                                </svg>
+                            </div>
+                            <div class="w-16 flex justify-center">
+                                <input type="checkbox" class="ios-switch" checked>
+                            </div>
+                            <div class="w-20 text-center text-sm text-gray-600 mono">14</div>
+                            <div class="w-20 text-center">
+                                <span class="text-sm text-gray-500">general</span>
+                            </div>
+                            <div class="w-52 flex items-center justify-center gap-2 action-btn">
+                                <span class="h-5 w-px bg-gray-200"></span>
+                                <button class="p-1 text-gray-500 hover:text-gray-900 transition-colors" title="重新处理">
+                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8"
+                                            d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                                    </svg>
+                                </button>
+                                <span class="h-2 w-2 rounded-full status-dot success" title="处理成功"></span>
+                                <div class="flex items-center gap-3 action-hover-icons">
+                                    <button class="p-1 text-gray-500 hover:text-gray-700 transition-colors" title="编辑">
+                                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8"
+                                                d="M16.862 4.487a2.25 2.25 0 113.182 3.182L8.25 19.5 3 21l1.5-5.25L16.862 4.487z" />
+                                        </svg>
+                                    </button>
+                                    <button class="p-1 text-gray-500 hover:text-gray-700 transition-colors" title="查看">
+                                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8"
+                                                d="M2.458 12C3.732 7.943 7.523 5 12 5c4.477 0 8.268 2.943 9.542 7-1.274 4.057-5.065 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8"
+                                                d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                        </svg>
+                                    </button>
+                                    <button class="p-1 text-gray-500 hover:text-gray-700 transition-colors" title="下载">
+                                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8"
+                                                d="M12 3v12m0 0l4-4m-4 4l-4-4M4 21h16" />
+                                        </svg>
+                                    </button>
+                                    <button class="p-1 text-gray-500 hover:text-red-600 transition-colors" title="删除">
+                                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8"
+                                                d="M6 7h12M9 7V5h6v2m-8 0l1 12h8l1-12M10 11v6m4-6v6" />
+                                        </svg>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 文件 3 -->
+                        <div class="file-row flex items-center gap-4 px-4 py-3.5">
+                            <div class="w-10 flex justify-center">
+                                <input type="checkbox" class="custom-checkbox file-checkbox">
+                            </div>
+                            <div class="col-name flex items-center gap-3">
+                                <svg class="w-5 h-5 text-gray-500 shrink-0" fill="currentColor" viewBox="0 0 24 24">
+                                    <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8l-6-6z" />
+                                    <path d="M14 3v5h5M16 13H8M16 17H8M10 9H8" stroke="white" stroke-width="1.5"
+                                        stroke-linecap="round" />
+                                </svg>
+                                <span class="text-sm text-gray-900 truncate">1772419664_太极专业知识.docx</span>
+                            </div>
+                            <div class="w-44 text-sm text-gray-600 mono whitespace-nowrap">2026/02/03 10:47:46</div>
+                            <div class="w-20 flex justify-center">
+                                <svg class="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"
+                                    stroke-width="2">
+                                    <path stroke-linecap="round" stroke-linejoin="round"
+                                        d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
+                                </svg>
+                            </div>
+                            <div class="w-16 flex justify-center">
+                                <input type="checkbox" class="ios-switch" checked>
+                            </div>
+                            <div class="w-20 text-center text-sm text-gray-600 mono">93</div>
+                            <div class="w-20 text-center">
+                                <span class="text-sm text-gray-500">general</span>
+                            </div>
+                            <div class="w-52 flex items-center justify-center gap-2 action-btn">
+                                <span class="h-5 w-px bg-gray-200"></span>
+                                <button class="p-1 text-gray-500 hover:text-gray-900 transition-colors" title="重新处理">
+                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8"
+                                            d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                                    </svg>
+                                </button>
+                                <span class="h-2 w-2 rounded-full status-dot success" title="处理成功"></span>
+                                <div class="flex items-center gap-3 action-hover-icons">
+                                    <button class="p-1 text-gray-500 hover:text-gray-700 transition-colors" title="编辑">
+                                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8"
+                                                d="M16.862 4.487a2.25 2.25 0 113.182 3.182L8.25 19.5 3 21l1.5-5.25L16.862 4.487z" />
+                                        </svg>
+                                    </button>
+                                    <button class="p-1 text-gray-500 hover:text-gray-700 transition-colors" title="查看">
+                                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8"
+                                                d="M2.458 12C3.732 7.943 7.523 5 12 5c4.477 0 8.268 2.943 9.542 7-1.274 4.057-5.065 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8"
+                                                d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                        </svg>
+                                    </button>
+                                    <button class="p-1 text-gray-500 hover:text-gray-700 transition-colors" title="下载">
+                                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8"
+                                                d="M12 3v12m0 0l4-4m-4 4l-4-4M4 21h16" />
+                                        </svg>
+                                    </button>
+                                    <button class="p-1 text-gray-500 hover:text-red-600 transition-colors" title="删除">
+                                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8"
+                                                d="M6 7h12M9 7V5h6v2m-8 0l1 12h8l1-12M10 11v6m4-6v6" />
+                                        </svg>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 文件 4 -->
+                        <div class="file-row flex items-center gap-4 px-4 py-3.5">
+                            <div class="w-10 flex justify-center">
+                                <input type="checkbox" class="custom-checkbox file-checkbox">
+                            </div>
+                            <div class="col-name flex items-center gap-3">
+                                <svg class="w-5 h-5 text-gray-500 shrink-0" fill="currentColor" viewBox="0 0 24 24">
+                                    <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8l-6-6z" />
+                                    <path d="M14 3v5h5M16 13H8M16 17H8M10 9H8" stroke="white" stroke-width="1.5"
+                                        stroke-linecap="round" />
+                                </svg>
+                                <span class="text-sm text-gray-900 truncate">1772419642_通用——八段锦.docx</span>
+                            </div>
+                            <div class="w-44 text-sm text-gray-600 mono whitespace-nowrap">2026/02/03 10:47:23</div>
+                            <div class="w-20 flex justify-center">
+                                <svg class="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"
+                                    stroke-width="2">
+                                    <path stroke-linecap="round" stroke-linejoin="round"
+                                        d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
+                                </svg>
+                            </div>
+                            <div class="w-16 flex justify-center">
+                                <input type="checkbox" class="ios-switch" checked>
+                            </div>
+                            <div class="w-20 text-center text-sm text-gray-600 mono">16</div>
+                            <div class="w-20 text-center">
+                                <span class="text-sm text-gray-500">general</span>
+                            </div>
+                            <div class="w-52 flex items-center justify-center gap-2 action-btn">
+                                <span class="h-5 w-px bg-gray-200"></span>
+                                <button class="p-1 text-gray-500 hover:text-gray-900 transition-colors" title="重新处理">
+                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8"
+                                            d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                                    </svg>
+                                </button>
+                                <span class="h-2 w-2 rounded-full status-dot success" title="处理成功"></span>
+                                <div class="flex items-center gap-3 action-hover-icons">
+                                    <button class="p-1 text-gray-500 hover:text-gray-700 transition-colors" title="编辑">
+                                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8"
+                                                d="M16.862 4.487a2.25 2.25 0 113.182 3.182L8.25 19.5 3 21l1.5-5.25L16.862 4.487z" />
+                                        </svg>
+                                    </button>
+                                    <button class="p-1 text-gray-500 hover:text-gray-700 transition-colors" title="查看">
+                                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8"
+                                                d="M2.458 12C3.732 7.943 7.523 5 12 5c4.477 0 8.268 2.943 9.542 7-1.274 4.057-5.065 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8"
+                                                d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                        </svg>
+                                    </button>
+                                    <button class="p-1 text-gray-500 hover:text-gray-700 transition-colors" title="下载">
+                                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8"
+                                                d="M12 3v12m0 0l4-4m-4 4l-4-4M4 21h16" />
+                                        </svg>
+                                    </button>
+                                    <button class="p-1 text-gray-500 hover:text-red-600 transition-colors" title="删除">
+                                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8"
+                                                d="M6 7h12M9 7V5h6v2m-8 0l1 12h8l1-12M10 11v6m4-6v6" />
+                                        </svg>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 文件 5 -->
+                        <div class="file-row flex items-center gap-4 px-4 py-3.5">
+                            <div class="w-10 flex justify-center">
+                                <input type="checkbox" class="custom-checkbox file-checkbox">
+                            </div>
+                            <div class="col-name flex items-center gap-3">
+                                <svg class="w-5 h-5 text-gray-500 shrink-0" fill="currentColor" viewBox="0 0 24 24">
+                                    <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8l-6-6z" />
+                                    <path d="M14 3v5h5M16 13H8M16 17H8M10 9H8" stroke="white" stroke-width="1.5"
+                                        stroke-linecap="round" />
+                                </svg>
+                                <span class="text-sm text-gray-900 truncate">1772419628_异议处理.docx</span>
+                            </div>
+                            <div class="w-44 text-sm text-gray-600 mono whitespace-nowrap">2026/02/03 10:47:08</div>
+                            <div class="w-20 flex justify-center">
+                                <svg class="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"
+                                    stroke-width="2">
+                                    <path stroke-linecap="round" stroke-linejoin="round"
+                                        d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
+                                </svg>
+                            </div>
+                            <div class="w-16 flex justify-center">
+                                <input type="checkbox" class="ios-switch" checked>
+                            </div>
+                            <div class="w-20 text-center text-sm text-gray-600 mono">17</div>
+                            <div class="w-20 text-center">
+                                <span class="text-sm text-gray-500">general</span>
+                            </div>
+                            <div class="w-52 flex items-center justify-center gap-2 action-btn">
+                                <span class="h-5 w-px bg-gray-200"></span>
+                                <button class="p-1 text-gray-500 hover:text-gray-900 transition-colors" title="重新处理">
+                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8"
+                                            d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                                    </svg>
+                                </button>
+                                <span class="h-2 w-2 rounded-full status-dot success" title="处理成功"></span>
+                                <div class="flex items-center gap-3 action-hover-icons">
+                                    <button class="p-1 text-gray-500 hover:text-gray-700 transition-colors" title="编辑">
+                                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8"
+                                                d="M16.862 4.487a2.25 2.25 0 113.182 3.182L8.25 19.5 3 21l1.5-5.25L16.862 4.487z" />
+                                        </svg>
+                                    </button>
+                                    <button class="p-1 text-gray-500 hover:text-gray-700 transition-colors" title="查看">
+                                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8"
+                                                d="M2.458 12C3.732 7.943 7.523 5 12 5c4.477 0 8.268 2.943 9.542 7-1.274 4.057-5.065 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8"
+                                                d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                        </svg>
+                                    </button>
+                                    <button class="p-1 text-gray-500 hover:text-gray-700 transition-colors" title="下载">
+                                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8"
+                                                d="M12 3v12m0 0l4-4m-4 4l-4-4M4 21h16" />
+                                        </svg>
+                                    </button>
+                                    <button class="p-1 text-gray-500 hover:text-red-600 transition-colors" title="删除">
+                                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8"
+                                                d="M6 7h12M9 7V5h6v2m-8 0l1 12h8l1-12M10 11v6m4-6v6" />
+                                        </svg>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 文件 6 -->
+                        <div class="file-row flex items-center gap-4 px-4 py-3.5">
+                            <div class="w-10 flex justify-center">
+                                <input type="checkbox" class="custom-checkbox file-checkbox">
+                            </div>
+                            <div class="col-name flex items-center gap-3">
+                                <svg class="w-5 h-5 text-gray-500 shrink-0" fill="currentColor" viewBox="0 0 24 24">
+                                    <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8l-6-6z" />
+                                    <path d="M14 3v5h5M16 13H8M16 17H8M10 9H8" stroke="white" stroke-width="1.5"
+                                        stroke-linecap="round" />
+                                </svg>
+                                <span class="text-sm text-gray-900 truncate">1772419614_D12345专业(1).docx</span>
+                            </div>
+                            <div class="w-44 text-sm text-gray-600 mono whitespace-nowrap">2026/02/03 10:46:56</div>
+                            <div class="w-20 flex justify-center">
+                                <svg class="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"
+                                    stroke-width="2">
+                                    <path stroke-linecap="round" stroke-linejoin="round"
+                                        d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
+                                </svg>
+                            </div>
+                            <div class="w-16 flex justify-center">
+                                <input type="checkbox" class="ios-switch" checked>
+                            </div>
+                            <div class="w-20 text-center text-sm text-gray-600 mono">63</div>
+                            <div class="w-20 text-center">
+                                <span class="text-sm text-gray-500">general</span>
+                            </div>
+                            <div class="w-52 flex items-center justify-center gap-2 action-btn">
+                                <span class="h-5 w-px bg-gray-200"></span>
+                                <button class="p-1 text-gray-500 hover:text-gray-900 transition-colors" title="重新处理">
+                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8"
+                                            d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                                    </svg>
+                                </button>
+                                <span class="h-2 w-2 rounded-full status-dot success" title="处理成功"></span>
+                                <div class="flex items-center gap-3 action-hover-icons">
+                                    <button class="p-1 text-gray-500 hover:text-gray-700 transition-colors" title="编辑">
+                                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8"
+                                                d="M16.862 4.487a2.25 2.25 0 113.182 3.182L8.25 19.5 3 21l1.5-5.25L16.862 4.487z" />
+                                        </svg>
+                                    </button>
+                                    <button class="p-1 text-gray-500 hover:text-gray-700 transition-colors" title="查看">
+                                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8"
+                                                d="M2.458 12C3.732 7.943 7.523 5 12 5c4.477 0 8.268 2.943 9.542 7-1.274 4.057-5.065 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8"
+                                                d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                        </svg>
+                                    </button>
+                                    <button class="p-1 text-gray-500 hover:text-gray-700 transition-colors" title="下载">
+                                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8"
+                                                d="M12 3v12m0 0l4-4m-4 4l-4-4M4 21h16" />
+                                        </svg>
+                                    </button>
+                                    <button class="p-1 text-gray-500 hover:text-red-600 transition-colors" title="删除">
+                                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8"
+                                                d="M6 7h12M9 7V5h6v2m-8 0l1 12h8l1-12M10 11v6m4-6v6" />
+                                        </svg>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 文件 7 -->
+                        <div class="file-row flex items-center gap-4 px-4 py-3.5">
+                            <div class="w-10 flex justify-center">
+                                <input type="checkbox" class="custom-checkbox file-checkbox">
+                            </div>
+                            <div class="col-name flex items-center gap-3">
+                                <svg class="w-5 h-5 text-gray-500 shrink-0" fill="currentColor" viewBox="0 0 24 24">
+                                    <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8l-6-6z" />
+                                    <path d="M14 3v5h5M16 13H8M16 17H8M10 9H8" stroke="white" stroke-width="1.5"
+                                        stroke-linecap="round" />
+                                </svg>
+                                <span class="text-sm text-gray-900 truncate">1772419576_P1-P3 先导课-二期.doc</span>
+                            </div>
+                            <div class="w-44 text-sm text-gray-600 mono whitespace-nowrap">2026/02/03 10:46:19</div>
+                            <div class="w-20 flex justify-center">
+                                <svg class="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"
+                                    stroke-width="2">
+                                    <path stroke-linecap="round" stroke-linejoin="round"
+                                        d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
+                                </svg>
+                            </div>
+                            <div class="w-16 flex justify-center">
+                                <input type="checkbox" class="ios-switch" checked>
+                            </div>
+                            <div class="w-20 text-center text-sm text-gray-600 mono">5</div>
+                            <div class="w-20 text-center">
+                                <span class="text-sm text-gray-500">general</span>
+                            </div>
+                            <div class="w-52 flex items-center justify-center gap-2 action-btn">
+                                <span class="h-5 w-px bg-gray-200"></span>
+                                <button class="p-1 text-gray-500 hover:text-gray-900 transition-colors" title="重新处理">
+                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8"
+                                            d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                                    </svg>
+                                </button>
+                                <span class="h-2 w-2 rounded-full status-dot success" title="处理成功"></span>
+                                <div class="flex items-center gap-3 action-hover-icons">
+                                    <button class="p-1 text-gray-500 hover:text-gray-700 transition-colors" title="编辑">
+                                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8"
+                                                d="M16.862 4.487a2.25 2.25 0 113.182 3.182L8.25 19.5 3 21l1.5-5.25L16.862 4.487z" />
+                                        </svg>
+                                    </button>
+                                    <button class="p-1 text-gray-500 hover:text-gray-700 transition-colors" title="查看">
+                                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8"
+                                                d="M2.458 12C3.732 7.943 7.523 5 12 5c4.477 0 8.268 2.943 9.542 7-1.274 4.057-5.065 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8"
+                                                d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                        </svg>
+                                    </button>
+                                    <button class="p-1 text-gray-500 hover:text-gray-700 transition-colors" title="下载">
+                                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8"
+                                                d="M12 3v12m0 0l4-4m-4 4l-4-4M4 21h16" />
+                                        </svg>
+                                    </button>
+                                    <button class="p-1 text-gray-500 hover:text-red-600 transition-colors" title="删除">
+                                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8"
+                                                d="M6 7h12M9 7V5h6v2m-8 0l1 12h8l1-12M10 11v6m4-6v6" />
+                                        </svg>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- 底部分页器 -->
+            <div class="shrink-0 px-8 py-3">
+                <div class="flex items-center justify-end gap-4">
+                    <span id="totalCount" class="text-sm text-gray-500">总共 7 条</span>
+                    <div class="flex items-center gap-1">
+                        <button id="prevPageBtn"
+                            class="p-1.5 rounded text-gray-300 cursor-not-allowed transition-colors" disabled>
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
+                                    d="M15 19l-7-7 7-7" />
+                            </svg>
+                        </button>
+                        <span id="currentPage" class="text-sm font-medium text-gray-900 px-2">1</span>
+                        <button id="nextPageBtn"
+                            class="p-1.5 rounded text-gray-300 cursor-not-allowed transition-colors" disabled>
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
+                                    d="M9 5l7 7-7 7" />
+                            </svg>
+                        </button>
+                    </div>
+                    <div class="relative">
+                        <select id="pageSizeSelect"
+                            class="appearance-none bg-white border border-gray-200 rounded-lg pl-3 pr-8 py-1.5 text-sm text-gray-600 focus:outline-none focus:border-gray-300 cursor-pointer">
+                            <option value="10">10条/页</option>
+                            <option value="20">20条/页</option>
+                            <option value="50" selected>50条/页</option>
+                            <option value="100">100条/页</option>
+                        </select>
+                        <svg class="absolute right-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400 pointer-events-none"
+                            fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                        </svg>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- 新增文件弹窗 -->
+    <div id="uploadFileModal" class="fixed inset-0 z-50 hidden items-center justify-center p-4">
+        <div class="absolute inset-0 bg-black/40 backdrop-blur-[1px]" data-close-upload-modal></div>
+        <div class="relative w-full max-w-2xl bg-white rounded-2xl border border-gray-200 shadow-2xl">
+            <div class="flex items-center justify-between px-6 py-4 border-b border-gray-100">
+                <div>
+                    <h3 class="text-lg font-semibold text-gray-900">新增文件</h3>
+                    <p class="text-sm text-gray-500 mt-0.5">选择要上传并解析的文件</p>
+                </div>
+                <button id="closeUploadModalBtn"
+                    class="p-1.5 rounded-lg text-gray-400 hover:text-gray-700 hover:bg-gray-100 transition-colors"
+                    title="关闭">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8"
+                            d="M6 6l12 12M18 6L6 18" />
+                    </svg>
+                </button>
+            </div>
+
+            <div class="px-6 py-5 space-y-4">
+                <div id="uploadDropzone" class="upload-dropzone rounded-xl p-6">
+                    <div class="flex items-start gap-4">
+                        <div
+                            class="w-10 h-10 rounded-lg bg-gray-900 text-white flex items-center justify-center shrink-0">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8"
+                                    d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
+                            </svg>
+                        </div>
+                        <div class="flex-1 min-w-0">
+                            <p class="text-sm font-medium text-gray-900">拖拽文件到这里上传</p>
+                            <p class="text-xs text-gray-500 mt-1">支持格式：.txt .md .pdf .doc .docx .csv（单文件建议不超过 20MB）</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div>
+                    <div class="flex items-center justify-between mb-2">
+                        <h4 class="text-sm font-medium text-gray-900">待上传文件</h4>
+                        <span id="uploadFileCount" class="text-xs text-gray-500">0 个</span>
+                    </div>
+                    <div id="uploadSelectedFiles" class="space-y-2 max-h-40 overflow-y-auto pr-1">
+                        <div id="uploadEmptyState" class="text-sm text-gray-400 py-3">暂无文件</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="px-6 py-4 border-t border-gray-100 flex items-center justify-end gap-2">
+                <button id="cancelUploadModalBtn"
+                    class="px-4 py-2 rounded-lg border border-gray-200 text-sm font-medium text-gray-600 hover:bg-gray-50 transition-colors">取消</button>
+                <button id="confirmUploadBtn"
+                    class="px-4 py-2 rounded-lg bg-black text-white text-sm font-medium hover:bg-gray-800 transition-colors disabled:bg-gray-300 disabled:text-gray-500 disabled:cursor-not-allowed"
+                    disabled>确认上传</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 全选功能
+        document.getElementById('selectAll').addEventListener('change', function () {
+            const checkboxes = document.querySelectorAll('.file-checkbox');
+            checkboxes.forEach(cb => cb.checked = this.checked);
+        });
+
+        // 导航切换
+        document.querySelectorAll('.nav-item').forEach(item => {
+            item.addEventListener('click', function (e) {
+                e.preventDefault();
+                document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'));
+                this.classList.add('active');
+            });
+        });
+
+        // 新增文件弹窗
+        const openUploadModalBtn = document.getElementById('openUploadModalBtn');
+        const uploadFileModal = document.getElementById('uploadFileModal');
+        const closeUploadModalBtn = document.getElementById('closeUploadModalBtn');
+        const cancelUploadModalBtn = document.getElementById('cancelUploadModalBtn');
+        const confirmUploadBtn = document.getElementById('confirmUploadBtn');
+        const uploadDropzone = document.getElementById('uploadDropzone');
+        const uploadSelectedFiles = document.getElementById('uploadSelectedFiles');
+        const uploadFileCount = document.getElementById('uploadFileCount');
+        const uploadEmptyState = document.getElementById('uploadEmptyState');
+        const closeUploadModalTargets = document.querySelectorAll('[data-close-upload-modal]');
+        let pendingUploadFiles = [];
+
+        function formatFileSize(bytes) {
+            if (bytes < 1024) return `${bytes} B`;
+            if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+            return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+        }
+
+        function renderPendingFiles() {
+            const hasFiles = pendingUploadFiles.length > 0;
+            uploadFileCount.textContent = `${pendingUploadFiles.length} 个`;
+            confirmUploadBtn.disabled = !hasFiles;
+            uploadEmptyState.style.display = hasFiles ? 'none' : 'block';
+
+            Array.from(uploadSelectedFiles.querySelectorAll('.upload-file-item')).forEach(item => item.remove());
+
+            pendingUploadFiles.forEach(file => {
+                const item = document.createElement('div');
+                item.className = 'upload-file-item rounded-lg px-3 py-2 flex items-center justify-between gap-3';
+                item.innerHTML = `
+                    <div class="min-w-0">
+                        <p class="text-sm text-gray-900 truncate">${file.name}</p>
+                        <p class="text-xs text-gray-500 mt-0.5">${formatFileSize(file.size)}</p>
+                    </div>
+                    <span class="text-xs px-2 py-0.5 rounded bg-gray-100 text-gray-600">待解析</span>
+                `;
+                uploadSelectedFiles.appendChild(item);
+            });
+        }
+
+        function openUploadModal() {
+            uploadFileModal.classList.remove('hidden');
+            uploadFileModal.classList.add('flex');
+        }
+
+        function closeUploadModal() {
+            uploadFileModal.classList.add('hidden');
+            uploadFileModal.classList.remove('flex');
+        }
+
+        function addPendingFiles(fileList) {
+            const incoming = Array.from(fileList || []);
+            if (incoming.length === 0) return;
+
+            const exists = new Set(pendingUploadFiles.map(file => `${file.name}_${file.size}_${file.lastModified}`));
+            incoming.forEach(file => {
+                const key = `${file.name}_${file.size}_${file.lastModified}`;
+                if (!exists.has(key)) {
+                    pendingUploadFiles.push(file);
+                    exists.add(key);
+                }
+            });
+            renderPendingFiles();
+        }
+
+        openUploadModalBtn.addEventListener('click', openUploadModal);
+        closeUploadModalBtn.addEventListener('click', closeUploadModal);
+        cancelUploadModalBtn.addEventListener('click', closeUploadModal);
+        closeUploadModalTargets.forEach(node => node.addEventListener('click', closeUploadModal));
+
+        ['dragenter', 'dragover'].forEach(eventName => {
+            uploadDropzone.addEventListener(eventName, e => {
+                e.preventDefault();
+                e.stopPropagation();
+                uploadDropzone.classList.add('drag-active');
+            });
+        });
+
+        ['dragleave', 'drop'].forEach(eventName => {
+            uploadDropzone.addEventListener(eventName, e => {
+                e.preventDefault();
+                e.stopPropagation();
+                uploadDropzone.classList.remove('drag-active');
+            });
+        });
+
+        uploadDropzone.addEventListener('drop', e => {
+            addPendingFiles(e.dataTransfer.files);
+        });
+
+        confirmUploadBtn.addEventListener('click', () => {
+            closeUploadModal();
+        });
+
+        document.addEventListener('keydown', e => {
+            if (e.key === 'Escape' && uploadFileModal.classList.contains('flex')) {
+                closeUploadModal();
+            }
+        });
+
+        // 分页与每页条数
+        const fileListEl = document.getElementById('fileList');
+        let fileRows = Array.from(document.querySelectorAll('#fileList .file-row'));
+        const totalCountEl = document.getElementById('totalCount');
+        const prevPageBtn = document.getElementById('prevPageBtn');
+        const nextPageBtn = document.getElementById('nextPageBtn');
+        const currentPageEl = document.getElementById('currentPage');
+        const pageSizeSelect = document.getElementById('pageSizeSelect');
+
+        let currentPage = 1;
+        let pageSize = Number(pageSizeSelect.value);
+
+        function setPageButtonState(button, disabled) {
+            button.disabled = disabled;
+            button.className = disabled
+                ? 'p-1.5 rounded text-gray-300 cursor-not-allowed transition-colors'
+                : 'p-1.5 rounded text-gray-400 hover:text-gray-600 transition-colors';
+        }
+
+        function pad2(num) {
+            return String(num).padStart(2, '0');
+        }
+
+        function formatDateTimeForRow(index) {
+            const date = new Date('2026-02-03T10:48:11');
+            date.setMinutes(date.getMinutes() - index * 3);
+            return `${date.getFullYear()}/${pad2(date.getMonth() + 1)}/${pad2(date.getDate())} ${pad2(date.getHours())}:${pad2(date.getMinutes())}:${pad2(date.getSeconds())}`;
+        }
+
+        function getRowText(row, selector) {
+            const element = row.querySelector(selector);
+            return element ? element.textContent.trim() : '';
+        }
+
+        function navigateToFileDetail(row) {
+            const query = new URLSearchParams({
+                file: getRowText(row, '.col-name span.text-sm.text-gray-900.truncate') || '未命名文件.docx',
+                uploadedAt: getRowText(row, '.w-44.text-sm.text-gray-600.mono.whitespace-nowrap') || '',
+                chunks: getRowText(row, '.w-20.text-center.text-sm.text-gray-600.mono') || '',
+                source: getRowText(row, '.w-20.text-center .text-sm.text-gray-500') || ''
+            });
+            window.location.href = `./file-row-detail.html?${query.toString()}`;
+        }
+
+        fileListEl.addEventListener('click', event => {
+            const row = event.target.closest('.file-row');
+            if (!row || !fileListEl.contains(row)) return;
+            if (event.target.closest('input, button, a, select, textarea, label, .action-btn')) return;
+            navigateToFileDetail(row);
+        });
+
+        // 为分页交互补充演示数据，方便查看不同条数切换效果
+        function expandRowsForDemo(targetCount = 128) {
+            if (!fileListEl || fileRows.length === 0 || fileRows.length >= targetCount) return;
+
+            const seedRows = [...fileRows];
+            let rowIndex = fileRows.length;
+
+            while (fileRows.length < targetCount) {
+                const sourceRow = seedRows[rowIndex % seedRows.length];
+                const clonedRow = sourceRow.cloneNode(true);
+
+                const nameEl = clonedRow.querySelector('.col-name span.text-sm.text-gray-900.truncate');
+                if (nameEl) {
+                    const fileNum = 1772419000 + rowIndex;
+                    nameEl.textContent = `${fileNum}_分页演示文件_${String(rowIndex + 1).padStart(3, '0')}.docx`;
+                }
+
+                const dateEl = clonedRow.querySelector('.w-44.text-sm.text-gray-600.mono.whitespace-nowrap');
+                if (dateEl) {
+                    dateEl.textContent = formatDateTimeForRow(rowIndex);
+                }
+
+                const chunkEl = clonedRow.querySelector('.w-20.text-center.text-sm.text-gray-600.mono');
+                if (chunkEl) {
+                    chunkEl.textContent = String((rowIndex * 7) % 120 + 1);
+                }
+
+                const switchEl = clonedRow.querySelector('.ios-switch');
+                if (switchEl) {
+                    switchEl.checked = rowIndex % 3 !== 0;
+                }
+
+                const checkboxEl = clonedRow.querySelector('.file-checkbox');
+                if (checkboxEl) {
+                    checkboxEl.checked = false;
+                }
+
+                fileListEl.appendChild(clonedRow);
+                fileRows.push(clonedRow);
+                rowIndex += 1;
+            }
+        }
+
+        function renderPagination() {
+            const totalItems = fileRows.length;
+            const totalPages = Math.max(1, Math.ceil(totalItems / pageSize));
+
+            if (currentPage > totalPages) {
+                currentPage = totalPages;
+            }
+
+            const start = (currentPage - 1) * pageSize;
+            const end = start + pageSize;
+
+            fileRows.forEach((row, index) => {
+                row.style.display = index >= start && index < end ? 'flex' : 'none';
+            });
+
+            totalCountEl.textContent = `总共 ${totalItems} 条`;
+            currentPageEl.textContent = String(currentPage);
+            setPageButtonState(prevPageBtn, currentPage === 1);
+            setPageButtonState(nextPageBtn, currentPage === totalPages);
+        }
+
+        prevPageBtn.addEventListener('click', () => {
+            if (currentPage <= 1) return;
+            currentPage -= 1;
+            renderPagination();
+        });
+
+        nextPageBtn.addEventListener('click', () => {
+            const totalPages = Math.max(1, Math.ceil(fileRows.length / pageSize));
+            if (currentPage >= totalPages) return;
+            currentPage += 1;
+            renderPagination();
+        });
+
+        pageSizeSelect.addEventListener('change', () => {
+            pageSize = Number(pageSizeSelect.value);
+            currentPage = 1;
+            renderPagination();
+        });
+
+        expandRowsForDemo();
+        renderPagination();
+    </script>
+</body>
+
+</html>

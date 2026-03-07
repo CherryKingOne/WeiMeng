@@ -1,0 +1,161 @@
+<div class="left-panel">
+            <div class="file-header">
+                <h1 class="file-title">1772419691_导学课动作.docx</h1>
+                <div class="file-meta">
+                    <span>Size: 12 KB</span>
+                    <span>Uploaded Time: 02/03/2026 18:48:11</span>
+                </div>
+            </div>
+            <div class="file-content">
+                <div class="qa-item">
+                    <div class="question">Q：金鸡独立的动作要领是什么？</div>
+                    <div class="answer">A：膝盖过腰，两手背起，闭眼坚持10秒</div>
+                </div>
+                <div class="qa-item">
+                    <div class="question">Q：金鸡独立主要考察什么？</div>
+                    <div class="answer">A：主要是看我们的平衡能力，我们全身的认知、反应、协调，还有我们脊柱的状态、下盘的力量等等</div>
+                </div>
+                <div class="qa-item">
+                    <div class="question">Q：两手伸直放于耳后的动作要领是什么？</div>
+                    <div class="answer">A：两胳膊举起来，胳膊在耳朵后面，两手臂伸直</div>
+                </div>
+                <div class="qa-item">
+                    <div class="question">Q：两手伸直放于耳后主要看什么？</div>
+                    <div class="answer">A：主要看我们手臂能不能伸直、肩颈的状态</div>
+                </div>
+                <div class="qa-item">
+                    <div class="question">Q：抱腿平衡的动作要领是什么？</div>
+                    <div class="answer">A：勾脚尖，两腿伸直两手抱着腿，脚的高度要过腰</div>
+                </div>
+                <div class="qa-item">
+                    <div class="question">Q：抱腿平衡主要看什么？</div>
+                    <div class="answer">A：看我们的下盘、腿能不能打直和保持平衡，做不到，说明僵硬的很厉害了</div>
+                </div>
+                <div class="qa-item">
+                    <div class="question">Q：前伏下压的动作要领是什么？</div>
+                    <div class="answer">A：两脚并拢，两腿伸直，身体下压，两手掌能按到地上</div>
+                </div>
+                <div class="qa-item">
+                    <div class="question">Q：前伏下压有什么作用？</div>
+                    <div class="answer">A：锻炼我们的腰和腿，反应的也是我们是否僵硬，训练营后期可再做一次和前期形成对比</div>
+                </div>
+                <div class="qa-item">
+                    <div class="question">Q：混元卧（睡眠质量差，睡前练，坚持到睡着）的动作要领是什么？</div>
+                    <div class="answer">A：首先咱们先保持坐姿，两脚的脚心相对，然后脚跟靠拢，上身自然的平卧，脚跟回收对准会阴穴，两腿自然的向两侧打开，腿脚柔韧性好的师兄可以将双腿向内收紧，双手按住小腹，然后用鼻子吸气，用嘴呼气，通过意念导引将浊气排出</div>
+                </div>
+                <div class="qa-item">
+                    <div class="question">Q：练习混元卧的原因是什么？</div>
+                    <div class="answer">A：长期的睡眠缺失会阴阳失衡，导致人易怒，口苦，头晕，头疼等，而频繁的夜尿对睡眠有影响是一方面，另一方面也会引起主神经功能紊乱，降低身体的免疫力。练习这个功法加以感受睡眠的变化</div>
+                </div>
+                <div class="qa-item">
+                    <div class="question">Q：僵硬程度说明了什么？</div>
+                    <div class="answer">A：僵硬程度直接说明了老化程度，老筋太短，寿命难长，其实就是在说明僵硬对我们带来的影响。因为您随着年龄的增长，机能的下降，导致师兄您现在有些动作因为僵硬做不出来，但是老师觉得只要跟着清源老师长期学习，都会纠正过来，也希望你健康，精神矍铄</div>
+                </div>
+                <div class="qa-item">
+                    <div class="question">Q：接下来5天课程内容的特点和意义是什么？</div>
+                    <div class="answer">A：我们接下来5天的课程内容，是根据你的个人情况定制，学完练完你可以感受自己的变化。进入太极的世界你会觉得整个人都静下来了，然让你拥有平和的心态，拥有定力，修炼自我，这才是人心清体健的关键，提高生活的质量。所以您一定要提前安排好时间按时上课，跟着师傅练功哦</div>
+                </div>
+            </div>
+        </div>
+
+
+
+这个的右侧和
+
+<div class="right-panel">
+            <div class="slice-header">
+                <div class="slice-title">切片结果</div>
+                <div class="slice-subtitle">查看用于嵌入和召回的切片段落。</div>
+            </div>
+
+            <div class="toolbar">
+                <div class="toolbar-left">
+                    <div class="view-toggle">
+                        <button class="view-btn active">全文</button>
+                        <button class="view-btn">省略</button>
+                    </div>
+                    <label class="select-all">
+                        <input type="checkbox">
+                        <span>选择所有</span>
+                    </label>
+                </div>
+                <div class="toolbar-right">
+                    <div class="search-box">
+                        <input type="text" placeholder="搜索">
+                    </div>
+                    <button class="icon-btn">☰</button>
+                    <button class="icon-btn">+</button>
+                </div>
+            </div>
+
+            <div class="slice-list">
+                <div class="slice-item">
+                    <div class="slice-checkbox">
+                        <input type="checkbox">
+                    </div>
+                    <div class="slice-content">
+                        <span class="qa">Q: 金鸡独立的动作要领是什么？ A: 膝盖过腰，两手背起，闭眼坚持10秒 Q: 金鸡独立主要考察什么？ A: 主要是看我们的平衡能力，我们全身的认知、反应、协调，还有我们脊柱的状态、下盘的力量等等 Q: 两手伸直放于耳后的动作要领是什么？ A: 两胳膊举起来，胳膊在耳朵后面，两手臂伸直 Q: 两手伸直放于耳后主要看什么？ A: 主要看我们手臂能不能伸直、肩颈的状态 Q: 抱腿平衡的动作要领是什么？ A: 勾脚尖，两腿伸直两手抱着腿，脚的高度要过腰</span>
+                    </div>
+                    <div class="slice-toggle">
+                        <div class="toggle-switch"></div>
+                    </div>
+                </div>
+
+                <div class="slice-item">
+                    <div class="slice-checkbox">
+                        <input type="checkbox">
+                    </div>
+                    <div class="slice-content">
+                        <span class="qa">Q: 抱腿平衡主要看什么？ A: 看我们的下盘、腿能不能打直和保持平衡，做不到，说明僵硬的很厉害了 Q: 前伏下压的动作要领是什么？ A: 两脚并拢，两腿伸直，身体下压，两手掌能按到地上 Q: 前伏下压有什么作用？ A: 锻炼我们的腰和腿，反应的也是我们是否僵硬，训练营后期可再做一次和前期形成对比 Q: 混元卧（睡眠质量差，睡前练，坚持到睡着）的动作要领是什么？ A: 首先咱们先保持坐姿，两脚的脚心相对，然后脚跟靠拢，上身自然的平卧，脚跟回收对准会阴穴，两腿自然的向两侧打开，腿脚柔韧性好的师兄可以将双腿向内收紧，双手按住小腹，然后用鼻子吸气，用嘴呼气，通过意念导引将浊气排出</span>
+                    </div>
+                    <div class="slice-toggle">
+                        <div class="toggle-switch"></div>
+                    </div>
+                </div>
+
+                <div class="slice-item">
+                    <div class="slice-checkbox">
+                        <input type="checkbox">
+                    </div>
+                    <div class="slice-content">
+                        <span class="qa">Q: 练习混元卧的原因是什么？ A: 长期的睡眠缺失会阴阳失衡，导致人易怒，口苦，头晕，头疼等，而频繁的夜尿对睡眠有影响是一方面，另一方面也会引起主神经功能紊乱，降低身体的免疫力。练习这个功法加以感受睡眠的变化 Q: 僵硬程度说明了什么？ A: 僵硬程度直接说明了老化程度，老筋太短，寿命难长，其实就是在说明僵硬对我们带来的影响。因为您随着年龄的增长，机能的下降，导致师兄您现在有些动作因为僵硬做不出来，但是老师觉得只要跟着清源老师长期学习，都会纠正过来，也希望你健康，精神矍铄</span>
+                    </div>
+                    <div class="slice-toggle">
+                        <div class="toggle-switch"></div>
+                    </div>
+                </div>
+
+                <div class="slice-item">
+                    <div class="slice-checkbox">
+                        <input type="checkbox">
+                    </div>
+                    <div class="slice-content">
+                        <span class="qa">Q: 接下来5天课程内容的特点和意义是什么？ A: 我们接下来5天的课程内容，是根据你的个人情况定制，学完练完你可以感受自己的变化。进入太极的世界你会觉得整个人都静下来了，然让你拥有平和的心态，拥有定力，修炼自我，这才是人心清体健的关键，提高生活的质量。所以您一定要提前安排好时间按时上课，跟着师傅练功哦</span>
+                    </div>
+                    <div class="slice-toggle">
+                        <div class="toggle-switch"></div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="footer-bar">
+                <div class="pagination">
+                    <span>总共 4 条</span>
+                    <button class="page-btn" disabled="">&lt;</button>
+                    <span class="page-info">1</span>
+                    <button class="page-btn" disabled="">&gt;</button>
+                    <div class="page-size">
+                        <span>50条/页</span>
+                        <select>
+                            <option>10条/页</option>
+                            <option>20条/页</option>
+                            <option selected="">50条/页</option>
+                            <option>100条/页</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+
+        这个的左侧有个边框线条移除掉这个边框线条
