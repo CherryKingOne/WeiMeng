@@ -1,17 +1,34 @@
 'use client';
 
-import { useState } from 'react';
+import { type FormEvent, useState } from 'react';
 import { useLocalePath } from '@/hooks/useLocalePath';
 
 export default function ScriptsPage() {
   const { locale } = useLocalePath();
   const isEn = locale === 'en';
   const [activeFilter, setActiveFilter] = useState('all');
+  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+  const [scriptName, setScriptName] = useState('');
+  const [scriptDescription, setScriptDescription] = useState('');
+  const [scriptNameError, setScriptNameError] = useState(false);
 
   const text = {
     title: isEn ? 'Script Library' : '剧本库',
     searchPlaceholder: isEn ? 'Search scripts...' : '搜索剧本...',
-    importScript: isEn ? 'Import Script' : '导入剧本',
+    createScript: isEn ? 'Create Script' : '创建剧本',
+    modal: {
+      title: isEn ? 'Create Script' : '创建剧本',
+      subtitle: isEn ? 'After creation, it will be added to your script library.' : '创建后将加入剧本库，可继续编辑内容',
+      nameLabel: isEn ? 'Name' : '名称',
+      namePlaceholder: isEn ? 'Enter script name' : '输入剧本名称',
+      nameHint: isEn ? 'Up to 50 characters' : '最多 50 个字符',
+      nameRequired: isEn ? 'Please enter a script name' : '请输入剧本名称',
+      descriptionLabel: isEn ? 'Description' : '描述',
+      descriptionPlaceholder: isEn ? 'Briefly describe the plot, style, or purpose' : '简要描述剧情内容、风格或用途',
+      descriptionHint: isEn ? 'Optional, up to 300 characters' : '可选，最多 300 个字符',
+      cancel: isEn ? 'Cancel' : '取消',
+      submit: isEn ? 'Create Script' : '创建剧本',
+    },
     filters: {
       all: isEn ? 'All' : '全部',
       draft: isEn ? 'Draft' : '草稿',
@@ -35,6 +52,26 @@ export default function ScriptsPage() {
     { id: 'published', label: text.filters.published },
   ];
 
+  const closeCreateModal = () => {
+    setIsCreateModalOpen(false);
+    setScriptNameError(false);
+  };
+
+  const handleCreateScriptSubmit = (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    const nextScriptName = scriptName.trim();
+
+    if (!nextScriptName) {
+      setScriptNameError(true);
+      return;
+    }
+
+    setScriptNameError(false);
+    setIsCreateModalOpen(false);
+    setScriptName('');
+    setScriptDescription('');
+  };
+
   return (
     <div className="max-w-7xl mx-auto px-8 py-8">
       <div className="flex items-center justify-between mb-6">
@@ -44,9 +81,12 @@ export default function ScriptsPage() {
             <svg className="w-5 h-5 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
             <input type="text" placeholder={text.searchPlaceholder} className="pl-10 pr-4 py-2.5 bg-gray-100 rounded-full text-sm outline-none focus:bg-white focus:ring-2 focus:ring-gray-200 transition-all w-64" />
           </div>
-          <button className="flex items-center gap-2 px-5 py-2.5 bg-black text-white text-sm font-medium rounded-full hover:bg-gray-800 transition-colors">
+          <button
+            onClick={() => setIsCreateModalOpen(true)}
+            className="inline-flex items-center gap-2 px-6 py-3 bg-black text-white rounded-lg text-sm font-medium hover:bg-gray-800 transition-colors"
+          >
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4"/></svg>
-            {text.importScript}
+            {text.createScript}
           </button>
         </div>
       </div>
@@ -371,6 +411,91 @@ export default function ScriptsPage() {
           </div>
         </div>
       </div>
+
+      {isCreateModalOpen ? (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-black/20 backdrop-blur-sm" onClick={closeCreateModal} />
+
+          <div className="relative w-full max-w-[560px] bg-white border border-gray-100 rounded-3xl shadow-2xl overflow-hidden">
+            <div className="flex items-center justify-between px-8 py-5 border-b border-gray-100">
+              <div>
+                <h3 className="text-xl font-semibold text-gray-900 tracking-tight">{text.modal.title}</h3>
+                <p className="text-sm text-gray-500 mt-1">{text.modal.subtitle}</p>
+              </div>
+              <button
+                onClick={closeCreateModal}
+                className="w-8 h-8 rounded-full text-gray-400 hover:text-gray-900 hover:bg-gray-100 transition-colors flex items-center justify-center"
+                aria-label={text.modal.cancel}
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+
+            <form onSubmit={handleCreateScriptSubmit} className="p-8 space-y-6">
+              <div>
+                <label htmlFor="scriptName" className="block text-sm font-medium text-gray-700 mb-2">
+                  {text.modal.nameLabel} <span className="text-red-500">*</span>
+                </label>
+                <input
+                  id="scriptName"
+                  name="scriptName"
+                  type="text"
+                  required
+                  maxLength={50}
+                  value={scriptName}
+                  onChange={(event) => {
+                    setScriptName(event.target.value);
+                    if (event.target.value.trim()) {
+                      setScriptNameError(false);
+                    }
+                  }}
+                  placeholder={text.modal.namePlaceholder}
+                  className={`w-full px-4 py-3 bg-gray-50 rounded-xl border-2 text-sm text-gray-900 placeholder:text-gray-400 outline-none transition-colors focus:border-black focus:bg-white ${
+                    scriptNameError ? 'border-red-500' : 'border-transparent'
+                  }`}
+                />
+                <p className="mt-2 text-xs text-gray-400">{text.modal.nameHint}</p>
+                <p className={`${scriptNameError ? 'block' : 'hidden'} mt-1 text-xs text-red-500`}>{text.modal.nameRequired}</p>
+              </div>
+
+              <div>
+                <label htmlFor="scriptDescription" className="block text-sm font-medium text-gray-700 mb-2">
+                  {text.modal.descriptionLabel}
+                </label>
+                <textarea
+                  id="scriptDescription"
+                  name="scriptDescription"
+                  rows={5}
+                  maxLength={300}
+                  value={scriptDescription}
+                  onChange={(event) => setScriptDescription(event.target.value)}
+                  placeholder={text.modal.descriptionPlaceholder}
+                  className="w-full px-4 py-3 bg-gray-50 rounded-xl border-2 border-transparent text-sm text-gray-900 placeholder:text-gray-400 outline-none transition-colors resize-none focus:border-black focus:bg-white"
+                />
+                <p className="mt-2 text-xs text-gray-400">{text.modal.descriptionHint}</p>
+              </div>
+
+              <div className="pt-1 flex items-center justify-end gap-3">
+                <button
+                  type="button"
+                  onClick={closeCreateModal}
+                  className="px-4 py-2.5 rounded-xl bg-gray-100 text-gray-600 text-sm font-medium hover:bg-gray-200 transition-colors"
+                >
+                  {text.modal.cancel}
+                </button>
+                <button
+                  type="submit"
+                  className="px-5 py-2.5 rounded-xl bg-black text-white text-sm font-medium hover:bg-gray-800 transition-colors"
+                >
+                  {text.modal.submit}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      ) : null}
 
       <style jsx>{`
         @keyframes rhythm-pulse {
