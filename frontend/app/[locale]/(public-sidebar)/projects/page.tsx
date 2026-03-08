@@ -16,11 +16,11 @@ export default function ProjectsPage() {
   ];
 
   const handleNewProject = () => {
-    router.push(`${withLocalePath('/teams')}?new=true`);
+    router.push(`${withLocalePath('/weimeng/teams')}?new=true`);
   };
 
   const handleOpenProject = (projectId: string) => {
-    router.push(`${withLocalePath('/teams')}?projectId=${projectId}`);
+    router.push(`${withLocalePath('/weimeng/teams')}?projectId=${projectId}`);
   };
 
   const text = {

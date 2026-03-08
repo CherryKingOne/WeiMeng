@@ -6,7 +6,7 @@ import { useLocalePath } from '@/hooks/useLocalePath';
 export default function WorkflowsPage() {
   const { withLocalePath, locale } = useLocalePath();
   const isEn = locale === 'en';
-  const workflowEditorPath = withLocalePath('/workflow-editor');
+  const workflowEditorPath = withLocalePath('/workflows/workflow-editor');
 
   const text = {
     title: isEn ? 'My Workflows' : '我的工作流',

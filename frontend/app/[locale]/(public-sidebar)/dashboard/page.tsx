@@ -61,7 +61,7 @@ export default function DashboardPage() {
   };
 
   const handleNavigate = () => {
-    router.push(withLocalePath('/teams'));
+    router.push(withLocalePath('/weimeng/teams'));
   };
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
