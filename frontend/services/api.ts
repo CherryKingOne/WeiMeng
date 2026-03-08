@@ -14,7 +14,23 @@ export const api = axios.create({
 
 api.interceptors.request.use(
   (config: InternalAxiosRequestConfig) => {
-    const token = getStorageItem<string | null>('token', null);
+    let token = getStorageItem<string | null>('token', null);
+
+    // Backward compatibility:
+    // old login flow stored raw token string (non-JSON), but getStorageItem expects JSON.
+    if (!token && typeof window !== 'undefined') {
+      const rawToken = localStorage.getItem('token');
+      if (rawToken) {
+        try {
+          const parsed = JSON.parse(rawToken);
+          token = typeof parsed === 'string' ? parsed : null;
+        } catch {
+          token = rawToken;
+          localStorage.setItem('token', JSON.stringify(rawToken));
+        }
+      }
+    }
+
     if (token && config.headers) {
       config.headers.Authorization = `Bearer ${token}`;
     }

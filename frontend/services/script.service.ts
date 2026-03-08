@@ -1,5 +1,11 @@
 import { api } from './api';
-import { Script, PaginatedResponse, ScriptFilter } from '@/types';
+import {
+  CreateScriptLibraryRequest,
+  PaginatedResponse,
+  Script,
+  ScriptFilter,
+  ScriptLibrary,
+} from '@/types';
 
 export const scriptService = {
   getAll: async (filter?: ScriptFilter, params?: { page?: number; pageSize?: number }): Promise<PaginatedResponse<Script>> => {
@@ -30,6 +36,16 @@ export const scriptService = {
 
   import: async (data: { title: string; content: string; format: string }): Promise<Script> => {
     const response = await api.post<Script>('/scripts/import', data);
+    return response.data;
+  },
+
+  createLibrary: async (data: CreateScriptLibraryRequest): Promise<ScriptLibrary> => {
+    const response = await api.post<ScriptLibrary>('/scripts/libraries', data);
+    return response.data;
+  },
+
+  listLibraries: async (): Promise<ScriptLibrary[]> => {
+    const response = await api.get<ScriptLibrary[]>('/scripts/libraries');
     return response.data;
   },
 };

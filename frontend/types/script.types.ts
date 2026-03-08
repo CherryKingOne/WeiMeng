@@ -22,3 +22,15 @@ export interface ScriptFilter {
   status: ScriptStatus | 'all';
   search: string;
 }
+
+export interface ScriptLibrary {
+  id: string;
+  name: string;
+  description?: string | null;
+  created_at: string;
+}
+
+export interface CreateScriptLibraryRequest {
+  name: string;
+  description?: string;
+}

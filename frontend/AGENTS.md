@@ -1,34 +1,39 @@
 # Repository Guidelines
 
 ## Project Structure & Module Organization
-- `app/`: Next.js App Router pages and layouts. Locale-aware routes live under `app/[locale]/...`, and `app/page.tsx` handles root redirects.
-- `components/`: Reusable UI components.
-- `services/`: API request clients and service-layer calls.
-- `stores/`: Zustand state stores.
-- `hooks/`, `utils/`, `constants/`, `types/`, `config/`: shared logic, helpers, constants, type definitions, and runtime config.
-- `public/`: static assets served directly.
+This project is a Next.js 16 + React 19 frontend. Keep route code under `app/` (including locale-aware routes such as `app/[locale]/...`), and place reusable UI in `components/`. Use `services/` for API clients, `stores/` for Zustand state, and shared logic in `hooks/`, `utils/`, `constants/`, `types/`, and `config/`. Put static files in `public/`. Keep framework/runtime config at the root (`next.config.ts`, `middleware.ts`, `eslint.config.mjs`, `tsconfig.json`).
 
 ## Build, Test, and Development Commands
 - `npm install`: install dependencies.
-- `npm run dev`: start local dev server on `http://localhost:5678`.
-- `npm run lint`: run ESLint (`eslint-config-next` + TypeScript rules).
-- `npm run build`: create production build and catch compile/runtime route issues.
-- `npm run start`: run production build on port `5678` after `npm run build`.
+- `npm run dev`: start local development server on `http://localhost:5678`.
+- `npm run lint`: run ESLint checks (`eslint-config-next` + TypeScript rules).
+- `npm run build`: create production build and catch route/runtime issues.
+- `npm run start`: run the production server on port `5678` after build.
+
+Run `npm run lint && npm run build` before opening a PR.
 
 ## Coding Style & Naming Conventions
-- Language: TypeScript (`strict: true` in `tsconfig.json`); use functional React components.
-- Indentation: follow existing 2-space style and keep imports grouped/ordered consistently.
-- Naming: components use `PascalCase` (for example, `LoginForm.tsx`); hooks use `useXxx`; utility files use descriptive `camelCase` names.
-- Routing files must follow Next.js conventions (`page.tsx`, `layout.tsx`, `loading.tsx`).
-- Use the path alias `@/*` instead of deep relative paths where practical.
-- Keep repository text/code free of emoji characters.
+Use TypeScript with `strict: true` and functional React components. Follow existing 2-space indentation and keep import groups consistent. Use:
+- `PascalCase` for component files (for example, `LoginForm.tsx`)
+- `useXxx` for hooks
+- descriptive `camelCase` for utility files
+- Next.js route filenames: `page.tsx`, `layout.tsx`, `loading.tsx`
+
+Prefer the `@/*` alias over deep relative imports. Keep code and UI text free of emoji characters.
 
 ## Testing Guidelines
-- No dedicated frontend automated test suite is configured yet.
-- Required checks before PR: `npm run lint` and `npm run build`.
-- Manually verify core flows you changed (for example, login, locale switching, and related page navigation).
+There is no dedicated frontend test suite yet. Required validation for every change:
+- `npm run lint`
+- `npm run build`
+
+Also manually verify key flows affected by your change (for example, authentication, locale switching, and navigation).
 
 ## Commit & Pull Request Guidelines
-- Commit style in history is concise Chinese summaries (for example, `原型图优化`, `剧本页面更新`). Prefer adding scope when useful, such as `frontend: 登录表单校验修复`.
-- PRs should include: purpose, changed paths/modules, validation commands, screenshots for UI changes, and linked issue/task.
-- Explicitly note environment/config updates and any breaking behavior.
+Follow the repository's concise Chinese commit style. Examples from history include `首页更改为weimeng` and `更新路由和页面`. When useful, add scope, such as `frontend: 登录表单校验修复`.
+
+PRs should include:
+- purpose and changed paths/modules
+- config or environment updates
+- validation commands and results
+- screenshots for UI changes
+- linked issue/task and any breaking changes

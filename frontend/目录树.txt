@@ -1,0 +1,195 @@
+frontend/
+├── .dockerignore  - Docker 构建时忽略的文件规则。
+├── .gitignore  - Git 版本控制忽略规则。
+├── .next/  - Next.js 本地构建产物目录（自动生成）。
+├── AGENTS.md  - 代理协作与仓库执行规范说明。
+├── Dockerfile  - 前端镜像构建定义。
+├── README.md  - 项目使用与开发说明。
+├── agent的svg来源.txt  - 记录 Agent 相关 SVG 资源来源。
+├── app/  - Next.js App Router 路由与页面入口。
+│   ├── globals.css  - 全局样式与基础 CSS 变量。
+│   ├── layout.tsx  - 应用根布局。
+│   ├── page.tsx  - 根路径页面（通常做重定向或入口）。
+│   └── [locale]/  - 多语言路由分组。
+│       ├── page.tsx  - 语言维度首页。
+│       ├── (public-sidebar)/  - 带公共侧边栏的页面组。
+│       │   ├── layout.tsx  - 公共侧边栏布局。
+│       │   ├── assets/
+│       │   │   └── page.tsx  - 资产页面。
+│       │   ├── plugins/
+│       │   │   └── page.tsx  - 插件页面。
+│       │   ├── projects/
+│       │   │   └── page.tsx  - 项目页面。
+│       │   ├── scripts/
+│       │   │   └── page.tsx  - 脚本页面。
+│       │   ├── weimeng/
+│       │   │   └── page.tsx  - 微盟相关总览页面。
+│       │   └── workflows/
+│       │       └── page.tsx  - 工作流列表页面。
+│       ├── auth/  - 认证相关页面。
+│       │   ├── forgot-password/
+│       │   │   └── page.tsx  - 忘记密码页面。
+│       │   ├── login/
+│       │   │   └── page.tsx  - 登录页面。
+│       │   └── signup/
+│       │       └── page.tsx  - 注册页面。
+│       ├── scripts-detail/  - 脚本详情相关页面。
+│       │   ├── doc_chunk/
+│       │   │   └── page.tsx  - 文档分片详情页面。
+│       │   └── scripts-file/
+│       │       └── page.tsx  - 脚本文件详情页面。
+│       ├── weimeng/
+│       │   └── teams/
+│       │       └── page.tsx  - 团队管理页面。
+│       ├── workbench/  - AI 工作台相关页面。
+│       │   ├── image2image/
+│       │   │   └── page.tsx  - 图生图页面。
+│       │   ├── image2video/
+│       │   │   └── page.tsx  - 图生视频页面。
+│       │   ├── text2image/
+│       │   │   └── page.tsx  - 文生图页面。
+│       │   └── text2video/
+│       │       └── page.tsx  - 文生视频页面。
+│       └── workflows/
+│           └── workflow-editor/
+│               └── page.tsx  - 工作流编辑器页面。
+├── components/  - 可复用 UI 与业务组件。
+│   ├── features/  - 业务域组件。
+│   │   ├── index.ts  - 业务组件统一导出。
+│   │   ├── asset/
+│   │   │   ├── AssetCard.tsx  - 资产卡片组件。
+│   │   │   ├── AssetGrid.tsx  - 资产网格组件。
+│   │   │   └── index.ts  - 资产组件导出。
+│   │   ├── plugin/
+│   │   │   ├── PluginCard.tsx  - 插件卡片组件。
+│   │   │   ├── PluginGrid.tsx  - 插件网格组件。
+│   │   │   └── index.ts  - 插件组件导出。
+│   │   ├── project/
+│   │   │   ├── ProjectCard.tsx  - 项目卡片组件。
+│   │   │   ├── ProjectGrid.tsx  - 项目网格组件。
+│   │   │   └── index.ts  - 项目组件导出。
+│   │   ├── script/
+│   │   │   ├── ScriptCard.tsx  - 脚本卡片组件。
+│   │   │   ├── ScriptGrid.tsx  - 脚本网格组件。
+│   │   │   └── index.ts  - 脚本组件导出。
+│   │   ├── settings/
+│   │   │   ├── SettingsModal.tsx  - 设置弹窗组件。
+│   │   │   └── index.ts  - 设置组件导出。
+│   │   ├── workbench/
+│   │   │   └── WorkbenchModeTabs.tsx  - 工作台模式切换标签组件。
+│   │   └── workflow/
+│   │       ├── WorkflowCard.tsx  - 工作流卡片组件。
+│   │       ├── WorkflowGrid.tsx  - 工作流网格组件。
+│   │       └── index.ts  - 工作流组件导出。
+│   ├── layout/  - 布局类组件。
+│   │   ├── index.ts  - 布局组件导出。
+│   │   └── Sidebar/
+│   │       ├── Sidebar.tsx  - 侧边栏容器组件。
+│   │       ├── SidebarLogo.tsx  - 侧边栏 Logo 组件。
+│   │       ├── SidebarNav.tsx  - 侧边栏导航组件。
+│   │       ├── SidebarNavItem.tsx  - 侧边栏导航项组件。
+│   │       └── index.ts  - 侧边栏组件导出。
+│   └── ui/  - 基础通用 UI 组件。
+│       ├── index.ts  - UI 组件统一导出。
+│       ├── Avatar/
+│       │   ├── Avatar.tsx  - 头像组件。
+│       │   └── index.ts  - 头像组件导出。
+│       ├── Badge/
+│       │   ├── Badge.tsx  - 徽标组件。
+│       │   └── index.ts  - 徽标组件导出。
+│       ├── Button/
+│       │   ├── Button.tsx  - 按钮组件。
+│       │   └── index.ts  - 按钮组件导出。
+│       ├── Card/
+│       │   ├── Card.tsx  - 卡片容器组件。
+│       │   └── index.ts  - 卡片组件导出。
+│       ├── Drawer/
+│       │   ├── Drawer.tsx  - 抽屉组件。
+│       │   └── index.ts  - 抽屉组件导出。
+│       ├── Input/
+│       │   ├── Input.tsx  - 输入框组件。
+│       │   └── index.ts  - 输入框组件导出。
+│       ├── Modal/
+│       │   ├── Modal.tsx  - 模态框组件。
+│       │   └── index.ts  - 模态框组件导出。
+│       ├── SearchInput/
+│       │   ├── SearchInput.tsx  - 搜索输入组件。
+│       │   └── index.ts  - 搜索输入组件导出。
+│       └── Toggle/
+│           ├── Toggle.tsx  - 开关组件。
+│           └── index.ts  - 开关组件导出。
+├── config/  - 前端配置与导航定义。
+│   ├── index.ts  - 配置统一导出。
+│   ├── navigation.tsx  - 侧边栏和导航配置。
+│   └── theme.ts  - 主题配置。
+├── constants/  - 常量定义。
+│   ├── i18n.ts  - 国际化相关常量。
+│   ├── index.ts  - 常量统一导出。
+│   ├── routes.ts  - 路由路径常量。
+│   └── storage.ts  - 本地存储键名常量。
+├── docker-compose.yml  - 前端服务编排配置。
+├── eslint.config.mjs  - ESLint 规则配置。
+├── hooks/  - 自定义 React Hooks。
+│   ├── index.ts  - Hook 统一导出。
+│   ├── useClickOutside.ts  - 处理点击区域外事件。
+│   ├── useDebounce.ts  - 防抖 Hook。
+│   ├── useDrawer.ts  - 抽屉状态管理 Hook。
+│   ├── useLocalStorage.ts  - 本地存储状态同步 Hook。
+│   ├── useLocalePath.ts  - 多语言路径处理 Hook。
+│   └── useModal.ts  - 模态框状态管理 Hook。
+├── middleware.ts  - Next.js 中间件（如语言或鉴权处理）。
+├── next-env.d.ts  - Next.js TypeScript 类型声明文件。
+├── next.config.ts  - Next.js 运行时配置。
+├── node_modules/  - npm 依赖目录（自动生成）。
+├── package-lock.json  - npm 依赖锁定文件。
+├── package.json  - 项目脚本与依赖清单。
+├── postcss.config.mjs  - PostCSS 配置。
+├── public/  - 静态资源目录。
+│   ├── file.svg  - 示例文件图标资源。
+│   ├── globe.svg  - 示例地球图标资源。
+│   ├── next.svg  - Next.js 默认图标资源。
+│   ├── vercel.svg  - Vercel 默认图标资源。
+│   ├── window.svg  - 示例窗口图标资源。
+│   └── logo/
+│       ├── logo-Icon-blank.png  - 透明底图标版本 Logo。
+│       ├── logo-Icon-light.png  - 浅色图标版本 Logo。
+│       ├── logo-black-transparent.png  - 黑色透明背景 Logo。
+│       ├── logo-blank.png  - 纯净背景主 Logo。
+│       ├── logo-light-transparent.png  - 浅色透明背景 Logo。
+│       └── logo-light.png  - 浅色背景主 Logo。
+├── services/  - API 请求与业务服务封装。
+│   ├── api.ts  - 请求实例与基础拦截器配置。
+│   ├── asset.service.ts  - 资产相关接口封装。
+│   ├── auth.service.ts  - 认证相关接口封装。
+│   ├── index.ts  - 服务层统一导出。
+│   ├── plugin.service.ts  - 插件相关接口封装。
+│   ├── project.service.ts  - 项目相关接口封装。
+│   ├── script.service.ts  - 脚本相关接口封装。
+│   └── workflow.service.ts  - 工作流相关接口封装。
+├── stores/  - Zustand 全局状态管理。
+│   ├── auth.store.ts  - 用户认证状态 Store。
+│   ├── index.ts  - Store 统一导出。
+│   ├── settings.store.ts  - 设置状态 Store。
+│   ├── ui.store.ts  - 通用 UI 状态 Store。
+│   └── workflow.store.ts  - 工作流编辑状态 Store。
+├── tsconfig.json  - TypeScript 编译配置。
+├── types/  - TypeScript 类型定义。
+│   ├── api.types.ts  - 通用 API 响应类型。
+│   ├── asset.types.ts  - 资产模块类型定义。
+│   ├── auth.types.ts  - 认证模块类型定义。
+│   ├── index.ts  - 类型统一导出。
+│   ├── plugin.types.ts  - 插件模块类型定义。
+│   ├── project.types.ts  - 项目模块类型定义。
+│   ├── script.types.ts  - 脚本模块类型定义。
+│   ├── user.types.ts  - 用户相关类型定义。
+│   └── workflow.types.ts  - 工作流模块类型定义。
+├── utils/  - 工具函数集合。
+│   ├── cn.ts  - className 合并工具。
+│   ├── format.ts  - 数据格式化工具。
+│   ├── index.ts  - 工具函数统一导出。
+│   ├── request-error.ts  - 请求错误解析与封装工具。
+│   ├── storage.ts  - 本地存储工具。
+│   └── validation.ts  - 校验规则与校验函数。
+├── 前端重构.md  - 前端重构计划与记录文档。
+├── 构建docker镜像.md  - 前端 Docker 镜像构建说明。
+└── 目录树.txt  - 当前文件，记录项目目录树与文件说明。

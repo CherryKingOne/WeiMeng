@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useLocalePath } from "@/hooks/useLocalePath";
-import { localizeRequestError } from "@/utils";
+import { localizeRequestError, setStorageItem } from "@/utils";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -97,8 +97,8 @@ export default function LoginPage() {
         );
       }
 
-      // 保存 token
-      localStorage.setItem("token", data.access_token);
+      // 保存 token，保持与 getStorageItem 的 JSON 读写格式一致
+      setStorageItem("token", data.access_token);
 
       router.push(withLocalePath("/weimeng"));
     } catch (err: unknown) {

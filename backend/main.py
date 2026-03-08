@@ -1,16 +1,66 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
+from sqlalchemy import text
 from src.shared.infrastructure.database import engine, Base, create_database_if_not_exists
 from src.shared.middleware.error_handler import register_exception_handlers
 from src.shared.middleware.logging import LoggingMiddleware, setup_logging
 from src.api.v1.router import router as v1_router
+
+
+SCRIPT_LIBRARY_MAPPING_SCHEMA_MIGRATION_SQL = """
+DO $$
+DECLARE
+    pkey_name TEXT;
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1
+        FROM information_schema.tables
+        WHERE table_schema = 'public'
+          AND table_name = 'script_library_scripts'
+    ) THEN
+        RETURN;
+    END IF;
+
+    IF NOT EXISTS (
+        SELECT 1
+        FROM information_schema.columns
+        WHERE table_schema = 'public'
+          AND table_name = 'script_library_scripts'
+          AND column_name = 'id'
+    ) THEN
+        RETURN;
+    END IF;
+
+    SELECT conname
+    INTO pkey_name
+    FROM pg_constraint
+    WHERE conrelid = 'public.script_library_scripts'::regclass
+      AND contype = 'p'
+    LIMIT 1;
+
+    IF pkey_name IS NOT NULL THEN
+        EXECUTE format(
+            'ALTER TABLE public.script_library_scripts DROP CONSTRAINT %I',
+            pkey_name
+        );
+    END IF;
+
+    ALTER TABLE public.script_library_scripts
+        ADD CONSTRAINT script_library_scripts_pkey PRIMARY KEY (library_id, script_id);
+
+    ALTER TABLE public.script_library_scripts
+        DROP COLUMN id;
+END $$;
+"""
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     await create_database_if_not_exists()
     
     async with engine.begin() as conn:
+        await conn.execute(text(SCRIPT_LIBRARY_MAPPING_SCHEMA_MIGRATION_SQL))
         await conn.run_sync(Base.metadata.create_all)
     yield
 
