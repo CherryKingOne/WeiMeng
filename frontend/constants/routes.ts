@@ -3,7 +3,7 @@ export const ROUTES = {
   LOGIN: '/auth/login',
   SIGNUP: '/auth/signup',
   FORGOT_PASSWORD: '/auth/forgot-password',
-  DASHBOARD: '/dashboard',
+  DASHBOARD: '/weimeng',
   TEAMS: '/weimeng/teams',
   PROJECTS: '/projects',
   WORKFLOWS: '/workflows',

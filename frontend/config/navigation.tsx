@@ -18,10 +18,29 @@ export const getMainNavItems = (locale: Locale): NavSection[] => [
     items: [
       {
         href: ROUTES.DASHBOARD,
-        label: locale === 'en' ? 'Home' : '首页',
+        label: 'WeiMeng Agent',
         icon: (
           <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={1.8}
+              d="M18 6V5.5C18 3.567 16.433 2 14.5 2h-6A3.5 3.5 0 005 5.5V8a3.5 3.5 0 003.5 3.5h1.75c.69 0 1.25.56 1.25 1.25v2.75a2.5 2.5 0 01-2.5 2.5H8.2a2.8 2.8 0 00-2.3 1.2L4.8 21"
+            />
+            <circle cx="8.3" cy="6.9" r="0.8" fill="currentColor" stroke="none" />
+            <circle cx="11.7" cy="6.9" r="0.8" fill="currentColor" stroke="none" />
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={1.8}
+              d="M14.6 15.5l2.7-5.2a1.5 1.5 0 012.7 0l2.7 5.2"
+            />
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={1.8}
+              d="M14.6 15.5c1.65-.85 3.55-.85 5.2 0M17.2 15.9V22"
+            />
           </svg>
         ),
       },

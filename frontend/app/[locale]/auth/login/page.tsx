@@ -100,7 +100,7 @@ export default function LoginPage() {
       // 保存 token
       localStorage.setItem("token", data.access_token);
 
-      router.push(withLocalePath("/dashboard"));
+      router.push(withLocalePath("/weimeng"));
     } catch (err: unknown) {
       if (!isMountedRef.current) {
         return;
