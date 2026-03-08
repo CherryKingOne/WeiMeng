@@ -25,6 +25,9 @@ export default function SignupPage() {
   const [error, setError] = useState("");
   const [shakeTerms, setShakeTerms] = useState(false);
   const checkboxRef = useRef<HTMLInputElement>(null);
+  const isMountedRef = useRef(false);
+  const shakeTimeoutRef = useRef<number | null>(null);
+  const redirectTimeoutRef = useRef<number | null>(null);
 
   const text = {
     enterEmailFirst: isEn ? "Please enter your email first" : "请先输入邮箱",
@@ -45,6 +48,24 @@ export default function SignupPage() {
     loginNow: isEn ? "Log in" : "直接登录",
     quote: isEn ? "Unleash your creativity." : "释放你的创造力。",
   };
+
+  useEffect(() => {
+    isMountedRef.current = true;
+
+    return () => {
+      isMountedRef.current = false;
+
+      if (shakeTimeoutRef.current !== null) {
+        window.clearTimeout(shakeTimeoutRef.current);
+        shakeTimeoutRef.current = null;
+      }
+
+      if (redirectTimeoutRef.current !== null) {
+        window.clearTimeout(redirectTimeoutRef.current);
+        redirectTimeoutRef.current = null;
+      }
+    };
+  }, []);
 
   useEffect(() => {
     let timer: NodeJS.Timeout;
@@ -75,8 +96,14 @@ export default function SignupPage() {
         throw new Error(data.detail || text.sendFailed);
       }
 
+      if (!isMountedRef.current) {
+        return;
+      }
       setCountdown(60);
     } catch (error: unknown) {
+      if (!isMountedRef.current) {
+        return;
+      }
       const rawMessage = error instanceof Error ? error.message : "";
       setError(
         localizeRequestError({
@@ -87,7 +114,9 @@ export default function SignupPage() {
         })
       );
     } finally {
-      setIsSending(false);
+      if (isMountedRef.current) {
+        setIsSending(false);
+      }
     }
   };
 
@@ -114,7 +143,16 @@ export default function SignupPage() {
     // 检查是否勾选协议
     if (checkboxRef.current && !checkboxRef.current.checked) {
       setShakeTerms(true);
-      setTimeout(() => setShakeTerms(false), 500);
+      if (shakeTimeoutRef.current !== null) {
+        window.clearTimeout(shakeTimeoutRef.current);
+      }
+      shakeTimeoutRef.current = window.setTimeout(() => {
+        if (!isMountedRef.current) {
+          return;
+        }
+        setShakeTerms(false);
+        shakeTimeoutRef.current = null;
+      }, 500);
       return;
     }
 
@@ -139,13 +177,25 @@ export default function SignupPage() {
       }
 
       // Success Overlay Animation
+      if (!isMountedRef.current) {
+        return;
+      }
       setShowSuccess(true);
 
       // Redirect
-      setTimeout(() => {
-        router.push(withLocalePath("/login"));
+      if (redirectTimeoutRef.current !== null) {
+        window.clearTimeout(redirectTimeoutRef.current);
+      }
+      redirectTimeoutRef.current = window.setTimeout(() => {
+        if (!isMountedRef.current) {
+          return;
+        }
+        router.push(withLocalePath("/auth/login"));
       }, 2000);
     } catch (error: unknown) {
+      if (!isMountedRef.current) {
+        return;
+      }
       const rawMessage = error instanceof Error ? error.message : "";
       setError(
         localizeRequestError({
@@ -156,7 +206,9 @@ export default function SignupPage() {
         })
       );
     } finally {
-      setLoading(false);
+      if (isMountedRef.current) {
+        setLoading(false);
+      }
     }
   };
 
@@ -509,7 +561,7 @@ export default function SignupPage() {
               <p className="text-gray-500">
                 {text.haveAccount}{" "}
                 <Link
-                  href={withLocalePath("/login")}
+                  href={withLocalePath("/auth/login")}
                   className="text-black font-bold hover:underline"
                 >
                   {text.loginNow}

@@ -78,6 +78,7 @@ function TeamsPageContent() {
   const rafRef = useRef<number | null>(null);
   const targetWidthRef = useRef(600);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const assistantTimeoutRef = useRef<number | null>(null);
 
   const MIN_RIGHT_WIDTH = 411;
   const MAX_RIGHT_WIDTH = 600;
@@ -96,6 +97,15 @@ function TeamsPageContent() {
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
+
+  useEffect(() => {
+    return () => {
+      if (assistantTimeoutRef.current !== null) {
+        window.clearTimeout(assistantTimeoutRef.current);
+        assistantTimeoutRef.current = null;
+      }
+    };
+  }, []);
 
   const tools = [
     { id: 'storyboard', label: '故事板', icon: (
@@ -136,7 +146,11 @@ function TeamsPageContent() {
         textareaRef.current.style.height = 'auto';
       }
 
-      setTimeout(() => {
+      if (assistantTimeoutRef.current !== null) {
+        window.clearTimeout(assistantTimeoutRef.current);
+      }
+
+      assistantTimeoutRef.current = window.setTimeout(() => {
         const assistantMessage: Message = {
           id: (Date.now() + 1).toString(),
           role: 'assistant',
@@ -144,6 +158,7 @@ function TeamsPageContent() {
           timestamp: new Date(),
         };
         setMessages(prev => [...prev, assistantMessage]);
+        assistantTimeoutRef.current = null;
       }, 1000);
     }
   };

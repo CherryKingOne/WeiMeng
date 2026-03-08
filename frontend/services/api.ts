@@ -1,4 +1,5 @@
 import axios, { AxiosError, InternalAxiosRequestConfig } from 'axios';
+import { getLocaleFromPath, withLocale } from '@/constants';
 import { getStorageItem } from '@/utils';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://0.0.0.0:5607/api/v1';
@@ -30,7 +31,8 @@ api.interceptors.response.use(
     if (error.response?.status === 401) {
       if (typeof window !== 'undefined') {
         localStorage.removeItem('token');
-        window.location.href = '/login';
+        const locale = getLocaleFromPath(window.location.pathname);
+        window.location.href = withLocale('/auth/login', locale);
       }
     }
     return Promise.reject(error);

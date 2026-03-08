@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useState, useEffect } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useLocalePath } from "@/hooks/useLocalePath";
 import { localizeRequestError } from "@/utils";
@@ -15,6 +15,9 @@ export default function ForgotPasswordPage() {
   const [countdown, setCountdown] = useState(60);
   const [isLoading, setIsLoading] = useState(false);
   const [message, setMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
+  const isMountedRef = useRef(false);
+  const messageTimeoutRef = useRef<number | null>(null);
+  const redirectTimeoutRef = useRef<number | null>(null);
 
   // New state for reset form
   const [code, setCode] = useState("");
@@ -48,11 +51,44 @@ export default function ForgotPasswordPage() {
     quote: isEn ? "Simplicity is the ultimate sophistication." : "简约即极致的精妙。",
   };
 
+  useEffect(() => {
+    isMountedRef.current = true;
+
+    return () => {
+      isMountedRef.current = false;
+
+      if (messageTimeoutRef.current !== null) {
+        window.clearTimeout(messageTimeoutRef.current);
+        messageTimeoutRef.current = null;
+      }
+
+      if (redirectTimeoutRef.current !== null) {
+        window.clearTimeout(redirectTimeoutRef.current);
+        redirectTimeoutRef.current = null;
+      }
+    };
+  }, []);
+
   const showMessage = (type: "success" | "error", textValue: string) => {
+    if (!isMountedRef.current) {
+      return;
+    }
+
+    if (messageTimeoutRef.current !== null) {
+      window.clearTimeout(messageTimeoutRef.current);
+      messageTimeoutRef.current = null;
+    }
+
     setMessage({ type, text: textValue });
     const keepMessageForRedirect = type === "success" && textValue === text.resetSuccessRedirect;
     if (type === "error" || !keepMessageForRedirect) {
-      setTimeout(() => setMessage(null), 3000);
+      messageTimeoutRef.current = window.setTimeout(() => {
+        if (!isMountedRef.current) {
+          return;
+        }
+        setMessage(null);
+        messageTimeoutRef.current = null;
+      }, 3000);
     }
   };
 
@@ -104,9 +140,21 @@ export default function ForgotPasswordPage() {
 
       const data = await response.json();
 
+      if (!isMountedRef.current) {
+        return;
+      }
+
       if (response.ok) {
         showMessage("success", text.resetSuccessRedirect);
-        setTimeout(() => router.push(withLocalePath("/login")), 1500);
+        if (redirectTimeoutRef.current !== null) {
+          window.clearTimeout(redirectTimeoutRef.current);
+        }
+        redirectTimeoutRef.current = window.setTimeout(() => {
+          if (!isMountedRef.current) {
+            return;
+          }
+          router.push(withLocalePath("/auth/login"));
+        }, 1500);
       } else {
         showMessage("error", data.detail || text.resetFailed);
       }
@@ -123,7 +171,9 @@ export default function ForgotPasswordPage() {
         })
       );
     } finally {
-      setIsLoading(false);
+      if (isMountedRef.current) {
+        setIsLoading(false);
+      }
     }
   };
 
@@ -140,6 +190,10 @@ export default function ForgotPasswordPage() {
       });
 
       const data = await response.json();
+
+      if (!isMountedRef.current) {
+        return;
+      }
 
       if (response.ok) {
         setIsFlipped(true);
@@ -161,18 +215,24 @@ export default function ForgotPasswordPage() {
         })
       );
     } finally {
-      setIsLoading(false);
+      if (isMountedRef.current) {
+        setIsLoading(false);
+      }
     }
   };
 
   useEffect(() => {
-    let timer: NodeJS.Timeout;
+    let timer: number | null = null;
     if (isFlipped && countdown > 0) {
-      timer = setInterval(() => {
-        setCountdown((prev) => prev - 1);
+      timer = window.setInterval(() => {
+        setCountdown((prev) => (prev > 0 ? prev - 1 : 0));
       }, 1000);
     }
-    return () => clearInterval(timer);
+    return () => {
+      if (timer !== null) {
+        window.clearInterval(timer);
+      }
+    };
   }, [isFlipped, countdown]);
 
   const handleResend = async () => {
@@ -189,6 +249,10 @@ export default function ForgotPasswordPage() {
       });
 
       const data = await response.json();
+
+      if (!isMountedRef.current) {
+        return;
+      }
 
       if (response.ok) {
         setCountdown(60);
@@ -209,7 +273,9 @@ export default function ForgotPasswordPage() {
         })
       );
     } finally {
-      setIsLoading(false);
+      if (isMountedRef.current) {
+        setIsLoading(false);
+      }
     }
   };
 
@@ -219,7 +285,7 @@ export default function ForgotPasswordPage() {
       <div className="w-full lg:w-[40%] h-full bg-white flex flex-col relative z-10">
         {/* Logo */}
         <div className="pt-2 pl-10">
-          <Link href={withLocalePath("/login")}>
+          <Link href={withLocalePath("/auth/login")}>
             <img
               src="/logo/logo-light-transparent.png"
               alt="Logo"
@@ -341,7 +407,7 @@ export default function ForgotPasswordPage() {
               {/* Back Link */}
               <div className="mt-8 text-center">
                 <Link
-                  href={withLocalePath("/login")}
+                  href={withLocalePath("/auth/login")}
                   className="text-sm text-gray-500 hover:text-black flex items-center justify-center gap-2 transition-colors"
                 >
                   <svg
@@ -528,7 +594,7 @@ export default function ForgotPasswordPage() {
               {/* Back Link */}
               <div className="mt-4 text-center">
                 <Link
-                  href={withLocalePath("/login")}
+                  href={withLocalePath("/auth/login")}
                   className="text-sm text-gray-500 hover:text-black flex items-center justify-center gap-2 transition-colors"
                 >
                   <svg

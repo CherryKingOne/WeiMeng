@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { useLocalePath } from '@/hooks/useLocalePath';
 
@@ -59,6 +59,16 @@ export default function WorkflowEditor() {
   });
 
   const canvasRef = useRef<HTMLDivElement>(null);
+  const runTimeoutRef = useRef<number | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (runTimeoutRef.current !== null) {
+        window.clearTimeout(runTimeoutRef.current);
+        runTimeoutRef.current = null;
+      }
+    };
+  }, []);
 
   const toggleAccordion = (key: keyof typeof accordions) => {
     setAccordions(prev => ({ ...prev, [key]: !prev[key] }));
@@ -76,9 +86,13 @@ export default function WorkflowEditor() {
   const handleRun = () => {
     setIsRunning(true);
     setHasResult(false);
-    setTimeout(() => {
+    if (runTimeoutRef.current !== null) {
+      window.clearTimeout(runTimeoutRef.current);
+    }
+    runTimeoutRef.current = window.setTimeout(() => {
       setIsRunning(false);
       setHasResult(true);
+      runTimeoutRef.current = null;
     }, 3000);
   };
 

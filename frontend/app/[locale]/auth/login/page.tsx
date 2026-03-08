@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useState, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useLocalePath } from "@/hooks/useLocalePath";
 import { localizeRequestError } from "@/utils";
@@ -17,6 +17,8 @@ export default function LoginPage() {
   const [error, setError] = useState("");
   const [shakeRemember, setShakeRemember] = useState(false);
   const checkboxRef = useRef<HTMLInputElement>(null);
+  const isMountedRef = useRef(false);
+  const shakeTimeoutRef = useRef<number | null>(null);
 
   const text = {
     loginFailed: isEn ? "Login failed. Please check your email and password." : "登录失败，请检查账号密码",
@@ -30,6 +32,19 @@ export default function LoginPage() {
     signupNow: isEn ? "Sign up now" : "立即注册",
     quote: isEn ? "Design at the speed of thought." : "以思维的速度设计。",
   };
+
+  useEffect(() => {
+    isMountedRef.current = true;
+
+    return () => {
+      isMountedRef.current = false;
+
+      if (shakeTimeoutRef.current !== null) {
+        window.clearTimeout(shakeTimeoutRef.current);
+        shakeTimeoutRef.current = null;
+      }
+    };
+  }, []);
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     // 允许 Ctrl+A / Cmd+A 全选
@@ -47,7 +62,16 @@ export default function LoginPage() {
     // 检查是否勾选记住我
     if (checkboxRef.current && !checkboxRef.current.checked) {
       setShakeRemember(true);
-      setTimeout(() => setShakeRemember(false), 500);
+      if (shakeTimeoutRef.current !== null) {
+        window.clearTimeout(shakeTimeoutRef.current);
+      }
+      shakeTimeoutRef.current = window.setTimeout(() => {
+        if (!isMountedRef.current) {
+          return;
+        }
+        setShakeRemember(false);
+        shakeTimeoutRef.current = null;
+      }, 500);
       setLoading(false);
       return;
     }
@@ -78,6 +102,9 @@ export default function LoginPage() {
 
       router.push(withLocalePath("/dashboard"));
     } catch (err: unknown) {
+      if (!isMountedRef.current) {
+        return;
+      }
       console.error("Login error:", err);
       const rawMessage = err instanceof Error ? err.message : "";
       setError(
@@ -89,7 +116,9 @@ export default function LoginPage() {
         })
       );
     } finally {
-      setLoading(false);
+      if (isMountedRef.current) {
+        setLoading(false);
+      }
     }
   };
 
@@ -251,7 +280,7 @@ export default function LoginPage() {
                   </span>
                 </label>
                 <Link
-                  href={withLocalePath("/forgot-password")}
+                  href={withLocalePath("/auth/forgot-password")}
                   className="text-sm text-black hover:text-gray-600 transition-colors"
                 >
                   {text.forgotPassword}
@@ -287,7 +316,7 @@ export default function LoginPage() {
               <p className="text-gray-500">
                 {text.noAccount}{" "}
                 <Link
-                  href={withLocalePath("/signup")}
+                  href={withLocalePath("/auth/signup")}
                   className="text-black font-bold hover:underline"
                 >
                   {text.signupNow}

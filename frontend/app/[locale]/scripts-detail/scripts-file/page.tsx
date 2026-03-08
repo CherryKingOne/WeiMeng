@@ -109,10 +109,16 @@ export default function ScriptFilePage() {
     const toneParam = searchParams.get('tone');
     const tone: SelectedScript['tone'] = toneParam === 'blue' || toneParam === 'red' ? toneParam : 'green';
 
+    const fallbackScript = {
+      title: '黑客帝国',
+      genre: '科幻',
+      subtitle: '经典开场片段',
+    };
+
     return {
-      title: searchParams.get('title')?.trim() || '黑客帝国',
-      genre: searchParams.get('genre')?.trim() || '科幻',
-      subtitle: searchParams.get('subtitle')?.trim() || '经典开场片段',
+      title: searchParams.get('title')?.trim() || fallbackScript.title,
+      genre: searchParams.get('genre')?.trim() || fallbackScript.genre,
+      subtitle: searchParams.get('subtitle')?.trim() || fallbackScript.subtitle,
       scenes: searchParams.get('scenes')?.trim() || '12',
       roles: searchParams.get('roles')?.trim() || '08',
       words: searchParams.get('words')?.trim() || '2.3k',
@@ -179,6 +185,9 @@ export default function ScriptFilePage() {
     remove: isEn ? 'Delete' : '删除',
     total: (count: number) => (isEn ? `Total ${count} items` : `总共 ${count} 条`),
     empty: isEn ? 'No files found' : '未找到匹配文件',
+    previousPage: isEn ? 'Previous page' : '上一页',
+    nextPage: isEn ? 'Next page' : '下一页',
+    perPageOption: (size: number) => (isEn ? `${size} / page` : `${size}条/页`),
     uploadModal: {
       title: isEn ? 'Add File' : '新增文件',
       subtitle: isEn ? 'Select files to upload and parse' : '选择要上传并解析的文件',
@@ -507,23 +516,23 @@ export default function ScriptFilePage() {
             <div className="flex items-center justify-end gap-4">
               <span className="text-sm text-gray-500">{text.total(filteredFiles.length)}</span>
               <div className="flex items-center gap-1">
-                <button type="button" className="p-1.5 rounded text-gray-300 cursor-not-allowed" disabled aria-label="previous page">
+                <button type="button" className="p-1.5 rounded text-gray-300 cursor-not-allowed" disabled aria-label={text.previousPage}>
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M15 19l-7-7 7-7" />
                   </svg>
                 </button>
-                <span className="text-sm font-medium text-gray-900 px-2">1</span>
-                <button type="button" className="p-1.5 rounded text-gray-300 cursor-not-allowed" disabled aria-label="next page">
+              <span className="text-sm font-medium text-gray-900 px-2">1</span>
+                <button type="button" className="p-1.5 rounded text-gray-300 cursor-not-allowed" disabled aria-label={text.nextPage}>
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M9 5l7 7-7 7" />
                   </svg>
                 </button>
               </div>
               <select className="appearance-none bg-white border border-gray-200 rounded-lg px-3 py-1.5 text-sm text-gray-600 focus:outline-none focus:border-gray-300 cursor-pointer">
-                <option value="10">10 / page</option>
-                <option value="20">20 / page</option>
-                <option value="50">50 / page</option>
-                <option value="100">100 / page</option>
+                <option value="10">{text.perPageOption(10)}</option>
+                <option value="20">{text.perPageOption(20)}</option>
+                <option value="50">{text.perPageOption(50)}</option>
+                <option value="100">{text.perPageOption(100)}</option>
               </select>
             </div>
           </div>

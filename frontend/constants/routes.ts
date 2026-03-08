@@ -1,8 +1,8 @@
 export const ROUTES = {
   HOME: '/',
-  LOGIN: '/login',
-  SIGNUP: '/signup',
-  FORGOT_PASSWORD: '/forgot-password',
+  LOGIN: '/auth/login',
+  SIGNUP: '/auth/signup',
+  FORGOT_PASSWORD: '/auth/forgot-password',
   DASHBOARD: '/dashboard',
   TEAMS: '/teams',
   PROJECTS: '/projects',

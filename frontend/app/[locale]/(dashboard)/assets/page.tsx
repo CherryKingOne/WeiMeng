@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Asset, AssetType } from '@/types';
 import { AssetGrid } from '@/components/features';
 import { Drawer, Modal } from '@/components/ui';
@@ -18,6 +18,7 @@ export default function AssetsPage() {
   const [promptDraft, setPromptDraft] = useState('');
   const [editingParam, setEditingParam] = useState<keyof Asset['params'] | null>(null);
   const [isConfirmSaveOpen, setIsConfirmSaveOpen] = useState(false);
+  const copyTimeoutRef = useRef<number | null>(null);
   const [paramDrafts, setParamDrafts] = useState({
     model: '',
     seed: '',
@@ -57,6 +58,15 @@ export default function AssetsPage() {
       favorite: isEn ? 'Favorites' : '收藏',
     },
   };
+
+  useEffect(() => {
+    return () => {
+      if (copyTimeoutRef.current !== null) {
+        window.clearTimeout(copyTimeoutRef.current);
+        copyTimeoutRef.current = null;
+      }
+    };
+  }, []);
 
   const filters = [
     { id: 'all', label: text.filters.all },
@@ -188,7 +198,13 @@ export default function AssetsPage() {
         `Model: ${selectedAsset.params.model}\nSeed: ${selectedAsset.params.seed}\nSteps: ${selectedAsset.params.steps}\nCFG Scale: ${selectedAsset.params.cfgScale}`
       );
       setCopied(true);
-      window.setTimeout(() => setCopied(false), 1200);
+      if (copyTimeoutRef.current !== null) {
+        window.clearTimeout(copyTimeoutRef.current);
+      }
+      copyTimeoutRef.current = window.setTimeout(() => {
+        setCopied(false);
+        copyTimeoutRef.current = null;
+      }, 1200);
     } catch {
       setCopied(false);
     }

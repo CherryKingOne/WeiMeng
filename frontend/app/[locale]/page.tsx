@@ -8,5 +8,5 @@ interface LocalePageProps {
 export default async function LocalizedHomePage({ params }: LocalePageProps) {
   const { locale } = await params;
   const safeLocale: Locale = isLocale(locale) ? locale : DEFAULT_LOCALE;
-  redirect(`/${safeLocale}/login`);
+  redirect(`/${safeLocale}/auth/login`);
 }
