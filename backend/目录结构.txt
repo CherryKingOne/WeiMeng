@@ -12,6 +12,7 @@ WeiMeng/backend
 |   |-- ai.py                              # AI 服务配置
 |   |-- database.py                        # 数据库配置
 |   |-- email.py                           # 邮件配置
+|   |-- minio.py                           # MinIO 对象存储配置
 |   |-- redis.py                           # Redis 配置
 |   `-- settings.py                        # 全局设置与环境变量加载
 |-- docker-compose.yml                     # 本地服务编排
@@ -98,6 +99,45 @@ WeiMeng/backend
 |   |           `-- repositories/
 |   |               |-- __init__.py        # Python 包初始化
 |   |               `-- captcha_repository.py # 验证码仓储实现
+|   |   `-- scripts/                       # 剧本库模块
+|   |       |-- __init__.py                # Python 包初始化
+|   |       |-- api/
+|   |       |   |-- __init__.py            # Python 包初始化
+|   |       |   |-- dependencies.py        # 剧本库接口依赖注入
+|   |       |   `-- router.py              # 剧本库接口路由
+|   |       |-- application/
+|   |       |   |-- __init__.py            # Python 包初始化
+|   |       |   |-- dto/
+|   |       |   |   |-- __init__.py        # Python 包初始化
+|   |       |   |   `-- script_dto.py      # 剧本库 DTO 定义
+|   |       |   `-- services/
+|   |       |       |-- __init__.py        # Python 包初始化
+|   |       |       `-- script_app_service.py # 剧本库应用服务
+|   |       |-- domain/
+|   |       |   |-- __init__.py            # Python 包初始化
+|   |       |   |-- entities/
+|   |       |   |   |-- __init__.py        # Python 包初始化
+|   |       |   |   |-- script_entity.py   # 剧本文件实体
+|   |       |   |   `-- script_library_entity.py # 剧本库实体
+|   |       |   |-- exceptions.py          # 剧本库领域异常
+|   |       |   |-- repositories.py        # 剧本库仓储接口
+|   |       |   `-- value_objects/
+|   |       |       |-- __init__.py        # Python 包初始化
+|   |       |       `-- file_format.py     # 文件格式值对象
+|   |       `-- infrastructure/
+|   |           |-- __init__.py            # Python 包初始化
+|   |           |-- mappers/
+|   |           |   |-- __init__.py        # Python 包初始化
+|   |           |   |-- script_library_mapper.py # 剧本库映射
+|   |           |   `-- script_mapper.py   # 剧本映射
+|   |           |-- models/
+|   |           |   |-- __init__.py        # Python 包初始化
+|   |           |   |-- script_library_model.py # 剧本库数据库模型
+|   |           |   |-- script_library_script_model.py # 库-文件关联模型
+|   |           |   `-- script_model.py    # 剧本数据库模型
+|   |           `-- repositories/
+|   |               |-- __init__.py        # Python 包初始化
+|   |               `-- script_repository.py # 剧本库仓储实现
 |   `-- shared/                            # 跨模块通用能力
 |       |-- __init__.py                    # Python 包初始化
 |       |-- common/
@@ -112,13 +152,17 @@ WeiMeng/backend
 |       |   `-- exceptions.py              # 共享领域异常
 |       |-- extensions/
 |       |   |-- __init__.py                # Python 包初始化
-|       |   `-- email/
+|       |   |-- email/
+|       |   |   |-- __init__.py            # Python 包初始化
+|       |   |   |-- sender.py              # 邮件发送实现
+|       |   |   `-- templates/
+|       |   |       |-- __init__.py        # Python 包初始化
+|       |   |       |-- base.html          # 邮件基础模板
+|       |   |       `-- captcha.html       # 验证码邮件模板
+|       |   `-- storage/
 |       |       |-- __init__.py            # Python 包初始化
-|       |       |-- sender.py              # 邮件发送实现
-|       |       `-- templates/
-|       |           |-- __init__.py        # Python 包初始化
-|       |           |-- base.html          # 邮件基础模板
-|       |           `-- captcha.html       # 验证码邮件模板
+|       |       |-- base.py                # 对象存储抽象接口
+|       |       `-- minio_provider.py      # MinIO 存储实现
 |       |-- infrastructure/
 |       |   |-- __init__.py                # Python 包初始化
 |       |   |-- database.py                # 数据库基础设施封装
@@ -146,7 +190,12 @@ WeiMeng/backend
 |       |-- __init__.py                    # Python 包初始化
 |       |-- test_auth/
 |       |   `-- __init__.py                # 认证单测包初始化
-|       `-- test_captcha/
-|           `-- __init__.py                # 验证码单测包初始化
+|       |-- test_captcha/
+|       |   `-- __init__.py                # 验证码单测包初始化
+|       `-- test_scripts/
+|           |-- __init__.py                # 剧本库单测包初始化
+|           |-- test_file_format.py        # 文件格式值对象单测
+|           `-- test_script_app_service.py # 剧本库应用服务单测
 |-- uv.lock                                # 依赖锁定文件
+|-- 剧本库.txt                             # 剧本库功能说明与任务记录
 `-- 目录结构.txt                           # 当前目录结构说明文件
