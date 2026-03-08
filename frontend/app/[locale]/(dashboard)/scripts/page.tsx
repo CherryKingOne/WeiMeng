@@ -1,11 +1,24 @@
 'use client';
 
-import { type FormEvent, useState } from 'react';
+import { useRouter } from 'next/navigation';
+import { type FormEvent, type KeyboardEvent, useState } from 'react';
 import { useLocalePath } from '@/hooks/useLocalePath';
 
+type ScriptCardMeta = {
+  title: string;
+  genre: string;
+  subtitle: string;
+  scenes: string;
+  roles: string;
+  words: string;
+  tone: 'green' | 'blue' | 'red';
+};
+
 export default function ScriptsPage() {
-  const { locale } = useLocalePath();
+  const router = useRouter();
+  const { locale, withLocalePath } = useLocalePath();
   const isEn = locale === 'en';
+  const scriptDetailPath = withLocalePath('/scripts-detail/scripts-file');
   const [activeFilter, setActiveFilter] = useState('all');
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [scriptName, setScriptName] = useState('');
@@ -56,6 +69,38 @@ export default function ScriptsPage() {
     setIsCreateModalOpen(false);
     setScriptNameError(false);
   };
+
+  const buildScriptDetailPath = (meta: ScriptCardMeta) => {
+    const params = new URLSearchParams({
+      title: meta.title,
+      genre: meta.genre,
+      subtitle: meta.subtitle,
+      scenes: meta.scenes,
+      roles: meta.roles,
+      words: meta.words,
+      tone: meta.tone,
+    });
+
+    return `${scriptDetailPath}?${params.toString()}`;
+  };
+
+  const handleScriptCardClick = (meta: ScriptCardMeta) => {
+    router.push(buildScriptDetailPath(meta));
+  };
+
+  const handleScriptCardKeyDown = (event: KeyboardEvent<HTMLDivElement>, meta: ScriptCardMeta) => {
+    if (event.key === 'Enter' || event.key === ' ') {
+      event.preventDefault();
+      handleScriptCardClick(meta);
+    }
+  };
+
+  const getScriptCardProps = (meta: ScriptCardMeta) => ({
+    role: 'button' as const,
+    tabIndex: 0,
+    onClick: () => handleScriptCardClick(meta),
+    onKeyDown: (event: KeyboardEvent<HTMLDivElement>) => handleScriptCardKeyDown(event, meta),
+  });
 
   const handleCreateScriptSubmit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -108,7 +153,18 @@ export default function ScriptsPage() {
       </div>
 
       <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
-        <div className="script-card bg-white rounded-xl overflow-hidden cursor-pointer group border border-[#F3F4F6] hover:border-gray-200 transition-all">
+        <div
+          className="script-card bg-white rounded-xl overflow-hidden cursor-pointer group border border-[#F3F4F6] hover:border-gray-200 transition-all"
+          {...getScriptCardProps({
+            title: '黑客帝国',
+            genre: '科幻',
+            subtitle: '经典开场片段',
+            scenes: '12',
+            roles: '08',
+            words: '2.3k',
+            tone: 'green',
+          })}
+        >
           <div className="flex h-48">
             <div className="w-1/3 border-r border-gray-200 p-6 flex flex-col justify-center gap-2 bg-white">
               <div className="rhythm-line h-1.5 bg-black rounded-full w-full origin-left" />
@@ -160,7 +216,18 @@ export default function ScriptsPage() {
           </div>
         </div>
 
-        <div className="script-card bg-white rounded-xl overflow-hidden cursor-pointer group border border-[#F3F4F6] hover:border-gray-200 transition-all">
+        <div
+          className="script-card bg-white rounded-xl overflow-hidden cursor-pointer group border border-[#F3F4F6] hover:border-gray-200 transition-all"
+          {...getScriptCardProps({
+            title: '火星救援',
+            genre: '冒险',
+            subtitle: 'AI 分析中',
+            scenes: '--',
+            roles: '--',
+            words: '4.8k',
+            tone: 'blue',
+          })}
+        >
           <div className="flex h-48">
             <div className="w-1/3 border-r border-gray-200 p-6 flex flex-col justify-center gap-2 bg-white relative">
               <div className="absolute inset-0 bg-blue-50/30 flex items-center justify-center">
@@ -212,7 +279,18 @@ export default function ScriptsPage() {
           </div>
         </div>
 
-        <div className="script-card bg-white rounded-xl overflow-hidden cursor-pointer group border border-[#F3F4F6] hover:border-gray-200 transition-all">
+        <div
+          className="script-card bg-white rounded-xl overflow-hidden cursor-pointer group border border-[#F3F4F6] hover:border-gray-200 transition-all"
+          {...getScriptCardProps({
+            title: '星际穿越',
+            genre: '剧情',
+            subtitle: '逃生舱片段',
+            scenes: '08',
+            roles: '05',
+            words: '1.5k',
+            tone: 'green',
+          })}
+        >
           <div className="flex h-48">
             <div className="w-1/3 border-r border-gray-200 p-6 flex flex-col justify-center gap-2 bg-white">
               <div className="rhythm-line h-1.5 bg-black rounded-full w-[90%] origin-left" />
@@ -264,39 +342,57 @@ export default function ScriptsPage() {
           </div>
         </div>
 
-        <div className="script-card bg-white rounded-xl overflow-hidden cursor-pointer group border border-[#F3F4F6] hover:border-gray-200 transition-all">
+        <div
+          className="script-card bg-white rounded-xl overflow-hidden cursor-pointer group border border-[#F3F4F6] hover:border-gray-200 transition-all"
+          {...getScriptCardProps({
+            title: '指环王',
+            genre: '奇幻',
+            subtitle: 'AI 解析失败',
+            scenes: '--',
+            roles: '--',
+            words: '3.2k',
+            tone: 'red',
+          })}
+        >
           <div className="flex h-48">
-            <div className="w-1/3 border-r border-gray-200 p-6 flex flex-col justify-center gap-2 bg-white">
-              <div className="rhythm-line h-1.5 bg-black rounded-full w-full origin-left" />
-              <div className="rhythm-line h-0.5 bg-gray-300 rounded-full w-[85%] origin-left" />
-              <div className="rhythm-line h-0.5 bg-gray-300 rounded-full w-[90%] origin-left" />
-              <div className="rhythm-line h-0.5 bg-gray-300 rounded-full w-[70%] origin-left" />
-              <div className="flex justify-center">
-                <div className="rhythm-line h-0.5 bg-gray-400 rounded-full w-[60%] origin-center" />
+            <div className="w-1/3 border-r border-gray-200 p-6 flex flex-col justify-center gap-2 bg-white relative">
+              <div className="absolute inset-0 bg-red-50/30 flex items-center justify-center">
+                <div className="w-8 h-8 rounded-full border border-red-200 bg-red-100 flex items-center justify-center">
+                  <svg className="w-4 h-4 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </div>
               </div>
-              <div className="rhythm-line h-0.5 bg-gray-300 rounded-full w-[80%] origin-left" />
-              <div className="rhythm-line h-1.5 bg-black rounded-full w-[75%] origin-left mt-2" />
+              <div className="rhythm-line h-1.5 bg-gray-200 rounded-full w-full origin-left" />
+              <div className="rhythm-line h-0.5 bg-gray-200 rounded-full w-[85%] origin-left" />
+              <div className="rhythm-line h-0.5 bg-gray-200 rounded-full w-[90%] origin-left" />
+              <div className="rhythm-line h-0.5 bg-gray-200 rounded-full w-[70%] origin-left" />
+              <div className="flex justify-center">
+                <div className="rhythm-line h-0.5 bg-gray-300 rounded-full w-[60%] origin-center" />
+              </div>
+              <div className="rhythm-line h-0.5 bg-gray-200 rounded-full w-[80%] origin-left" />
+              <div className="rhythm-line h-1.5 bg-gray-200 rounded-full w-[75%] origin-left mt-2" />
             </div>
 
             <div className="w-2/3 p-6 flex flex-col justify-between relative">
               <div className="flex items-start justify-between">
-                <span className="px-3 py-1 bg-green-100 rounded-full text-[10px] font-medium text-green-700 tracking-wider">奇幻</span>
-                <div className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                <span className="px-3 py-1 bg-red-100 rounded-full text-[10px] font-medium text-red-700 tracking-wider">奇幻</span>
+                <div className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse" />
               </div>
 
               <div>
                 <h3 className="text-2xl font-semibold text-black tracking-tight">指环王</h3>
-                <p className="text-xs text-gray-400 mt-1">森林之子</p>
+                <p className="text-xs text-red-600 mt-1 font-mono">AI 解析失败</p>
               </div>
 
               <div className="flex items-center gap-8">
                 <div>
                   <p className="text-[10px] text-gray-400 uppercase tracking-wider mb-0.5">场景</p>
-                  <p className="text-sm font-medium font-mono text-black">15</p>
+                  <p className="text-sm font-medium font-mono text-gray-400">--</p>
                 </div>
                 <div>
                   <p className="text-[10px] text-gray-400 uppercase tracking-wider mb-0.5">角色</p>
-                  <p className="text-sm font-medium font-mono text-black">12</p>
+                  <p className="text-sm font-medium font-mono text-gray-400">--</p>
                 </div>
                 <div>
                   <p className="text-[10px] text-gray-400 uppercase tracking-wider mb-0.5">字数</p>
@@ -311,7 +407,18 @@ export default function ScriptsPage() {
           </div>
         </div>
 
-        <div className="script-card bg-white rounded-xl overflow-hidden cursor-pointer group border border-[#F3F4F6] hover:border-gray-200 transition-all">
+        <div
+          className="script-card bg-white rounded-xl overflow-hidden cursor-pointer group border border-[#F3F4F6] hover:border-gray-200 transition-all"
+          {...getScriptCardProps({
+            title: '科学怪人',
+            genre: '恐怖',
+            subtitle: '创造',
+            scenes: '06',
+            roles: '04',
+            words: '2.8k',
+            tone: 'green',
+          })}
+        >
           <div className="flex h-48">
             <div className="w-1/3 border-r border-gray-200 p-6 flex flex-col justify-center gap-2 bg-white">
               <div className="rhythm-line h-1.5 bg-black rounded-full w-[85%] origin-left" />
@@ -360,7 +467,18 @@ export default function ScriptsPage() {
           </div>
         </div>
 
-        <div className="script-card bg-white rounded-xl overflow-hidden cursor-pointer group border border-[#F3F4F6] hover:border-gray-200 transition-all">
+        <div
+          className="script-card bg-white rounded-xl overflow-hidden cursor-pointer group border border-[#F3F4F6] hover:border-gray-200 transition-all"
+          {...getScriptCardProps({
+            title: '泰坦尼克号',
+            genre: '爱情',
+            subtitle: '甲板日落',
+            scenes: '10',
+            roles: '06',
+            words: '4.1k',
+            tone: 'green',
+          })}
+        >
           <div className="flex h-48">
             <div className="w-1/3 border-r border-gray-200 p-6 flex flex-col justify-center gap-2 bg-white">
               <div className="rhythm-line h-1.5 bg-black rounded-full w-full origin-left" />

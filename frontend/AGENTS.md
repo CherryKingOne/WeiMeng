@@ -1,45 +1,34 @@
 # Repository Guidelines
 
 ## Project Structure & Module Organization
-This frontend uses Next.js App Router. Main routes live in `app/`, with localized pages under `app/[locale]/...` and route groups like `(auth)` and `(dashboard)`.
-Shared UI and feature code is split by responsibility: `components/ui` (primitives), `components/features` (domain widgets), and `components/layout` (shell/navigation).
-Business logic is organized in `services/` (API and resource calls), `stores/` (Zustand state), `hooks/`, `utils/`, `constants/`, and `types/`.
-Static files are in `public/`, and app-level configuration lives in `config/`.
+- `app/`: Next.js App Router pages and layouts. Locale-aware routes live under `app/[locale]/...`, and `app/page.tsx` handles root redirects.
+- `components/`: Reusable UI components.
+- `services/`: API request clients and service-layer calls.
+- `stores/`: Zustand state stores.
+- `hooks/`, `utils/`, `constants/`, `types/`, `config/`: shared logic, helpers, constants, type definitions, and runtime config.
+- `public/`: static assets served directly.
 
 ## Build, Test, and Development Commands
-- `npm ci`: Install dependencies from `package-lock.json`.
-- `npm run dev`: Start local development server on `http://localhost:5678`.
-- `npm run lint`: Run ESLint with Next.js + TypeScript rules.
-- `npm run build`: Create production build (also catches TypeScript issues).
-- `npm run start`: Serve the built app on port `5678`.
-- `docker compose up --build`: Build and run the production container locally.
+- `npm install`: install dependencies.
+- `npm run dev`: start local dev server on `http://localhost:5678`.
+- `npm run lint`: run ESLint (`eslint-config-next` + TypeScript rules).
+- `npm run build`: create production build and catch compile/runtime route issues.
+- `npm run start`: run production build on port `5678` after `npm run build`.
 
 ## Coding Style & Naming Conventions
-Use TypeScript in strict mode and import aliases via `@/*`.
-Follow existing file-local style (2-space indentation, semicolons, and quote style) to keep diffs minimal and consistent.
-Naming patterns used in this repo:
-- Components: `PascalCase.tsx` (example: `ProjectCard.tsx`)
-- Hooks: `useX.ts` (example: `useLocalePath.ts`)
-- Stores: `*.store.ts` (example: `auth.store.ts`)
-- Services: `*.service.ts` (example: `project.service.ts`)
-- Types: `*.types.ts` (example: `project.types.ts`)
+- Language: TypeScript (`strict: true` in `tsconfig.json`); use functional React components.
+- Indentation: follow existing 2-space style and keep imports grouped/ordered consistently.
+- Naming: components use `PascalCase` (for example, `LoginForm.tsx`); hooks use `useXxx`; utility files use descriptive `camelCase` names.
+- Routing files must follow Next.js conventions (`page.tsx`, `layout.tsx`, `loading.tsx`).
+- Use the path alias `@/*` instead of deep relative paths where practical.
+- Keep repository text/code free of emoji characters.
 
 ## Testing Guidelines
-There is currently no dedicated test runner configured in `package.json`.
-For every change, run `npm run lint` and `npm run build` before opening a PR.
-Do manual smoke checks for localized auth/dashboard flows (for example `/zh/...` and `/en/...`).
-If adding tests, use `*.test.ts` or `*.test.tsx` naming and place tests near the related module or in `__tests__/`.
+- No dedicated frontend automated test suite is configured yet.
+- Required checks before PR: `npm run lint` and `npm run build`.
+- Manually verify core flows you changed (for example, login, locale switching, and related page navigation).
 
 ## Commit & Pull Request Guidelines
-Recent commits use short imperative summaries, commonly in Chinese (for example `add language switch`, `update README`).
-Keep each commit focused on one logical change and avoid vague messages such as "update files".
-PRs should include:
-- What changed and why
-- Key paths touched
-- Validation steps (commands run)
-- Screenshots for UI changes
-- Linked task/issue IDs when available
-
-## Security & Configuration Tips
-Do not commit secrets. Only `NEXT_PUBLIC_*` variables intended for browser exposure should be public.
-For auth-related edits, review `middleware.ts`, `services/api.ts`, and `stores/auth.store.ts` carefully to avoid token or redirect regressions.
+- Commit style in history is concise Chinese summaries (for example, `原型图优化`, `剧本页面更新`). Prefer adding scope when useful, such as `frontend: 登录表单校验修复`.
+- PRs should include: purpose, changed paths/modules, validation commands, screenshots for UI changes, and linked issue/task.
+- Explicitly note environment/config updates and any breaking behavior.
