@@ -1,0 +1,152 @@
+WeiMeng/backend
+说明：已排除 .venv、__pycache__、*.pyc 等运行产物；`#` 后为目录/文件用途。
+
+|-- .dockerignore                          # Docker 构建时忽略文件列表
+|-- .env                                   # 本地环境变量（含敏感信息，不提交）
+|-- .env.example                           # 环境变量模板
+|-- AGENTS.md                              # 仓库协作与贡献规范
+|-- Dockerfile                             # 后端镜像构建脚本
+|-- README.md                              # 后端项目说明
+|-- config/                                # 配置模块
+|   |-- __init__.py                        # Python 包初始化
+|   |-- ai.py                              # AI 服务配置
+|   |-- database.py                        # 数据库配置
+|   |-- email.py                           # 邮件配置
+|   |-- redis.py                           # Redis 配置
+|   `-- settings.py                        # 全局设置与环境变量加载
+|-- docker-compose.yml                     # 本地服务编排
+|-- main.py                                # FastAPI 应用入口
+|-- pyproject.toml                         # Python 项目与依赖定义（uv）
+|-- requirements.txt                       # 兼容性依赖清单
+|-- src/                                   # 核心业务源码
+|   |-- __init__.py                        # Python 包初始化
+|   |-- api/                               # API 层
+|   |   |-- __init__.py                    # Python 包初始化
+|   |   `-- v1/
+|   |       |-- __init__.py                # Python 包初始化
+|   |       `-- router.py                  # v1 路由聚合与注册
+|   |-- modules/                           # 业务模块（按领域拆分）
+|   |   |-- __init__.py                    # Python 包初始化
+|   |   |-- auth/                          # 认证模块
+|   |   |   |-- __init__.py                # Python 包初始化
+|   |   |   |-- api/
+|   |   |   |   |-- __init__.py            # Python 包初始化
+|   |   |   |   |-- dependencies.py        # 认证接口依赖注入
+|   |   |   |   `-- router.py              # 认证接口路由
+|   |   |   |-- application/
+|   |   |   |   |-- __init__.py            # Python 包初始化
+|   |   |   |   |-- dto/
+|   |   |   |   |   |-- __init__.py        # Python 包初始化
+|   |   |   |   |   |-- login_dto.py       # 登录 DTO
+|   |   |   |   |   |-- register_dto.py    # 注册 DTO
+|   |   |   |   |   `-- reset_password_dto.py # 重置密码 DTO
+|   |   |   |   `-- services/
+|   |   |   |       |-- __init__.py        # Python 包初始化
+|   |   |   |       |-- login_service.py   # 登录应用服务
+|   |   |   |       |-- register_service.py # 注册应用服务
+|   |   |   |       `-- reset_password_service.py # 重置密码应用服务
+|   |   |   |-- domain/
+|   |   |   |   |-- __init__.py            # Python 包初始化
+|   |   |   |   |-- entities/
+|   |   |   |   |   |-- __init__.py        # Python 包初始化
+|   |   |   |   |   `-- user.py            # 用户领域实体
+|   |   |   |   |-- exceptions.py          # 认证领域异常
+|   |   |   |   |-- repositories.py        # 认证仓储接口
+|   |   |   |   |-- services/
+|   |   |   |   |   |-- __init__.py        # Python 包初始化
+|   |   |   |   |   `-- authentication_service.py # 认证领域服务
+|   |   |   |   `-- value_objects/
+|   |   |   |       |-- __init__.py        # Python 包初始化
+|   |   |   |       `-- token.py           # 令牌值对象
+|   |   |   `-- infrastructure/
+|   |   |       |-- __init__.py            # Python 包初始化
+|   |   |       |-- mappers/
+|   |   |       |   |-- __init__.py        # Python 包初始化
+|   |   |       |   `-- user_mapper.py     # 实体与持久化模型映射
+|   |   |       |-- models/
+|   |   |       |   |-- __init__.py        # Python 包初始化
+|   |   |       |   `-- user_model.py      # 用户数据库模型
+|   |   |       `-- repositories/
+|   |   |           |-- __init__.py        # Python 包初始化
+|   |   |           `-- user_repository.py # 认证仓储实现
+|   |   `-- captcha/                       # 验证码模块
+|   |       |-- __init__.py                # Python 包初始化
+|   |       |-- api/
+|   |       |   |-- __init__.py            # Python 包初始化
+|   |       |   |-- dependencies.py        # 验证码接口依赖注入
+|   |       |   `-- router.py              # 验证码接口路由
+|   |       |-- application/
+|   |       |   |-- __init__.py            # Python 包初始化
+|   |       |   |-- dto/
+|   |       |   |   |-- __init__.py        # Python 包初始化
+|   |       |   |   `-- captcha_dto.py     # 验证码 DTO
+|   |       |   `-- services/
+|   |       |       |-- __init__.py        # Python 包初始化
+|   |       |       `-- email_captcha_service.py # 邮件验证码应用服务
+|   |       |-- domain/
+|   |       |   |-- __init__.py            # Python 包初始化
+|   |       |   |-- entities/
+|   |       |   |   |-- __init__.py        # Python 包初始化
+|   |       |   |   `-- captcha.py         # 验证码领域实体
+|   |       |   |-- exceptions.py          # 验证码领域异常
+|   |       |   |-- repositories.py        # 验证码仓储接口
+|   |       |   `-- services/
+|   |       |       |-- __init__.py        # Python 包初始化
+|   |       |       `-- captcha_service.py # 验证码领域服务
+|   |       `-- infrastructure/
+|   |           |-- __init__.py            # Python 包初始化
+|   |           `-- repositories/
+|   |               |-- __init__.py        # Python 包初始化
+|   |               `-- captcha_repository.py # 验证码仓储实现
+|   `-- shared/                            # 跨模块通用能力
+|       |-- __init__.py                    # Python 包初始化
+|       |-- common/
+|       |   |-- __init__.py                # Python 包初始化
+|       |   |-- dependencies.py            # 公共依赖注入
+|       |   |-- response.py                # 统一响应封装
+|       |   `-- utils.py                   # 通用工具函数
+|       |-- domain/
+|       |   |-- __init__.py                # Python 包初始化
+|       |   |-- base_entity.py             # 基础实体抽象
+|       |   |-- base_value_object.py       # 基础值对象抽象
+|       |   `-- exceptions.py              # 共享领域异常
+|       |-- extensions/
+|       |   |-- __init__.py                # Python 包初始化
+|       |   `-- email/
+|       |       |-- __init__.py            # Python 包初始化
+|       |       |-- sender.py              # 邮件发送实现
+|       |       `-- templates/
+|       |           |-- __init__.py        # Python 包初始化
+|       |           |-- base.html          # 邮件基础模板
+|       |           `-- captcha.html       # 验证码邮件模板
+|       |-- infrastructure/
+|       |   |-- __init__.py                # Python 包初始化
+|       |   |-- database.py                # 数据库基础设施封装
+|       |   |-- redis.py                   # Redis 基础设施封装
+|       |   `-- unit_of_work.py            # 工作单元模式封装
+|       |-- middleware/
+|       |   |-- __init__.py                # Python 包初始化
+|       |   |-- error_handler.py           # 全局异常处理中间件
+|       |   |-- logging.py                 # 请求日志中间件
+|       |   `-- request_context.py         # 请求上下文中间件
+|       `-- security/
+|           |-- __init__.py                # Python 包初始化
+|           |-- jwt_handler.py             # JWT 处理
+|           `-- password_hasher.py         # 密码哈希与校验
+|-- tests/                                 # 测试目录（pytest）
+|   |-- __init__.py                        # Python 包初始化
+|   |-- conftest.py                        # 全局 fixtures 与测试配置
+|   |-- fixtures/
+|   |   `-- __init__.py                    # 测试夹具包初始化
+|   |-- integration/
+|   |   |-- __init__.py                    # Python 包初始化
+|   |   `-- test_api/
+|   |       `-- __init__.py                # API 集成测试包初始化
+|   `-- unit/
+|       |-- __init__.py                    # Python 包初始化
+|       |-- test_auth/
+|       |   `-- __init__.py                # 认证单测包初始化
+|       `-- test_captcha/
+|           `-- __init__.py                # 验证码单测包初始化
+|-- uv.lock                                # 依赖锁定文件
+`-- 目录结构.txt                           # 当前目录结构说明文件
