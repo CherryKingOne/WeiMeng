@@ -239,10 +239,10 @@ export default function DocChunkPage() {
                   <button
                     type="button"
                     onClick={() => handleToggleSliceEnabled(slice.id)}
-                    className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${isEnabled ? 'bg-emerald-500' : 'bg-gray-300'}`}
+                    className={`relative inline-flex h-5 w-9 items-center rounded-full p-0.5 transition-colors ${isEnabled ? 'bg-emerald-500' : 'bg-gray-300'}`}
                     aria-label={isEnabled ? '禁用切片' : '启用切片'}
                   >
-                    <span className={`inline-block h-4 w-4 rounded-full bg-white transition-transform ${isEnabled ? 'translate-x-4' : 'translate-x-0.5'}`} />
+                    <span className={`block h-4 w-4 rounded-full bg-white transition-transform ${isEnabled ? 'translate-x-4' : 'translate-x-0'}`} />
                   </button>
                 </div>
               );
