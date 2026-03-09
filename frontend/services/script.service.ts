@@ -4,6 +4,7 @@ import {
   DeleteScriptLibraryFileResponse,
   PaginatedResponse,
   Script,
+  ScriptFileContent,
   ScriptFilter,
   ScriptLibrary,
   ScriptLibraryFile,
@@ -58,6 +59,22 @@ export const scriptService = {
 
   deleteLibraryFile: async (libraryId: string, scriptId: string): Promise<DeleteScriptLibraryFileResponse> => {
     const response = await api.delete<DeleteScriptLibraryFileResponse>(`/scripts/libraries/${libraryId}/files/${scriptId}`);
+    return response.data;
+  },
+
+  uploadLibraryFile: async (libraryId: string, file: File): Promise<ScriptLibraryFile> => {
+    const formData = new FormData();
+    formData.append('file', file);
+    const response = await api.post<ScriptLibraryFile>(`/scripts/libraries/${libraryId}/upload`, formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    });
+    return response.data;
+  },
+
+  getLibraryFileContent: async (libraryId: string, scriptId: string): Promise<ScriptFileContent> => {
+    const response = await api.get<ScriptFileContent>(`/scripts/libraries/${libraryId}/files/${scriptId}/content`);
     return response.data;
   },
 };

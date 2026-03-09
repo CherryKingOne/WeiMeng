@@ -9,6 +9,7 @@ import {
   useCallback,
   useEffect,
   useMemo,
+  useRef,
   useState,
 } from 'react';
 import { useLocalePath } from '@/hooks/useLocalePath';
@@ -17,6 +18,12 @@ import type { ScriptLibraryFile } from '@/types';
 import { localizeRequestError } from '@/utils';
 
 type FileStatus = 'success';
+
+type UploadFile = {
+  file: File;
+  status: 'pending' | 'uploading' | 'success' | 'error';
+  error?: string;
+};
 
 type ScriptFileRow = {
   id: string;
@@ -69,6 +76,283 @@ function formatFileSize(bytes: number, locale: 'zh' | 'en'): string {
 
   const digits = size >= 10 || unitIndex === 0 ? 0 : 1;
   return `${size.toFixed(digits)} ${units[unitIndex]}`;
+}
+
+const ACCEPTED_FILE_TYPES = ['.md', '.docx', '.txt', '.pdf'];
+const ACCEPTED_MIME_TYPES = [
+  'text/markdown',
+  'text/plain',
+  'application/pdf',
+  'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+];
+
+type UploadModalProps = {
+  isOpen: boolean;
+  libraryId: string;
+  locale: 'zh' | 'en';
+  text: Record<string, unknown>;
+  onClose: () => void;
+  onUploadComplete: () => void;
+};
+
+function UploadModal({ isOpen, libraryId, locale, text, onClose, onUploadComplete }: UploadModalProps) {
+  const [uploadFiles, setUploadFiles] = useState<UploadFile[]>([]);
+  const [isUploading, setIsUploading] = useState(false);
+  const [isDragging, setIsDragging] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
+
+  const t = text as {
+    uploadModal: { title: string; subtitle: string; dropTitle: string; dropHint: string; cancel: string; confirm: string };
+    uploadStatus: { pending: string; uploading: string; success: string; error: string };
+    uploadAll: string;
+    clearCompleted: string;
+    dropFilesHere: string;
+  };
+
+  const handleFileSelect = (files: FileList | null) => {
+    if (!files) return;
+
+    const validFiles: UploadFile[] = [];
+    Array.from(files).forEach((file) => {
+      const ext = '.' + file.name.split('.').pop()?.toLowerCase();
+      if (ACCEPTED_FILE_TYPES.includes(ext) || ACCEPTED_MIME_TYPES.includes(file.type)) {
+        validFiles.push({ file, status: 'pending' });
+      }
+    });
+
+    if (validFiles.length > 0) {
+      setUploadFiles((prev) => [...prev, ...validFiles]);
+    }
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(false);
+    handleFileSelect(e.dataTransfer.files);
+  };
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(true);
+  };
+
+  const handleDragLeave = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(false);
+  };
+
+  const handleUploadSingle = async (index: number) => {
+    const uploadFile = uploadFiles[index];
+    if (uploadFile.status !== 'pending' && uploadFile.status !== 'error') return;
+
+    setUploadFiles((prev) => {
+      const next = [...prev];
+      next[index] = { ...next[index], status: 'uploading', error: undefined };
+      return next;
+    });
+
+    try {
+      await scriptService.uploadLibraryFile(libraryId, uploadFile.file);
+      setUploadFiles((prev) => {
+        const next = [...prev];
+        next[index] = { ...next[index], status: 'success' };
+        return next;
+      });
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : t.uploadStatus.error;
+      setUploadFiles((prev) => {
+        const next = [...prev];
+        next[index] = { ...next[index], status: 'error', error: errorMessage };
+        return next;
+      });
+    }
+  };
+
+  const handleUploadAll = async () => {
+    if (isUploading) return;
+    setIsUploading(true);
+
+    const pendingIndices = uploadFiles
+      .map((f, i) => (f.status === 'pending' || f.status === 'error' ? i : -1))
+      .filter((i) => i >= 0);
+
+    for (const index of pendingIndices) {
+      await handleUploadSingle(index);
+    }
+
+    setIsUploading(false);
+    onUploadComplete();
+  };
+
+  const handleClearCompleted = () => {
+    setUploadFiles((prev) => prev.filter((f) => f.status !== 'success'));
+  };
+
+  const handleRemoveFile = (index: number) => {
+    setUploadFiles((prev) => prev.filter((_, i) => i !== index));
+  };
+
+  const handleClose = () => {
+    if (isUploading) return;
+    setUploadFiles([]);
+    onClose();
+  };
+
+  const hasPendingFiles = uploadFiles.some((f) => f.status === 'pending' || f.status === 'error');
+  const hasCompletedFiles = uploadFiles.some((f) => f.status === 'success');
+
+  if (!isOpen) return null;
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 px-4">
+      <div className="w-full max-w-lg overflow-hidden rounded-2xl bg-white shadow-2xl">
+        <div className="px-6 py-5 border-b border-gray-100">
+          <h2 className="text-lg font-semibold text-gray-900">{t.uploadModal.title}</h2>
+          <p className="text-sm text-gray-500 mt-1">{t.uploadModal.subtitle}</p>
+        </div>
+
+        <div className="p-6">
+          <div
+            className={`rounded-2xl border-2 border-dashed px-6 py-10 text-center transition-colors ${
+              isDragging ? 'border-gray-400 bg-gray-100' : 'border-gray-300 bg-gray-50'
+            }`}
+            onDrop={handleDrop}
+            onDragOver={handleDragOver}
+            onDragLeave={handleDragLeave}
+            onClick={() => fileInputRef.current?.click()}
+          >
+            <input
+              ref={fileInputRef}
+              type="file"
+              multiple
+              accept={ACCEPTED_FILE_TYPES.join(',')}
+              className="hidden"
+              onChange={(e) => handleFileSelect(e.target.files)}
+            />
+            <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-white text-gray-500 shadow-sm">
+              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+              </svg>
+            </div>
+            <p className="text-sm font-medium text-gray-800">{t.uploadModal.dropTitle}</p>
+            <p className="mt-2 text-xs text-gray-500">{t.uploadModal.dropHint}</p>
+          </div>
+
+          {uploadFiles.length > 0 && (
+            <div className="mt-4 max-h-48 overflow-y-auto space-y-2">
+              {uploadFiles.map((uploadFile, index) => (
+                <div
+                  key={`${uploadFile.file.name}-${index}`}
+                  className="flex items-center gap-3 rounded-lg border border-gray-200 bg-gray-50 px-3 py-2"
+                >
+                  <svg className="w-4 h-4 text-gray-500 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                  </svg>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm text-gray-900 truncate">{uploadFile.file.name}</p>
+                    <p className="text-xs text-gray-500">{formatFileSize(uploadFile.file.size, locale)}</p>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    {uploadFile.status === 'pending' && (
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          void handleUploadSingle(index);
+                        }}
+                        disabled={isUploading}
+                        className="text-xs text-gray-600 hover:text-gray-900 disabled:opacity-50"
+                      >
+                        {t.uploadStatus.pending}
+                      </button>
+                    )}
+                    {uploadFile.status === 'uploading' && (
+                      <span className="text-xs text-blue-600 flex items-center gap-1">
+                        <svg className="w-3 h-3 animate-spin" fill="none" viewBox="0 0 24 24">
+                          <circle className="opacity-20" cx="12" cy="12" r="9" stroke="currentColor" strokeWidth="1.8" />
+                          <path className="opacity-90" fill="currentColor" d="M12 3a9 9 0 019 9h-2.2A6.8 6.8 0 0012 5.2V3z" />
+                        </svg>
+                        {t.uploadStatus.uploading}
+                      </span>
+                    )}
+                    {uploadFile.status === 'success' && (
+                      <span className="text-xs text-green-600 flex items-center gap-1">
+                        <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" />
+                        </svg>
+                        {t.uploadStatus.success}
+                      </span>
+                    )}
+                    {uploadFile.status === 'error' && (
+                      <span className="text-xs text-red-600" title={uploadFile.error}>
+                        {t.uploadStatus.error}
+                      </span>
+                    )}
+                    {uploadFile.status === 'pending' && (
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleRemoveFile(index);
+                        }}
+                        disabled={isUploading}
+                        className="text-gray-400 hover:text-gray-600 disabled:opacity-50"
+                      >
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                      </button>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
+        <div className="flex items-center justify-between gap-3 border-t border-gray-100 px-6 py-4">
+          <div className="flex items-center gap-2">
+            {hasCompletedFiles && (
+              <button
+                type="button"
+                onClick={handleClearCompleted}
+                disabled={isUploading}
+                className="text-sm text-gray-500 hover:text-gray-700 disabled:opacity-50"
+              >
+                {t.clearCompleted}
+              </button>
+            )}
+          </div>
+          <div className="flex items-center gap-3">
+            <button
+              type="button"
+              onClick={handleClose}
+              disabled={isUploading}
+              className="rounded-lg border border-gray-200 px-4 py-2 text-sm text-gray-600 hover:bg-gray-50 transition-colors disabled:opacity-50"
+            >
+              {t.uploadModal.cancel}
+            </button>
+            {hasPendingFiles && (
+              <button
+                type="button"
+                onClick={() => void handleUploadAll()}
+                disabled={isUploading}
+                className="rounded-lg bg-black px-4 py-2 text-sm font-medium text-white hover:bg-gray-800 transition-colors disabled:opacity-50 flex items-center gap-2"
+              >
+                {isUploading && (
+                  <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-20" cx="12" cy="12" r="9" stroke="currentColor" strokeWidth="1.8" />
+                    <path className="opacity-90" fill="currentColor" d="M12 3a9 9 0 019 9h-2.2A6.8 6.8 0 0012 5.2V3z" />
+                  </svg>
+                )}
+                {t.uploadAll}
+              </button>
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
 }
 
 export default function ScriptFilePage() {
@@ -157,6 +441,15 @@ export default function ScriptFilePage() {
     unavailableChunks: isEn ? '--' : '--',
     unknownParser: isEn ? 'Unknown' : '未知',
     uploadModalNote: isEn ? 'Upload flow is not connected yet.' : '上传流程暂未接入。',
+    uploadStatus: {
+      pending: isEn ? 'Pending' : '等待上传',
+      uploading: isEn ? 'Uploading...' : '上传中...',
+      success: isEn ? 'Uploaded' : '上传成功',
+      error: isEn ? 'Upload failed' : '上传失败',
+    },
+    uploadAll: isEn ? 'Upload All' : '全部上传',
+    clearCompleted: isEn ? 'Clear Completed' : '清除已完成',
+    dropFilesHere: isEn ? 'Drop files here' : '拖拽文件到此处',
     table: {
       name: isEn ? 'Name' : '名称',
       uploadedAt: isEn ? 'Upload Time' : '上传日期',
@@ -184,7 +477,7 @@ export default function ScriptFilePage() {
       title: isEn ? 'Add File' : '新增文件',
       subtitle: isEn ? 'Select files to upload and parse' : '选择要上传并解析的文件',
       dropTitle: isEn ? 'Drop files here or click to browse' : '将文件拖拽到此处，或点击上传',
-      dropHint: isEn ? 'Supports DOC, DOCX, TXT, PDF' : '支持 DOC、DOCX、TXT、PDF',
+      dropHint: isEn ? 'Supports MD, DOCX, TXT, PDF' : '支持 MD、DOCX、TXT、PDF',
       cancel: isEn ? 'Cancel' : '取消',
       confirm: isEn ? 'Start Upload' : '开始上传',
     },
@@ -758,44 +1051,16 @@ export default function ScriptFilePage() {
       ) : null}
 
       {isUploadModalOpen ? (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 px-4">
-          <div className="w-full max-w-lg overflow-hidden rounded-2xl bg-white shadow-2xl">
-            <div className="px-6 py-5 border-b border-gray-100">
-              <h2 className="text-lg font-semibold text-gray-900">{text.uploadModal.title}</h2>
-              <p className="text-sm text-gray-500 mt-1">{text.uploadModal.subtitle}</p>
-            </div>
-
-            <div className="p-6">
-              <div className="rounded-2xl border border-dashed border-gray-300 bg-gray-50 px-6 py-10 text-center">
-                <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-white text-gray-500 shadow-sm">
-                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
-                  </svg>
-                </div>
-                <p className="text-sm font-medium text-gray-800">{text.uploadModal.dropTitle}</p>
-                <p className="mt-2 text-xs text-gray-500">{text.uploadModal.dropHint}</p>
-                <p className="mt-3 text-xs text-amber-600">{text.uploadModalNote}</p>
-              </div>
-            </div>
-
-            <div className="flex items-center justify-end gap-3 border-t border-gray-100 px-6 py-4">
-              <button
-                type="button"
-                onClick={() => setIsUploadModalOpen(false)}
-                className="rounded-lg border border-gray-200 px-4 py-2 text-sm text-gray-600 hover:bg-gray-50 transition-colors"
-              >
-                {text.uploadModal.cancel}
-              </button>
-              <button
-                type="button"
-                onClick={() => setIsUploadModalOpen(false)}
-                className="rounded-lg bg-black px-4 py-2 text-sm font-medium text-white hover:bg-gray-800 transition-colors"
-              >
-                {text.uploadModal.confirm}
-              </button>
-            </div>
-          </div>
-        </div>
+        <UploadModal
+          isOpen={isUploadModalOpen}
+          libraryId={libraryId}
+          locale={isEn ? 'en' : 'zh'}
+          text={text}
+          onClose={() => setIsUploadModalOpen(false)}
+          onUploadComplete={() => {
+            void loadFiles('refresh');
+          }}
+        />
       ) : null}
     </div>
   );

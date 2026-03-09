@@ -48,3 +48,12 @@ export interface CreateScriptLibraryRequest {
   name: string;
   description?: string;
 }
+
+export interface ScriptFileContent {
+  id: string;
+  library_id: string;
+  original_name: string;
+  file_extension: string;
+  content: string;
+  content_length: number;
+}
