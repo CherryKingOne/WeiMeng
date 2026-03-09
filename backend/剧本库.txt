@@ -1,60 +1,60 @@
-为了在现有的 DDD 架构中新增“剧本（Scripts）”模块，并且满足 **PostgreSQL 存储元数据、UUID 作为主键、MinIO 作为对象存储** 的需求，我们需要在项目中添加一个新的业务模块 `scripts`，同时在共享基础设施（`shared`）中引入统一的对象存储能力。
+为了在现有的 DDD 架构中引入“剧本（Scripts）”模块，并且满足 **PostgreSQL 存储元数据、UUID 作为主键、MinIO 作为对象存储** 的需求，我们需要在项目中添加一个新的业务模块 `scripts`，同时在共享基础设施（`shared`）中引入统一的对象存储能力。
 
-以下是新增内容后的目录结构（仅展示新增或修改的部分）：
+以下是目录结构（仅展示相关部分）：
 
 ```text
 |-- config/
 |   |-- ...
-|   `-- minio.py                           # [新增] MinIO 对象存储配置
+|   `-- minio.py                           # MinIO 对象存储配置
 |-- src/
 |   |-- api/
 |   |   `-- v1/
-|   |       `-- router.py                  # [修改] 注册 scripts 模块的路由
+|   |       `-- router.py                  # 注册 scripts 模块的路由
 |   |-- modules/
 |   |   |-- ...
-|   |   `-- scripts/                       # [新增] 剧本业务模块
+|   |   `-- scripts/                       # 剧本业务模块
 |   |       |-- __init__.py
 |   |       |-- api/                       # API 接入层
 |   |       |   |-- __init__.py
-|   |       |   |-- dependencies.py        # [新增] 注入剧本应用服务
-|   |       |   `-- router.py              # [新增] 剧本路由 (上传、列表、内容查看、删除)
+|   |       |   |-- dependencies.py        # 注入剧本应用服务
+|   |       |   `-- router.py              # 剧本路由 (上传、列表、内容查看、删除)
 |   |       |-- application/               # 应用层（用例编排）
 |   |       |   |-- __init__.py
 |   |       |   |-- dto/
 |   |       |   |   |-- __init__.py
-|   |       |   |   `-- script_dto.py      # [新增] 剧本响应 DTO (列表和详情)
+|   |       |   |   `-- script_dto.py      # 剧本响应 DTO (列表和详情)
 |   |       |   `-- services/
 |   |       |       |-- __init__.py
-|   |       |       `-- script_app_service.py # [新增] 处理上传、删库删文件、查列表等核心用例
+|   |       |       `-- script_app_service.py # 处理上传、删库删文件、查列表等核心用例
 |   |       |-- domain/                    # 领域层（核心业务逻辑）
 |   |       |   |-- __init__.py
 |   |       |   |-- entities/
 |   |       |   |   |-- __init__.py
-|   |       |   |   `-- script_entity.py   # [新增] 剧本实体 (包含 UUID, filename, size, url 等)
-|   |       |   |-- exceptions.py          # [新增] 异常 (如 UnsupportedFileTypeError, ScriptNotFoundError)
-|   |       |   |-- repositories.py        # [新增] IScriptRepository 仓储接口定义
+|   |       |   |   `-- script_entity.py   # 剧本实体 (包含 UUID, filename, size, url 等)
+|   |       |   |-- exceptions.py          # 异常 (如 UnsupportedFileTypeError, ScriptNotFoundError)
+|   |       |   |-- repositories.py        # IScriptRepository 仓储接口定义
 |   |       |   `-- value_objects/
 |   |       |       |-- __init__.py
-|   |       |       `-- file_format.py     # [新增] 文件格式值对象 (校验 txt, md, word, pdf)
+|   |       |       `-- file_format.py     # 文件格式值对象 (校验 txt, md, word, pdf)
 |   |       `-- infrastructure/            # 基础设施层（数据库操作）
 |   |           |-- __init__.py
 |   |           |-- mappers/
 |   |           |   |-- __init__.py
-|   |           |   `-- script_mapper.py   # [新增] SQLAlchemy Model 与 领域 Entity 转换
+|   |           |   `-- script_mapper.py   # SQLAlchemy Model 与 领域 Entity 转换
 |   |           |-- models/
 |   |           |   |-- __init__.py
-|   |           |   `-- script_model.py    # [新增] PostgreSQL 剧本表模型 (主键 UUID)
+|   |           |   `-- script_model.py    # PostgreSQL 剧本表模型 (主键 UUID)
 |   |           `-- repositories/
 |   |               |-- __init__.py
-|   |               `-- script_repository.py # [新增] IScriptRepository 的具体实现
+|   |               `-- script_repository.py # IScriptRepository 的具体实现
 |   `-- shared/                            # 跨模块通用能力
 |       |-- extensions/
 |       |   |-- ...
-|       |   `-- storage/                   # [新增] 对象存储扩展
+|       |   `-- storage/                   # 对象存储扩展
 |       |       |-- __init__.py
-|       |       |-- base.py                # [新增] 存储提供者抽象类 (定义上传、删除、获取流接口)
-|       |       `-- minio_provider.py      # [新增] MinIO 具体实现类
-|-- pyproject.toml                         # [修改] 新增依赖 (如 minio, python-multipart, pdfplumber等)
+|       |       |-- base.py                # 存储提供者抽象类 (定义上传、删除、获取流接口)
+|       |       `-- minio_provider.py      # MinIO 具体实现类
+|-- pyproject.toml                         # 依赖 (如 minio, python-multipart, pdfplumber等)
 ```
 
 ---
