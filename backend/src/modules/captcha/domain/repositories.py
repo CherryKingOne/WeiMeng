@@ -7,13 +7,13 @@ class ICaptchaRepository(ABC):
         pass
     
     @abstractmethod
-    async def find_by_email(self, email: str) -> str | None:
+    async def find_by_email(self, email: str, purpose: str = "general") -> str | None:
         pass
     
     @abstractmethod
-    async def delete(self, email: str) -> bool:
+    async def delete(self, email: str, purpose: str = "general") -> bool:
         pass
     
     @abstractmethod
-    async def exists(self, email: str) -> bool:
+    async def exists(self, email: str, purpose: str = "general") -> bool:
         pass

@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   weimeng-api:
     build: .
@@ -17,6 +15,15 @@ services:
       - REDIS_HOST=weimeng-redis
       - REDIS_PORT=6379
       - REDIS_PASSWORD=weimeng
+      # MinIO connection (internal docker network)
+      - MINIO_ENDPOINT=weimeng-minio:9000
+      - MINIO_ACCESS_KEY=${MINIO_ACCESS_KEY:-weimengminio}
+      - MINIO_SECRET_KEY=${MINIO_SECRET_KEY:-weimengminio}
+      - MINIO_BUCKET_NAME=${MINIO_BUCKET_NAME:-scripts}
+      - MINIO_SECURE=False
+      # Elasticsearch
+      - ELASTICSEARCH_URL=${ELASTICSEARCH_URL:-http://10.10.155.252:9200/}
+      - ELASTICSEARCH_SCRIPT_CHUNK_INDEX=${ELASTICSEARCH_SCRIPT_CHUNK_INDEX:-script_chunks}
       # App Settings
       - APP_ENV=development
     env_file:
@@ -24,6 +31,7 @@ services:
     depends_on:
       - weimeng-postgre
       - weimeng-redis
+      - weimeng-minio
     volumes:
       - .:/app
 
@@ -48,6 +56,20 @@ services:
     volumes:
       - redis_data:/data
 
+  weimeng-minio:
+    image: minio/minio:latest
+    container_name: weimeng-minio
+    command: server /data --console-address ":9001"
+    environment:
+      - MINIO_ROOT_USER=${MINIO_ACCESS_KEY:-weimengminio}
+      - MINIO_ROOT_PASSWORD=${MINIO_SECRET_KEY:-weimengminio}
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    volumes:
+      - minio_data:/data
+
 volumes:
   postgres_data:
   redis_data:
+  minio_data:

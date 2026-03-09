@@ -30,6 +30,20 @@ export interface ScriptLibrary {
   created_at: string;
 }
 
+export interface ScriptLibraryFile {
+  id: string;
+  library_id: string;
+  original_name: string;
+  file_extension: string;
+  content_type: string;
+  file_size: number;
+  created_at: string;
+}
+
+export interface DeleteScriptLibraryFileResponse {
+  message: string;
+}
+
 export interface CreateScriptLibraryRequest {
   name: string;
   description?: string;

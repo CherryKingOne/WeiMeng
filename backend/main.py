@@ -54,6 +54,60 @@ BEGIN
 END $$;
 """
 
+SCRIPT_CHUNK_REFERENCE_SCHEMA_MIGRATION_SQL = """
+DO $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1
+        FROM information_schema.tables
+        WHERE table_schema = 'public'
+          AND table_name = 'script_chunks'
+    ) THEN
+        RETURN;
+    END IF;
+
+    IF EXISTS (
+        SELECT 1
+        FROM information_schema.columns
+        WHERE table_schema = 'public'
+          AND table_name = 'script_chunks'
+          AND column_name = 'content'
+    ) THEN
+        ALTER TABLE public.script_chunks DROP COLUMN content;
+    END IF;
+
+    IF EXISTS (
+        SELECT 1
+        FROM information_schema.columns
+        WHERE table_schema = 'public'
+          AND table_name = 'script_chunks'
+          AND column_name = 'chunk_size'
+    ) THEN
+        ALTER TABLE public.script_chunks DROP COLUMN chunk_size;
+    END IF;
+
+    IF EXISTS (
+        SELECT 1
+        FROM information_schema.columns
+        WHERE table_schema = 'public'
+          AND table_name = 'script_chunks'
+          AND column_name = 'start_index'
+    ) THEN
+        ALTER TABLE public.script_chunks DROP COLUMN start_index;
+    END IF;
+
+    IF EXISTS (
+        SELECT 1
+        FROM information_schema.columns
+        WHERE table_schema = 'public'
+          AND table_name = 'script_chunks'
+          AND column_name = 'end_index'
+    ) THEN
+        ALTER TABLE public.script_chunks DROP COLUMN end_index;
+    END IF;
+END $$;
+"""
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -61,6 +115,7 @@ async def lifespan(app: FastAPI):
     
     async with engine.begin() as conn:
         await conn.execute(text(SCRIPT_LIBRARY_MAPPING_SCHEMA_MIGRATION_SQL))
+        await conn.execute(text(SCRIPT_CHUNK_REFERENCE_SCHEMA_MIGRATION_SQL))
         await conn.run_sync(Base.metadata.create_all)
     yield
 

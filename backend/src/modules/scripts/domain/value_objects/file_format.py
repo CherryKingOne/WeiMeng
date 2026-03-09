@@ -7,7 +7,7 @@ from src.modules.scripts.domain.exceptions import UnsupportedFileTypeError
 class FileFormat:
     extension: str
 
-    SUPPORTED_EXTENSIONS = {"txt", "md", "doc", "docx", "pdf"}
+    SUPPORTED_EXTENSIONS = {"txt", "md", "docx", "pdf"}
     TEXT_EXTENSIONS = {"txt", "md"}
 
     @classmethod

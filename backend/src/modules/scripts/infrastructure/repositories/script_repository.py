@@ -3,11 +3,14 @@ from uuid import UUID
 from sqlalchemy import delete, desc, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from src.modules.scripts.domain.entities.script_chunk_entity import ScriptChunk
 from src.modules.scripts.domain.entities.script_entity import Script
 from src.modules.scripts.domain.entities.script_library_entity import ScriptLibrary
 from src.modules.scripts.domain.repositories import IScriptRepository
+from src.modules.scripts.infrastructure.mappers.script_chunk_mapper import ScriptChunkMapper
 from src.modules.scripts.infrastructure.mappers.script_library_mapper import ScriptLibraryMapper
 from src.modules.scripts.infrastructure.mappers.script_mapper import ScriptMapper
+from src.modules.scripts.infrastructure.models.script_chunk_model import ScriptChunkModel
 from src.modules.scripts.infrastructure.models.script_library_model import ScriptLibraryModel
 from src.modules.scripts.infrastructure.models.script_library_script_model import ScriptLibraryScriptModel
 from src.modules.scripts.infrastructure.models.script_model import ScriptModel
@@ -133,3 +136,33 @@ class ScriptRepository(IScriptRepository):
         await self._session.delete(script_model)
         await self._session.commit()
         return True
+
+    async def list_chunks(self, script_id: UUID, library_id: UUID) -> list[ScriptChunk]:
+        result = await self._session.execute(
+            select(ScriptChunkModel)
+            .where(
+                ScriptChunkModel.script_id == script_id,
+                ScriptChunkModel.library_id == library_id,
+            )
+            .order_by(ScriptChunkModel.index_id.asc())
+        )
+        models = result.scalars().all()
+        return [ScriptChunkMapper.to_entity(model) for model in models]
+
+    async def replace_chunks(
+        self,
+        script_id: UUID,
+        library_id: UUID,
+        chunks: list[ScriptChunk],
+    ) -> None:
+        await self._session.execute(
+            delete(ScriptChunkModel).where(
+                ScriptChunkModel.script_id == script_id,
+                ScriptChunkModel.library_id == library_id,
+            )
+        )
+
+        for chunk in chunks:
+            self._session.add(ScriptChunkMapper.to_model(chunk))
+
+        await self._session.commit()

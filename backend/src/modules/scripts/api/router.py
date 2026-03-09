@@ -114,7 +114,7 @@ async def execute_script_chunks(
     script_id: UUID,
     service: ScriptAppService = Depends(get_script_app_service),
 ):
-    return await service.get_script_chunks(library_id, script_id)
+    return await service.execute_script_chunks(library_id, script_id)
 
 
 @router.delete("/libraries/{library_id}/files/{script_id}", response_model=ScriptDeleteResponse)

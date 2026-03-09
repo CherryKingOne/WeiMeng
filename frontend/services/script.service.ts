@@ -1,10 +1,12 @@
 import { api } from './api';
 import {
   CreateScriptLibraryRequest,
+  DeleteScriptLibraryFileResponse,
   PaginatedResponse,
   Script,
   ScriptFilter,
   ScriptLibrary,
+  ScriptLibraryFile,
 } from '@/types';
 
 export const scriptService = {
@@ -46,6 +48,16 @@ export const scriptService = {
 
   listLibraries: async (): Promise<ScriptLibrary[]> => {
     const response = await api.get<ScriptLibrary[]>('/scripts/libraries');
+    return response.data;
+  },
+
+  listLibraryFiles: async (libraryId: string): Promise<ScriptLibraryFile[]> => {
+    const response = await api.get<ScriptLibraryFile[]>(`/scripts/libraries/${libraryId}/files`);
+    return response.data;
+  },
+
+  deleteLibraryFile: async (libraryId: string, scriptId: string): Promise<DeleteScriptLibraryFileResponse> => {
+    const response = await api.delete<DeleteScriptLibraryFileResponse>(`/scripts/libraries/${libraryId}/files/${scriptId}`);
     return response.data;
   },
 };

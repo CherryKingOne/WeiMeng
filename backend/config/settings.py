@@ -3,6 +3,7 @@ from config.database import DatabaseSettings
 from config.redis import RedisSettings
 from config.email import EmailSettings
 from config.ai import AISettings
+from config.elasticsearch import ElasticsearchSettings
 from config.minio import MinIOSettings
 
 
@@ -19,6 +20,7 @@ class Settings(BaseSettings):
     redis: RedisSettings = RedisSettings()
     email: EmailSettings = EmailSettings()
     ai: AISettings = AISettings()
+    elasticsearch: ElasticsearchSettings = ElasticsearchSettings()
     minio: MinIOSettings = MinIOSettings()
 
     class Config:

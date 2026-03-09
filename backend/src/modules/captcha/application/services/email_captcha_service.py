@@ -1,3 +1,4 @@
+import logging
 from pathlib import Path
 from src.modules.captcha.domain.entities.captcha import Captcha
 from src.modules.captcha.domain.repositories import ICaptchaRepository
@@ -6,6 +7,8 @@ from src.modules.captcha.domain.exceptions import CaptchaSendFailedException
 from src.modules.captcha.application.dto.captcha_dto import CaptchaSendRequest, CaptchaSendResponse
 from src.shared.extensions.email.sender import email_sender
 from config.settings import settings
+
+logger = logging.getLogger(__name__)
 
 class EmailCaptchaService:
     def __init__(self, captcha_repository: ICaptchaRepository):
@@ -91,7 +94,9 @@ class EmailCaptchaService:
             purpose=purpose
         )
         
-        await self._captcha_repository.save(captcha)
+        saved = await self._captcha_repository.save(captcha)
+        if not saved:
+            raise CaptchaSendFailedException(detail="Failed to persist captcha code")
         
         subject, html_content, text_content = self._build_email_content(
             captcha.code, purpose
@@ -108,6 +113,18 @@ class EmailCaptchaService:
         )
         
         if not success:
+            try:
+                await self._captcha_repository.delete(
+                    email=request.email,
+                    purpose=purpose,
+                )
+            except Exception as exc:
+                logger.error(
+                    "Captcha rollback failed after email send failure: email=%s purpose=%s error=%s",
+                    request.email,
+                    purpose,
+                    exc,
+                )
             raise CaptchaSendFailedException()
         
         return CaptchaSendResponse(message="验证码已发送，请查收邮件")

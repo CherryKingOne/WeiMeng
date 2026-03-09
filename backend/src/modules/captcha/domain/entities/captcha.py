@@ -1,5 +1,4 @@
 from dataclasses import dataclass
-from datetime import datetime
 from src.shared.domain.base_entity import BaseEntity
 
 @dataclass
@@ -11,7 +10,18 @@ class Captcha(BaseEntity):
     
     @property
     def redis_key(self) -> str:
-        return f"captcha:{self.email}"
+        return self.build_redis_key(self.email, self.purpose)
+
+    @staticmethod
+    def normalize_purpose(purpose: str | None) -> str:
+        normalized = (purpose or "general").strip().lower()
+        return normalized or "general"
+
+    @classmethod
+    def build_redis_key(cls, email: str, purpose: str = "general") -> str:
+        normalized_email = email.strip().lower()
+        normalized_purpose = cls.normalize_purpose(purpose)
+        return f"captcha:{normalized_purpose}:{normalized_email}"
     
     @property
     def is_expired(self) -> bool:
@@ -23,5 +33,5 @@ class Captcha(BaseEntity):
             email=email,
             code=code,
             ttl=ttl,
-            purpose=purpose
+            purpose=cls.normalize_purpose(purpose),
         )

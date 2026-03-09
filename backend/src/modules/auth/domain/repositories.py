@@ -15,7 +15,7 @@ class IUserRepository(ABC):
         pass
     
     @abstractmethod
-    async def update(self, user: User) -> User:
+    async def update(self, user: User) -> User | None:
         pass
     
     @abstractmethod

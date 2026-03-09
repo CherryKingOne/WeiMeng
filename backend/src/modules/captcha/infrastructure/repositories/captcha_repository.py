@@ -13,12 +13,15 @@ class CaptchaRepository(ICaptchaRepository):
             captcha.ttl
         )
     
-    async def find_by_email(self, email: str) -> str | None:
-        return await self._redis.get(f"captcha:{email}")
+    async def find_by_email(self, email: str, purpose: str = "general") -> str | None:
+        redis_key = Captcha.build_redis_key(email, purpose)
+        return await self._redis.get(redis_key)
     
-    async def delete(self, email: str) -> bool:
-        result = await self._redis.delete(f"captcha:{email}")
+    async def delete(self, email: str, purpose: str = "general") -> bool:
+        redis_key = Captcha.build_redis_key(email, purpose)
+        result = await self._redis.delete(redis_key)
         return result > 0
     
-    async def exists(self, email: str) -> bool:
-        return await self._redis.exists(f"captcha:{email}")
+    async def exists(self, email: str, purpose: str = "general") -> bool:
+        redis_key = Captcha.build_redis_key(email, purpose)
+        return await self._redis.exists(redis_key)

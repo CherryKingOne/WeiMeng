@@ -44,3 +44,12 @@ class ChunkingError(DomainException):
             code=500,
             detail=detail or "Script chunking failed",
         )
+
+
+class StorageCleanupError(DomainException):
+    def __init__(self, detail: str | None = None):
+        super().__init__(
+            message="Storage cleanup failed",
+            code=500,
+            detail=detail or "Database records are deleted but storage cleanup failed",
+        )

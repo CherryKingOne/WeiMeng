@@ -3,6 +3,7 @@ from src.modules.auth.domain.repositories import IUserRepository
 from src.modules.auth.domain.services.authentication_service import authentication_domain_service
 from src.modules.auth.domain.exceptions import UserAlreadyExistsException
 from src.modules.auth.application.dto.register_dto import RegisterRequest, RegisterResponse
+from src.modules.captcha.domain.entities.captcha import Captcha
 from src.shared.domain.exceptions import ValidationException
 from src.shared.infrastructure.redis import RedisRepository
 
@@ -13,7 +14,8 @@ class RegisterService:
         self._auth_service = authentication_domain_service
     
     async def register(self, request: RegisterRequest) -> RegisterResponse:
-        stored_code = await self._redis_repository.get(f"captcha:{request.email}")
+        captcha_key = Captcha.build_redis_key(request.email, purpose="login")
+        stored_code = await self._redis_repository.get(captcha_key)
         
         if not stored_code or stored_code != request.captcha:
             raise ValidationException(
@@ -35,6 +37,6 @@ class RegisterService:
         
         await self._user_repository.save(user)
         
-        await self._redis_repository.delete(f"captcha:{request.email}")
+        await self._redis_repository.delete(captcha_key)
         
         return RegisterResponse(message="注册成功")

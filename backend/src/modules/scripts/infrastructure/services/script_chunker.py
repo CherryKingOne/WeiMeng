@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from collections.abc import Iterable
 from typing import Any
 
 from langchain_core.documents import Document
@@ -40,8 +41,24 @@ class ScriptSentenceWindowTextSplitter(TextSplitter):
         text: str,
         metadata: dict[str, Any] | None = None,
     ) -> list[Document]:
+        boundaries = self._split_with_indices(text or "")
+        return self._to_documents(boundaries, metadata)
+
+    def create_documents_from_text_segments(
+        self,
+        text_segments: Iterable[str],
+        metadata: dict[str, Any] | None = None,
+    ) -> list[Document]:
+        boundaries = self._split_streaming_with_indices(text_segments)
+        return self._to_documents(boundaries, metadata)
+
+    def _to_documents(
+        self,
+        boundaries: list[tuple[str, int, int]],
+        metadata: dict[str, Any] | None = None,
+    ) -> list[Document]:
         documents: list[Document] = []
-        for index, (chunk, start_index, end_index) in enumerate(self._split_with_indices(text or "")):
+        for index, (chunk, start_index, end_index) in enumerate(boundaries):
             item_metadata = {
                 **(metadata or {}),
                 "chunk_index": index,
@@ -56,6 +73,70 @@ class ScriptSentenceWindowTextSplitter(TextSplitter):
                 )
             )
         return documents
+
+    def _split_streaming_with_indices(self, text_segments: Iterable[str]) -> list[tuple[str, int, int]]:
+        chunks: list[tuple[str, int, int]] = []
+        buffer = ""
+        buffer_start_index = 0
+
+        for segment in text_segments:
+            if not segment:
+                continue
+            buffer += segment
+            buffer, buffer_start_index = self._drain_buffer(
+                buffer=buffer,
+                buffer_start_index=buffer_start_index,
+                output=chunks,
+                force_tail=False,
+            )
+
+        self._drain_buffer(
+            buffer=buffer,
+            buffer_start_index=buffer_start_index,
+            output=chunks,
+            force_tail=True,
+        )
+        return chunks
+
+    def _drain_buffer(
+        self,
+        buffer: str,
+        buffer_start_index: int,
+        output: list[tuple[str, int, int]],
+        force_tail: bool,
+    ) -> tuple[str, int]:
+        while buffer:
+            if len(buffer) <= self._chunk_size:
+                if not force_tail:
+                    break
+                split_end = len(buffer)
+            else:
+                raw_end = self._chunk_size
+                split_end = self._find_split_end(buffer, 0, raw_end)
+                if split_end <= 0:
+                    split_end = raw_end
+
+            raw_chunk = buffer[:split_end]
+            trimmed_chunk = raw_chunk.strip()
+            if trimmed_chunk:
+                leading_ws = len(raw_chunk) - len(raw_chunk.lstrip())
+                trailing_ws = len(raw_chunk) - len(raw_chunk.rstrip())
+                content_start = buffer_start_index + leading_ws
+                content_end = buffer_start_index + split_end - trailing_ws
+                output.append((trimmed_chunk, content_start, content_end))
+
+            if split_end >= len(buffer):
+                buffer_start_index += split_end
+                buffer = ""
+                break
+
+            next_start = max(split_end - self._chunk_overlap, 1)
+            if next_start >= split_end:
+                next_start = split_end
+            buffer = buffer[next_start:]
+            buffer_start_index += next_start
+
+        return buffer, buffer_start_index
 
     def _split_with_indices(self, text: str) -> list[tuple[str, int, int]]:
         if not text.strip():

@@ -30,7 +30,7 @@ class UserRepository(IUserRepository):
         await self._session.refresh(model)
         return UserMapper.to_entity(model)
     
-    async def update(self, user: User) -> User:
+    async def update(self, user: User) -> User | None:
         result = await self._session.execute(
             select(UserModel).where(UserModel.id == user.id)
         )

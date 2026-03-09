@@ -2,6 +2,7 @@ from src.modules.auth.domain.repositories import IUserRepository
 from src.modules.auth.domain.services.authentication_service import authentication_domain_service
 from src.modules.auth.domain.exceptions import UserNotFoundException
 from src.modules.auth.application.dto.reset_password_dto import ResetPasswordRequest, ResetPasswordResponse
+from src.modules.captcha.domain.entities.captcha import Captcha
 from src.shared.domain.exceptions import ValidationException
 from src.shared.infrastructure.redis import RedisRepository
 
@@ -18,7 +19,8 @@ class ResetPasswordService:
                 detail="Password and confirm password must match"
             )
         
-        stored_code = await self._redis_repository.get(f"captcha:{request.email}")
+        captcha_key = Captcha.build_redis_key(request.email, purpose="forgot_password")
+        stored_code = await self._redis_repository.get(captcha_key)
         
         if not stored_code:
             raise ValidationException(
@@ -41,6 +43,6 @@ class ResetPasswordService:
         
         await self._user_repository.update(user)
         
-        await self._redis_repository.delete(f"captcha:{request.email}")
+        await self._redis_repository.delete(captcha_key)
         
         return ResetPasswordResponse(message="密码重置成功")

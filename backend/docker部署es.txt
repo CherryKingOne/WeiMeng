@@ -1,0 +1,114 @@
+# 创建网络：
+
+docker network create elastic
+
+## pull docker 镜像
+
+docker pull docker.elastic.co/elasticsearch/elasticsearch:9.3.1
+
+### 启动
+docker run -d \
+  --name elasticsearch \
+  --net elastic \
+  -p 9200:9200 \
+  -e "discovery.type=single-node" \
+  -e "xpack.security.enabled=false" \
+  -e "bootstrap.memory_lock=true" \
+  -e "ES_JAVA_OPTS=-Xms2g -Xmx2g" \
+  --ulimit memlock=-1:-1 \
+  --ulimit nofile=65536:65536 \
+  -m 4GB \
+  elasticsearch:7.17.21
+
+
+
+## kibana
+### 下载
+
+docker pull docker.elastic.co/kibana/kibana:9.3.1
+
+### 运行
+docker run --name kib01 --net elastic -p 5601:5601 docker.elastic.co/kibana/kibana:9.3.1
+
+### 启动
+docker run -d \
+  --name kibana \
+  --net elastic \
+  -p 5601:5601 \
+  -e "ELASTICSEARCH_HOSTS=http://elasticsearch:9200" \
+  -e "SERVER_NAME=kibana" \
+  kibana:7.17.21
+
+
+
+
+• 我先不改代码，直接给你一套最短可用的检查方式。先按你现在的默认配置，从索引、文档
+  总数，再到单个 script_id 查询，一步步确认 ES 里有没有 chunk。
+
+• 最直接的看法是用 curl 查你的 ES。
+
+  如果你当前默认索引名没改，就是 script_chunks，先看索引是否存在：
+
+  curl "http://10.10.155.252:9200/_cat/indices?v"
+
+  只看这个索引：
+
+  curl "http://10.10.155.252:9200/_cat/indices/script_chunks?v"
+
+  看里面有多少条文档：
+
+  curl "http://10.10.155.252:9200/script_chunks/_count"
+
+  查最新 10 条 chunk：
+
+  curl -X GET "http://10.10.155.252:9200/script_chunks/_search?pretty" \
+    -H "Content-Type: application/json" \
+    -d '{
+      "size": 10,
+      "sort": [
+        { "created_at": "desc" }
+      ]
+    }'
+
+  如果你想按某个脚本查，查 script_id：
+
+  curl -X GET "http://10.10.155.252:9200/script_chunks/_search?pretty" \
+    -H "Content-Type: application/json" \
+    -d '{
+      "query": {
+        "term": {
+          "script_id": "这里替换成你的 script_id"
+        }
+      }
+    }'
+
+  你会在返回里看到这类字段，说明已经存进 ES 了：
+
+  {
+    "_source": {
+      "script_id": "...",
+      "library_id": "...",
+      "index_id": 0,
+      "content": "...",
+      "chunk_size": 123,
+      "start_index": 0,
+      "end_index": 123,
+      "created_at": "..."
+    }
+  }
+
+  如果想查某个 chunk 引用 ID 对应的 ES 文档，直接按 _id 查：
+
+  curl "http://10.10.155.252:9200/script_chunks/_doc/这里替换成chunk_id?pretty"
+
+  你也可以先从 PostgreSQL 里拿一个 chunk 引用 ID，再去 ES 对照：
+
+  select id, script_id, library_id, index_id
+  from script_chunks
+  order by created_at desc
+  limit 10;
+
+  然后把查到的 id 放进上面的 _doc/{chunk_id} 接口里。
+
+  如果你要，我下一步可以直接帮你写一个项目里的检查脚本，比如 uv run python
+  scripts/check_es_chunks.py <script_id>，这样你以后不用手敲 curl。
