@@ -3,8 +3,10 @@ from uuid import UUID
 from fastapi import APIRouter, Depends, File, Security, UploadFile, status
 
 from src.modules.scripts.api.dependencies import get_script_app_service
+from src.modules.scripts.application.dto.script_chunk_dto import ScriptChunkResponse
 from src.modules.scripts.application.dto.script_dto import (
     CreateScriptLibraryRequest,
+    ScriptContentResponse,
     ScriptDeleteResponse,
     ScriptItemResponse,
     ScriptLibraryDeleteResponse,
@@ -77,6 +79,42 @@ async def list_script_files_in_library(
     service: ScriptAppService = Depends(get_script_app_service),
 ):
     return await service.list_library_scripts(library_id)
+
+
+@router.get(
+    "/libraries/{library_id}/files/{script_id}/content",
+    response_model=ScriptContentResponse,
+)
+async def get_script_text_content(
+    library_id: UUID,
+    script_id: UUID,
+    service: ScriptAppService = Depends(get_script_app_service),
+):
+    return await service.get_script_text_content(library_id, script_id)
+
+
+@router.get(
+    "/libraries/{library_id}/files/{script_id}/chunks",
+    response_model=list[ScriptChunkResponse],
+)
+async def get_script_chunks(
+    library_id: UUID,
+    script_id: UUID,
+    service: ScriptAppService = Depends(get_script_app_service),
+):
+    return await service.get_script_chunks(library_id, script_id)
+
+
+@router.post(
+    "/libraries/{library_id}/files/{script_id}/chunks",
+    response_model=list[ScriptChunkResponse],
+)
+async def execute_script_chunks(
+    library_id: UUID,
+    script_id: UUID,
+    service: ScriptAppService = Depends(get_script_app_service),
+):
+    return await service.get_script_chunks(library_id, script_id)
 
 
 @router.delete("/libraries/{library_id}/files/{script_id}", response_model=ScriptDeleteResponse)

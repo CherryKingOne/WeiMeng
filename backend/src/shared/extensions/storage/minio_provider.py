@@ -84,6 +84,24 @@ class MinIOProvider(IStorageProvider):
         except S3Error as exc:  # type: ignore[misc]
             raise RuntimeError(f"Failed to upload object '{object_name}': {exc}") from exc
 
+    async def get_object_bytes(self, object_name: str) -> bytes:
+        await self._ensure_bucket()
+        response = None
+        try:
+            response = await asyncio.to_thread(
+                self._client.get_object,
+                self._bucket_name,
+                object_name,
+            )
+            data = await asyncio.to_thread(response.read)
+            return data
+        except S3Error as exc:  # type: ignore[misc]
+            raise RuntimeError(f"Failed to read object '{object_name}': {exc}") from exc
+        finally:
+            if response is not None:
+                await asyncio.to_thread(response.close)
+                await asyncio.to_thread(response.release_conn)
+
     async def delete_object(self, object_name: str) -> None:
         await self._ensure_bucket()
         try:

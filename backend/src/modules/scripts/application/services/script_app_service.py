@@ -5,8 +5,10 @@ from uuid import UUID
 
 from fastapi import UploadFile
 
+from src.modules.scripts.application.dto.script_chunk_dto import ScriptChunkResponse
 from src.modules.scripts.application.dto.script_dto import (
     CreateScriptLibraryRequest,
+    ScriptContentResponse,
     ScriptDeleteResponse,
     ScriptItemResponse,
     ScriptLibraryDeleteResponse,
@@ -17,11 +19,14 @@ from src.modules.scripts.application.dto.script_dto import (
 from src.modules.scripts.domain.entities.script_entity import Script
 from src.modules.scripts.domain.entities.script_library_entity import ScriptLibrary
 from src.modules.scripts.domain.exceptions import (
+    ChunkingError,
     ScriptLibraryNotFoundException,
     ScriptNotFoundException,
 )
 from src.modules.scripts.domain.repositories import IScriptRepository
 from src.modules.scripts.domain.value_objects.file_format import FileFormat
+from src.modules.scripts.infrastructure.services.file_text_extractor import FileTextExtractor
+from src.modules.scripts.infrastructure.services.script_chunker import ScriptSentenceWindowTextSplitter
 from src.shared.domain.exceptions import ValidationException
 from src.shared.extensions.storage.base import IStorageProvider
 
@@ -31,9 +36,13 @@ class ScriptAppService:
         self,
         script_repository: IScriptRepository,
         storage_provider: IStorageProvider,
+        file_text_extractor: FileTextExtractor,
+        script_chunker: ScriptSentenceWindowTextSplitter,
     ):
         self._script_repository = script_repository
         self._storage_provider = storage_provider
+        self._file_text_extractor = file_text_extractor
+        self._script_chunker = script_chunker
 
     async def create_library(self, request: CreateScriptLibraryRequest) -> ScriptLibraryResponse:
         library_name = request.name.strip()
@@ -113,6 +122,58 @@ class ScriptAppService:
         await self._get_library_or_raise(library_id)
         scripts = await self._script_repository.list_all(library_id=library_id)
         return [ScriptItemResponse.from_entity(script) for script in scripts]
+
+    async def get_script_text_content(self, library_id: UUID, script_id: UUID) -> ScriptContentResponse:
+        await self._get_library_or_raise(library_id)
+        script = await self._get_script_or_raise(script_id)
+        if script.library_id != library_id:
+            raise ScriptNotFoundException(str(script_id))
+        if script.file_extension.lower() not in FileFormat.TEXT_EXTENSIONS:
+            raise ValidationException("Only txt/md text files are supported by this endpoint")
+
+        file_bytes = await self._storage_provider.get_object_bytes(script.storage_path)
+        content_text = self._file_text_extractor.extract(
+            file_bytes=file_bytes,
+            file_extension=script.file_extension,
+        )
+        return ScriptContentResponse.from_entity(script, content_text)
+
+    async def get_script_chunks(self, library_id: UUID, script_id: UUID) -> list[ScriptChunkResponse]:
+        await self._get_library_or_raise(library_id)
+        script = await self._get_script_or_raise(script_id)
+        if script.library_id != library_id:
+            raise ScriptNotFoundException(str(script_id))
+
+        file_bytes = await self._storage_provider.get_object_bytes(script.storage_path)
+        content_text = self._file_text_extractor.extract(
+            file_bytes=file_bytes,
+            file_extension=script.file_extension,
+        )
+        if not content_text:
+            return []
+
+        try:
+            documents = self._script_chunker.create_documents_with_metadata(
+                text=content_text,
+                metadata={
+                    "script_id": str(script.id),
+                    "library_id": str(library_id),
+                    "original_name": script.original_name,
+                },
+            )
+        except Exception as exc:
+            raise ChunkingError(detail=str(exc)) from exc
+
+        return [
+            ScriptChunkResponse(
+                chunk_index=document.metadata["chunk_index"],
+                content=document.page_content,
+                start_index=document.metadata["start_index"],
+                end_index=document.metadata["end_index"],
+                chunk_size=document.metadata["chunk_size"],
+            )
+            for document in documents
+        ]
 
     async def delete_script_from_library(self, library_id: UUID, script_id: UUID) -> ScriptDeleteResponse:
         await self._get_library_or_raise(library_id)

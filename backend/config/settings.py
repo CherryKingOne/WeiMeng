@@ -12,6 +12,8 @@ class Settings(BaseSettings):
     secret_key: str = "your-secret-key"
     algorithm: str = "HS256"
     access_token_expire_days: int = 30
+    scripts_chunk_size: int = 1200
+    scripts_chunk_overlap: int = 200
 
     database: DatabaseSettings = DatabaseSettings()
     redis: RedisSettings = RedisSettings()

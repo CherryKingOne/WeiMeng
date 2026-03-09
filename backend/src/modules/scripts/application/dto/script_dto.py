@@ -66,3 +66,23 @@ class ScriptUploadResponse(ScriptItemResponse):
 
 class ScriptDeleteResponse(BaseModel):
     message: str
+
+
+class ScriptContentResponse(BaseModel):
+    id: UUID
+    library_id: UUID | None = None
+    original_name: str
+    file_extension: str
+    content: str
+    content_length: int
+
+    @classmethod
+    def from_entity(cls, script: Script, content: str) -> "ScriptContentResponse":
+        return cls(
+            id=script.id,
+            library_id=script.library_id,
+            original_name=script.original_name,
+            file_extension=script.file_extension,
+            content=content,
+            content_length=len(content),
+        )

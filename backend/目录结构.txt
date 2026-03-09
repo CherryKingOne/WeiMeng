@@ -109,6 +109,7 @@ WeiMeng/backend
 |   |       |   |-- __init__.py            # Python 包初始化
 |   |       |   |-- dto/
 |   |       |   |   |-- __init__.py        # Python 包初始化
+|   |       |   |   |-- script_chunk_dto.py # 剧本文本分块 DTO
 |   |       |   |   `-- script_dto.py      # 剧本库 DTO 定义
 |   |       |   `-- services/
 |   |       |       |-- __init__.py        # Python 包初始化
@@ -135,9 +136,13 @@ WeiMeng/backend
 |   |           |   |-- script_library_model.py # 剧本库数据库模型
 |   |           |   |-- script_library_script_model.py # 库-文件关联模型
 |   |           |   `-- script_model.py    # 剧本数据库模型
-|   |           `-- repositories/
+|   |           |-- repositories/
+|   |           |   |-- __init__.py        # Python 包初始化
+|   |           |   `-- script_repository.py # 剧本库仓储实现
+|   |           `-- services/
 |   |               |-- __init__.py        # Python 包初始化
-|   |               `-- script_repository.py # 剧本库仓储实现
+|   |               |-- file_text_extractor.py # 文件文本提取器（txt/md/pdf/docx）
+|   |               `-- script_chunker.py  # 自定义分块器（chunk=1200 overlap=200）
 |   `-- shared/                            # 跨模块通用能力
 |       |-- __init__.py                    # Python 包初始化
 |       |-- common/
@@ -195,6 +200,7 @@ WeiMeng/backend
 |       `-- test_scripts/
 |           |-- __init__.py                # 剧本库单测包初始化
 |           |-- test_file_format.py        # 文件格式值对象单测
+|           |-- test_script_chunker.py     # 文本提取与分块单测
 |           `-- test_script_app_service.py # 剧本库应用服务单测
 |-- uv.lock                                # 依赖锁定文件
 |-- 剧本库.txt                             # 剧本库功能说明与任务记录

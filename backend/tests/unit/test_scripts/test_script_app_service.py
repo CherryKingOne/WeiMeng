@@ -9,7 +9,13 @@ from src.modules.scripts.application.dto.script_dto import CreateScriptLibraryRe
 from src.modules.scripts.application.services.script_app_service import ScriptAppService
 from src.modules.scripts.domain.entities.script_entity import Script
 from src.modules.scripts.domain.entities.script_library_entity import ScriptLibrary
-from src.modules.scripts.domain.exceptions import ScriptLibraryNotFoundException
+from src.modules.scripts.domain.exceptions import (
+    ScriptLibraryNotFoundException,
+    ScriptNotFoundException,
+)
+from src.modules.scripts.infrastructure.services.file_text_extractor import FileTextExtractor
+from src.modules.scripts.infrastructure.services.script_chunker import ScriptSentenceWindowTextSplitter
+from src.shared.domain.exceptions import ValidationException
 
 
 class FakeScriptRepository:
@@ -64,9 +70,24 @@ class FakeStorageProvider:
         self._objects[object_name] = data
         return object_name
 
+    async def get_object_bytes(self, object_name: str) -> bytes:
+        return self._objects[object_name]
+
     async def delete_object(self, object_name: str) -> None:
         self._objects.pop(object_name, None)
         self.deleted_objects.append(object_name)
+
+
+def _create_service(
+    repository: FakeScriptRepository | None = None,
+    storage: FakeStorageProvider | None = None,
+) -> ScriptAppService:
+    return ScriptAppService(
+        script_repository=repository or FakeScriptRepository(),
+        storage_provider=storage or FakeStorageProvider(),
+        file_text_extractor=FileTextExtractor(),
+        script_chunker=ScriptSentenceWindowTextSplitter(chunk_size=1200, chunk_overlap=200),
+    )
 
 
 async def _prepare_library_with_script(service: ScriptAppService, filename: str, data: bytes) -> tuple[UUID, UUID, str]:
@@ -77,10 +98,7 @@ async def _prepare_library_with_script(service: ScriptAppService, filename: str,
 
 
 async def _test_script_app_service_create_library():
-    service = ScriptAppService(
-        script_repository=FakeScriptRepository(),
-        storage_provider=FakeStorageProvider(),
-    )
+    service = _create_service()
 
     result = await service.create_library(
         CreateScriptLibraryRequest(name="武侠合集", description="测试剧本库"),
@@ -96,10 +114,7 @@ def test_script_app_service_create_library():
 
 
 async def _test_script_app_service_list_and_get_library():
-    service = ScriptAppService(
-        script_repository=FakeScriptRepository(),
-        storage_provider=FakeStorageProvider(),
-    )
+    service = _create_service()
 
     library = await service.create_library(
         CreateScriptLibraryRequest(name="仙侠", description="库详情"),
@@ -119,10 +134,7 @@ def test_script_app_service_list_and_get_library():
 
 
 async def _test_script_app_service_upload_requires_library():
-    service = ScriptAppService(
-        script_repository=FakeScriptRepository(),
-        storage_provider=FakeStorageProvider(),
-    )
+    service = _create_service()
 
     upload_file = UploadFile(file=BytesIO("你好，剧本".encode("utf-8")), filename="demo.txt")
     with pytest.raises(ScriptLibraryNotFoundException):
@@ -135,10 +147,7 @@ def test_script_app_service_upload_requires_library():
 
 async def _test_script_app_service_upload_list_and_read_text_content():
     repository = FakeScriptRepository()
-    service = ScriptAppService(
-        script_repository=repository,
-        storage_provider=FakeStorageProvider(),
-    )
+    service = _create_service(repository=repository)
 
     library = await service.create_library(CreateScriptLibraryRequest(name="仙侠", description=None))
     upload_file = UploadFile(file=BytesIO("你好，剧本".encode("utf-8")), filename="demo.txt")
@@ -161,10 +170,7 @@ def test_script_app_service_upload_list_and_read_text_content():
 
 
 async def _test_script_app_service_list_library_scripts_requires_library():
-    service = ScriptAppService(
-        script_repository=FakeScriptRepository(),
-        storage_provider=FakeStorageProvider(),
-    )
+    service = _create_service()
     with pytest.raises(ScriptLibraryNotFoundException):
         await service.list_library_scripts(UUID("00000000-0000-0000-0000-000000000001"))
 
@@ -175,10 +181,7 @@ def test_script_app_service_list_library_scripts_requires_library():
 
 async def _test_script_app_service_delete_script_from_library():
     storage = FakeStorageProvider()
-    service = ScriptAppService(
-        script_repository=FakeScriptRepository(),
-        storage_provider=storage,
-    )
+    service = _create_service(storage=storage)
 
     library_id, script_id, _ = await _prepare_library_with_script(
         service,
@@ -197,10 +200,7 @@ def test_script_app_service_delete_script_from_library():
 
 async def _test_script_app_service_delete_library_with_scripts():
     storage = FakeStorageProvider()
-    service = ScriptAppService(
-        script_repository=FakeScriptRepository(),
-        storage_provider=storage,
-    )
+    service = _create_service(storage=storage)
 
     library = await service.create_library(CreateScriptLibraryRequest(name="可删除剧本库", description=None))
     for index in range(2):
@@ -221,3 +221,96 @@ async def _test_script_app_service_delete_library_with_scripts():
 
 def test_script_app_service_delete_library_with_scripts():
     asyncio.run(_test_script_app_service_delete_library_with_scripts())
+
+
+async def _test_script_app_service_get_script_chunks():
+    service = _create_service()
+    text_data = ("这是第一句。这里继续第二句。" * 180).encode("utf-8")
+
+    library = await service.create_library(CreateScriptLibraryRequest(name="分块测试", description=None))
+    upload_file = UploadFile(file=BytesIO(text_data), filename="chunk-demo.txt")
+    uploaded = await service.upload_script(library.id, upload_file)
+
+    chunks = await service.get_script_chunks(library.id, uploaded.id)
+
+    assert len(chunks) > 1
+    assert chunks[0].chunk_index == 0
+    assert chunks[0].chunk_size <= 1200
+    assert chunks[0].content.endswith("。")
+    assert chunks[1].start_index < chunks[0].end_index
+
+
+def test_script_app_service_get_script_chunks():
+    asyncio.run(_test_script_app_service_get_script_chunks())
+
+
+async def _test_script_app_service_get_script_chunks_requires_same_library():
+    service = _create_service()
+    library_a = await service.create_library(CreateScriptLibraryRequest(name="A", description=None))
+    library_b = await service.create_library(CreateScriptLibraryRequest(name="B", description=None))
+    uploaded = await service.upload_script(
+        library_a.id,
+        UploadFile(file=BytesIO("测试内容。".encode("utf-8")), filename="a.txt"),
+    )
+
+    with pytest.raises(ScriptNotFoundException):
+        await service.get_script_chunks(library_b.id, uploaded.id)
+
+
+def test_script_app_service_get_script_chunks_requires_same_library():
+    asyncio.run(_test_script_app_service_get_script_chunks_requires_same_library())
+
+
+async def _test_script_app_service_get_script_text_content():
+    service = _create_service()
+    content = "这是一个文本内容测试。"
+    library = await service.create_library(CreateScriptLibraryRequest(name="文本读取库", description=None))
+    uploaded = await service.upload_script(
+        library.id,
+        UploadFile(file=BytesIO(content.encode("utf-8")), filename="readme.txt"),
+    )
+
+    result = await service.get_script_text_content(library.id, uploaded.id)
+
+    assert result.id == uploaded.id
+    assert result.library_id == library.id
+    assert result.file_extension == "txt"
+    assert result.content == content
+    assert result.content_length == len(content)
+
+
+def test_script_app_service_get_script_text_content():
+    asyncio.run(_test_script_app_service_get_script_text_content())
+
+
+async def _test_script_app_service_get_script_text_content_requires_same_library():
+    service = _create_service()
+    library_a = await service.create_library(CreateScriptLibraryRequest(name="A", description=None))
+    library_b = await service.create_library(CreateScriptLibraryRequest(name="B", description=None))
+    uploaded = await service.upload_script(
+        library_a.id,
+        UploadFile(file=BytesIO("文本".encode("utf-8")), filename="a.txt"),
+    )
+
+    with pytest.raises(ScriptNotFoundException):
+        await service.get_script_text_content(library_b.id, uploaded.id)
+
+
+def test_script_app_service_get_script_text_content_requires_same_library():
+    asyncio.run(_test_script_app_service_get_script_text_content_requires_same_library())
+
+
+async def _test_script_app_service_get_script_text_content_rejects_non_text_file():
+    service = _create_service()
+    library = await service.create_library(CreateScriptLibraryRequest(name="非文本", description=None))
+    uploaded = await service.upload_script(
+        library.id,
+        UploadFile(file=BytesIO(b"%PDF-1.7 fake"), filename="demo.pdf"),
+    )
+
+    with pytest.raises(ValidationException):
+        await service.get_script_text_content(library.id, uploaded.id)
+
+
+def test_script_app_service_get_script_text_content_rejects_non_text_file():
+    asyncio.run(_test_script_app_service_get_script_text_content_rejects_non_text_file())

@@ -26,3 +26,21 @@ class ScriptLibraryNotFoundException(DomainException):
             code=404,
             detail=f"Script library with identifier '{identifier}' does not exist",
         )
+
+
+class TextExtractError(DomainException):
+    def __init__(self, detail: str | None = None):
+        super().__init__(
+            message="Failed to extract script text",
+            code=422,
+            detail=detail or "Script text extraction failed",
+        )
+
+
+class ChunkingError(DomainException):
+    def __init__(self, detail: str | None = None):
+        super().__init__(
+            message="Failed to split script text",
+            code=500,
+            detail=detail or "Script chunking failed",
+        )
