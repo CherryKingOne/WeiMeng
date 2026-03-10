@@ -1,5 +1,6 @@
 'use client';
 
+import Image from 'next/image';
 import { type ChangeEvent, useEffect, useRef, useState } from 'react';
 
 const TEXT_MODEL_OPTIONS = ['gpt-4.1', 'gpt-4o', 'claude-3.5-sonnet'] as const;
@@ -10,6 +11,7 @@ export type ScriptConfigPanelProps = {
   initialLibraryName?: string;
   initialDescription?: string;
   initialAvatarPath?: string;
+  initialAvatarUrl?: string;
   initialTextModel?: TextModelOption;
   initialChunkSize?: number;
   initialOverlap?: number;
@@ -29,6 +31,7 @@ export function ScriptConfigPanel({
   initialLibraryName = '',
   initialDescription = '',
   initialAvatarPath = '',
+  initialAvatarUrl = '',
   initialTextModel = 'gpt-4.1',
   initialChunkSize = 500,
   initialOverlap = 50,
@@ -69,6 +72,7 @@ export function ScriptConfigPanel({
   const [libraryName, setLibraryName] = useState(initialLibraryName);
   const [description, setDescription] = useState(initialDescription);
   const [avatarPath, setAvatarPath] = useState(initialAvatarPath);
+  const [avatarUrl, setAvatarUrl] = useState(initialAvatarUrl);
   const [selectedTextModel, setSelectedTextModel] = useState<TextModelOption>(initialTextModel);
   const [chunkSizeInput, setChunkSizeInput] = useState(String(initialChunkSize));
   const [overlapInput, setOverlapInput] = useState(String(initialOverlap));
@@ -78,6 +82,7 @@ export function ScriptConfigPanel({
   const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
   const modelMenuRef = useRef<HTMLDivElement | null>(null);
   const avatarInputRef = useRef<HTMLInputElement | null>(null);
+  const localAvatarObjectUrlRef = useRef<string>('');
 
   useEffect(() => {
     setLibraryName(initialLibraryName);
@@ -90,6 +95,18 @@ export function ScriptConfigPanel({
   useEffect(() => {
     setAvatarPath(initialAvatarPath);
   }, [initialAvatarPath]);
+
+  useEffect(() => {
+    setAvatarUrl(initialAvatarUrl);
+  }, [initialAvatarUrl]);
+
+  useEffect(() => {
+    return () => {
+      if (localAvatarObjectUrlRef.current) {
+        URL.revokeObjectURL(localAvatarObjectUrlRef.current);
+      }
+    };
+  }, []);
 
   useEffect(() => {
     setSelectedTextModel(initialTextModel);
@@ -132,6 +149,7 @@ export function ScriptConfigPanel({
     setLibraryName(initialLibraryName);
     setDescription(initialDescription);
     setAvatarPath(initialAvatarPath);
+    setAvatarUrl(initialAvatarUrl);
     setSelectedTextModel(initialTextModel);
     setChunkSizeInput(String(initialChunkSize));
     setOverlapInput(String(initialOverlap));
@@ -150,6 +168,12 @@ export function ScriptConfigPanel({
     setIsUploadingAvatar(true);
     try {
       const uploadedPath = await onUploadAvatar(file);
+      const localPreviewUrl = URL.createObjectURL(file);
+      if (localAvatarObjectUrlRef.current) {
+        URL.revokeObjectURL(localAvatarObjectUrlRef.current);
+      }
+      localAvatarObjectUrlRef.current = localPreviewUrl;
+      setAvatarUrl(localPreviewUrl);
       if (typeof uploadedPath === 'string' && uploadedPath.length > 0) {
         setAvatarPath(uploadedPath);
       }
@@ -221,11 +245,21 @@ export function ScriptConfigPanel({
                 className="hidden"
                 onChange={(event) => void handleAvatarChange(event)}
               />
-              <div className="min-w-0 text-sm text-gray-500">
-                {avatarPath ? (
-                  <span className="block truncate">
-                    {text.avatarCurrent} {avatarPath}
-                  </span>
+              <div className="min-w-0 text-sm text-gray-500 flex items-center gap-3">
+                {avatarUrl ? (
+                  <>
+                    <Image
+                      src={avatarUrl}
+                      alt={libraryName || text.avatar}
+                      width={40}
+                      height={40}
+                      unoptimized
+                      className="h-10 w-10 rounded-lg object-cover border border-gray-200 bg-white"
+                    />
+                    <span className="block truncate">
+                      {text.avatarCurrent} {avatarPath || text.avatar}
+                    </span>
+                  </>
                 ) : (
                   text.avatarEmpty
                 )}

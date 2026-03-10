@@ -1,6 +1,6 @@
 import axios, { AxiosError, InternalAxiosRequestConfig } from 'axios';
 import { getLocaleFromPath, withLocale } from '@/constants';
-import { getStorageItem } from '@/utils';
+import { clearAuthToken, getStorageItem, syncAuthTokenCookie } from '@/utils';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://0.0.0.0:5607/api/v1';
 
@@ -32,6 +32,7 @@ api.interceptors.request.use(
     }
 
     if (token && config.headers) {
+      syncAuthTokenCookie(token);
       config.headers.Authorization = `Bearer ${token}`;
     }
     return config;
@@ -46,7 +47,7 @@ api.interceptors.response.use(
   (error: AxiosError) => {
     if (error.response?.status === 401) {
       if (typeof window !== 'undefined') {
-        localStorage.removeItem('token');
+        clearAuthToken();
         const locale = getLocaleFromPath(window.location.pathname);
         window.location.href = withLocale('/auth/login', locale);
       }

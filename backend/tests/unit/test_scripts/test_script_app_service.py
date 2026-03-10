@@ -21,6 +21,7 @@ from src.modules.scripts.domain.entities.script_entity import Script
 from src.modules.scripts.domain.entities.script_library_entity import ScriptLibrary
 from src.modules.scripts.domain.exceptions import (
     StorageCleanupError,
+    ScriptLibraryAvatarNotFoundException,
     ScriptLibraryNotFoundException,
     ScriptNotFoundException,
 )
@@ -399,6 +400,38 @@ async def _test_script_app_service_upload_library_avatar_stores_object_under_ima
 
 def test_script_app_service_upload_library_avatar_stores_object_under_image_folder():
     asyncio.run(_test_script_app_service_upload_library_avatar_stores_object_under_image_folder())
+
+
+async def _test_script_app_service_get_library_avatar_returns_uploaded_avatar():
+    repository = FakeScriptRepository()
+    storage = FakeStorageProvider()
+    service = _create_service(repository=repository, storage=storage)
+    library = await service.create_library(CreateScriptLibraryRequest(name="头像读取", description=None))
+
+    await service.upload_library_avatar(
+        library.id,
+        UploadFile(file=BytesIO(b"fake-image-content"), filename="avatar.png"),
+    )
+
+    avatar_bytes, content_type = await service.get_library_avatar(library.id)
+    assert avatar_bytes == b"fake-image-content"
+    assert content_type == "image/png"
+
+
+def test_script_app_service_get_library_avatar_returns_uploaded_avatar():
+    asyncio.run(_test_script_app_service_get_library_avatar_returns_uploaded_avatar())
+
+
+async def _test_script_app_service_get_library_avatar_requires_existing_avatar():
+    service = _create_service()
+    library = await service.create_library(CreateScriptLibraryRequest(name="无头像", description=None))
+
+    with pytest.raises(ScriptLibraryAvatarNotFoundException):
+        await service.get_library_avatar(library.id)
+
+
+def test_script_app_service_get_library_avatar_requires_existing_avatar():
+    asyncio.run(_test_script_app_service_get_library_avatar_requires_existing_avatar())
 
 
 async def _test_script_app_service_list_library_scripts_returns_chunk_count():

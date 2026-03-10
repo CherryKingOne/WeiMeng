@@ -98,6 +98,13 @@ export const scriptService = {
     return response.data;
   },
 
+  getLibraryAvatarBlob: async (libraryId: string): Promise<Blob> => {
+    const response = await api.get<Blob>(`/scripts/libraries/${libraryId}/avatar`, {
+      responseType: 'blob',
+    });
+    return response.data;
+  },
+
   getLibraryFileContent: async (libraryId: string, scriptId: string): Promise<ScriptFileContent> => {
     const response = await api.get<ScriptFileContent>(`/scripts/libraries/${libraryId}/files/${scriptId}/content`);
     return response.data;

@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { User } from '@/types';
-import { getStorageItem, setStorageItem, removeStorageItem } from '@/utils';
+import { clearAuthToken, getStorageItem, setAuthToken } from '@/utils';
 
 interface AuthState {
   user: User | null;
@@ -22,15 +22,15 @@ export const useAuthStore = create<AuthState>((set) => ({
   setUser: (user) => set({ user, isAuthenticated: !!user }),
   setToken: (token) => {
     if (token) {
-      setStorageItem('token', token);
+      setAuthToken(token);
     } else {
-      removeStorageItem('token');
+      clearAuthToken();
     }
     set({ token, isAuthenticated: !!token });
   },
   setLoading: (isLoading) => set({ isLoading }),
   logout: () => {
-    removeStorageItem('token');
+    clearAuthToken();
     set({ user: null, token: null, isAuthenticated: false });
   },
   hydrate: () => {

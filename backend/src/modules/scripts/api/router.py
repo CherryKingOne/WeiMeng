@@ -1,6 +1,6 @@
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, File, Security, UploadFile, status
+from fastapi import APIRouter, Depends, File, Response, Security, UploadFile, status
 
 from src.modules.scripts.api.dependencies import get_script_app_service
 from src.modules.scripts.application.dto.script_chunk_dto import ScriptChunkResponse
@@ -113,6 +113,15 @@ async def upload_script_library_avatar(
     service: ScriptAppService = Depends(get_script_app_service),
 ):
     return await service.upload_library_avatar(library_id, file)
+
+
+@router.get("/libraries/{library_id}/avatar")
+async def get_script_library_avatar(
+    library_id: UUID,
+    service: ScriptAppService = Depends(get_script_app_service),
+):
+    avatar_bytes, content_type = await service.get_library_avatar(library_id)
+    return Response(content=avatar_bytes, media_type=content_type)
 
 
 @router.get("/libraries/{library_id}/files", response_model=list[ScriptItemResponse])

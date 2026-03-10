@@ -27,6 +27,7 @@ from src.modules.scripts.domain.entities.script_entity import Script
 from src.modules.scripts.domain.entities.script_library_entity import ScriptLibrary
 from src.modules.scripts.domain.exceptions import (
     ChunkingError,
+    ScriptLibraryAvatarNotFoundException,
     ScriptLibraryNotFoundException,
     ScriptNotFoundException,
     StorageCleanupError,
@@ -248,6 +249,15 @@ class ScriptAppService:
             await self._delete_objects_with_retry([library.avatar_path], raise_on_failure=False)
 
         return ScriptLibraryResponse.from_entity(updated_library)
+
+    async def get_library_avatar(self, library_id: UUID) -> tuple[bytes, str]:
+        library = await self._get_library_or_raise(library_id)
+        if not library.avatar_path:
+            raise ScriptLibraryAvatarNotFoundException(str(library_id))
+
+        avatar_bytes = await self._storage_provider.get_object_bytes(library.avatar_path)
+        content_type = mimetypes.guess_type(library.avatar_path)[0] or "application/octet-stream"
+        return avatar_bytes, content_type
 
     async def list_library_scripts(self, library_id: UUID) -> list[ScriptItemResponse]:
         await self._get_library_or_raise(library_id)

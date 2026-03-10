@@ -28,6 +28,15 @@ class ScriptLibraryNotFoundException(DomainException):
         )
 
 
+class ScriptLibraryAvatarNotFoundException(DomainException):
+    def __init__(self, identifier: str):
+        super().__init__(
+            message="Script library avatar not found",
+            code=404,
+            detail=f"Script library avatar for '{identifier}' does not exist",
+        )
+
+
 class TextExtractError(DomainException):
     def __init__(self, detail: str | None = None):
         super().__init__(
