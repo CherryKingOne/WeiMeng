@@ -12,10 +12,16 @@ class CreateScriptLibraryRequest(BaseModel):
     description: str | None = Field(default=None, description="剧本库描述")
 
 
+class UpdateScriptLibraryRequest(BaseModel):
+    name: str = Field(..., min_length=1, max_length=128, description="剧本库名称")
+    description: str | None = Field(default=None, description="剧本库描述")
+
+
 class ScriptLibraryResponse(BaseModel):
     id: UUID
     name: str
     description: str | None
+    avatar_path: str | None
     created_at: datetime
 
     @classmethod
@@ -24,6 +30,7 @@ class ScriptLibraryResponse(BaseModel):
             id=library.id,
             name=library.name,
             description=library.description,
+            avatar_path=library.avatar_path,
             created_at=library.created_at,
         )
 
@@ -36,6 +43,19 @@ class ScriptLibraryDetailResponse(ScriptLibraryResponse):
 class ScriptLibraryDeleteResponse(BaseModel):
     message: str
     deleted_script_count: int = 0
+
+
+class ScriptLibraryConfigResponse(BaseModel):
+    library_id: UUID
+    chunk_size: int
+    overlap: int
+    created_at: datetime
+    updated_at: datetime
+
+
+class UpdateScriptLibraryConfigRequest(BaseModel):
+    chunk_size: int = Field(default=500, ge=1, description="切片大小")
+    overlap: int = Field(default=50, ge=0, description="切片重叠长度")
 
 
 class ScriptItemResponse(BaseModel):

@@ -1,16 +1,20 @@
 from uuid import UUID
 
-from sqlalchemy import delete, desc, select
+from sqlalchemy import delete, desc, func, select
+from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.modules.scripts.domain.entities.script_chunk_entity import ScriptChunk
+from src.modules.scripts.domain.entities.script_config_entity import ScriptConfig
 from src.modules.scripts.domain.entities.script_entity import Script
 from src.modules.scripts.domain.entities.script_library_entity import ScriptLibrary
+from src.modules.scripts.infrastructure.mappers.script_config_mapper import ScriptConfigMapper
 from src.modules.scripts.domain.repositories import IScriptRepository
 from src.modules.scripts.infrastructure.mappers.script_chunk_mapper import ScriptChunkMapper
 from src.modules.scripts.infrastructure.mappers.script_library_mapper import ScriptLibraryMapper
 from src.modules.scripts.infrastructure.mappers.script_mapper import ScriptMapper
 from src.modules.scripts.infrastructure.models.script_chunk_model import ScriptChunkModel
+from src.modules.scripts.infrastructure.models.script_config_model import ScriptConfigModel
 from src.modules.scripts.infrastructure.models.script_library_model import ScriptLibraryModel
 from src.modules.scripts.infrastructure.models.script_library_script_model import ScriptLibraryScriptModel
 from src.modules.scripts.infrastructure.models.script_model import ScriptModel
@@ -40,6 +44,42 @@ class ScriptRepository(IScriptRepository):
         )
         models = result.scalars().all()
         return [ScriptLibraryMapper.to_entity(model) for model in models]
+
+    async def update_library_profile(
+        self,
+        library_id: UUID,
+        name: str,
+        description: str | None,
+    ) -> ScriptLibrary | None:
+        result = await self._session.execute(
+            select(ScriptLibraryModel).where(ScriptLibraryModel.id == library_id)
+        )
+        model = result.scalar_one_or_none()
+        if model is None:
+            return None
+
+        model.name = name
+        model.description = description
+        await self._session.commit()
+        await self._session.refresh(model)
+        return ScriptLibraryMapper.to_entity(model)
+
+    async def update_library_avatar(
+        self,
+        library_id: UUID,
+        avatar_path: str | None,
+    ) -> ScriptLibrary | None:
+        result = await self._session.execute(
+            select(ScriptLibraryModel).where(ScriptLibraryModel.id == library_id)
+        )
+        model = result.scalar_one_or_none()
+        if model is None:
+            return None
+
+        model.avatar_path = avatar_path
+        await self._session.commit()
+        await self._session.refresh(model)
+        return ScriptLibraryMapper.to_entity(model)
 
     async def delete_library(self, library_id: UUID) -> bool:
         library_result = await self._session.execute(
@@ -166,3 +206,41 @@ class ScriptRepository(IScriptRepository):
             self._session.add(ScriptChunkMapper.to_model(chunk))
 
         await self._session.commit()
+
+    async def get_library_config(self, library_id: UUID) -> ScriptConfig | None:
+        result = await self._session.execute(
+            select(ScriptConfigModel).where(ScriptConfigModel.library_id == library_id)
+        )
+        model = result.scalar_one_or_none()
+        return ScriptConfigMapper.to_entity(model) if model else None
+
+    async def upsert_library_config(
+        self,
+        library_id: UUID,
+        chunk_size: int,
+        chunk_overlap: int,
+    ) -> ScriptConfig:
+        stmt = (
+            insert(ScriptConfigModel)
+            .values(
+                library_id=library_id,
+                chunk_size=chunk_size,
+                chunk_overlap=chunk_overlap,
+            )
+            .on_conflict_do_update(
+                index_elements=[ScriptConfigModel.library_id],
+                set_={
+                    "chunk_size": chunk_size,
+                    "chunk_overlap": chunk_overlap,
+                    "updated_at": func.now(),
+                },
+            )
+        )
+        await self._session.execute(stmt)
+        await self._session.commit()
+
+        result = await self._session.execute(
+            select(ScriptConfigModel).where(ScriptConfigModel.library_id == library_id)
+        )
+        model = result.scalar_one()
+        return ScriptConfigMapper.to_entity(model)

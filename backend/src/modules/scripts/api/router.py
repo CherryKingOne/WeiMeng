@@ -9,10 +9,13 @@ from src.modules.scripts.application.dto.script_dto import (
     ScriptContentResponse,
     ScriptDeleteResponse,
     ScriptItemResponse,
+    ScriptLibraryConfigResponse,
     ScriptLibraryDeleteResponse,
     ScriptLibraryDetailResponse,
     ScriptLibraryResponse,
     ScriptUploadResponse,
+    UpdateScriptLibraryRequest,
+    UpdateScriptLibraryConfigRequest,
 )
 from src.modules.scripts.application.services.script_app_service import ScriptAppService
 from src.shared.common.dependencies import get_current_user_id
@@ -52,6 +55,32 @@ async def get_script_library(
     return await service.get_library(library_id)
 
 
+@router.put("/libraries/{library_id}", response_model=ScriptLibraryResponse)
+async def update_script_library(
+    library_id: UUID,
+    request: UpdateScriptLibraryRequest,
+    service: ScriptAppService = Depends(get_script_app_service),
+):
+    return await service.update_library(library_id, request)
+
+
+@router.get("/libraries/{library_id}/config", response_model=ScriptLibraryConfigResponse)
+async def get_script_library_config(
+    library_id: UUID,
+    service: ScriptAppService = Depends(get_script_app_service),
+):
+    return await service.get_library_config(library_id)
+
+
+@router.put("/libraries/{library_id}/config", response_model=ScriptLibraryConfigResponse)
+async def update_script_library_config(
+    library_id: UUID,
+    request: UpdateScriptLibraryConfigRequest,
+    service: ScriptAppService = Depends(get_script_app_service),
+):
+    return await service.update_library_config(library_id, request)
+
+
 @router.delete("/libraries/{library_id}", response_model=ScriptLibraryDeleteResponse)
 async def delete_script_library(
     library_id: UUID,
@@ -71,6 +100,19 @@ async def upload_script(
     service: ScriptAppService = Depends(get_script_app_service),
 ):
     return await service.upload_script(library_id, file)
+
+
+@router.post(
+    "/libraries/{library_id}/avatar",
+    response_model=ScriptLibraryResponse,
+    status_code=status.HTTP_201_CREATED,
+)
+async def upload_script_library_avatar(
+    library_id: UUID,
+    file: UploadFile = File(...),
+    service: ScriptAppService = Depends(get_script_app_service),
+):
+    return await service.upload_library_avatar(library_id, file)
 
 
 @router.get("/libraries/{library_id}/files", response_model=list[ScriptItemResponse])

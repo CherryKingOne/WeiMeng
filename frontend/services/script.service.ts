@@ -8,7 +8,10 @@ import {
   ScriptFileContent,
   ScriptFilter,
   ScriptLibrary,
+  ScriptLibraryDetail,
+  ScriptLibraryConfig,
   ScriptLibraryFile,
+  UpdateScriptLibraryRequest,
 } from '@/types';
 
 export const scriptService = {
@@ -53,6 +56,16 @@ export const scriptService = {
     return response.data;
   },
 
+  getLibrary: async (libraryId: string): Promise<ScriptLibraryDetail> => {
+    const response = await api.get<ScriptLibraryDetail>(`/scripts/libraries/${libraryId}`);
+    return response.data;
+  },
+
+  updateLibrary: async (libraryId: string, data: UpdateScriptLibraryRequest): Promise<ScriptLibrary> => {
+    const response = await api.put<ScriptLibrary>(`/scripts/libraries/${libraryId}`, data);
+    return response.data;
+  },
+
   listLibraryFiles: async (libraryId: string): Promise<ScriptLibraryFile[]> => {
     const response = await api.get<ScriptLibraryFile[]>(`/scripts/libraries/${libraryId}/files`);
     return response.data;
@@ -74,6 +87,17 @@ export const scriptService = {
     return response.data;
   },
 
+  uploadLibraryAvatar: async (libraryId: string, file: File): Promise<ScriptLibrary> => {
+    const formData = new FormData();
+    formData.append('file', file);
+    const response = await api.post<ScriptLibrary>(`/scripts/libraries/${libraryId}/avatar`, formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    });
+    return response.data;
+  },
+
   getLibraryFileContent: async (libraryId: string, scriptId: string): Promise<ScriptFileContent> => {
     const response = await api.get<ScriptFileContent>(`/scripts/libraries/${libraryId}/files/${scriptId}/content`);
     return response.data;
@@ -86,6 +110,19 @@ export const scriptService = {
 
   executeLibraryFileChunks: async (libraryId: string, scriptId: string): Promise<ScriptChunk[]> => {
     const response = await api.post<ScriptChunk[]>(`/scripts/libraries/${libraryId}/files/${scriptId}/chunks`);
+    return response.data;
+  },
+
+  getLibraryConfig: async (libraryId: string): Promise<ScriptLibraryConfig> => {
+    const response = await api.get<ScriptLibraryConfig>(`/scripts/libraries/${libraryId}/config`);
+    return response.data;
+  },
+
+  updateLibraryConfig: async (
+    libraryId: string,
+    data: { chunk_size: number; overlap: number },
+  ): Promise<ScriptLibraryConfig> => {
+    const response = await api.put<ScriptLibraryConfig>(`/scripts/libraries/${libraryId}/config`, data);
     return response.data;
   },
 };

@@ -2,7 +2,7 @@
 
 import { isAxiosError } from 'axios';
 import Link from 'next/link';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import {
   type ChangeEvent,
   type KeyboardEvent,
@@ -16,12 +16,15 @@ import {
 import { ScriptConfigPanel } from '../script-config/page';
 import { useLocalePath } from '@/hooks/useLocalePath';
 import { scriptService } from '@/services';
-import type { ScriptLibraryFile } from '@/types';
+import type { ScriptLibrary, ScriptLibraryConfig, ScriptLibraryFile } from '@/types';
 import { localizeRequestError } from '@/utils';
 
 type FileStatus = 'success';
 type ChunkExecutionState = 'idle' | 'processing' | 'processed';
 type ScriptDetailPanel = 'files' | 'settings';
+const DEFAULT_CHUNK_SIZE = 500;
+const DEFAULT_OVERLAP = 50;
+const SCRIPT_DETAIL_PANEL_QUERY_KEY = 'panel';
 
 type UploadFile = {
   file: File;
@@ -415,6 +418,7 @@ function UploadModal({ isOpen, libraryId, locale, text, onClose, onUploadComplet
 
 export default function ScriptFilePage() {
   const router = useRouter();
+  const pathname = usePathname();
   const { locale, withLocalePath } = useLocalePath();
   const searchParams = useSearchParams();
   const isEn = locale === 'en';
@@ -433,7 +437,38 @@ export default function ScriptFilePage() {
   const [enabledMap, setEnabledMap] = useState<Record<string, boolean>>({});
   const [chunkCountMap, setChunkCountMap] = useState<Record<string, number>>({});
   const [chunkExecutionStateMap, setChunkExecutionStateMap] = useState<Record<string, ChunkExecutionState>>({});
-  const [activePanel, setActivePanel] = useState<ScriptDetailPanel>('files');
+  const queryPanel = searchParams.get(SCRIPT_DETAIL_PANEL_QUERY_KEY);
+  const initialPanel: ScriptDetailPanel = queryPanel === 'settings' ? 'settings' : 'files';
+  const [activePanel, setActivePanel] = useState<ScriptDetailPanel>(initialPanel);
+  const [libraryConfig, setLibraryConfig] = useState<ScriptLibraryConfig | null>(null);
+  const [libraryProfile, setLibraryProfile] = useState<{
+    name: string;
+    description: string;
+    avatarPath: string;
+  } | null>(null);
+  const [isConfigLoading, setIsConfigLoading] = useState(false);
+  const [isProfileLoading, setIsProfileLoading] = useState(false);
+
+  useEffect(() => {
+    const nextPanel: ScriptDetailPanel = searchParams.get(SCRIPT_DETAIL_PANEL_QUERY_KEY) === 'settings'
+      ? 'settings'
+      : 'files';
+    setActivePanel(nextPanel);
+  }, [searchParams]);
+
+  const syncActivePanelToUrl = useCallback((nextPanel: ScriptDetailPanel) => {
+    setActivePanel(nextPanel);
+
+    const nextSearchParams = new URLSearchParams(searchParams.toString());
+    if (nextPanel === 'files') {
+      nextSearchParams.delete(SCRIPT_DETAIL_PANEL_QUERY_KEY);
+    } else {
+      nextSearchParams.set(SCRIPT_DETAIL_PANEL_QUERY_KEY, nextPanel);
+    }
+
+    const nextQuery = nextSearchParams.toString();
+    router.replace(nextQuery ? `${pathname}?${nextQuery}` : pathname, { scroll: false });
+  }, [pathname, router, searchParams]);
 
   const selectedScript = useMemo<SelectedScript>(() => {
     const toneParam = searchParams.get('tone');
@@ -476,11 +511,13 @@ export default function ScriptFilePage() {
     : selectedScript.tone === 'red'
       ? 'text-red-600'
       : 'text-gray-400';
-  const selectedScriptInitial = selectedScript.title.slice(0, 1).toUpperCase();
   const selectedScriptMeta = isEn
     ? `Scenes ${selectedScript.scenes} · Roles ${selectedScript.roles} · ${selectedScript.words} words`
     : `场景 ${selectedScript.scenes} · 角色 ${selectedScript.roles} · 字数 ${selectedScript.words}`;
   const defaultSettingsDescription = isEn ? 'No description' : '暂无描述';
+  const displayLibraryName = libraryProfile?.name || selectedScript.title;
+  const displayLibraryDescription = libraryProfile?.description || selectedScript.subtitle || defaultSettingsDescription;
+  const selectedScriptInitial = displayLibraryName.slice(0, 1).toUpperCase();
 
   const text = {
     backToLibrary: isEn ? 'Back to Script Library' : '返回剧本库',
@@ -631,6 +668,56 @@ export default function ScriptFilePage() {
     void loadFiles('initial');
   }, [loadFiles]);
 
+  const loadLibraryConfig = useCallback(async () => {
+    if (!libraryId) {
+      setLibraryConfig(null);
+      return;
+    }
+    setIsConfigLoading(true);
+    try {
+      const config = await scriptService.getLibraryConfig(libraryId);
+      setLibraryConfig(config);
+    } catch {
+      setLibraryConfig({
+        library_id: libraryId,
+        chunk_size: DEFAULT_CHUNK_SIZE,
+        overlap: DEFAULT_OVERLAP,
+        created_at: '',
+        updated_at: '',
+      });
+    } finally {
+      setIsConfigLoading(false);
+    }
+  }, [libraryId]);
+
+  const loadLibraryProfile = useCallback(async () => {
+    if (!libraryId) {
+      setLibraryProfile(null);
+      return;
+    }
+    setIsProfileLoading(true);
+    try {
+      const library = await scriptService.getLibrary(libraryId);
+      setLibraryProfile({
+        name: library.name,
+        description: library.description || '',
+        avatarPath: library.avatar_path || '',
+      });
+    } catch {
+      setLibraryProfile(null);
+    } finally {
+      setIsProfileLoading(false);
+    }
+  }, [libraryId]);
+
+  useEffect(() => {
+    if (activePanel !== 'settings') {
+      return;
+    }
+    void loadLibraryConfig();
+    void loadLibraryProfile();
+  }, [activePanel, loadLibraryConfig, loadLibraryProfile]);
+
   const displayFiles = useMemo<ScriptFileRow[]>(() => {
     return files.map((file) => ({
       id: file.id,
@@ -685,6 +772,46 @@ export default function ScriptFilePage() {
       [fileId]: !prev[fileId],
     }));
   };
+
+  const handleSaveLibraryConfig = useCallback(async (payload: {
+    libraryName: string;
+    description: string;
+    textModel: 'gpt-4.1' | 'gpt-4o' | 'claude-3.5-sonnet';
+    chunkSize: number;
+    overlap: number;
+  }) => {
+    if (!libraryId) {
+      return;
+    }
+    const updatedLibrary = await scriptService.updateLibrary(libraryId, {
+      name: payload.libraryName.trim(),
+      description: payload.description.trim() || null,
+    });
+    const updatedConfig = await scriptService.updateLibraryConfig(libraryId, {
+      chunk_size: payload.chunkSize,
+      overlap: payload.overlap,
+    });
+    setLibraryProfile({
+      name: updatedLibrary.name,
+      description: updatedLibrary.description || '',
+      avatarPath: updatedLibrary.avatar_path || '',
+    });
+    setLibraryConfig(updatedConfig);
+  }, [libraryId]);
+
+  const handleUploadLibraryAvatar = useCallback(async (file: File): Promise<string> => {
+    if (!libraryId) {
+      throw new Error(text.missingLibraryId);
+    }
+    const updatedLibrary: ScriptLibrary = await scriptService.uploadLibraryAvatar(libraryId, file);
+    const nextAvatarPath = updatedLibrary.avatar_path || '';
+    setLibraryProfile((prev) => ({
+      name: updatedLibrary.name || prev?.name || selectedScript.title,
+      description: updatedLibrary.description || prev?.description || '',
+      avatarPath: nextAvatarPath,
+    }));
+    return nextAvatarPath;
+  }, [libraryId, selectedScript.title, text.missingLibraryId]);
 
   const getChunkExecutionState = useCallback((fileId: string): ChunkExecutionState => {
     return chunkExecutionStateMap[fileId] ?? (chunkCountMap[fileId] !== undefined ? 'processed' : 'idle');
@@ -851,7 +978,7 @@ export default function ScriptFilePage() {
               </div>
               <div className="min-w-0">
                 <div className="flex items-center gap-2 min-w-0">
-                  <h2 className="truncate text-sm font-semibold text-gray-900">{selectedScript.title}</h2>
+                  <h2 className="truncate text-sm font-semibold text-gray-900">{displayLibraryName}</h2>
                   <span className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-medium tracking-wider ${selectedScriptBadgeClass}`}>
                     {selectedScript.genre}
                   </span>
@@ -861,13 +988,13 @@ export default function ScriptFilePage() {
               </div>
             </div>
 
-            <p className={`text-xs ${selectedScriptSubtitleClass}`}>{selectedScript.subtitle}</p>
+            <p className={`text-xs ${selectedScriptSubtitleClass}`}>{displayLibraryDescription}</p>
           </div>
 
           <nav className="flex-1 px-3 py-4 space-y-1">
             <button
               type="button"
-              onClick={() => setActivePanel('files')}
+              onClick={() => syncActivePanelToUrl('files')}
               className={`w-full text-left flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors ${
                 activePanel === 'files'
                   ? 'bg-gray-100 text-gray-900'
@@ -893,7 +1020,7 @@ export default function ScriptFilePage() {
             ))}
             <button
               type="button"
-              onClick={() => setActivePanel('settings')}
+              onClick={() => syncActivePanelToUrl('settings')}
               className={`w-full text-left flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors ${
                 activePanel === 'settings'
                   ? 'bg-gray-100 text-gray-900'
@@ -911,12 +1038,24 @@ export default function ScriptFilePage() {
 
         <main className="flex-1 flex flex-col bg-white overflow-hidden">
           {activePanel === 'settings' ? (
-            <ScriptConfigPanel
-              locale={isEn ? 'en' : 'zh'}
-              initialLibraryName={selectedScript.title}
-              initialDescription={selectedScript.subtitle || defaultSettingsDescription}
-              initialTextModel="gpt-4.1"
-            />
+            <>
+              {isConfigLoading || isProfileLoading ? (
+                <div className="px-8 pt-6 text-sm text-gray-500">
+                  {isEn ? 'Loading settings...' : '配置加载中...'}
+                </div>
+              ) : null}
+              <ScriptConfigPanel
+                locale={isEn ? 'en' : 'zh'}
+                initialLibraryName={displayLibraryName}
+                initialDescription={libraryProfile?.description || ''}
+                initialAvatarPath={libraryProfile?.avatarPath || ''}
+                initialTextModel="gpt-4.1"
+                initialChunkSize={libraryConfig?.chunk_size ?? DEFAULT_CHUNK_SIZE}
+                initialOverlap={libraryConfig?.overlap ?? DEFAULT_OVERLAP}
+                onSave={handleSaveLibraryConfig}
+                onUploadAvatar={handleUploadLibraryAvatar}
+              />
+            </>
           ) : (
             <>
               <div className="flex-1 overflow-y-auto px-8 py-4">

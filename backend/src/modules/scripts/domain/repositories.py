@@ -2,6 +2,7 @@ from abc import ABC, abstractmethod
 from uuid import UUID
 
 from src.modules.scripts.domain.entities.script_chunk_entity import ScriptChunk
+from src.modules.scripts.domain.entities.script_config_entity import ScriptConfig
 from src.modules.scripts.domain.entities.script_entity import Script
 from src.modules.scripts.domain.entities.script_library_entity import ScriptLibrary
 
@@ -17,6 +18,23 @@ class IScriptRepository(ABC):
 
     @abstractmethod
     async def list_libraries(self) -> list[ScriptLibrary]:
+        pass
+
+    @abstractmethod
+    async def update_library_profile(
+        self,
+        library_id: UUID,
+        name: str,
+        description: str | None,
+    ) -> ScriptLibrary | None:
+        pass
+
+    @abstractmethod
+    async def update_library_avatar(
+        self,
+        library_id: UUID,
+        avatar_path: str | None,
+    ) -> ScriptLibrary | None:
         pass
 
     @abstractmethod
@@ -50,6 +68,19 @@ class IScriptRepository(ABC):
         library_id: UUID,
         chunks: list[ScriptChunk],
     ) -> None:
+        pass
+
+    @abstractmethod
+    async def get_library_config(self, library_id: UUID) -> ScriptConfig | None:
+        pass
+
+    @abstractmethod
+    async def upsert_library_config(
+        self,
+        library_id: UUID,
+        chunk_size: int,
+        chunk_overlap: int,
+    ) -> ScriptConfig:
         pass
 
 

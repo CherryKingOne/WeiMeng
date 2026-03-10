@@ -27,7 +27,13 @@ export interface ScriptLibrary {
   id: string;
   name: string;
   description?: string | null;
+  avatar_path?: string | null;
   created_at: string;
+}
+
+export interface ScriptLibraryDetail extends ScriptLibrary {
+  updated_at: string;
+  script_count: number;
 }
 
 export interface ScriptLibraryFile {
@@ -50,6 +56,11 @@ export interface CreateScriptLibraryRequest {
   description?: string;
 }
 
+export interface UpdateScriptLibraryRequest {
+  name: string;
+  description?: string | null;
+}
+
 export interface ScriptFileContent {
   id: string;
   library_id: string;
@@ -65,4 +76,12 @@ export interface ScriptChunk {
   start_index: number;
   end_index: number;
   chunk_size: number;
+}
+
+export interface ScriptLibraryConfig {
+  library_id: string;
+  chunk_size: number;
+  overlap: number;
+  created_at: string;
+  updated_at: string;
 }

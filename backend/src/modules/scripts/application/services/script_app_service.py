@@ -13,12 +13,16 @@ from src.modules.scripts.application.dto.script_dto import (
     ScriptContentResponse,
     ScriptDeleteResponse,
     ScriptItemResponse,
+    ScriptLibraryConfigResponse,
     ScriptLibraryDeleteResponse,
     ScriptLibraryDetailResponse,
     ScriptLibraryResponse,
     ScriptUploadResponse,
+    UpdateScriptLibraryRequest,
+    UpdateScriptLibraryConfigRequest,
 )
 from src.modules.scripts.domain.entities.script_chunk_entity import ScriptChunk
+from src.modules.scripts.domain.entities.script_config_entity import ScriptConfig
 from src.modules.scripts.domain.entities.script_entity import Script
 from src.modules.scripts.domain.entities.script_library_entity import ScriptLibrary
 from src.modules.scripts.domain.exceptions import (
@@ -38,6 +42,11 @@ from src.shared.extensions.storage.base import IStorageProvider
 logger = logging.getLogger(__name__)
 
 
+DEFAULT_LIBRARY_CHUNK_SIZE = 500
+DEFAULT_LIBRARY_CHUNK_OVERLAP = 50
+SUPPORTED_LIBRARY_AVATAR_EXTENSIONS = {"jpg", "jpeg", "png", "webp", "gif"}
+
+
 class ScriptAppService:
     def __init__(
         self,
@@ -45,14 +54,12 @@ class ScriptAppService:
         storage_provider: IStorageProvider,
         script_chunk_store: IScriptChunkStore,
         file_text_extractor: FileTextExtractor,
-        script_chunker: ScriptSentenceWindowTextSplitter,
         upload_max_text_length: int,
     ):
         self._script_repository = script_repository
         self._storage_provider = storage_provider
         self._script_chunk_store = script_chunk_store
         self._file_text_extractor = file_text_extractor
-        self._script_chunker = script_chunker
         self._upload_max_text_length = upload_max_text_length
 
     async def create_library(self, request: CreateScriptLibraryRequest) -> ScriptLibraryResponse:
@@ -66,6 +73,11 @@ class ScriptAppService:
             description=description,
         )
         saved_library = await self._script_repository.create_library(library)
+        await self._script_repository.upsert_library_config(
+            library_id=saved_library.id,
+            chunk_size=DEFAULT_LIBRARY_CHUNK_SIZE,
+            chunk_overlap=DEFAULT_LIBRARY_CHUNK_OVERLAP,
+        )
         return ScriptLibraryResponse.from_entity(saved_library)
 
     async def list_libraries(self) -> list[ScriptLibraryResponse]:
@@ -79,9 +91,63 @@ class ScriptAppService:
             id=library.id,
             name=library.name,
             description=library.description,
+            avatar_path=library.avatar_path,
             created_at=library.created_at,
             updated_at=library.updated_at,
             script_count=len(scripts),
+        )
+
+    async def update_library(
+        self,
+        library_id: UUID,
+        request: UpdateScriptLibraryRequest,
+    ) -> ScriptLibraryResponse:
+        library_name = request.name.strip()
+        if not library_name:
+            raise ValidationException("Library name is required")
+
+        description = request.description.strip() if request.description else None
+        updated_library = await self._script_repository.update_library_profile(
+            library_id=library_id,
+            name=library_name,
+            description=description,
+        )
+        if updated_library is None:
+            raise ScriptLibraryNotFoundException(str(library_id))
+
+        return ScriptLibraryResponse.from_entity(updated_library)
+
+    async def get_library_config(self, library_id: UUID) -> ScriptLibraryConfigResponse:
+        await self._get_library_or_raise(library_id)
+        config = await self._get_or_create_library_config(library_id)
+        return ScriptLibraryConfigResponse(
+            library_id=config.library_id,
+            chunk_size=config.chunk_size,
+            overlap=config.chunk_overlap,
+            created_at=config.created_at,
+            updated_at=config.updated_at,
+        )
+
+    async def update_library_config(
+        self,
+        library_id: UUID,
+        request: UpdateScriptLibraryConfigRequest,
+    ) -> ScriptLibraryConfigResponse:
+        await self._get_library_or_raise(library_id)
+        if request.overlap >= request.chunk_size:
+            raise ValidationException("Overlap must be smaller than chunk size")
+
+        config = await self._script_repository.upsert_library_config(
+            library_id=library_id,
+            chunk_size=request.chunk_size,
+            chunk_overlap=request.overlap,
+        )
+        return ScriptLibraryConfigResponse(
+            library_id=config.library_id,
+            chunk_size=config.chunk_size,
+            overlap=config.chunk_overlap,
+            created_at=config.created_at,
+            updated_at=config.updated_at,
         )
 
     async def upload_script(self, library_id: UUID, file: UploadFile) -> ScriptUploadResponse:
@@ -97,7 +163,7 @@ class ScriptAppService:
         await self._validate_upload_text_length(file, file_format)
 
         script_id = uuid.uuid4()
-        object_name = self._build_object_name(library_id, script_id, file_format.extension)
+        object_name = self._build_text_object_name(library_id, script_id, file_format.extension)
         content_type = (
             file.content_type
             or mimetypes.guess_type(file.filename)[0]
@@ -131,6 +197,57 @@ class ScriptAppService:
             raise
 
         return ScriptUploadResponse.from_entity(saved_script)
+
+    async def upload_library_avatar(self, library_id: UUID, file: UploadFile) -> ScriptLibraryResponse:
+        library = await self._get_library_or_raise(library_id)
+
+        if not file.filename:
+            raise ValidationException("File name is required")
+
+        extension = file.filename.split(".")[-1].strip().lower() if "." in file.filename else ""
+        if extension not in SUPPORTED_LIBRARY_AVATAR_EXTENSIONS:
+            raise ValidationException(
+                "Unsupported avatar file type",
+                detail="Avatar must be one of: jpg, jpeg, png, webp, gif",
+            )
+
+        file_size = self._get_upload_file_size(file)
+        if file_size <= 0:
+            raise ValidationException("File is empty")
+
+        content_type = (
+            file.content_type
+            or mimetypes.guess_type(file.filename)[0]
+            or "application/octet-stream"
+        )
+        if not content_type.startswith("image/"):
+            raise ValidationException("Only image files are allowed for avatar upload")
+
+        object_name = self._build_library_avatar_object_name(library_id, extension)
+        file.file.seek(0)
+        await self._storage_provider.upload_file(
+            object_name=object_name,
+            data_stream=file.file,
+            data_size=file_size,
+            content_type=content_type,
+        )
+
+        try:
+            updated_library = await self._script_repository.update_library_avatar(
+                library_id=library_id,
+                avatar_path=object_name,
+            )
+            if updated_library is None:
+                await self._delete_objects_with_retry([object_name], raise_on_failure=False)
+                raise ScriptLibraryNotFoundException(str(library_id))
+        except Exception:
+            await self._delete_objects_with_retry([object_name], raise_on_failure=False)
+            raise
+
+        if library.avatar_path and library.avatar_path != object_name:
+            await self._delete_objects_with_retry([library.avatar_path], raise_on_failure=False)
+
+        return ScriptLibraryResponse.from_entity(updated_library)
 
     async def list_library_scripts(self, library_id: UUID) -> list[ScriptItemResponse]:
         await self._get_library_or_raise(library_id)
@@ -217,6 +334,7 @@ class ScriptAppService:
             library_id=library_id,
         )
         try:
+            library_config = await self._get_or_create_library_config(library_id)
             metadata = {
                 "script_id": str(script.id),
                 "library_id": str(library_id),
@@ -228,6 +346,8 @@ class ScriptAppService:
                     file_stream,
                     script.file_extension,
                     metadata,
+                    library_config.chunk_size,
+                    library_config.chunk_overlap,
                 )
         except ChunkingError:
             raise
@@ -292,7 +412,7 @@ class ScriptAppService:
         return ScriptDeleteResponse(message="Script deleted successfully")
 
     async def delete_library(self, library_id: UUID) -> ScriptLibraryDeleteResponse:
-        await self._get_library_or_raise(library_id)
+        library = await self._get_library_or_raise(library_id)
         scripts = await self._script_repository.list_all(library_id=library_id)
         chunk_refs: list[ScriptChunk] = []
         for script in scripts:
@@ -307,7 +427,10 @@ class ScriptAppService:
             raise_on_failure=False,
         )
         failed_objects = await self._delete_objects_with_retry(
-            [script.storage_path for script in scripts],
+            [
+                *[script.storage_path for script in scripts],
+                *([library.avatar_path] if library.avatar_path else []),
+            ],
             raise_on_failure=False,
         )
         if failed_chunk_ids or failed_objects:
@@ -439,14 +562,30 @@ class ScriptAppService:
         file_stream,
         file_extension: str,
         metadata: dict[str, str],
+        chunk_size: int,
+        chunk_overlap: int,
     ):
+        splitter = ScriptSentenceWindowTextSplitter(
+            chunk_size=chunk_size,
+            chunk_overlap=chunk_overlap,
+        )
         text_segments = self._file_text_extractor.iter_text_segments_from_stream(
             file_stream=file_stream,
             file_extension=file_extension,
         )
-        return self._script_chunker.create_documents_from_text_segments(
+        return splitter.create_documents_from_text_segments(
             text_segments=text_segments,
             metadata=metadata,
+        )
+
+    async def _get_or_create_library_config(self, library_id: UUID) -> ScriptConfig:
+        config = await self._script_repository.get_library_config(library_id)
+        if config is not None:
+            return config
+        return await self._script_repository.upsert_library_config(
+            library_id=library_id,
+            chunk_size=DEFAULT_LIBRARY_CHUNK_SIZE,
+            chunk_overlap=DEFAULT_LIBRARY_CHUNK_OVERLAP,
         )
 
     @staticmethod
@@ -498,8 +637,12 @@ class ScriptAppService:
             raise ValidationException("Unable to determine upload file size") from exc
 
     @staticmethod
-    def _build_object_name(library_id: UUID, script_id: UUID, extension: str) -> str:
-        return f"{library_id}/{script_id}.{extension}"
+    def _build_text_object_name(library_id: UUID, script_id: UUID, extension: str) -> str:
+        return f"{library_id}/text/{script_id}.{extension}"
+
+    @staticmethod
+    def _build_library_avatar_object_name(library_id: UUID, extension: str) -> str:
+        return f"{library_id}/image/avatar.{extension}"
 
     @staticmethod
     def _preview_identifiers(items: list[str]) -> str:

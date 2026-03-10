@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>配置 - WeiMeng</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    * { font-family: ui-sans-serif, system-ui, sans-serif; }
+    .nav-item {
+      transition: all 0.15s ease;
+      color: #6B7280;
+    }
+    .nav-item.active {
+      background: #F3F4F6;
+      color: #111827;
+    }
+    .nav-item:hover:not(.active) {
+      background: #F9FAFB;
+      color: #374151;
+    }
+    .field-input {
+      border: 1px solid #E5E7EB;
+      background: #FFFFFF;
+      transition: border-color 0.15s ease, box-shadow 0.15s ease;
+    }
+    .field-input:focus {
+      outline: none;
+      border-color: #D1D5DB;
+      box-shadow: 0 0 0 3px rgba(17, 24, 39, 0.04);
+    }
+    .custom-select {
+      appearance: none;
+      -webkit-appearance: none;
+      -moz-appearance: none;
+      background: #FAFAFA;
+      border: 1px solid #E5E7EB;
+      transition: border-color 0.15s ease, box-shadow 0.15s ease;
+    }
+    .custom-select:focus {
+      outline: none;
+      border-color: #D1D5DB;
+      box-shadow: 0 0 0 3px rgba(17, 24, 39, 0.04);
+    }
+  </style>
+</head>
+
+<body class="bg-white text-gray-900 h-screen overflow-hidden">
+  <div class="flex h-full">
+    <aside class="w-64 bg-white border-r border-gray-100 flex flex-col shrink-0">
+      <div class="p-4 border-b border-gray-100"><a href="./scripts-detail.html" class="text-sm text-gray-500 hover:text-gray-900">返回文件列表</a></div>
+      <nav class="flex-1 px-3 py-4 space-y-1">
+        <a href="./scripts-detail.html" class="nav-item flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-gray-500"><span>文件列表</span></a>
+        <a href="./scripts-detail-scenes.html" class="nav-item flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-gray-500"><span>场景</span></a>
+        <a href="./scripts-detail-roles.html" class="nav-item flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-gray-500"><span>角色</span></a>
+        <a href="./scripts-detail-storyboard.html" class="nav-item flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-gray-500"><span>分镜</span></a>
+        <a href="./scripts-detail-logs.html" class="nav-item flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-gray-500"><span>日志</span></a>
+        <a href="./scripts-detail-settings.html" class="nav-item active flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium"><span>配置</span></a>
+      </nav>
+    </aside>
+
+    <main class="flex-1 overflow-y-auto px-8 py-6 bg-white">
+      <div class="max-w-4xl mx-auto space-y-4">
+        <div>
+          <h1 class="text-xl font-semibold text-gray-900">配置</h1>
+          <p class="mt-1 text-sm text-gray-500">管理剧本库基础信息与默认文本模型。</p>
+        </div>
+
+        <div class="bg-white border border-gray-200 rounded-xl p-5 space-y-4">
+          <div>
+            <label class="block text-sm font-medium text-gray-800 mb-1">
+              剧本库名称
+              <span class="text-red-500 ml-0.5">*</span>
+            </label>
+            <input class="field-input w-full rounded-lg px-3 py-2 text-sm text-gray-900" value="测试" />
+          </div>
+
+          <div>
+            <label class="block text-sm font-medium text-gray-800 mb-2">头像</label>
+            <div class="flex items-center gap-4 rounded-lg border border-dashed border-gray-200 bg-gray-50 px-3 py-3">
+              <div class="text-sm text-gray-500">
+                未设置头像
+              </div>
+              <button class="px-3 py-2 rounded-lg border border-gray-200 bg-white text-sm text-gray-700 hover:border-gray-300 hover:bg-gray-50 transition-colors">
+                上传头像
+              </button>
+            </div>
+          </div>
+
+          <div>
+            <label class="block text-sm font-medium text-gray-800 mb-1">描述</label>
+            <textarea class="field-input w-full min-h-[100px] rounded-lg px-3 py-2 text-sm text-gray-900 resize-y">暂无描述</textarea>
+          </div>
+
+          <div>
+            <label class="block text-sm font-medium text-gray-800 mb-1">文本模型</label>
+            <div class="relative" id="textModelSelect">
+              <input type="hidden" id="textModelInput" value="gpt-4.1" />
+              <button
+                id="textModelTrigger"
+                type="button"
+                aria-haspopup="listbox"
+                aria-expanded="false"
+                class="custom-select w-full rounded-lg px-3 py-2 text-sm text-gray-900 flex items-center justify-between"
+              >
+                <span id="textModelValue">gpt-4.1</span>
+                <svg class="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M6 9l6 6 6-6" />
+                </svg>
+              </button>
+              <div
+                id="textModelMenu"
+                role="listbox"
+                class="hidden absolute z-20 mt-2 w-full rounded-lg border border-gray-200 bg-white p-1 shadow-[0_8px_20px_rgba(17,24,39,0.08)]"
+              >
+                <button type="button" class="model-option w-full rounded-md px-3 py-2 text-left text-sm text-gray-700 hover:bg-gray-50" data-value="gpt-4.1">gpt-4.1</button>
+                <button type="button" class="model-option w-full rounded-md px-3 py-2 text-left text-sm text-gray-700 hover:bg-gray-50" data-value="gpt-4o">gpt-4o</button>
+                <button type="button" class="model-option w-full rounded-md px-3 py-2 text-left text-sm text-gray-700 hover:bg-gray-50" data-value="claude-3.5-sonnet">claude-3.5-sonnet</button>
+              </div>
+            </div>
+          </div>
+          <div class="pt-2 flex justify-end gap-3">
+            <button class="px-4 py-2 rounded-lg border border-gray-200 bg-white text-sm text-gray-700 hover:border-gray-300 hover:bg-gray-50 transition-colors">重置</button>
+            <button class="px-4 py-2 rounded-lg bg-black text-white text-sm font-medium hover:bg-gray-800">保存配置</button>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <script>
+    (function () {
+      const selectRoot = document.getElementById('textModelSelect');
+      if (!selectRoot) return;
+
+      const trigger = document.getElementById('textModelTrigger');
+      const menu = document.getElementById('textModelMenu');
+      const valueNode = document.getElementById('textModelValue');
+      const input = document.getElementById('textModelInput');
+      const options = menu ? Array.from(menu.querySelectorAll('.model-option')) : [];
+
+      if (!trigger || !menu || !valueNode || !input || options.length === 0) return;
+
+      const closeMenu = () => {
+        menu.classList.add('hidden');
+        trigger.setAttribute('aria-expanded', 'false');
+      };
+
+      const openMenu = () => {
+        menu.classList.remove('hidden');
+        trigger.setAttribute('aria-expanded', 'true');
+      };
+
+      const setValue = (value) => {
+        valueNode.textContent = value;
+        input.value = value;
+        options.forEach((option) => {
+          const isSelected = option.dataset.value === value;
+          option.classList.toggle('bg-gray-900', isSelected);
+          option.classList.toggle('text-white', isSelected);
+          option.classList.toggle('hover:bg-gray-900', isSelected);
+          option.classList.toggle('text-gray-700', !isSelected);
+          option.classList.toggle('hover:bg-gray-50', !isSelected);
+        });
+      };
+
+      trigger.addEventListener('click', () => {
+        if (menu.classList.contains('hidden')) {
+          openMenu();
+        } else {
+          closeMenu();
+        }
+      });
+
+      options.forEach((option) => {
+        option.addEventListener('click', () => {
+          const value = option.dataset.value;
+          if (!value) return;
+          setValue(value);
+          closeMenu();
+        });
+      });
+
+      document.addEventListener('click', (event) => {
+        const target = event.target;
+        if (!(target instanceof Node) || !selectRoot.contains(target)) {
+          closeMenu();
+        }
+      });
+
+      document.addEventListener('keydown', (event) => {
+        if (event.key === 'Escape') {
+          closeMenu();
+        }
+      });
+
+      setValue(input.value || options[0].dataset.value || '');
+    })();
+  </script>
+</body>
+
+</html>

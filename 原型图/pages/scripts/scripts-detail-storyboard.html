@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>分镜 - WeiMeng</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    * { font-family: ui-sans-serif, system-ui, sans-serif; }
+    .nav-item { transition: all 0.15s ease; }
+    .nav-item.active { background: #F3F4F6; color: #111827; }
+    .nav-item:hover:not(.active) { background: #F9FAFB; color: #374151; }
+  </style>
+</head>
+
+<body class="bg-white text-gray-900 h-screen overflow-hidden">
+  <div class="flex h-full">
+    <aside class="w-64 bg-white border-r border-gray-100 flex flex-col shrink-0">
+      <div class="p-4 border-b border-gray-100"><a href="./scripts-detail.html" class="text-sm text-gray-500 hover:text-gray-900">返回文件列表</a></div>
+      <nav class="flex-1 px-3 py-4 space-y-1">
+        <a href="./scripts-detail.html" class="nav-item flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-gray-500"><span>文件列表</span></a>
+        <a href="./scripts-detail-scenes.html" class="nav-item flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-gray-500"><span>场景</span></a>
+        <a href="./scripts-detail-roles.html" class="nav-item flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-gray-500"><span>角色</span></a>
+        <a href="./scripts-detail-storyboard.html" class="nav-item active flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium"><span>分镜</span></a>
+        <a href="./scripts-detail-logs.html" class="nav-item flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-gray-500"><span>日志</span></a>
+        <a href="./scripts-detail-settings.html" class="nav-item flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-gray-500"><span>配置</span></a>
+      </nav>
+    </aside>
+
+    <main class="flex-1 overflow-y-auto px-8 py-6 bg-gray-50">
+      <div class="max-w-6xl mx-auto space-y-4">
+        <div class="flex items-center justify-between">
+          <h1 class="text-xl font-semibold text-gray-900">分镜</h1>
+          <button class="px-4 py-2 rounded-lg bg-black text-white text-sm font-medium hover:bg-gray-800">批量生成</button>
+        </div>
+        <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+          <div class="bg-white border border-gray-200 rounded-xl overflow-hidden">
+            <div class="h-36 bg-gray-200"></div>
+            <div class="p-4">
+              <p class="text-sm font-medium text-gray-900">Shot 01 建立镜头</p>
+              <p class="text-xs text-gray-500 mt-1">广角，慢推，时长 4s</p>
+            </div>
+          </div>
+          <div class="bg-white border border-gray-200 rounded-xl overflow-hidden">
+            <div class="h-36 bg-gray-200"></div>
+            <div class="p-4">
+              <p class="text-sm font-medium text-gray-900">Shot 02 对话镜头</p>
+              <p class="text-xs text-gray-500 mt-1">中景，平移，时长 6s</p>
+            </div>
+          </div>
+          <div class="bg-white border border-gray-200 rounded-xl overflow-hidden">
+            <div class="h-36 bg-gray-200"></div>
+            <div class="p-4">
+              <p class="text-sm font-medium text-gray-900">Shot 03 情绪特写</p>
+              <p class="text-xs text-gray-500 mt-1">特写，轻抖，时长 3s</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+</body>
+
+</html>

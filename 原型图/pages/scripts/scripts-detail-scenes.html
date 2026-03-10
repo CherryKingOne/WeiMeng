@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>场景 - WeiMeng</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    * {
+      font-family: ui-sans-serif, system-ui, sans-serif;
+    }
+
+    .nav-item {
+      transition: all 0.15s ease;
+    }
+
+    .nav-item.active {
+      background: #F3F4F6;
+      color: #111827;
+    }
+
+    .nav-item:hover:not(.active) {
+      background: #F9FAFB;
+      color: #374151;
+    }
+  </style>
+</head>
+
+<body class="bg-white text-gray-900 h-screen overflow-hidden">
+  <div class="flex h-full">
+    <aside class="w-64 bg-white border-r border-gray-100 flex flex-col shrink-0">
+      <div class="p-4 border-b border-gray-100 space-y-3">
+        <a href="./scripts-detail.html" class="group flex items-center gap-2 px-1 py-1 text-sm font-medium text-gray-500 hover:text-gray-900">
+          <div class="flex items-center justify-center w-6 h-6 rounded-full border border-gray-200 bg-white group-hover:border-gray-300">
+            <svg class="w-3 h-3 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M15 19l-7-7 7-7" />
+            </svg>
+          </div>
+          <span>返回文件列表</span>
+        </a>
+        <div class="flex items-center gap-3">
+          <div class="w-10 h-10 bg-gray-800 rounded-lg flex items-center justify-center text-white font-bold text-lg">B</div>
+          <div class="min-w-0">
+            <h2 class="text-sm font-semibold text-gray-900 truncate">baduanjinxk_s...</h2>
+            <p class="text-xs text-gray-400">场景编排</p>
+          </div>
+        </div>
+      </div>
+
+      <nav class="flex-1 px-3 py-4 space-y-1">
+        <a href="./scripts-detail.html" class="nav-item flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-gray-500">
+          <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+          </svg>
+          <span>文件列表</span>
+        </a>
+        <a href="./scripts-detail-scenes.html" class="nav-item active flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium">
+          <svg class="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M3 7h18M3 12h18M3 17h18" />
+          </svg>
+          <span>场景</span>
+        </a>
+        <a href="./scripts-detail-roles.html" class="nav-item flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-gray-500"><span>角色</span></a>
+        <a href="./scripts-detail-storyboard.html" class="nav-item flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-gray-500"><span>分镜</span></a>
+        <a href="./scripts-detail-logs.html" class="nav-item flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-gray-500"><span>日志</span></a>
+        <a href="./scripts-detail-settings.html" class="nav-item flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-gray-500"><span>配置</span></a>
+      </nav>
+    </aside>
+
+    <main class="flex-1 overflow-y-auto px-8 py-6 bg-gray-50">
+      <div class="max-w-6xl mx-auto space-y-4">
+        <div class="flex items-center justify-between">
+          <h1 class="text-xl font-semibold text-gray-900">场景</h1>
+          <button class="px-4 py-2 rounded-lg bg-black text-white text-sm font-medium hover:bg-gray-800">新增场景</button>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
+          <div class="lg:col-span-2 bg-white border border-gray-200 rounded-xl p-5">
+            <h2 class="text-sm font-medium text-gray-900 mb-3">场景时间线</h2>
+            <div class="space-y-3">
+              <div class="p-3 rounded-lg border border-gray-200 bg-gray-50">
+                <div class="flex items-center justify-between">
+                  <p class="text-sm font-medium text-gray-900">Scene 01 开场引入</p>
+                  <span class="text-xs text-gray-500">00:00 - 00:15</span>
+                </div>
+                <p class="text-xs text-gray-600 mt-1">主角进入空间，镜头由远及近建立环境。</p>
+              </div>
+              <div class="p-3 rounded-lg border border-gray-200">
+                <div class="flex items-center justify-between">
+                  <p class="text-sm font-medium text-gray-900">Scene 02 冲突建立</p>
+                  <span class="text-xs text-gray-500">00:15 - 00:38</span>
+                </div>
+                <p class="text-xs text-gray-600 mt-1">对手出现并触发任务目标，节奏明显抬升。</p>
+              </div>
+              <div class="p-3 rounded-lg border border-gray-200">
+                <div class="flex items-center justify-between">
+                  <p class="text-sm font-medium text-gray-900">Scene 03 结果收束</p>
+                  <span class="text-xs text-gray-500">00:38 - 00:60</span>
+                </div>
+                <p class="text-xs text-gray-600 mt-1">完成目标并给出情绪落点，准备转下一章节。</p>
+              </div>
+            </div>
+          </div>
+
+          <div class="bg-white border border-gray-200 rounded-xl p-5">
+            <h2 class="text-sm font-medium text-gray-900 mb-3">场景统计</h2>
+            <div class="space-y-3 text-sm">
+              <div class="flex items-center justify-between"><span class="text-gray-500">总场景数</span><span class="font-semibold text-gray-900">3</span></div>
+              <div class="flex items-center justify-between"><span class="text-gray-500">平均时长</span><span class="font-semibold text-gray-900">20s</span></div>
+              <div class="flex items-center justify-between"><span class="text-gray-500">角色覆盖</span><span class="font-semibold text-gray-900">5</span></div>
+              <div class="flex items-center justify-between"><span class="text-gray-500">分镜完成率</span><span class="font-semibold text-emerald-600">82%</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+</body>
+
+</html>

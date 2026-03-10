@@ -1,6 +1,7 @@
 import asyncio
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
+from datetime import datetime
 from io import BytesIO
 from typing import BinaryIO
 from uuid import UUID
@@ -8,9 +9,14 @@ from uuid import UUID
 import pytest
 from starlette.datastructures import UploadFile
 
-from src.modules.scripts.application.dto.script_dto import CreateScriptLibraryRequest
+from src.modules.scripts.application.dto.script_dto import (
+    CreateScriptLibraryRequest,
+    UpdateScriptLibraryRequest,
+    UpdateScriptLibraryConfigRequest,
+)
 from src.modules.scripts.application.services.script_app_service import ScriptAppService
 from src.modules.scripts.domain.entities.script_chunk_entity import ScriptChunk
+from src.modules.scripts.domain.entities.script_config_entity import ScriptConfig
 from src.modules.scripts.domain.entities.script_entity import Script
 from src.modules.scripts.domain.entities.script_library_entity import ScriptLibrary
 from src.modules.scripts.domain.exceptions import (
@@ -19,7 +25,6 @@ from src.modules.scripts.domain.exceptions import (
     ScriptNotFoundException,
 )
 from src.modules.scripts.infrastructure.services.file_text_extractor import FileTextExtractor
-from src.modules.scripts.infrastructure.services.script_chunker import ScriptSentenceWindowTextSplitter
 from src.shared.domain.exceptions import ValidationException
 
 
@@ -28,6 +33,7 @@ class FakeScriptRepository:
         self._libraries: dict[UUID, ScriptLibrary] = {}
         self._scripts: dict[UUID, Script] = {}
         self._chunks: dict[tuple[UUID, UUID], list[ScriptChunk]] = {}
+        self._configs: dict[UUID, ScriptConfig] = {}
 
     async def create_library(self, library: ScriptLibrary) -> ScriptLibrary:
         self._libraries[library.id] = library
@@ -39,11 +45,38 @@ class FakeScriptRepository:
     async def list_libraries(self) -> list[ScriptLibrary]:
         return sorted(self._libraries.values(), key=lambda item: item.created_at, reverse=True)
 
+    async def update_library_profile(
+        self,
+        library_id: UUID,
+        name: str,
+        description: str | None,
+    ) -> ScriptLibrary | None:
+        library = self._libraries.get(library_id)
+        if library is None:
+            return None
+        library.name = name
+        library.description = description
+        library.updated_at = datetime.utcnow()
+        return library
+
+    async def update_library_avatar(
+        self,
+        library_id: UUID,
+        avatar_path: str | None,
+    ) -> ScriptLibrary | None:
+        library = self._libraries.get(library_id)
+        if library is None:
+            return None
+        library.avatar_path = avatar_path
+        library.updated_at = datetime.utcnow()
+        return library
+
     async def delete_library(self, library_id: UUID) -> bool:
         library = self._libraries.pop(library_id, None)
         if library is None:
             return False
 
+        self._configs.pop(library_id, None)
         script_ids = [script.id for script in self._scripts.values() if script.library_id == library_id]
         for script_id in script_ids:
             self._scripts.pop(script_id, None)
@@ -93,6 +126,33 @@ class FakeScriptRepository:
             for chunk in chunks
         ]
         self._chunks[(script_id, library_id)] = chunk_refs
+
+    async def get_library_config(self, library_id: UUID) -> ScriptConfig | None:
+        return self._configs.get(library_id)
+
+    async def upsert_library_config(
+        self,
+        library_id: UUID,
+        chunk_size: int,
+        chunk_overlap: int,
+    ) -> ScriptConfig:
+        existing = self._configs.get(library_id)
+        if existing is None:
+            now = datetime.utcnow()
+            config = ScriptConfig(
+                library_id=library_id,
+                chunk_size=chunk_size,
+                chunk_overlap=chunk_overlap,
+                created_at=now,
+                updated_at=now,
+            )
+            self._configs[library_id] = config
+            return config
+
+        existing.chunk_size = chunk_size
+        existing.chunk_overlap = chunk_overlap
+        existing.updated_at = datetime.utcnow()
+        return existing
 
 
 class FailingReplaceChunkRepository(FakeScriptRepository):
@@ -201,7 +261,6 @@ def _create_service(
         storage_provider=storage or FakeStorageProvider(),
         script_chunk_store=chunk_store or FakeChunkStore(),
         file_text_extractor=FileTextExtractor(),
-        script_chunker=ScriptSentenceWindowTextSplitter(chunk_size=1200, chunk_overlap=200),
         upload_max_text_length=upload_max_text_length,
     )
 
@@ -227,6 +286,24 @@ async def _test_script_app_service_create_library():
 
 def test_script_app_service_create_library():
     asyncio.run(_test_script_app_service_create_library())
+
+
+async def _test_script_app_service_update_library_profile():
+    service = _create_service()
+    library = await service.create_library(CreateScriptLibraryRequest(name="旧名称", description="旧描述"))
+
+    updated = await service.update_library(
+        library.id,
+        UpdateScriptLibraryRequest(name="新名称", description="新描述"),
+    )
+
+    assert updated.id == library.id
+    assert updated.name == "新名称"
+    assert updated.description == "新描述"
+
+
+def test_script_app_service_update_library_profile():
+    asyncio.run(_test_script_app_service_update_library_profile())
 
 
 async def _test_script_app_service_list_and_get_library():
@@ -284,6 +361,44 @@ async def _test_script_app_service_upload_list_and_read_text_content():
 
 def test_script_app_service_upload_list_and_read_text_content():
     asyncio.run(_test_script_app_service_upload_list_and_read_text_content())
+
+
+async def _test_script_app_service_upload_script_stores_object_under_text_folder():
+    repository = FakeScriptRepository()
+    storage = FakeStorageProvider()
+    service = _create_service(repository=repository, storage=storage)
+
+    library = await service.create_library(CreateScriptLibraryRequest(name="路径测试", description=None))
+    await service.upload_script(
+        library.id,
+        UploadFile(file=BytesIO("脚本内容".encode("utf-8")), filename="path.txt"),
+    )
+
+    object_name = next(iter(storage._objects.keys()))
+    assert object_name.startswith(f"{library.id}/text/")
+
+
+def test_script_app_service_upload_script_stores_object_under_text_folder():
+    asyncio.run(_test_script_app_service_upload_script_stores_object_under_text_folder())
+
+
+async def _test_script_app_service_upload_library_avatar_stores_object_under_image_folder():
+    repository = FakeScriptRepository()
+    storage = FakeStorageProvider()
+    service = _create_service(repository=repository, storage=storage)
+    library = await service.create_library(CreateScriptLibraryRequest(name="头像库", description=None))
+
+    uploaded = await service.upload_library_avatar(
+        library.id,
+        UploadFile(file=BytesIO(b"fake-image"), filename="avatar.png"),
+    )
+
+    assert uploaded.avatar_path == f"{library.id}/image/avatar.png"
+    assert uploaded.avatar_path in storage._objects
+
+
+def test_script_app_service_upload_library_avatar_stores_object_under_image_folder():
+    asyncio.run(_test_script_app_service_upload_library_avatar_stores_object_under_image_folder())
 
 
 async def _test_script_app_service_list_library_scripts_returns_chunk_count():
@@ -451,7 +566,7 @@ async def _test_script_app_service_get_script_chunks():
 
     assert len(chunks) > 1
     assert chunks[0].chunk_index == 0
-    assert chunks[0].chunk_size <= 1200
+    assert chunks[0].chunk_size <= 500
     assert chunks[0].content.endswith("。")
     assert chunks[1].start_index < chunks[0].end_index
     stored_chunks = await repository.list_chunks(uploaded.id, library.id)
@@ -462,6 +577,41 @@ async def _test_script_app_service_get_script_chunks():
 
 def test_script_app_service_get_script_chunks():
     asyncio.run(_test_script_app_service_get_script_chunks())
+
+
+async def _test_script_app_service_get_and_update_library_config():
+    service = _create_service()
+    library = await service.create_library(CreateScriptLibraryRequest(name="配置库", description=None))
+
+    config = await service.get_library_config(library.id)
+    assert config.chunk_size == 500
+    assert config.overlap == 50
+
+    updated = await service.update_library_config(
+        library.id,
+        request=UpdateScriptLibraryConfigRequest(chunk_size=320, overlap=40),
+    )
+    assert updated.chunk_size == 320
+    assert updated.overlap == 40
+
+
+def test_script_app_service_get_and_update_library_config():
+    asyncio.run(_test_script_app_service_get_and_update_library_config())
+
+
+async def _test_script_app_service_update_library_config_rejects_large_overlap():
+    service = _create_service()
+    library = await service.create_library(CreateScriptLibraryRequest(name="配置校验", description=None))
+
+    with pytest.raises(ValidationException):
+        await service.update_library_config(
+            library.id,
+            request=UpdateScriptLibraryConfigRequest(chunk_size=100, overlap=100),
+        )
+
+
+def test_script_app_service_update_library_config_rejects_large_overlap():
+    asyncio.run(_test_script_app_service_update_library_config_rejects_large_overlap())
 
 
 async def _test_script_app_service_get_script_chunks_uses_cached_chunks():

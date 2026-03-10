@@ -108,6 +108,31 @@ BEGIN
 END $$;
 """
 
+SCRIPT_LIBRARY_AVATAR_SCHEMA_MIGRATION_SQL = """
+DO $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1
+        FROM information_schema.tables
+        WHERE table_schema = 'public'
+          AND table_name = 'script_libraries'
+    ) THEN
+        RETURN;
+    END IF;
+
+    IF NOT EXISTS (
+        SELECT 1
+        FROM information_schema.columns
+        WHERE table_schema = 'public'
+          AND table_name = 'script_libraries'
+          AND column_name = 'avatar_path'
+    ) THEN
+        ALTER TABLE public.script_libraries
+            ADD COLUMN avatar_path TEXT;
+    END IF;
+END $$;
+"""
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -116,6 +141,7 @@ async def lifespan(app: FastAPI):
     async with engine.begin() as conn:
         await conn.execute(text(SCRIPT_LIBRARY_MAPPING_SCHEMA_MIGRATION_SQL))
         await conn.execute(text(SCRIPT_CHUNK_REFERENCE_SCHEMA_MIGRATION_SQL))
+        await conn.execute(text(SCRIPT_LIBRARY_AVATAR_SCHEMA_MIGRATION_SQL))
         await conn.run_sync(Base.metadata.create_all)
     yield
 

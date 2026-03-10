@@ -9,6 +9,7 @@ class ScriptLibraryMapper:
             id=model.id,
             name=model.name,
             description=model.description,
+            avatar_path=model.avatar_path,
             created_at=model.created_at,
             updated_at=model.updated_at,
         )
@@ -19,6 +20,7 @@ class ScriptLibraryMapper:
             id=entity.id,
             name=entity.name,
             description=entity.description,
+            avatar_path=entity.avatar_path,
             created_at=entity.created_at,
             updated_at=entity.updated_at,
         )
