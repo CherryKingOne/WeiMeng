@@ -17,11 +17,15 @@ services:
       - POSTGRESQL_PORT=5432
       - REDIS_HOST=redis
       - REDIS_PORT=6379
+      - MINIO_ENDPOINT=minio:9000
+      - ELASTICSEARCH_URL=http://elasticsearch:9200/
     env_file:
       - .env
     depends_on:
       - postgres
       - redis
+      - minio
+      - elasticsearch
     volumes:
       - ../backend:/app
     networks:
@@ -31,7 +35,7 @@ services:
   # Frontend Service (Next.js)
   # ==============================================
   web:
-    image: vmengs/weimeng-web:latest
+    image: vmengs/weimeng-web:0.0.1
     container_name: weimeng-web
     build:
       context: ../frontend
@@ -79,9 +83,36 @@ services:
     networks:
       - weimeng-network
 
+  minio:
+    image: vmengs/minio:latest
+    container_name: weimeng-minio
+    command: server /data --console-address ":7056"
+    environment:
+      - MINIO_ROOT_USER=${MINIO_ACCESS_KEY:-weimengminio}
+      - MINIO_ROOT_PASSWORD=${MINIO_SECRET_KEY:-weimengminio}
+    ports:
+      - "5726:9000"
+      - "7056:7056"
+    volumes:
+      - minio_data:/data
+    networks:
+      - weimeng-network
+
+  elasticsearch:
+    image: vmengs/elasticsearch:latest
+    container_name: weimeng-es
+    ports:
+      - "7260:9200"
+    volumes:
+      - es_data:/usr/share/elasticsearch/data
+    networks:
+      - weimeng-network
+
 volumes:
   postgres_data:
   redis_data:
+  minio_data:
+  es_data:
 
 networks:
   weimeng-network:

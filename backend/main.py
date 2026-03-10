@@ -120,7 +120,7 @@ async def lifespan(app: FastAPI):
     yield
 
 app = FastAPI(
-    title="WeiMeng Agent Backend",
+    title="WeiMeng Backend",
     description="Based on DDD Architecture",
     version="2.0.0",
     docs_url="/docs",

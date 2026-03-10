@@ -9,7 +9,7 @@ from config.minio import MinIOSettings
 
 class Settings(BaseSettings):
     app_env: str = "development"
-    app_name: str = "WeiMeng Agent"
+    app_name: str = "WeiMeng"
     secret_key: str = "your-secret-key"
     algorithm: str = "HS256"
     access_token_expire_days: int = 30

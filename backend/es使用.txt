@@ -1,0 +1,133 @@
+# Elasticsearch 使用方法（WeiMeng 后端）
+
+本文档已按当前项目配置更新：
+- ES 镜像：`vmengs/elasticsearch:latest`
+- Docker Compose 对外端口：`7260 -> 9200`
+- 宿主机访问地址：`http://0.0.0.0:7260/`
+- 容器内访问地址：`http://weimeng-es:9200/`（或在总编排里是 `http://elasticsearch:9200/`）
+
+---
+
+## 1. 启动 ES（推荐：用项目 compose）
+
+在 `backend` 目录下：
+
+```bash
+cd backend
+docker compose up -d weimeng-es
+```
+
+查看状态：
+
+```bash
+docker compose ps
+```
+
+健康检查：
+
+```bash
+curl "http://0.0.0.0:7260/"
+```
+
+看到包含 `cluster_name`、`version` 等字段，说明 ES 已可用。
+
+---
+
+## 2. 常用检查命令（宿主机）
+
+### 2.1 查看所有索引
+
+```bash
+curl "http://0.0.0.0:7260/_cat/indices?v"
+```
+
+### 2.2 查看脚本分块索引（默认：script_chunks）
+
+```bash
+curl "http://0.0.0.0:7260/_cat/indices/script_chunks?v"
+```
+
+### 2.3 查看文档总数
+
+```bash
+curl "http://0.0.0.0:7260/script_chunks/_count"
+```
+
+### 2.4 查看最新 10 条 chunk
+
+```bash
+curl -X GET "http://0.0.0.0:7260/script_chunks/_search?pretty" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "size": 10,
+    "sort": [
+      { "created_at": "desc" }
+    ]
+  }'
+```
+
+### 2.5 按 script_id 查询
+
+```bash
+curl -X GET "http://0.0.0.0:7260/script_chunks/_search?pretty" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "query": {
+      "term": {
+        "script_id": "这里替换成你的 script_id"
+      }
+    }
+  }'
+```
+
+### 2.6 按 ES 文档 _id 查询
+
+```bash
+curl "http://0.0.0.0:7260/script_chunks/_doc/这里替换成chunk_id?pretty"
+```
+
+---
+
+## 3. 与数据库对照 chunk
+
+你可以先从 PostgreSQL 里拿一批 chunk id，再去 ES 查询：
+
+```sql
+select id, script_id, library_id, index_id
+from script_chunks
+order by created_at desc
+limit 10;
+```
+
+然后把 `id` 放到：
+
+```bash
+curl "http://0.0.0.0:7260/script_chunks/_doc/{id}?pretty"
+```
+
+---
+
+## 4. 配置说明（避免端口混淆）
+
+- `.env.example`（宿主机访问）
+  - `ELASTICSEARCH_URL=http://0.0.0.0:7260/`
+- `docker-compose.yml` 内部容器互联（容器访问）
+  - `ELASTICSEARCH_URL=http://weimeng-es:9200/`
+
+说明：
+- `7260` 是宿主机端口（你本机访问用）
+- `9200` 是 ES 容器内部端口（容器间访问用）
+
+---
+
+## 5. 常见问题
+
+### Q1：`curl http://0.0.0.0:7260/` 连不上
+- 确认容器是否启动：`docker compose ps`
+- 查看日志：`docker compose logs -f weimeng-es`
+- 检查端口是否被占用：`lsof -i :7260`
+
+### Q2：索引存在但查不到数据
+- 先确认写入流程是否执行成功（应用日志）
+- 检查索引名是否与配置一致：`ELASTICSEARCH_SCRIPT_CHUNK_INDEX`
+- 先用 `_count` 判断是否有文档，再查 `_search`

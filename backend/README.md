@@ -1,4 +1,4 @@
-# WeiMeng Agent Backend
+# WeiMeng Backend
 
 ## 环境设置与运行
 

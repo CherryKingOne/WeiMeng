@@ -44,17 +44,14 @@ WeiMeng is an intelligent multi-agent collaboration system powered by Large Lang
 
 ### Docker Deployment
 
+The easiest way to start the WeiMeng server is through Docker Compose. Before running WeiMeng with the following commands, make sure that Docker and Docker Compose are installed on your machine:
+
 ```bash
 # Clone the repository
-git clone https://github.com/your-repo/WeiMeng-Agent.git
-cd WeiMeng-Agent
-
-# Configure environment variables
+git clone https://github.com/CherryKingOne/WeiMeng.git
+cd WeiMeng
 cd docker
 cp .env.example .env
-# Edit .env file and configure necessary environment variables
-
-# Start all services
 docker compose up -d
 
 # View logs
@@ -116,28 +113,13 @@ npm run dev
   - Task lifecycle and state machine
   - Supports interruption, failure, and retries
 
-### 7-Agent Team Architecture
-
-The system includes 7 specialized agents working collaboratively:
-
-| Agent | Responsibility |
-|-------|----------------|
-| Screenwriter Agent | Script writing and content planning |
-| Director Agent | Overall creative control and coordination |
-| Storyboard Agent | Shot design and frame composition |
-| Scene Design Agent | Scene construction and environment design |
-| Character Design Agent | Character appearance and styling |
-| Art Design Agent | Visual style and color control |
-| Editing Agent | Post-production editing and effects |
-
 ## Project Structure
 
 ```
-WeiMeng-Agent/
+WeiMeng/
 ├── backend/                    # Backend source code
 │   ├── src/
 │   │   ├── modules/            # Business modules
-│   │   │   ├── agent/          # Agent core module
 │   │   │   ├── auth/           # Authentication module
 │   │   │   └── captcha/        # Captcha module
 │   │   ├── shared/             # Shared infrastructure

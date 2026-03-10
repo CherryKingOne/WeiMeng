@@ -2,7 +2,7 @@ version: '3'
 
 services:
   frontend:
-    image: vmengs/weimeng-web:latest
+    image: vmengs/weimeng-web:0.0.1
     container_name: weimeng-web
     build:
       context: .

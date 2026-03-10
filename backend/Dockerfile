@@ -8,14 +8,14 @@ WORKDIR /app
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1
 
-# 安装系统依赖 (如果需要)
-# RUN apt-get update && apt-get install -y --no-install-recommends gcc libpq-dev && rm -rf /var/lib/apt/lists/*
+# 安装 uv
+RUN pip install --no-cache-dir uv
 
-# 复制依赖文件
-COPY requirements.txt .
+# 复制 uv 依赖文件
+COPY pyproject.toml uv.lock ./
 
-# 安装 Python 依赖
-RUN pip install --no-cache-dir -r requirements.txt
+# 使用 uv 安装依赖到系统环境
+RUN uv sync --frozen --no-dev --no-install-project
 
 # 复制项目代码
 COPY . .
@@ -23,4 +23,4 @@ COPY . .
 # 暴露端口
 EXPOSE 5607
 
-CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "5607"]
+CMD ["uv", "run", "uvicorn", "main:app", "--host", "0.0.0.0", "--port", "5607"]

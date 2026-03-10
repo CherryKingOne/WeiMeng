@@ -1,7 +1,7 @@
 [project]
 name = "WeiMeng"
 version = "0.1.0"
-description = "Backend for WeiMeng Agent"
+description = "Backend for WeiMeng"
 readme = "README.md"
 requires-python = ">=3.10"
 dependencies = [

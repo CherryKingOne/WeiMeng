@@ -1,4 +1,4 @@
-# WeiMeng-Agent 模块目录结构规划
+# WeiMeng 模块目录结构规划
 
 ## 1. 技术架构概览
 

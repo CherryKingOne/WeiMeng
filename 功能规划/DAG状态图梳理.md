@@ -1,10 +1,10 @@
-# WeiMeng-Agent DAG 状态图标准化设计文档
+# WeiMeng DAG 状态图标准化设计文档
 
 ## 1. DAG 核心语义定义
 
 ### 1.1 图的定义
 
-本 DAG 是一个**有向无环图（Directed Acyclic Graph）**，用于描述 WeiMeng-Agent 多智能体系统的任务调度与协作流程。
+本 DAG 是一个**有向无环图（Directed Acyclic Graph）**，用于描述 WeiMeng 多智能体系统的任务调度与协作流程。
 
 - **图类型**：有向无环图（DAG）
 - **图性质**：可并发、可中断、可回溯
@@ -336,7 +336,7 @@ interface DAGMetadata {
 {
   "metadata": {
     "id": "weimeng-agent-dag-v1",
-    "name": "WeiMeng-Agent 工作流",
+    "name": "WeiMeng 工作流",
     "version": "1.0.0"
   },
   "nodes": [

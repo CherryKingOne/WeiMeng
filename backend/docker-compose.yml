@@ -1,5 +1,6 @@
 services:
   weimeng-api:
+    image: vmengs/weimeng-api:0.0.1
     build: .
     container_name: weimeng-api
     ports:

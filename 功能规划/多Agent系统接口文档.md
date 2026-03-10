@@ -1,4 +1,4 @@
-# WeiMeng-Agent 多智能体系统 API 接口文档
+# WeiMeng 多智能体系统 API 接口文档
 
 ## 1. 接口概览
 
