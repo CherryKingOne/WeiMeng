@@ -13,6 +13,7 @@ import {
   useRef,
   useState,
 } from 'react';
+import { ScriptConfigPanel } from '../script-config/page';
 import { useLocalePath } from '@/hooks/useLocalePath';
 import { scriptService } from '@/services';
 import type { ScriptLibraryFile } from '@/types';
@@ -20,6 +21,7 @@ import { localizeRequestError } from '@/utils';
 
 type FileStatus = 'success';
 type ChunkExecutionState = 'idle' | 'processing' | 'processed';
+type ScriptDetailPanel = 'files' | 'settings';
 
 type UploadFile = {
   file: File;
@@ -431,6 +433,7 @@ export default function ScriptFilePage() {
   const [enabledMap, setEnabledMap] = useState<Record<string, boolean>>({});
   const [chunkCountMap, setChunkCountMap] = useState<Record<string, number>>({});
   const [chunkExecutionStateMap, setChunkExecutionStateMap] = useState<Record<string, ChunkExecutionState>>({});
+  const [activePanel, setActivePanel] = useState<ScriptDetailPanel>('files');
 
   const selectedScript = useMemo<SelectedScript>(() => {
     const toneParam = searchParams.get('tone');
@@ -477,6 +480,7 @@ export default function ScriptFilePage() {
   const selectedScriptMeta = isEn
     ? `Scenes ${selectedScript.scenes} · Roles ${selectedScript.roles} · ${selectedScript.words} words`
     : `场景 ${selectedScript.scenes} · 角色 ${selectedScript.roles} · 字数 ${selectedScript.words}`;
+  const defaultSettingsDescription = isEn ? 'No description' : '暂无描述';
 
   const text = {
     backToLibrary: isEn ? 'Back to Script Library' : '返回剧本库',
@@ -861,12 +865,20 @@ export default function ScriptFilePage() {
           </div>
 
           <nav className="flex-1 px-3 py-4 space-y-1">
-            <div className="flex items-center gap-3 rounded-lg bg-gray-100 px-3 py-2.5 text-sm font-medium text-gray-900">
-              <svg className="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <button
+              type="button"
+              onClick={() => setActivePanel('files')}
+              className={`w-full text-left flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors ${
+                activePanel === 'files'
+                  ? 'bg-gray-100 text-gray-900'
+                  : 'text-gray-500 hover:bg-gray-50 hover:text-gray-700'
+              }`}
+            >
+              <svg className={`w-4 h-4 ${activePanel === 'files' ? 'text-gray-500' : 'text-gray-400'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
               </svg>
               <span>{text.fileList}</span>
-            </div>
+            </button>
             {[text.scenes, text.roles, text.storyboard, text.logs].map((navText) => (
               <button
                 key={navText}
@@ -881,9 +893,14 @@ export default function ScriptFilePage() {
             ))}
             <button
               type="button"
-              className="w-full text-left flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-gray-500 hover:bg-gray-50 hover:text-gray-700 transition-colors"
+              onClick={() => setActivePanel('settings')}
+              className={`w-full text-left flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors ${
+                activePanel === 'settings'
+                  ? 'bg-gray-100 text-gray-900'
+                  : 'text-gray-500 hover:bg-gray-50 hover:text-gray-700'
+              }`}
             >
-              <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className={`w-4 h-4 ${activePanel === 'settings' ? 'text-gray-500' : 'text-gray-400'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
               </svg>
@@ -893,7 +910,16 @@ export default function ScriptFilePage() {
         </aside>
 
         <main className="flex-1 flex flex-col bg-white overflow-hidden">
-          <div className="flex-1 overflow-y-auto px-8 py-4">
+          {activePanel === 'settings' ? (
+            <ScriptConfigPanel
+              locale={isEn ? 'en' : 'zh'}
+              initialLibraryName={selectedScript.title}
+              initialDescription={selectedScript.subtitle || defaultSettingsDescription}
+              initialTextModel="gpt-4.1"
+            />
+          ) : (
+            <>
+              <div className="flex-1 overflow-y-auto px-8 py-4">
             <div className="mb-6 flex items-start justify-between gap-4">
               <div className="space-y-2">
                 <div className="flex items-center gap-3">
@@ -1148,29 +1174,31 @@ export default function ScriptFilePage() {
                 ) : null}
               </div>
             </div>
-          </div>
-
-          <div className="shrink-0 px-8 py-3">
-            <div className="flex items-center justify-end gap-4">
-              <span className="text-sm text-gray-500">{text.total(filteredFiles.length)}</span>
-              <div className="flex items-center gap-1">
-                <button type="button" className="p-1.5 rounded text-gray-300 cursor-not-allowed" disabled aria-label={text.previousPage}>
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 19l-7-7 7-7" />
-                  </svg>
-                </button>
-                <button type="button" className="h-8 min-w-[32px] rounded bg-black px-2 text-sm font-medium text-white">1</button>
-                <button type="button" className="p-1.5 rounded text-gray-300 cursor-not-allowed" disabled aria-label={text.nextPage}>
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7" />
-                  </svg>
-                </button>
               </div>
-              <button type="button" className="px-3 py-1.5 text-sm text-gray-600 rounded-lg border border-gray-200 bg-white">
-                {text.perPageOption(20)}
-              </button>
-            </div>
-          </div>
+
+              <div className="shrink-0 px-8 py-3">
+                <div className="flex items-center justify-end gap-4">
+                  <span className="text-sm text-gray-500">{text.total(filteredFiles.length)}</span>
+                  <div className="flex items-center gap-1">
+                    <button type="button" className="p-1.5 rounded text-gray-300 cursor-not-allowed" disabled aria-label={text.previousPage}>
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 19l-7-7 7-7" />
+                      </svg>
+                    </button>
+                    <button type="button" className="h-8 min-w-[32px] rounded bg-black px-2 text-sm font-medium text-white">1</button>
+                    <button type="button" className="p-1.5 rounded text-gray-300 cursor-not-allowed" disabled aria-label={text.nextPage}>
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7" />
+                      </svg>
+                    </button>
+                  </div>
+                  <button type="button" className="px-3 py-1.5 text-sm text-gray-600 rounded-lg border border-gray-200 bg-white">
+                    {text.perPageOption(20)}
+                  </button>
+                </div>
+              </div>
+            </>
+          )}
         </main>
       </div>
 
