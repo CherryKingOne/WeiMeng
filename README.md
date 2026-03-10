@@ -121,31 +121,73 @@ WeiMeng/
 │   ├── src/
 │   │   ├── modules/            # Business modules
 │   │   │   ├── auth/           # Authentication module
-│   │   │   └── captcha/        # Captcha module
+│   │   │   │   ├── api/        # API routes
+│   │   │   │   ├── application/  # Application layer (DTOs, services)
+│   │   │   │   ├── domain/     # Domain layer (entities, repositories)
+│   │   │   │   └── infrastructure/  # Infrastructure (models, mappers)
+│   │   │   ├── captcha/        # Captcha module
+│   │   │   │   ├── api/
+│   │   │   │   ├── application/
+│   │   │   │   ├── domain/
+│   │   │   │   └── infrastructure/
+│   │   │   └── scripts/        # Scripts management module
+│   │   │       ├── api/
+│   │   │       ├── application/
+│   │   │       ├── domain/
+│   │   │       └── infrastructure/
 │   │   ├── shared/             # Shared infrastructure
+│   │   │   ├── common/         # Common utilities
 │   │   │   ├── domain/         # Domain base classes
 │   │   │   ├── infrastructure/ # Infrastructure (database, Redis)
 │   │   │   ├── security/       # Security components (JWT, password)
 │   │   │   ├── middleware/     # Middleware
-│   │   │   └── extensions/     # Extensions (email service)
+│   │   │   └── extensions/     # Extensions (email, storage)
 │   │   └── api/                # API routes
+│   │       └── v1/             # API v1 endpoints
 │   ├── config/                 # Configuration files
 │   ├── tests/                  # Test code
+│   │   ├── unit/               # Unit tests
+│   │   └── integration/        # Integration tests
 │   └── main.py                 # Application entry
 │
 ├── frontend/                   # Frontend source code
 │   ├── app/                    # Next.js App Router
-│   │   ├── (auth)/             # Auth pages (login, signup)
-│   │   ├── (dashboard)/        # Dashboard pages
-│   │   └── workflow-editor/    # Workflow editor
+│   │   └── [locale]/           # Internationalization
+│   │       ├── (public-sidebar)/  # Pages with sidebar
+│   │       │   ├── assets/     # Assets management
+│   │       │   ├── plugins/    # Plugins page
+│   │       │   ├── projects/   # Projects page
+│   │       │   ├── scripts/    # Scripts page
+│   │       │   ├── weimeng/    # WeiMeng home
+│   │       │   └── workflows/  # Workflows page
+│   │       ├── auth/           # Auth pages
+│   │       │   ├── forgot-password/
+│   │       │   ├── login/
+│   │       │   └── signup/
+│   │       ├── workbench/      # Workbench tools
+│   │       │   ├── image2image/
+│   │       │   ├── image2video/
+│   │       │   ├── text2image/
+│   │       │   └── text2video/
+│   │       └── workflows/workflow-editor/
 │   ├── components/
 │   │   ├── features/           # Business components
+│   │   │   ├── asset/
+│   │   │   ├── plugin/
+│   │   │   ├── project/
+│   │   │   ├── script/
+│   │   │   ├── settings/
+│   │   │   ├── workbench/
+│   │   │   └── workflow/
 │   │   ├── layout/             # Layout components
 │   │   └── ui/                 # UI component library
+│   ├── config/                 # App configuration
+│   ├── constants/              # Constants
+│   ├── hooks/                  # Custom hooks
 │   ├── services/               # API service layer
 │   ├── stores/                 # State management (Zustand)
 │   ├── types/                  # TypeScript type definitions
-│   └── hooks/                  # Custom hooks
+│   └── utils/                  # Utility functions
 │
 ├── docker/                     # Docker configuration
 │   ├── docker-compose.yaml     # Container orchestration

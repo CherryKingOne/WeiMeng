@@ -1,36 +1,25 @@
 # Repository Guidelines
 
 ## Project Structure & Module Organization
-- `backend/`: FastAPI service. Entry point is `backend/main.py`; core code is in `backend/src/` and split by domain (`modules/auth`, `modules/captcha`, `shared`, `api/v1`).
-- `backend/tests/`: backend test suite, including `unit/` and `integration/test_api/` with shared fixtures in `backend/tests/conftest.py`.
-- `frontend/`: Next.js 16 + React 19 app (`app/` routes, `components/` UI, `stores/` state, `services/` API clients).
-- `docker/`: local orchestration for API, web, PostgreSQL, and Redis.
-- `docs/` and `原型图/`: architecture notes and prototype assets.
+`src/` contains application code. `src/api/v1/router.py` mounts the module routers, and each feature under `src/modules/` follows the same DDD split: `api/`, `application/`, `domain/`, and `infrastructure/`. Shared middleware, security, database helpers, and common responses live in `src/shared/`. Runtime settings are under `config/`. Tests are organized in `tests/unit/` and `tests/integration/`. Root-level operational files include `README.md`, `Dockerfile`, `docker-compose.yml`, and `.env.example`.
 
 ## Build, Test, and Development Commands
-- `cd docker && cp .env.example .env && docker compose up -d --build`: start the full local stack.
-- `cd backend && uv sync`: install backend dependencies.
-- `cd backend && uv run uvicorn main:app --host 0.0.0.0 --port 5607 --reload`: run backend in dev mode.
-- `cd backend && uv run pytest`: execute backend unit and integration tests.
-- `cd frontend && npm install && npm run dev`: run frontend locally on `:5678`.
-- `cd frontend && npm run lint`: run frontend lint checks.
-- `cd frontend && npm run build && npm run start`: verify production frontend build.
+Use `uv` as the source of truth for dependencies defined in `pyproject.toml`.
+
+- `uv sync` creates or updates the local virtual environment.
+- `uv run uvicorn main:app --host 0.0.0.0 --port 5607 --reload` starts the FastAPI app in reload mode.
+- `uv run main.py` runs the same app through the entry script.
+- `uv run pytest` executes the test suite.
+- `docker compose up -d --build` starts the API plus PostgreSQL, Redis, MinIO, and Elasticsearch.
 
 ## Coding Style & Naming Conventions
-- Python uses 4-space indentation, `snake_case` for modules/functions, and `PascalCase` for classes.
-- TypeScript/React follows the existing 2-space style and functional component patterns.
-- Component files use `PascalCase` (for example, `Button.tsx`); Next.js routes use folder routing with `page.tsx`.
-- Reuse project aliases such as `@/utils`, and keep repository text/code free of emoji characters.
+Target Python 3.10+ and keep 4-space indentation. Follow the existing absolute import style (`from src... import ...`) and keep type hints explicit on public functions and service boundaries. Use `snake_case` for files, functions, and modules, `PascalCase` for classes, and keep DDD naming consistent: entities in `domain/entities`, DTOs in `application/dto`, repositories and mappers in `infrastructure/`. No formatter or linter is configured in `pyproject.toml`, so match the surrounding style carefully. Do not add emoji to code or documentation.
 
 ## Testing Guidelines
-- Framework: `pytest` with async fixtures from `backend/tests/conftest.py`.
-- Place tests under `backend/tests/unit` or `backend/tests/integration/test_api`.
-- Use `test_*.py` file names and `test_*` function names.
-- Add tests for every new backend behavior.
-- Frontend currently has no automated test suite; run `npm run lint` and manually verify key flows.
+Name test files `test_<subject>.py` and test functions `test_<behavior>`. Prefer unit tests with fakes or fixtures before adding heavier integration coverage. Run `uv run pytest` before opening a PR. If you add integration tests, note that `tests/conftest.py` is wired for a PostgreSQL test database at `localhost:5432/test_db`.
 
 ## Commit & Pull Request Guidelines
-- Use concise Chinese summary-style commit messages with clear scope (for example, `backend: 修复登录令牌校验`).
-- PRs should include purpose, changed modules/paths, environment or config updates, and validation commands.
-- Include UI screenshots when applicable.
-- Link related issues/tasks and clearly call out breaking changes.
+Recent history uses short, imperative Chinese commit titles such as `更新文档与docker配置` and `新增目录树`. Keep commits focused on one logical change. PRs should include a short scope summary, verification commands, linked issue or task when available, and clear notes for API, schema, port, or `.env` changes. For endpoint changes, include example request and response payloads.
+
+## Security & Configuration Tips
+Copy `.env.example` to `.env` for local setup and keep secrets out of version control. When changing ports or service dependencies, update `docker-compose.yml` and `.env.example` together so local and containerized workflows stay aligned.

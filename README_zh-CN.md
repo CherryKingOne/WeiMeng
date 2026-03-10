@@ -124,31 +124,73 @@ WeiMeng/
 │   ├── src/
 │   │   ├── modules/            # 业务模块
 │   │   │   ├── auth/           # 认证模块
-│   │   │   └── captcha/        # 验证码模块
+│   │   │   │   ├── api/        # API 路由
+│   │   │   │   ├── application/  # 应用层（DTO、服务）
+│   │   │   │   ├── domain/     # 领域层（实体、仓储）
+│   │   │   │   └── infrastructure/  # 基础设施（模型、映射器）
+│   │   │   ├── captcha/        # 验证码模块
+│   │   │   │   ├── api/
+│   │   │   │   ├── application/
+│   │   │   │   ├── domain/
+│   │   │   │   └── infrastructure/
+│   │   │   └── scripts/        # 脚本管理模块
+│   │   │       ├── api/
+│   │   │       ├── application/
+│   │   │       ├── domain/
+│   │   │       └── infrastructure/
 │   │   ├── shared/             # 共享基础设施
+│   │   │   ├── common/         # 公共工具
 │   │   │   ├── domain/         # 领域基类
 │   │   │   ├── infrastructure/ # 基础设施（数据库、Redis）
 │   │   │   ├── security/       # 安全组件（JWT、密码）
 │   │   │   ├── middleware/     # 中间件
-│   │   │   └── extensions/     # 扩展（邮件服务）
+│   │   │   └── extensions/     # 扩展（邮件、存储）
 │   │   └── api/                # API 路由
+│   │       └── v1/             # API v1 端点
 │   ├── config/                 # 配置文件
 │   ├── tests/                  # 测试代码
+│   │   ├── unit/               # 单元测试
+│   │   └── integration/        # 集成测试
 │   └── main.py                 # 应用入口
 │
 ├── frontend/                   # 前端源代码
 │   ├── app/                    # Next.js App Router
-│   │   ├── (auth)/             # 认证页面（登录、注册）
-│   │   ├── (dashboard)/        # 仪表盘页面
-│   │   └── workflow-editor/    # 工作流编辑器
+│   │   └── [locale]/           # 国际化
+│   │       ├── (public-sidebar)/  # 带侧边栏的页面
+│   │       │   ├── assets/     # 资产管理
+│   │       │   ├── plugins/    # 插件页面
+│   │       │   ├── projects/   # 项目页面
+│   │       │   ├── scripts/    # 脚本页面
+│   │       │   ├── weimeng/    # WeiMeng 首页
+│   │       │   └── workflows/  # 工作流页面
+│   │       ├── auth/           # 认证页面
+│   │       │   ├── forgot-password/
+│   │       │   ├── login/
+│   │       │   └── signup/
+│   │       ├── workbench/      # 工作台工具
+│   │       │   ├── image2image/
+│   │       │   ├── image2video/
+│   │       │   ├── text2image/
+│   │       │   └── text2video/
+│   │       └── workflows/workflow-editor/
 │   ├── components/
 │   │   ├── features/           # 业务组件
+│   │   │   ├── asset/
+│   │   │   ├── plugin/
+│   │   │   ├── project/
+│   │   │   ├── script/
+│   │   │   ├── settings/
+│   │   │   ├── workbench/
+│   │   │   └── workflow/
 │   │   ├── layout/             # 布局组件
 │   │   └── ui/                 # UI 组件库
+│   ├── config/                 # 应用配置
+│   ├── constants/              # 常量
+│   ├── hooks/                  # 自定义 Hooks
 │   ├── services/               # API 服务层
 │   ├── stores/                 # 状态管理（Zustand）
 │   ├── types/                  # TypeScript 类型定义
-│   └── hooks/                  # 自定义 Hooks
+│   └── utils/                  # 工具函数
 │
 ├── docker/                     # Docker 配置
 │   ├── docker-compose.yaml     # 容器编排
