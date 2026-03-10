@@ -22,7 +22,7 @@ services:
       - MINIO_BUCKET_NAME=${MINIO_BUCKET_NAME:-scripts}
       - MINIO_SECURE=False
       # Elasticsearch
-      - ELASTICSEARCH_URL=${ELASTICSEARCH_URL:-http://10.10.155.252:9200/}
+      - ELASTICSEARCH_URL=${ELASTICSEARCH_URL:-http://weimeng-es:9200/}
       - ELASTICSEARCH_SCRIPT_CHUNK_INDEX=${ELASTICSEARCH_SCRIPT_CHUNK_INDEX:-script_chunks}
       # App Settings
       - APP_ENV=development
@@ -32,6 +32,7 @@ services:
       - weimeng-postgre
       - weimeng-redis
       - weimeng-minio
+      - weimeng-es
     volumes:
       - .:/app
 
@@ -57,19 +58,28 @@ services:
       - redis_data:/data
 
   weimeng-minio:
-    image: minio/minio:latest
+    image: vmengs/minio:latest
     container_name: weimeng-minio
-    command: server /data --console-address ":9001"
+    command: server /data --console-address ":7056"
     environment:
       - MINIO_ROOT_USER=${MINIO_ACCESS_KEY:-weimengminio}
       - MINIO_ROOT_PASSWORD=${MINIO_SECRET_KEY:-weimengminio}
     ports:
-      - "9000:9000"
-      - "9001:9001"
+      - "5726:9000"
+      - "7056:7056"
     volumes:
       - minio_data:/data
+
+  weimeng-es:
+    image: vmengs/elasticsearch:latest
+    container_name: weimeng-es
+    ports:
+      - "7260:9200"
+    volumes:
+      - es_data:/usr/share/elasticsearch/data
 
 volumes:
   postgres_data:
   redis_data:
   minio_data:
+  es_data:
