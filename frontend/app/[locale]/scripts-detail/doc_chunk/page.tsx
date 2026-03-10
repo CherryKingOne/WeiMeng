@@ -1,16 +1,12 @@
 'use client';
 
+import { isAxiosError } from 'axios';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useLocalePath } from '@/hooks/useLocalePath';
 import { scriptService } from '@/services';
-import type { ScriptFileContent } from '@/types';
+import type { ScriptChunk, ScriptFileContent } from '@/types';
 import { localizeRequestError } from '@/utils';
-
-type SliceItem = {
-  id: string;
-  text: string;
-};
 
 function formatFileSize(bytes: number, locale: 'zh' | 'en'): string {
   if (!Number.isFinite(bytes) || bytes <= 0) {
@@ -32,63 +28,30 @@ function formatFileSize(bytes: number, locale: 'zh' | 'en'): string {
   return `${size.toFixed(digits)} ${units[unitIndex]}`;
 }
 
-function splitContentToSlices(content: string, maxSliceLength: number = 500): SliceItem[] {
-  const paragraphs = content.split(/\n\n+/).filter((p) => p.trim());
-  const slices: SliceItem[] = [];
-  let currentSlice = '';
-  let sliceIndex = 0;
-
-  for (const paragraph of paragraphs) {
-    const trimmed = paragraph.trim();
-    if (!trimmed) continue;
-
-    if (currentSlice.length + trimmed.length + 2 > maxSliceLength) {
-      if (currentSlice) {
-        slices.push({ id: `s${sliceIndex++}`, text: currentSlice.trim() });
-        currentSlice = '';
-      }
-      if (trimmed.length > maxSliceLength) {
-        const chunks = trimmed.match(new RegExp(`.{1,${maxSliceLength}}`, 'g')) || [];
-        for (const chunk of chunks) {
-          slices.push({ id: `s${sliceIndex++}`, text: chunk.trim() });
-        }
-      } else {
-        currentSlice = trimmed;
-      }
-    } else {
-      currentSlice = currentSlice ? `${currentSlice}\n\n${trimmed}` : trimmed;
-    }
-  }
-
-  if (currentSlice.trim()) {
-    slices.push({ id: `s${sliceIndex}`, text: currentSlice.trim() });
-  }
-
-  return slices;
-}
-
 export default function DocChunkPage() {
   const router = useRouter();
   const { locale, withLocalePath } = useLocalePath();
   const searchParams = useSearchParams();
   const isEn = locale === 'en';
 
-  const libraryId = searchParams.get('libraryId')?.trim() || '';
-  const fileId = searchParams.get('fileId')?.trim() || '';
-  const fileNameFromParams = searchParams.get('fileName')?.trim() || '';
-  const uploadedAtFromParams = searchParams.get('uploadedAt')?.trim() || '';
+  const libraryId = searchParams.get('library_id')?.trim() || searchParams.get('libraryId')?.trim() || '';
+  const fileId = searchParams.get('file_id')?.trim() || searchParams.get('fileId')?.trim() || '';
+  const fileNameFromParams = searchParams.get('file_name')?.trim() || searchParams.get('fileName')?.trim() || '';
+  const uploadedAtFromParams = searchParams.get('uploaded_at')?.trim() || searchParams.get('uploadedAt')?.trim() || '';
   const parserFromParams = searchParams.get('parser')?.trim() || '';
-  const fileSizeFromParams = searchParams.get('fileSize')?.trim() || '';
+  const fileSizeFromParams = searchParams.get('file_size')?.trim() || searchParams.get('fileSize')?.trim() || '';
 
   const [fileContent, setFileContent] = useState<ScriptFileContent | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState('');
+  const [chunkItems, setChunkItems] = useState<ScriptChunk[]>([]);
+  const [isContentLoading, setIsContentLoading] = useState(true);
+  const [isChunksLoading, setIsChunksLoading] = useState(true);
+  const [contentError, setContentError] = useState('');
+  const [chunksError, setChunksError] = useState('');
 
   const [viewMode, setViewMode] = useState<'full' | 'compact'>('full');
   const [keyword, setKeyword] = useState('');
   const [selectedSliceIds, setSelectedSliceIds] = useState<string[]>([]);
   const [enabledSliceIds, setEnabledSliceIds] = useState<string[]>([]);
-  const fallbackPath = withLocalePath('/scripts-detail/scripts-file');
 
   const text = {
     back: isEn ? 'Back' : '返回上级',
@@ -110,61 +73,111 @@ export default function DocChunkPage() {
     loading: isEn ? 'Loading...' : '加载中...',
     missingParams: isEn ? 'Missing required parameters' : '缺少必要参数',
     loadFailed: isEn ? 'Failed to load file content' : '加载文件内容失败',
+    loadChunksFailed: isEn ? 'Failed to load chunk results' : '加载切片结果失败',
+    fileDeleted: isEn ? 'File not found or already deleted' : '文件不存在或已删除',
     retry: isEn ? 'Retry' : '重试',
     noContent: isEn ? 'No content available' : '暂无内容',
+    noSlices: isEn ? 'No slices available' : '暂无切片',
   };
 
+  const fallbackPath = useMemo(() => {
+    if (!libraryId) {
+      return withLocalePath('/scripts-detail/scripts-file');
+    }
+
+    const params = new URLSearchParams({ library_id: libraryId });
+    return `${withLocalePath('/scripts-detail/scripts-file')}?${params.toString()}`;
+  }, [libraryId, withLocalePath]);
+
   const resolveError = useCallback((err: unknown) => {
+    if (isAxiosError(err) && err.response?.status === 404) {
+      return text.fileDeleted;
+    }
+
     return localizeRequestError({
       message: err instanceof Error ? err.message : '',
       routeLocale: locale,
       zhFallback: '加载文件内容失败',
       enFallback: 'Failed to load file content',
     });
-  }, [locale]);
+  }, [locale, text.fileDeleted]);
 
-  const loadFileContent = useCallback(async (mode: 'initial' | 'retry' = 'initial') => {
+  const loadFileContent = useCallback(async () => {
     if (!libraryId || !fileId) {
-      setError(text.missingParams);
-      setIsLoading(false);
+      setContentError(text.missingParams);
+      setIsContentLoading(false);
       return;
     }
 
-    if (mode === 'initial') {
-      setIsLoading(true);
-    }
-    setError('');
+    setIsContentLoading(true);
+    setContentError('');
 
     try {
       const data = await scriptService.getLibraryFileContent(libraryId, fileId);
       setFileContent(data);
-      const slices = splitContentToSlices(data.content);
-      setEnabledSliceIds(slices.map((s) => s.id));
     } catch (err) {
-      setError(resolveError(err));
+      setContentError(resolveError(err));
     } finally {
-      setIsLoading(false);
+      setIsContentLoading(false);
     }
   }, [libraryId, fileId, resolveError, text.missingParams]);
 
-  useEffect(() => {
-    void loadFileContent('initial');
-  }, [loadFileContent]);
+  const loadFileChunks = useCallback(async () => {
+    if (!libraryId || !fileId) {
+      setChunksError(text.missingParams);
+      setIsChunksLoading(false);
+      return;
+    }
 
-  const slices = useMemo(() => {
-    if (!fileContent?.content) return [];
-    return splitContentToSlices(fileContent.content);
-  }, [fileContent]);
+    setIsChunksLoading(true);
+    setChunksError('');
+
+    try {
+      const data = await scriptService.getLibraryFileChunks(libraryId, fileId);
+      setChunkItems(data);
+
+      const nextIds = data.map((chunk) => String(chunk.chunk_index));
+      setSelectedSliceIds((prev) => prev.filter((id) => nextIds.includes(id)));
+      setEnabledSliceIds((prev) => {
+        if (prev.length === 0) {
+          return nextIds;
+        }
+
+        const preserved = prev.filter((id) => nextIds.includes(id));
+        const appended = nextIds.filter((id) => !preserved.includes(id));
+        return [...preserved, ...appended];
+      });
+    } catch (err) {
+      if (isAxiosError(err) && err.response?.status === 404) {
+        setChunksError(text.fileDeleted);
+        return;
+      }
+
+      setChunksError(localizeRequestError({
+        message: err instanceof Error ? err.message : '',
+        routeLocale: locale,
+        zhFallback: text.loadChunksFailed,
+        enFallback: 'Failed to load chunk results',
+      }));
+    } finally {
+      setIsChunksLoading(false);
+    }
+  }, [fileId, libraryId, locale, text.fileDeleted, text.loadChunksFailed, text.missingParams]);
+
+  useEffect(() => {
+    void loadFileContent();
+    void loadFileChunks();
+  }, [loadFileContent, loadFileChunks]);
 
   const filteredSlices = useMemo(() => {
     const normalized = keyword.trim().toLowerCase();
     if (!normalized) {
-      return slices;
+      return chunkItems;
     }
-    return slices.filter((slice) => slice.text.toLowerCase().includes(normalized));
-  }, [slices, keyword]);
+    return chunkItems.filter((slice) => slice.content.toLowerCase().includes(normalized));
+  }, [chunkItems, keyword]);
 
-  const visibleSliceIds = filteredSlices.map((slice) => slice.id);
+  const visibleSliceIds = filteredSlices.map((slice) => String(slice.chunk_index));
   const allVisibleSelected = visibleSliceIds.length > 0 && visibleSliceIds.every((id) => selectedSliceIds.includes(id));
 
   const handleToggleSelectAll = () => {
@@ -232,7 +245,7 @@ export default function DocChunkPage() {
           </header>
 
           <div className="mt-4 flex-1 overflow-y-auto rounded-lg border border-gray-200 bg-white px-6 py-5 text-[15px] leading-8 text-gray-700">
-            {isLoading ? (
+            {isContentLoading ? (
               <div className="flex items-center justify-center h-full">
                 <div className="flex items-center gap-2 text-gray-500">
                   <svg className="w-5 h-5 animate-spin" fill="none" viewBox="0 0 24 24">
@@ -242,12 +255,12 @@ export default function DocChunkPage() {
                   <span>{text.loading}</span>
                 </div>
               </div>
-            ) : error ? (
+            ) : contentError ? (
               <div className="flex flex-col items-center justify-center h-full gap-4">
-                <p className="text-red-500">{error}</p>
+                <p className="text-red-500">{contentError}</p>
                 <button
                   type="button"
-                  onClick={() => void loadFileContent('retry')}
+                  onClick={() => void loadFileContent()}
                   className="rounded-lg bg-black px-4 py-2 text-sm font-medium text-white hover:bg-gray-800 transition-colors"
                 >
                   {text.retry}
@@ -332,7 +345,7 @@ export default function DocChunkPage() {
           </div>
 
           <div className="flex-1 overflow-y-auto px-6 py-4">
-            {isLoading ? (
+            {isChunksLoading ? (
               <div className="space-y-3">
                 {Array.from({ length: 4 }).map((_, index) => (
                   <div key={index} className="rounded-lg border border-gray-200 p-4 animate-pulse">
@@ -341,23 +354,36 @@ export default function DocChunkPage() {
                   </div>
                 ))}
               </div>
-            ) : error ? null : filteredSlices.length === 0 ? (
+            ) : chunksError ? (
+              <div className="flex flex-col items-center justify-center py-10 gap-4 text-center">
+                <p className="text-red-500">{chunksError}</p>
+                <button
+                  type="button"
+                  onClick={() => void loadFileChunks()}
+                  className="rounded-lg bg-black px-4 py-2 text-sm font-medium text-white hover:bg-gray-800 transition-colors"
+                >
+                  {text.retry}
+                </button>
+              </div>
+            ) : filteredSlices.length === 0 ? (
               <div className="text-center text-gray-500 py-8">
-                {keyword ? text.noContent : (isEn ? 'No slices available' : '暂无切片')}
+                {keyword ? text.noContent : text.noSlices}
               </div>
             ) : (
               filteredSlices.map((slice) => {
-                const isSelected = selectedSliceIds.includes(slice.id);
-                const isEnabled = enabledSliceIds.includes(slice.id);
-                const content = viewMode === 'compact' ? `${slice.text.slice(0, 150)}...` : slice.text;
+                const sliceId = String(slice.chunk_index);
+                const isSelected = selectedSliceIds.includes(sliceId);
+                const isEnabled = enabledSliceIds.includes(sliceId);
+                const compactContent = slice.content.length > 150 ? `${slice.content.slice(0, 150)}...` : slice.content;
+                const content = viewMode === 'compact' ? compactContent : slice.content;
 
                 return (
-                  <div key={slice.id} className="mb-3 rounded-lg border border-gray-200 p-4 transition-all hover:border-gray-300 hover:shadow-[0_8px_16px_rgba(17,24,39,0.06)] flex gap-3">
+                  <div key={sliceId} className="mb-3 rounded-lg border border-gray-200 p-4 transition-all hover:border-gray-300 hover:shadow-[0_8px_16px_rgba(17,24,39,0.06)] flex gap-3">
                     <div className="pt-0.5">
                       <input
                         type="checkbox"
                         checked={isSelected}
-                        onChange={() => handleToggleSliceSelected(slice.id)}
+                        onChange={() => handleToggleSliceSelected(sliceId)}
                         className="h-4 w-4 rounded border-gray-300 text-black focus:ring-black"
                       />
                     </div>
@@ -368,7 +394,7 @@ export default function DocChunkPage() {
 
                     <button
                       type="button"
-                      onClick={() => handleToggleSliceEnabled(slice.id)}
+                      onClick={() => handleToggleSliceEnabled(sliceId)}
                       className={`relative inline-flex h-5 w-9 items-center rounded-full p-0.5 transition-colors ${isEnabled ? 'bg-emerald-500' : 'bg-gray-300'}`}
                       aria-label={isEnabled ? text.disableSlice : text.enableSlice}
                     >

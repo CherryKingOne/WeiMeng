@@ -1,5 +1,6 @@
 'use client';
 
+import { isAxiosError } from 'axios';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import {
@@ -18,10 +19,11 @@ import type { ScriptLibraryFile } from '@/types';
 import { localizeRequestError } from '@/utils';
 
 type FileStatus = 'success';
+type ChunkExecutionState = 'idle' | 'processing' | 'processed';
 
 type UploadFile = {
   file: File;
-  status: 'pending' | 'uploading' | 'success' | 'error';
+  status: 'pending' | 'uploading' | 'success' | 'error' | 'invalid';
   error?: string;
 };
 
@@ -85,6 +87,7 @@ const ACCEPTED_MIME_TYPES = [
   'application/pdf',
   'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
 ];
+const MAX_UPLOAD_TEXT_LENGTH = 10000;
 
 type UploadModalProps = {
   isOpen: boolean;
@@ -102,33 +105,74 @@ function UploadModal({ isOpen, libraryId, locale, text, onClose, onUploadComplet
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   const t = text as {
-    uploadModal: { title: string; subtitle: string; dropTitle: string; dropHint: string; cancel: string; confirm: string };
-    uploadStatus: { pending: string; uploading: string; success: string; error: string };
+    uploadModal: {
+      title: string;
+      subtitle: string;
+      dropTitle: string;
+      dropHint: string;
+      limitHint: string;
+      cancel: string;
+      confirm: string;
+      unsupportedType: string;
+      overTextLimit: (limit: number) => string;
+    };
+    uploadStatus: { pending: string; uploading: string; success: string; error: string; invalid: string };
     uploadAll: string;
     clearCompleted: string;
     dropFilesHere: string;
   };
 
-  const handleFileSelect = (files: FileList | null) => {
+  const getFileExtension = (fileName: string) => {
+    const extension = fileName.split('.').pop()?.toLowerCase();
+    return extension ? `.${extension}` : '';
+  };
+
+  const isPlainTextFile = (extension: string) => extension === '.txt' || extension === '.md';
+
+  const countCharacters = (value: string) => Array.from(value).length;
+
+  const handleFileSelect = async (files: FileList | null) => {
     if (!files) return;
 
-    const validFiles: UploadFile[] = [];
-    Array.from(files).forEach((file) => {
-      const ext = '.' + file.name.split('.').pop()?.toLowerCase();
-      if (ACCEPTED_FILE_TYPES.includes(ext) || ACCEPTED_MIME_TYPES.includes(file.type)) {
-        validFiles.push({ file, status: 'pending' });
-      }
-    });
+    const nextFiles: UploadFile[] = [];
 
-    if (validFiles.length > 0) {
-      setUploadFiles((prev) => [...prev, ...validFiles]);
+    for (const file of Array.from(files)) {
+      const extension = getFileExtension(file.name);
+      const isAccepted = ACCEPTED_FILE_TYPES.includes(extension) || ACCEPTED_MIME_TYPES.includes(file.type);
+
+      if (!isAccepted) {
+        nextFiles.push({
+          file,
+          status: 'invalid',
+          error: t.uploadModal.unsupportedType,
+        });
+        continue;
+      }
+
+      if (isPlainTextFile(extension)) {
+        const textContent = await file.text();
+        if (countCharacters(textContent) > MAX_UPLOAD_TEXT_LENGTH) {
+          nextFiles.push({
+            file,
+            status: 'invalid',
+            error: t.uploadModal.overTextLimit(MAX_UPLOAD_TEXT_LENGTH),
+          });
+          continue;
+        }
+      }
+
+      nextFiles.push({ file, status: 'pending' });
+    }
+
+    if (nextFiles.length > 0) {
+      setUploadFiles((prev) => [...prev, ...nextFiles]);
     }
   };
 
   const handleDrop = (e: React.DragEvent) => {
     e.preventDefault();
     setIsDragging(false);
-    handleFileSelect(e.dataTransfer.files);
+    void handleFileSelect(e.dataTransfer.files);
   };
 
   const handleDragOver = (e: React.DragEvent) => {
@@ -227,7 +271,10 @@ function UploadModal({ isOpen, libraryId, locale, text, onClose, onUploadComplet
               multiple
               accept={ACCEPTED_FILE_TYPES.join(',')}
               className="hidden"
-              onChange={(e) => handleFileSelect(e.target.files)}
+              onChange={(e) => {
+                void handleFileSelect(e.target.files);
+                e.target.value = '';
+              }}
             />
             <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-white text-gray-500 shadow-sm">
               <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -236,6 +283,7 @@ function UploadModal({ isOpen, libraryId, locale, text, onClose, onUploadComplet
             </div>
             <p className="text-sm font-medium text-gray-800">{t.uploadModal.dropTitle}</p>
             <p className="mt-2 text-xs text-gray-500">{t.uploadModal.dropHint}</p>
+            <p className="mt-1 text-xs text-gray-500">{t.uploadModal.limitHint}</p>
           </div>
 
           {uploadFiles.length > 0 && (
@@ -251,6 +299,9 @@ function UploadModal({ isOpen, libraryId, locale, text, onClose, onUploadComplet
                   <div className="flex-1 min-w-0">
                     <p className="text-sm text-gray-900 truncate">{uploadFile.file.name}</p>
                     <p className="text-xs text-gray-500">{formatFileSize(uploadFile.file.size, locale)}</p>
+                    {uploadFile.status === 'error' && uploadFile.error && (
+                      <p className="mt-1 text-xs text-red-500">{uploadFile.error}</p>
+                    )}
                   </div>
                   <div className="flex items-center gap-2">
                     {uploadFile.status === 'pending' && (
@@ -288,7 +339,12 @@ function UploadModal({ isOpen, libraryId, locale, text, onClose, onUploadComplet
                         {t.uploadStatus.error}
                       </span>
                     )}
-                    {uploadFile.status === 'pending' && (
+                    {uploadFile.status === 'invalid' && (
+                      <span className="text-xs text-red-600" title={uploadFile.error}>
+                        {t.uploadStatus.invalid}
+                      </span>
+                    )}
+                    {uploadFile.status !== 'uploading' && uploadFile.status !== 'success' && (
                       <button
                         type="button"
                         onClick={(e) => {
@@ -361,7 +417,7 @@ export default function ScriptFilePage() {
   const searchParams = useSearchParams();
   const isEn = locale === 'en';
   const docChunkPath = withLocalePath('/scripts-detail/doc_chunk');
-  const libraryId = searchParams.get('libraryId')?.trim() || '';
+  const libraryId = searchParams.get('library_id')?.trim() || searchParams.get('libraryId')?.trim() || '';
 
   const [keyword, setKeyword] = useState('');
   const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
@@ -373,6 +429,8 @@ export default function ScriptFilePage() {
   const [deletingFileId, setDeletingFileId] = useState<string | null>(null);
   const [pendingDeleteFile, setPendingDeleteFile] = useState<ScriptFileRow | null>(null);
   const [enabledMap, setEnabledMap] = useState<Record<string, boolean>>({});
+  const [chunkCountMap, setChunkCountMap] = useState<Record<string, number>>({});
+  const [chunkExecutionStateMap, setChunkExecutionStateMap] = useState<Record<string, ChunkExecutionState>>({});
 
   const selectedScript = useMemo<SelectedScript>(() => {
     const toneParam = searchParams.get('tone');
@@ -446,6 +504,7 @@ export default function ScriptFilePage() {
       uploading: isEn ? 'Uploading...' : '上传中...',
       success: isEn ? 'Uploaded' : '上传成功',
       error: isEn ? 'Upload failed' : '上传失败',
+      invalid: isEn ? 'Invalid file' : '文件不符合要求',
     },
     uploadAll: isEn ? 'Upload All' : '全部上传',
     clearCompleted: isEn ? 'Clear Completed' : '清除已完成',
@@ -461,7 +520,7 @@ export default function ScriptFilePage() {
     },
     sourceUpload: isEn ? 'Upload' : '上传',
     viewChunks: isEn ? 'View Chunks' : '查看分块',
-    reprocess: isEn ? 'Reprocess' : '重新处理',
+    reprocess: isEn ? 'Reprocess' : '重新解析',
     status: {
       success: isEn ? 'Loaded' : '已加载',
     },
@@ -477,9 +536,16 @@ export default function ScriptFilePage() {
       title: isEn ? 'Add File' : '新增文件',
       subtitle: isEn ? 'Select files to upload and parse' : '选择要上传并解析的文件',
       dropTitle: isEn ? 'Drop files here or click to browse' : '将文件拖拽到此处，或点击上传',
-      dropHint: isEn ? 'Supports MD, DOCX, TXT, PDF' : '支持 MD、DOCX、TXT、PDF',
+      dropHint: isEn ? 'Supports .txt, .docx, .pdf, .md' : '支持 .txt、.docx、.pdf、.md',
+      limitHint: isEn
+        ? 'You can upload multiple files, but each file is limited to 10,000 characters of text.'
+        : '可上传多个文件，但每个文件的文本内容单独限制 10000 字。',
       cancel: isEn ? 'Cancel' : '取消',
       confirm: isEn ? 'Start Upload' : '开始上传',
+      unsupportedType: isEn ? 'Unsupported file type' : '文件类型不支持',
+      overTextLimit: (limit: number) => (isEn
+        ? `Each file must contain at most ${limit} characters of text.`
+        : `每个文件的文本内容不能超过 ${limit} 字。`),
     },
     deleteModal: {
       title: isEn ? 'Delete File' : '删除文件',
@@ -496,13 +562,17 @@ export default function ScriptFilePage() {
       return text.missingLibraryId;
     }
 
+    if (isAxiosError(error) && error.response?.status === 404) {
+      return isEn ? 'Script library not found' : '剧本库不存在';
+    }
+
     return localizeRequestError({
       message: error instanceof Error ? error.message : '',
       routeLocale: locale,
       zhFallback: '获取剧本文件失败',
       enFallback: 'Failed to load script files',
     });
-  }, [libraryId, locale, text.missingLibraryId]);
+  }, [isEn, libraryId, locale, text.missingLibraryId]);
 
   const loadFiles = useCallback(async (mode: 'initial' | 'refresh' = 'refresh') => {
     if (!libraryId) {
@@ -530,6 +600,16 @@ export default function ScriptFilePage() {
         const nextEntries = data.map((file) => [file.id, prev[file.id] ?? true]);
         return Object.fromEntries(nextEntries);
       });
+      setChunkCountMap(Object.fromEntries(
+        data
+          .filter((file) => file.chunk_count > 0)
+          .map((file) => [file.id, file.chunk_count]),
+      ));
+      setChunkExecutionStateMap(Object.fromEntries(
+        data
+          .filter((file) => file.chunk_count > 0)
+          .map((file) => [file.id, 'processed' as const]),
+      ));
       setSelectedIds((prev) => prev.filter((id) => data.some((file) => file.id === id)));
     } catch (error: unknown) {
       setFilesError(resolveFilesError(error));
@@ -553,13 +633,13 @@ export default function ScriptFilePage() {
       name: file.original_name,
       uploadedAt: formatDateTime(file.created_at, isEn ? 'en' : 'zh'),
       fileSizeLabel: formatFileSize(file.file_size, isEn ? 'en' : 'zh'),
-      chunks: text.unavailableChunks,
+      chunks: chunkCountMap[file.id] !== undefined ? String(chunkCountMap[file.id]) : text.unavailableChunks,
       parser: file.file_extension?.toUpperCase() || text.unknownParser,
       enabled: enabledMap[file.id] ?? true,
       status: 'success',
       source: 'upload',
     }));
-  }, [enabledMap, files, isEn, text.unavailableChunks, text.unknownParser]);
+  }, [chunkCountMap, enabledMap, files, isEn, text.unavailableChunks, text.unknownParser]);
 
   const filteredFiles = useMemo(() => {
     const normalizedKeyword = keyword.trim().toLowerCase();
@@ -602,6 +682,57 @@ export default function ScriptFilePage() {
     }));
   };
 
+  const getChunkExecutionState = useCallback((fileId: string): ChunkExecutionState => {
+    return chunkExecutionStateMap[fileId] ?? (chunkCountMap[fileId] !== undefined ? 'processed' : 'idle');
+  }, [chunkCountMap, chunkExecutionStateMap]);
+
+  const handleExecuteChunks = useCallback(async (file: ScriptFileRow) => {
+    if (!libraryId) {
+      setFilesError(text.missingLibraryId);
+      return;
+    }
+
+    const previousState = getChunkExecutionState(file.id);
+    if (previousState === 'processing') {
+      return;
+    }
+
+    setFilesError('');
+    setChunkExecutionStateMap((prev) => ({
+      ...prev,
+      [file.id]: 'processing',
+    }));
+
+    try {
+      const chunks = await scriptService.executeLibraryFileChunks(libraryId, file.id);
+      setChunkCountMap((prev) => ({
+        ...prev,
+        [file.id]: chunks.length,
+      }));
+      setChunkExecutionStateMap((prev) => ({
+        ...prev,
+        [file.id]: 'processed',
+      }));
+    } catch (error: unknown) {
+      setChunkExecutionStateMap((prev) => ({
+        ...prev,
+        [file.id]: previousState,
+      }));
+
+      if (isAxiosError(error) && error.response?.status === 404) {
+        setFilesError(isEn ? 'File not found or already deleted' : '文件不存在或已删除');
+        return;
+      }
+
+      setFilesError(localizeRequestError({
+        message: error instanceof Error ? error.message : '',
+        routeLocale: locale,
+        zhFallback: '执行文本分块失败',
+        enFallback: 'Failed to execute script chunks',
+      }));
+    }
+  }, [getChunkExecutionState, isEn, libraryId, locale, text.missingLibraryId]);
+
   const handleOpenDeleteModal = useCallback((file: ScriptFileRow) => {
     if (deletingFileId) {
       return;
@@ -626,28 +757,42 @@ export default function ScriptFilePage() {
         delete next[pendingDeleteFile.id];
         return next;
       });
+      setChunkCountMap((prev) => {
+        const next = { ...prev };
+        delete next[pendingDeleteFile.id];
+        return next;
+      });
+      setChunkExecutionStateMap((prev) => {
+        const next = { ...prev };
+        delete next[pendingDeleteFile.id];
+        return next;
+      });
       setPendingDeleteFile(null);
     } catch (error: unknown) {
-      setFilesError(localizeRequestError({
-        message: error instanceof Error ? error.message : '',
-        routeLocale: locale,
-        zhFallback: '删除剧本文件失败',
-        enFallback: 'Failed to delete script file',
-      }));
+      if (isAxiosError(error) && error.response?.status === 404) {
+        setFilesError(isEn ? 'File not found or already deleted' : '文件不存在或已删除');
+      } else {
+        setFilesError(localizeRequestError({
+          message: error instanceof Error ? error.message : '',
+          routeLocale: locale,
+          zhFallback: '删除剧本文件失败',
+          enFallback: 'Failed to delete script file',
+        }));
+      }
     } finally {
       setDeletingFileId(null);
     }
-  }, [deletingFileId, libraryId, locale, pendingDeleteFile]);
+  }, [deletingFileId, isEn, libraryId, locale, pendingDeleteFile]);
 
   const buildDocChunkPath = (file: ScriptFileRow) => {
     const params = new URLSearchParams({
-      libraryId,
-      fileId: file.id,
-      fileName: file.name,
-      uploadedAt: file.uploadedAt,
+      library_id: libraryId,
+      file_id: file.id,
+      file_name: file.name,
+      uploaded_at: file.uploadedAt,
       chunks: file.chunks,
       parser: file.parser,
-      fileSize: file.fileSizeLabel,
+      file_size: file.fileSizeLabel,
     });
 
     return `${docChunkPath}?${params.toString()}`;
@@ -734,9 +879,6 @@ export default function ScriptFilePage() {
                 <span>{navText}</span>
               </button>
             ))}
-          </nav>
-
-          <div className="p-3 border-t border-gray-100">
             <button
               type="button"
               className="w-full text-left flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-gray-500 hover:bg-gray-50 hover:text-gray-700 transition-colors"
@@ -747,7 +889,7 @@ export default function ScriptFilePage() {
               </svg>
               <span>{text.settings}</span>
             </button>
-          </div>
+          </nav>
         </aside>
 
         <main className="flex-1 flex flex-col bg-white overflow-hidden">
@@ -763,9 +905,6 @@ export default function ScriptFilePage() {
                     </span>
                   ) : null}
                 </div>
-                <p className="text-sm text-gray-500">
-                  {libraryId ? `ID: ${libraryId}` : text.missingLibraryId}
-                </p>
               </div>
 
               <div className="flex items-center gap-3 shrink-0">
@@ -808,7 +947,7 @@ export default function ScriptFilePage() {
             ) : null}
 
             <div className="border border-gray-200 rounded-xl overflow-x-auto">
-              <div className="min-w-[980px]">
+              <div className="w-max min-w-full">
                 <div className="flex items-center gap-4 px-4 py-3 bg-gray-50/50 border-b border-gray-200 text-xs font-medium text-gray-500">
                   <div className="w-10 flex justify-center">
                     <input
@@ -918,10 +1057,35 @@ export default function ScriptFilePage() {
                       <div className="w-20 shrink-0 text-center text-sm text-gray-500">{file.parser}</div>
 
                       <div className="w-52 shrink-0 flex items-center justify-center gap-3 text-gray-500">
-                        <button type="button" data-row-action="true" className="hover:text-gray-900 transition-colors" aria-label={text.reprocess}>
-                          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.8" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                          </svg>
+                        <button
+                          type="button"
+                          data-row-action="true"
+                          onClick={(event) => {
+                            event.stopPropagation();
+                            void handleExecuteChunks(file);
+                          }}
+                          disabled={getChunkExecutionState(file.id) === 'processing'}
+                          className={`transition-colors ${
+                            getChunkExecutionState(file.id) === 'processing'
+                              ? 'cursor-wait text-gray-900'
+                              : 'hover:text-gray-900'
+                          }`}
+                          aria-label={text.reprocess}
+                          title={text.reprocess}
+                        >
+                          {getChunkExecutionState(file.id) === 'processing' ? (
+                            <svg className="w-5 h-5 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.8" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                            </svg>
+                          ) : getChunkExecutionState(file.id) === 'processed' ? (
+                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.8" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                            </svg>
+                          ) : (
+                            <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+                              <path d="M8.75 5.47c0-1.04 1.15-1.67 2.03-1.11l8.24 5.27c.82.52.82 1.72 0 2.24l-8.24 5.27c-.88.56-2.03-.07-2.03-1.11V5.47z" />
+                            </svg>
+                          )}
                         </button>
 
                         <span

@@ -15,6 +15,7 @@ class Settings(BaseSettings):
     access_token_expire_days: int = 30
     scripts_chunk_size: int = 1200
     scripts_chunk_overlap: int = 200
+    scripts_upload_max_text_length: int = 10000
 
     database: DatabaseSettings = DatabaseSettings()
     redis: RedisSettings = RedisSettings()

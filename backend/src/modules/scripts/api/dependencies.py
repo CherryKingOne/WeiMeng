@@ -53,4 +53,5 @@ async def get_script_app_service(
         script_chunk_store=script_chunk_store,
         file_text_extractor=file_text_extractor,
         script_chunker=script_chunker,
+        upload_max_text_length=max(1, settings.scripts_upload_max_text_length),
     )

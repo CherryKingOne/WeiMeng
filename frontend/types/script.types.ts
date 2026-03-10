@@ -38,6 +38,7 @@ export interface ScriptLibraryFile {
   content_type: string;
   file_size: number;
   created_at: string;
+  chunk_count: number;
 }
 
 export interface DeleteScriptLibraryFileResponse {
@@ -56,4 +57,12 @@ export interface ScriptFileContent {
   file_extension: string;
   content: string;
   content_length: number;
+}
+
+export interface ScriptChunk {
+  chunk_index: number;
+  content: string;
+  start_index: number;
+  end_index: number;
+  chunk_size: number;
 }

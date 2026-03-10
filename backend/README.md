@@ -11,6 +11,8 @@ uv sync
 ```
 此命令会根据 `pyproject.toml` 创建/更新虚拟环境。
 
+剧本库单文件文本字数限制通过 `backend/.env` 中的 `SCRIPTS_UPLOAD_MAX_TEXT_LENGTH` 控制，这个配置用于上传校验，不属于分块参数。
+
 ### 2. 运行应用
 
 ```bash

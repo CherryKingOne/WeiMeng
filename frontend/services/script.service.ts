@@ -4,6 +4,7 @@ import {
   DeleteScriptLibraryFileResponse,
   PaginatedResponse,
   Script,
+  ScriptChunk,
   ScriptFileContent,
   ScriptFilter,
   ScriptLibrary,
@@ -75,6 +76,16 @@ export const scriptService = {
 
   getLibraryFileContent: async (libraryId: string, scriptId: string): Promise<ScriptFileContent> => {
     const response = await api.get<ScriptFileContent>(`/scripts/libraries/${libraryId}/files/${scriptId}/content`);
+    return response.data;
+  },
+
+  getLibraryFileChunks: async (libraryId: string, scriptId: string): Promise<ScriptChunk[]> => {
+    const response = await api.get<ScriptChunk[]>(`/scripts/libraries/${libraryId}/files/${scriptId}/chunks`);
+    return response.data;
+  },
+
+  executeLibraryFileChunks: async (libraryId: string, scriptId: string): Promise<ScriptChunk[]> => {
+    const response = await api.post<ScriptChunk[]>(`/scripts/libraries/${libraryId}/files/${scriptId}/chunks`);
     return response.data;
   },
 };

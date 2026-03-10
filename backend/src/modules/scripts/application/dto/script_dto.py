@@ -46,9 +46,10 @@ class ScriptItemResponse(BaseModel):
     content_type: str
     file_size: int
     created_at: datetime
+    chunk_count: int = 0
 
     @classmethod
-    def from_entity(cls, script: Script) -> "ScriptItemResponse":
+    def from_entity(cls, script: Script, chunk_count: int = 0) -> "ScriptItemResponse":
         return cls(
             id=script.id,
             library_id=script.library_id,
@@ -57,6 +58,7 @@ class ScriptItemResponse(BaseModel):
             content_type=script.content_type,
             file_size=script.file_size,
             created_at=script.created_at,
+            chunk_count=chunk_count,
         )
 
 

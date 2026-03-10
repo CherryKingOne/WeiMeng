@@ -26,6 +26,7 @@ from src.modules.scripts.domain.exceptions import (
     ScriptLibraryNotFoundException,
     ScriptNotFoundException,
     StorageCleanupError,
+    TextExtractError,
 )
 from src.modules.scripts.domain.repositories import IScriptChunkStore, IScriptRepository
 from src.modules.scripts.domain.value_objects.file_format import FileFormat
@@ -45,12 +46,14 @@ class ScriptAppService:
         script_chunk_store: IScriptChunkStore,
         file_text_extractor: FileTextExtractor,
         script_chunker: ScriptSentenceWindowTextSplitter,
+        upload_max_text_length: int,
     ):
         self._script_repository = script_repository
         self._storage_provider = storage_provider
         self._script_chunk_store = script_chunk_store
         self._file_text_extractor = file_text_extractor
         self._script_chunker = script_chunker
+        self._upload_max_text_length = upload_max_text_length
 
     async def create_library(self, request: CreateScriptLibraryRequest) -> ScriptLibraryResponse:
         library_name = request.name.strip()
@@ -91,6 +94,7 @@ class ScriptAppService:
         file_size = self._get_upload_file_size(file)
         if file_size <= 0:
             raise ValidationException("File is empty")
+        await self._validate_upload_text_length(file, file_format)
 
         script_id = uuid.uuid4()
         object_name = self._build_object_name(library_id, script_id, file_format.extension)
@@ -131,7 +135,14 @@ class ScriptAppService:
     async def list_library_scripts(self, library_id: UUID) -> list[ScriptItemResponse]:
         await self._get_library_or_raise(library_id)
         scripts = await self._script_repository.list_all(library_id=library_id)
-        return [ScriptItemResponse.from_entity(script) for script in scripts]
+        chunk_counts: dict[UUID, int] = {}
+        for script in scripts:
+            chunk_counts[script.id] = len(await self._script_repository.list_chunks(script.id, library_id))
+
+        return [
+            ScriptItemResponse.from_entity(script, chunk_count=chunk_counts.get(script.id, 0))
+            for script in scripts
+        ]
 
     async def get_script_text_content(self, library_id: UUID, script_id: UUID) -> ScriptContentResponse:
         await self._get_library_or_raise(library_id)
@@ -168,6 +179,28 @@ class ScriptAppService:
                 )
 
         return await self._execute_script_chunks(script, library_id)
+
+    async def _validate_upload_text_length(self, file: UploadFile, file_format: FileFormat) -> None:
+        file.file.seek(0)
+        try:
+            try:
+                extracted_text = await asyncio.to_thread(
+                    self._file_text_extractor.extract_from_stream,
+                    file.file,
+                    file_format.extension,
+                )
+            except TextExtractError:
+                if not file_format.is_text:
+                    return
+                raise
+        finally:
+            file.file.seek(0)
+
+        if len(extracted_text) > self._upload_max_text_length:
+            raise ValidationException(
+                "File text exceeds limit",
+                detail=f"Each file must contain at most {self._upload_max_text_length} characters of text",
+            )
 
     async def execute_script_chunks(self, library_id: UUID, script_id: UUID) -> list[ScriptChunkResponse]:
         await self._get_library_or_raise(library_id)

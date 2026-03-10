@@ -194,6 +194,7 @@ def _create_service(
     repository: FakeScriptRepository | None = None,
     storage: FakeStorageProvider | None = None,
     chunk_store: FakeChunkStore | None = None,
+    upload_max_text_length: int = 10000,
 ) -> ScriptAppService:
     return ScriptAppService(
         script_repository=repository or FakeScriptRepository(),
@@ -201,6 +202,7 @@ def _create_service(
         script_chunk_store=chunk_store or FakeChunkStore(),
         file_text_extractor=FileTextExtractor(),
         script_chunker=ScriptSentenceWindowTextSplitter(chunk_size=1200, chunk_overlap=200),
+        upload_max_text_length=upload_max_text_length,
     )
 
 
@@ -277,10 +279,53 @@ async def _test_script_app_service_upload_list_and_read_text_content():
     library_scripts = await service.list_library_scripts(library.id)
     assert len(library_scripts) == 1
     assert library_scripts[0].id == upload_result.id
+    assert library_scripts[0].chunk_count == 0
 
 
 def test_script_app_service_upload_list_and_read_text_content():
     asyncio.run(_test_script_app_service_upload_list_and_read_text_content())
+
+
+async def _test_script_app_service_list_library_scripts_returns_chunk_count():
+    repository = FakeScriptRepository()
+    chunk_store = FakeChunkStore()
+    service = _create_service(repository=repository, chunk_store=chunk_store)
+
+    library = await service.create_library(CreateScriptLibraryRequest(name="分块测试", description=None))
+    upload_file = UploadFile(file=BytesIO("第一句。第二句。第三句。".encode("utf-8")), filename="demo.txt")
+    upload_result = await service.upload_script(library.id, upload_file)
+
+    await service.execute_script_chunks(library.id, upload_result.id)
+    library_scripts = await service.list_library_scripts(library.id)
+
+    assert len(library_scripts) == 1
+    assert library_scripts[0].chunk_count > 0
+
+
+def test_script_app_service_list_library_scripts_returns_chunk_count():
+    asyncio.run(_test_script_app_service_list_library_scripts_returns_chunk_count())
+
+
+async def _test_script_app_service_upload_rejects_file_over_text_limit():
+    repository = FakeScriptRepository()
+    storage = FakeStorageProvider()
+    service = _create_service(repository=repository, storage=storage)
+
+    library = await service.create_library(CreateScriptLibraryRequest(name="长文本", description=None))
+
+    with pytest.raises(ValidationException) as exc_info:
+        await service.upload_script(
+            library.id,
+            UploadFile(file=BytesIO(("字" * 10001).encode("utf-8")), filename="too-long.txt"),
+        )
+
+    assert exc_info.value.detail == "Each file must contain at most 10000 characters of text"
+    assert await repository.list_all(library.id) == []
+    assert storage.deleted_objects == []
+
+
+def test_script_app_service_upload_rejects_file_over_text_limit():
+    asyncio.run(_test_script_app_service_upload_rejects_file_over_text_limit())
 
 
 async def _test_script_app_service_list_library_scripts_requires_library():

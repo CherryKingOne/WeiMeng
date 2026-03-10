@@ -188,7 +188,7 @@ export default function ScriptsPage() {
 
   const buildScriptDetailPath = (meta: ScriptCardMeta) => {
     const params = new URLSearchParams({
-      libraryId: meta.libraryId,
+      library_id: meta.libraryId,
       title: meta.title,
       genre: text.libraryTag,
       subtitle: meta.subtitle,
