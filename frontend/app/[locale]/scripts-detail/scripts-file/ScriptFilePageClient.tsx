@@ -1175,6 +1175,7 @@ export default function ScriptFilePageClient({ initialData }: ScriptFilePageClie
                       width={40}
                       height={40}
                       unoptimized
+                      onError={() => setAvatarPreviewUrl('')}
                       className="h-10 w-10 rounded-lg object-cover border border-gray-200 bg-white"
                     />
                   ) : (

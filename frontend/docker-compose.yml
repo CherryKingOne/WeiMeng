@@ -10,7 +10,11 @@ services:
     restart: always
     ports:
       - 5678:5678
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     environment:
       - NODE_ENV=production
       - HOSTNAME=0.0.0.0
       - PORT=5678
+      - NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL:-/api/v1}
+      - SERVER_API_URL=${SERVER_API_URL:-http://host.docker.internal:5607/api/v1}

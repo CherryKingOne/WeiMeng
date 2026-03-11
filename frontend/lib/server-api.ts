@@ -7,9 +7,30 @@ function normalizeApiBaseUrl(value: string): string {
   return value.replace('://0.0.0.0', '://127.0.0.1').replace(/\/$/, '');
 }
 
-function getServerApiBaseUrl(): string {
+function buildHostDockerInternalFallback(urlValue: string): string | null {
+  try {
+    const parsed = new URL(urlValue);
+    if (!['127.0.0.1', 'localhost', '0.0.0.0'].includes(parsed.hostname)) {
+      return null;
+    }
+
+    parsed.hostname = 'host.docker.internal';
+    return normalizeApiBaseUrl(parsed.toString());
+  } catch {
+    return null;
+  }
+}
+
+function getServerApiBaseUrl(): { primary: string; fallback: string | null } {
   const configuredUrl = process.env.SERVER_API_URL || process.env.NEXT_PUBLIC_API_URL || DEFAULT_SERVER_API_URL;
-  return normalizeApiBaseUrl(configuredUrl);
+  const primary = normalizeApiBaseUrl(configuredUrl);
+
+  // If SERVER_API_URL is explicitly set, trust it and skip implicit fallback routing.
+  const fallback = process.env.SERVER_API_URL ? null : buildHostDockerInternalFallback(primary);
+  return {
+    primary,
+    fallback: fallback && fallback !== primary ? fallback : null,
+  };
 }
 
 export async function getServerAccessToken(): Promise<string | null> {
@@ -21,6 +42,7 @@ export async function fetchServerApi(
   path: string,
   init: RequestInit = {},
 ): Promise<Response> {
+  const { primary, fallback } = getServerApiBaseUrl();
   const token = await getServerAccessToken();
   const headers = new Headers(init.headers);
 
@@ -32,13 +54,25 @@ export async function fetchServerApi(
     headers.set('Content-Type', 'application/json');
   }
 
-  try {
-    return await fetch(`${getServerApiBaseUrl()}${path}`, {
+  const performFetch = async (baseUrl: string): Promise<Response> => {
+    return fetch(`${baseUrl}${path}`, {
       ...init,
       headers,
       cache: 'no-store',
     });
+  };
+
+  try {
+    return await performFetch(primary);
   } catch {
+    if (fallback) {
+      try {
+        return await performFetch(fallback);
+      } catch {
+        // fall through to graceful 503 response below.
+      }
+    }
+
     // Keep SSR resilient when backend is unavailable (e.g. frontend-only container startup).
     return new Response(
       JSON.stringify({ detail: 'Upstream API unavailable' }),
