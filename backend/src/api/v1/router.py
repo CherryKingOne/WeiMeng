@@ -1,6 +1,8 @@
 from fastapi import APIRouter
+
 from src.modules.auth.api.router import router as auth_router
 from src.modules.captcha.api.router import router as captcha_router
+from src.modules.providers.api.router import router as providers_router
 from src.modules.scripts.api.router import router as scripts_router
 
 router = APIRouter()
@@ -8,3 +10,4 @@ router = APIRouter()
 router.include_router(auth_router)
 router.include_router(captcha_router)
 router.include_router(scripts_router)
+router.include_router(providers_router)

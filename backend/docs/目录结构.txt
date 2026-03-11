@@ -1,0 +1,220 @@
+WeiMeng/backend
+说明：已排除 `.venv`、`__pycache__`、`.pytest_cache`、`*.pyc` 等运行产物；`#` 后为用途说明。
+
+|-- .dockerignore                          # Docker 构建忽略清单
+|-- .env.example                           # 环境变量模板
+|-- .gitignore                             # Git 忽略规则
+|-- AGENTS.md                              # 协作规范
+|-- Dockerfile                             # 后端镜像构建脚本
+|-- README.md                              # 后端说明
+|-- config/                                # 配置模块
+|   |-- __init__.py                        # 包初始化
+|   |-- ai.py                              # AI 配置
+|   |-- database.py                        # 数据库配置
+|   |-- elasticsearch.py                   # Elasticsearch 配置
+|   |-- email.py                           # 邮件配置
+|   |-- minio.py                           # MinIO 配置
+|   |-- redis.py                           # Redis 配置
+|   `-- settings.py                        # 全局设置
+|-- docker-compose.yml                     # 后端本地编排
+|-- es使用.txt                             # Elasticsearch 使用说明
+|-- main.py                                # FastAPI 应用入口
+|-- pyproject.toml                         # Python 项目与依赖定义
+|-- requirements.txt                       # 兼容依赖清单
+|-- src/                                   # 核心源码
+|   |-- __init__.py
+|   |-- api/
+|   |   |-- __init__.py
+|   |   `-- v1/
+|   |       |-- __init__.py
+|   |       `-- router.py                  # v1 路由聚合
+|   |-- modules/
+|   |   |-- __init__.py
+|   |   |-- auth/
+|   |   |   |-- __init__.py
+|   |   |   |-- api/
+|   |   |   |   |-- __init__.py
+|   |   |   |   |-- dependencies.py
+|   |   |   |   `-- router.py
+|   |   |   |-- application/
+|   |   |   |   |-- __init__.py
+|   |   |   |   |-- dto/
+|   |   |   |   |   |-- __init__.py
+|   |   |   |   |   |-- login_dto.py
+|   |   |   |   |   |-- register_dto.py
+|   |   |   |   |   `-- reset_password_dto.py
+|   |   |   |   `-- services/
+|   |   |   |       |-- __init__.py
+|   |   |   |       |-- login_service.py
+|   |   |   |       |-- register_service.py
+|   |   |   |       `-- reset_password_service.py
+|   |   |   |-- domain/
+|   |   |   |   |-- __init__.py
+|   |   |   |   |-- entities/
+|   |   |   |   |   |-- __init__.py
+|   |   |   |   |   `-- user.py
+|   |   |   |   |-- exceptions.py
+|   |   |   |   |-- repositories.py
+|   |   |   |   |-- services/
+|   |   |   |   |   |-- __init__.py
+|   |   |   |   |   `-- authentication_service.py
+|   |   |   |   `-- value_objects/
+|   |   |   |       |-- __init__.py
+|   |   |   |       `-- token.py
+|   |   |   `-- infrastructure/
+|   |   |       |-- __init__.py
+|   |   |       |-- mappers/
+|   |   |       |   |-- __init__.py
+|   |   |       |   `-- user_mapper.py
+|   |   |       |-- models/
+|   |   |       |   |-- __init__.py
+|   |   |       |   `-- user_model.py
+|   |   |       `-- repositories/
+|   |   |           |-- __init__.py
+|   |   |           `-- user_repository.py
+|   |   |-- captcha/
+|   |   |   |-- __init__.py
+|   |   |   |-- api/
+|   |   |   |   |-- __init__.py
+|   |   |   |   |-- dependencies.py
+|   |   |   |   `-- router.py
+|   |   |   |-- application/
+|   |   |   |   |-- __init__.py
+|   |   |   |   |-- dto/
+|   |   |   |   |   |-- __init__.py
+|   |   |   |   |   `-- captcha_dto.py
+|   |   |   |   `-- services/
+|   |   |   |       |-- __init__.py
+|   |   |   |       `-- email_captcha_service.py
+|   |   |   |-- domain/
+|   |   |   |   |-- __init__.py
+|   |   |   |   |-- entities/
+|   |   |   |   |   |-- __init__.py
+|   |   |   |   |   `-- captcha.py
+|   |   |   |   |-- exceptions.py
+|   |   |   |   |-- repositories.py
+|   |   |   |   `-- services/
+|   |   |   |       |-- __init__.py
+|   |   |   |       `-- captcha_service.py
+|   |   |   `-- infrastructure/
+|   |   |       |-- __init__.py
+|   |   |       `-- repositories/
+|   |   |           |-- __init__.py
+|   |   |           `-- captcha_repository.py
+|   |   `-- scripts/
+|   |       |-- __init__.py
+|   |       |-- api/
+|   |       |   |-- __init__.py
+|   |       |   |-- dependencies.py
+|   |       |   `-- router.py
+|   |       |-- application/
+|   |       |   |-- __init__.py
+|   |       |   |-- dto/
+|   |       |   |   |-- __init__.py
+|   |       |   |   |-- script_chunk_dto.py
+|   |       |   |   `-- script_dto.py
+|   |       |   `-- services/
+|   |       |       |-- __init__.py
+|   |       |       `-- script_app_service.py
+|   |       |-- domain/
+|   |       |   |-- __init__.py
+|   |       |   |-- entities/
+|   |       |   |   |-- __init__.py
+|   |       |   |   |-- script_chunk_entity.py
+|   |       |   |   |-- script_config_entity.py
+|   |       |   |   |-- script_entity.py
+|   |       |   |   `-- script_library_entity.py
+|   |       |   |-- exceptions.py
+|   |       |   |-- repositories.py
+|   |       |   `-- value_objects/
+|   |       |       |-- __init__.py
+|   |       |       `-- file_format.py
+|   |       `-- infrastructure/
+|   |           |-- __init__.py
+|   |           |-- mappers/
+|   |           |   |-- __init__.py
+|   |           |   |-- script_chunk_mapper.py
+|   |           |   |-- script_config_mapper.py
+|   |           |   |-- script_library_mapper.py
+|   |           |   `-- script_mapper.py
+|   |           |-- models/
+|   |           |   |-- __init__.py
+|   |           |   |-- script_chunk_model.py
+|   |           |   |-- script_config_model.py
+|   |           |   |-- script_library_model.py
+|   |           |   |-- script_library_script_model.py
+|   |           |   `-- script_model.py
+|   |           |-- repositories/
+|   |           |   |-- __init__.py
+|   |           |   `-- script_repository.py
+|   |           `-- services/
+|   |               |-- __init__.py
+|   |               |-- elasticsearch_chunk_store.py
+|   |               |-- file_text_extractor.py
+|   |               `-- script_chunker.py
+|   `-- shared/
+|       |-- __init__.py
+|       |-- common/
+|       |   |-- __init__.py
+|       |   |-- dependencies.py
+|       |   |-- response.py
+|       |   `-- utils.py
+|       |-- domain/
+|       |   |-- __init__.py
+|       |   |-- base_entity.py
+|       |   |-- base_value_object.py
+|       |   `-- exceptions.py
+|       |-- extensions/
+|       |   |-- __init__.py
+|       |   |-- email/
+|       |   |   |-- __init__.py
+|       |   |   |-- sender.py
+|       |   |   `-- templates/
+|       |   |       |-- __init__.py
+|       |   |       |-- base.html
+|       |   |       `-- captcha.html
+|       |   `-- storage/
+|       |       |-- __init__.py
+|       |       |-- base.py
+|       |       `-- minio_provider.py
+|       |-- infrastructure/
+|       |   |-- __init__.py
+|       |   |-- database.py
+|       |   |-- redis.py
+|       |   `-- unit_of_work.py
+|       |-- middleware/
+|       |   |-- __init__.py
+|       |   |-- error_handler.py
+|       |   |-- logging.py
+|       |   `-- request_context.py
+|       `-- security/
+|           |-- __init__.py
+|           |-- jwt_handler.py
+|           `-- password_hasher.py
+|-- tests/
+|   |-- __init__.py
+|   |-- conftest.py
+|   |-- fixtures/
+|   |   `-- __init__.py
+|   |-- integration/
+|   |   |-- __init__.py
+|   |   `-- test_api/
+|   |       `-- __init__.py
+|   `-- unit/
+|       |-- __init__.py
+|       |-- test_auth/
+|       |   |-- __init__.py
+|       |   `-- test_captcha_purpose_usage.py
+|       |-- test_captcha/
+|       |   |-- __init__.py
+|       |   |-- test_captcha_key.py
+|       |   `-- test_email_captcha_service.py
+|       `-- test_scripts/
+|           |-- __init__.py
+|           |-- test_file_format.py
+|           |-- test_script_app_service.py
+|           `-- test_script_chunker.py
+|-- uv.lock                                # 依赖锁定文件
+|-- 剧本库.txt                             # scripts 模块实现说明
+|-- 构建docker镜像.md                      # Docker 镜像构建说明
+`-- 目录结构.txt                           # 本文件

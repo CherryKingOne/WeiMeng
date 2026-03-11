@@ -1,0 +1,1 @@
+"""Gemini adapters placeholder."""

@@ -1,0 +1,176 @@
+# qwen
+## 思考开关字段
+- 字段：`enable_thinking`（`true/false`）
+- 说明：`true` 开启思考模式，`false` 关闭思考模式。
+
+## 思考长度控制
+- 字段：`thinking_budget`
+- 默认值：`65536`（64K）
+- 最大值：`65536`（64K）
+- 说明：用于控制思考长度预算；仅 `provider=qwen` 时可用。
+
+## 返回字段规则
+- 开启思考（`enable_thinking=true`）时：返回 `think` + `answer`。
+- 关闭思考时：仅返回 `answer`，不返回 `think` 字段。
+
+## 请求示例
+```json
+{
+  "provider": "qwen",
+  "model_name": "qwen3.5-plus",
+  "message": "你好",
+  "stream": false,
+  "enable_thinking": true,
+  "thinking_budget": 50
+}
+```
+
+## 响应示例（开启思考）
+```json
+{
+  "provider": "qwen",
+  "model_name": "qwen3.5-plus",
+  "think": "......",
+  "answer": "......"
+}
+```
+
+## 注意事项
+- `thinking_budget` 只支持 qwen。
+- 若仅传 `thinking_budget`，系统会自动按开启思考模式处理。
+
+# volcengine
+## 思考开关字段
+- 字段：`thinking.type`
+- 取值：`enabled` / `disabled` / `auto`
+- 含义说明：
+  - `enabled`：允许模型进入思考模式（是否真正输出思考链还受 `reasoning_effort` 影响）。
+  - `disabled`：强制关闭思考模式，仅允许直接回答。
+  - `auto`：由模型自行判断是否思考（当前项目建议在需要可控输出时优先用 `enabled` + 明确 effort）。
+
+## 思考长度控制
+- 字段：`thinking.reasoning_effort`
+- 取值：`minimal` / `low` / `medium` / `high`
+- 默认值：`medium`
+- 含义说明：
+  - `minimal`：最小思考开销，等价于关闭思考链输出，优先低时延低成本。
+  - `low`：轻量思考，适合简单推理场景，速度优先。
+  - `medium`：均衡思考（默认），在效果、时延、成本之间折中。
+  - `high`：深度思考，适合复杂任务，通常时延和成本更高。
+
+## thinking.type 与 reasoning_effort 规则
+- `thinking.type=enabled`：支持 `minimal/low/medium/high`。
+- `thinking.type=disabled`：仅允许 `minimal`，否则请求校验失败（422）。
+- 当仅传 `thinking.type=disabled` 且未传 `reasoning_effort` 时，系统会自动补全为 `minimal`。
+- `reasoning_effort=minimal`：关闭思考链，直接回答。
+- `reasoning_effort=low/medium/high`：输出思考链（轻量/均衡/深度）。
+
+## 系统默认行为（未传 thinking）
+- 默认按以下参数下发：
+  - `thinking.type=enabled`
+  - `reasoning_effort=minimal`
+- 即：默认不输出思考链，仅返回答案。
+
+## 返回字段规则
+- 当 `thinking.type=enabled` 且 `reasoning_effort!=minimal` 时：返回 `think` + `answer`。
+- 其他情况：仅返回 `answer`，不返回 `think` 字段。
+
+## 请求示例（开启思考）
+```json
+{
+  "provider": "volcengine",
+  "model_name": "doubao-seed-2-0-pro-260215",
+  "message": "你是谁",
+  "stream": false,
+  "thinking": {
+    "type": "enabled",
+    "reasoning_effort": "high"
+  }
+}
+```
+
+## 请求示例（关闭思考）
+```json
+{
+  "provider": "volcengine",
+  "model_name": "doubao-seed-2-0-pro-260215",
+  "message": "你是谁",
+  "stream": false,
+  "thinking": {
+    "type": "enabled",
+    "reasoning_effort": "minimal"
+  }
+}
+```
+
+## 响应示例（开启思考）
+```json
+{
+  "provider": "volcengine",
+  "model_name": "doubao-seed-2-0-pro-260215",
+  "think": "......",
+  "answer": "......"
+}
+```
+
+## 注意事项
+- `thinking` 仅支持 volcengine 与 deepseek。
+- `thinking.type=disabled` 时不要配置 `low/medium/high`，会触发校验错误。
+- 流式模式下，开启思考时会拆分 `think_delta` 与 `answer_delta`。
+
+# deepseek
+## 思考开关字段
+- 字段：`thinking.type`
+- 取值：`enabled` / `disabled`
+- 含义说明：
+  - `enabled`：开启思考模式，会通过 `extra_body={"thinking":{"type":"enabled"}}` 透传。
+  - `disabled`：关闭思考模式，会通过 `extra_body={"thinking":{"type":"disabled"}}` 透传。
+
+## 模型切换规则
+- `deepseek-chat`：默认非思考模式。
+- `deepseek-reasoner`：默认思考模式。
+- 若模型为 `deepseek-reasoner` 且未显式传 `thinking.type=disabled`，会返回思考链。
+
+## 参数约束
+- `thinking.type=auto`：不支持，接口会返回 422。
+- `thinking.reasoning_effort`：不支持，接口会返回 422（该字段仅 volcengine 支持）。
+
+## 返回字段规则
+- 开启思考时：返回 `think` + `answer`。
+- 关闭思考时：仅返回 `answer`，不返回 `think` 字段。
+
+## 请求示例（开启思考）
+```json
+{
+  "provider": "deepseek",
+  "model_name": "deepseek-chat",
+  "message": "你是谁",
+  "stream": false,
+  "thinking": {
+    "type": "enabled"
+  }
+}
+```
+
+## 请求示例（关闭思考）
+```json
+{
+  "provider": "deepseek",
+  "model_name": "deepseek-chat",
+  "message": "你是谁",
+  "stream": false,
+  "thinking": {
+    "type": "disabled"
+  }
+}
+```
+
+## 响应示例（开启思考）
+```json
+{
+  "provider": "deepseek",
+  "model_name": "deepseek-chat",
+  "think": "......",
+  "answer": "......"
+}
+```

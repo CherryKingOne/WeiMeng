@@ -1,5 +1,6 @@
 asyncpg>=0.31.0
 fastapi>=0.128.0
+fschat>=0.2.36
 langchain>=1.2.7
 langchain-openai>=1.1.7
 langchain-text-splitters>=1.0.0

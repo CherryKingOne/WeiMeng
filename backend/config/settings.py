@@ -11,6 +11,7 @@ class Settings(BaseSettings):
     app_env: str = "development"
     app_name: str = "WeiMeng"
     secret_key: str = "your-secret-key"
+    provider_key_encryption_key: str | None = None
     algorithm: str = "HS256"
     access_token_expire_days: int = 30
     cors_allow_origins: str = "*"

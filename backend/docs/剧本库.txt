@@ -1,0 +1,148 @@
+WeiMeng/backend 剧本库模块（scripts）当前实现说明
+
+更新时间：2026-03-11
+状态：已落地（非设计稿）
+
+一、模块定位
+- 模块路径：`src/modules/scripts`
+- 目标：提供“剧本库 + 文件管理 + 文本切片 + 切片检索存储”的完整后端能力。
+- 鉴权：`/api/v1/scripts/**` 全路由统一挂载 `Security(get_current_user_id)`。
+
+二、当前已实现能力
+1. 剧本库管理
+- 创建剧本库
+- 查询剧本库列表
+- 查询剧本库详情（含 `script_count`）
+- 更新剧本库名称和描述
+- 删除剧本库（同时清理库内文件、切片引用、头像对象）
+
+2. 剧本文件管理
+- 上传文件到指定剧本库（支持：`txt`、`md`、`docx`、`pdf`）
+- 查询指定剧本库下文件列表（返回 `chunk_count`）
+- 删除指定剧本文件（删除数据库记录并清理对象存储、ES 切片文档）
+
+3. 剧本库头像
+- 上传头像（支持：`jpg`、`jpeg`、`png`、`webp`、`gif`）
+- 读取头像二进制内容（`Response(content=..., media_type=...)`）
+
+4. 文本读取与切片
+- 文本内容查看接口：仅允许 `txt` / `md`
+- 切片读取接口：优先读取缓存切片引用对应的 ES 文档，缺失则重建
+- 强制执行切片接口：重新切片并覆盖数据库切片引用
+- 切片参数支持按库配置：`chunk_size`、`overlap`
+
+三、API 路由（`src/modules/scripts/api/router.py`）
+前缀：`/api/v1/scripts`
+
+1. 剧本库
+- `POST   /libraries` 创建剧本库
+- `GET    /libraries` 列出剧本库
+- `GET    /libraries/{library_id}` 获取剧本库详情
+- `PUT    /libraries/{library_id}` 更新剧本库
+- `DELETE /libraries/{library_id}` 删除剧本库
+
+2. 剧本库配置（切片）
+- `GET /libraries/{library_id}/config` 获取库级切片配置
+- `PUT /libraries/{library_id}/config` 更新库级切片配置
+
+3. 头像
+- `POST /libraries/{library_id}/avatar` 上传头像
+- `GET  /libraries/{library_id}/avatar` 获取头像
+
+4. 文件
+- `POST   /libraries/{library_id}/upload` 上传文件
+- `GET    /libraries/{library_id}/files` 文件列表
+- `GET    /libraries/{library_id}/files/{script_id}/content` 读取文本内容（仅 txt/md）
+- `GET    /libraries/{library_id}/files/{script_id}/chunks` 获取切片（缓存优先）
+- `POST   /libraries/{library_id}/files/{script_id}/chunks` 执行切片
+- `DELETE /libraries/{library_id}/files/{script_id}` 删除文件
+
+四、存储与数据模型
+1. PostgreSQL（SQLAlchemy）
+- `script_libraries`：剧本库主表
+- `scripts`：文件元数据主表
+- `script_library_scripts`：库与文件关联表
+- `script_chunks`：切片引用表（每条切片的索引和定位信息）
+- `scripts_configs`：库级切片配置表（`library_id` 主键）
+
+2. 对象存储（MinIO）
+- 文件对象命名：`{library_id}/text/{script_id}.{extension}`
+- 头像对象命名：`{library_id}/image/avatar.{extension}`
+
+3. 切片文档存储（Elasticsearch）
+- 默认索引：`script_chunks`（可通过 `ELASTICSEARCH_SCRIPT_CHUNK_INDEX` 覆盖）
+- `script_chunks` 表存储的是切片引用；切片正文落在 ES。
+
+五、关键业务规则
+- 文件名不能为空。
+- 文件大小必须大于 0。
+- 上传文件扩展名仅允许 `txt/md/docx/pdf`。
+- 上传文本长度上限：`SCRIPTS_UPLOAD_MAX_TEXT_LENGTH`（默认 10000 字符）。
+- `overlap` 必须小于 `chunk_size`。
+- 删除时采用“先删数据库，再做对象存储和 ES 清理”的补偿式处理；若清理失败会抛 `StorageCleanupError`。
+
+六、配置项（节选）
+1. 应用级（`config/settings.py`）
+- `SCRIPTS_UPLOAD_MAX_TEXT_LENGTH`：上传文本长度上限。
+- `SCRIPTS_CHUNK_SIZE`、`SCRIPTS_CHUNK_OVERLAP`：全局默认参数（当前核心流程以库级配置为准）。
+
+2. MinIO（`config/minio.py` / `.env`）
+- `MINIO_ENDPOINT`
+- `MINIO_ACCESS_KEY`
+- `MINIO_SECRET_KEY`
+- `MINIO_BUCKET_NAME`
+- `MINIO_SECURE`
+
+3. Elasticsearch（`config/elasticsearch.py` / `.env`）
+- `ELASTICSEARCH_URL`
+- `ELASTICSEARCH_SCRIPT_CHUNK_INDEX`
+- `ELASTICSEARCH_REQUEST_TIMEOUT_SECONDS`
+
+七、目录结构（scripts 模块）
+```text
+src/modules/scripts/
+|-- api/
+|   |-- dependencies.py                    # 注入 ScriptAppService 及依赖
+|   `-- router.py                          # 剧本库/文件/头像/切片接口
+|-- application/
+|   |-- dto/
+|   |   |-- script_chunk_dto.py            # 切片响应 DTO
+|   |   `-- script_dto.py                  # 剧本库与文件 DTO
+|   `-- services/
+|       `-- script_app_service.py          # 业务编排核心
+|-- domain/
+|   |-- entities/
+|   |   |-- script_chunk_entity.py
+|   |   |-- script_config_entity.py
+|   |   |-- script_entity.py
+|   |   `-- script_library_entity.py
+|   |-- exceptions.py
+|   |-- repositories.py                    # IScriptRepository / IScriptChunkStore
+|   `-- value_objects/
+|       `-- file_format.py
+`-- infrastructure/
+    |-- mappers/
+    |   |-- script_chunk_mapper.py
+    |   |-- script_config_mapper.py
+    |   |-- script_library_mapper.py
+    |   `-- script_mapper.py
+    |-- models/
+    |   |-- script_chunk_model.py
+    |   |-- script_config_model.py
+    |   |-- script_library_model.py
+    |   |-- script_library_script_model.py
+    |   `-- script_model.py
+    |-- repositories/
+    |   `-- script_repository.py
+    `-- services/
+        |-- elasticsearch_chunk_store.py   # ES 切片文档存储
+        |-- file_text_extractor.py         # txt/md/pdf/docx 文本提取
+        `-- script_chunker.py              # 句级窗口切片器
+```
+
+八、关联组件
+- 路由聚合：`src/api/v1/router.py` 已 `include_router(scripts_router)`。
+- 对象存储抽象：`src/shared/extensions/storage/base.py`
+- MinIO 实现：`src/shared/extensions/storage/minio_provider.py`
+- 单测：`tests/unit/test_scripts/`（覆盖格式校验、应用服务、切片器）
+
