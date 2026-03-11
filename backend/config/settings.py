@@ -13,6 +13,8 @@ class Settings(BaseSettings):
     secret_key: str = "your-secret-key"
     algorithm: str = "HS256"
     access_token_expire_days: int = 30
+    cors_allow_origins: str = "*"
+    cors_allow_credentials: bool = False
     scripts_chunk_size: int = 1200
     scripts_chunk_overlap: int = 200
     scripts_upload_max_text_length: int = 10000

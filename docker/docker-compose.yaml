@@ -1,17 +1,9 @@
-version: '3.8'
-
 services:
-  # ==============================================
-  # Backend Service (FastAPI)
-  # ==============================================
   api:
-    image: vmengs/weimeng-api:latest
-    container_name: weimeng-api
-    build:
-      context: ../backend
-      dockerfile: Dockerfile
+    image: ${API_IMAGE:-vmengs/weimeng-api:0.0.1}
+    restart: unless-stopped
     ports:
-      - "5607:5607"
+      - "${API_PORT:-5607}:5607"
     environment:
       - POSTGRESQL_HOST=postgres
       - POSTGRESQL_PORT=5432
@@ -26,83 +18,72 @@ services:
       - redis
       - minio
       - elasticsearch
-    volumes:
-      - ../backend:/app
     networks:
       - weimeng-network
 
-  # ==============================================
-  # Frontend Service (Next.js)
-  # ==============================================
   web:
-    image: vmengs/weimeng-web:0.0.1
-    container_name: weimeng-web
-    build:
-      context: ../frontend
-      dockerfile: Dockerfile
+    image: ${WEB_IMAGE:-vmengs/weimeng-web:0.0.1}
+    restart: unless-stopped
     ports:
       - "${FRONTEND_PORT:-5678}:5678"
     environment:
       - NODE_ENV=production
+      - HOSTNAME=0.0.0.0
       - PORT=5678
+      - NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL:-/api/v1}
+      - SERVER_API_URL=${SERVER_API_URL:-http://api:5607/api/v1}
     depends_on:
       - api
     networks:
       - weimeng-network
 
-  # ==============================================
-  # Database Service (PostgreSQL)
-  # ==============================================
   postgres:
-    image: vmengs/postgres:latest
-    container_name: weimeng-postgres
+    image: ${POSTGRES_IMAGE:-vmengs/postgres:latest}
+    restart: unless-stopped
     environment:
       - POSTGRES_USER=${POSTGRESQL_USER:-weimeng}
       - POSTGRES_PASSWORD=${POSTGRESQL_PASSWORD:-weimeng}
       - POSTGRES_DB=${POSTGRESQL_DB:-weimeng}
     ports:
-      - "${POSTGRESQL_PORT:-5400}:5432"
+      - "127.0.0.1:${POSTGRES_EXPOSE_PORT:-5400}:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
-      - ./postgres:/docker-entrypoint-initdb.d
+      - ./postgres:/docker-entrypoint-initdb.d:ro
     networks:
       - weimeng-network
 
-  # ==============================================
-  # Cache Service (Redis)
-  # ==============================================
   redis:
-    image: vmengs/redis:latest
-    container_name: weimeng-redis
+    image: ${REDIS_IMAGE:-vmengs/redis:latest}
+    restart: unless-stopped
     command: redis-server --requirepass ${REDIS_PASSWORD:-weimeng}
     ports:
-      - "${REDIS_PORT:-6300}:6379"
+      - "127.0.0.1:${REDIS_EXPOSE_PORT:-6300}:6379"
     volumes:
       - redis_data:/data
-      - ./redis:/usr/local/etc/redis
+      - ./redis:/usr/local/etc/redis:ro
     networks:
       - weimeng-network
 
   minio:
-    image: vmengs/minio:latest
-    container_name: weimeng-minio
+    image: ${MINIO_IMAGE:-vmengs/minio:latest}
+    restart: unless-stopped
     command: server /data --console-address ":7056"
     environment:
       - MINIO_ROOT_USER=${MINIO_ACCESS_KEY:-weimengminio}
       - MINIO_ROOT_PASSWORD=${MINIO_SECRET_KEY:-weimengminio}
     ports:
-      - "5726:9000"
-      - "7056:7056"
+      - "127.0.0.1:${MINIO_EXPOSE_PORT:-5726}:9000"
+      - "127.0.0.1:${MINIO_CONSOLE_EXPOSE_PORT:-7056}:7056"
     volumes:
       - minio_data:/data
     networks:
       - weimeng-network
 
   elasticsearch:
-    image: vmengs/elasticsearch:latest
-    container_name: weimeng-es
+    image: ${ELASTICSEARCH_IMAGE:-vmengs/elasticsearch:latest}
+    restart: unless-stopped
     ports:
-      - "7260:9200"
+      - "127.0.0.1:${ELASTICSEARCH_EXPOSE_PORT:-7260}:9200"
     volumes:
       - es_data:/usr/share/elasticsearch/data
     networks:

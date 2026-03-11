@@ -2,6 +2,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
 from sqlalchemy import text
+from config.settings import settings
 from src.shared.infrastructure.database import engine, Base, create_database_if_not_exists
 from src.shared.middleware.error_handler import register_exception_handlers
 from src.shared.middleware.logging import LoggingMiddleware, setup_logging
@@ -134,6 +135,11 @@ END $$;
 """
 
 
+def _parse_cors_origins(value: str) -> list[str]:
+    origins = [item.strip() for item in value.split(",") if item.strip()]
+    return origins if origins else ["*"]
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     await create_database_if_not_exists()
@@ -154,10 +160,13 @@ app = FastAPI(
     lifespan=lifespan
 )
 
+cors_origins = _parse_cors_origins(settings.cors_allow_origins)
+allow_credentials = settings.cors_allow_credentials and cors_origins != ["*"]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
+    allow_origins=cors_origins,
+    allow_credentials=allow_credentials,
     allow_methods=["*"],
     allow_headers=["*"],
 )
