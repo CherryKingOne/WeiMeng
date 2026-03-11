@@ -6,10 +6,6 @@ from src.modules.providers.domain.value_objects.model_type import ModelType
 from src.modules.providers.domain.value_objects.provider_name import ProviderName
 
 
-class SupportedTypesResponse(BaseModel):
-    types: list[ModelType]
-
-
 class ProviderCapabilityItem(BaseModel):
     provider: ProviderName
     model_types: list[ModelType]

@@ -74,8 +74,6 @@ WeiMeng/backend 模型供应商（providers）实现说明
   - 仅允许配置当前用户已设置 key 的供应商，并校验模型必须在该供应商支持列表内。
 - `GET /api/v1/models/system`
   - 获取当前用户的系统模型配置状态。
-- `GET /api/v1/models/types`
-  - 返回系统支持的模型能力类型。
 - `GET /api/v1/models/providers`
   - 返回供应商能力与配置状态（兼容旧接口）。
 

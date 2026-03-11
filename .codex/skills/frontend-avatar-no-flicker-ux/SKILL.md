@@ -1,6 +1,6 @@
 ---
 name: frontend-avatar-no-flicker-ux
-description: Eliminate refresh-time UI flicker for authenticated frontend pages by using cookie-aware auth, SSR-first initial data, cache-first hydration, silent background revalidation, and stable asset URLs. Use this skill whenever the user mentions refresh flicker, avatar/name/description jumping, fallback content flashing before real data, settings pages showing defaults first, token only stored in localStorage, blob avatar delays, or asks to reach commercial-grade no-waiting UX.
+description: Eliminate refresh-time UI flicker for authenticated frontend pages, layouts, modals, drawers, and tabs by using cookie-aware auth, SSR-first initial data, cache-first hydration, silent background revalidation, and stable asset URLs. Use this skill whenever the user mentions refresh flicker, avatar/name/description jumping, fallback content flashing before real data, settings pages showing defaults first, modal or dialog content briefly showing loading text after refresh, token only stored in localStorage, blob avatar delays, or asks to reach commercial-grade no-waiting UX.
 ---
 
 # Frontend Avatar No-Flicker UX
@@ -12,6 +12,8 @@ Act as the frontend no-waiting UX engineer for authenticated pages with profile,
 - User says refresh causes visible jump or flicker.
 - Avatar, name, description, or list content briefly show fallback text before real data.
 - Settings form first renders defaults, then jumps to backend values.
+- Modal, drawer, dialog, or tab content flashes `加载中` or placeholder text after refresh.
+- Data is hidden behind a settings popup or sidebar panel and only appears after the user opens it.
 - Token is stored only in `localStorage`, so SSR cannot fetch initial data.
 - Avatar or media must wait for `blob` fetch before rendering.
 - The user wants a commercial-grade first paint with no obvious refresh delay.
@@ -20,6 +22,7 @@ Act as the frontend no-waiting UX engineer for authenticated pages with profile,
 - Avoid painting incorrect fallback content before real data is available.
 - Make authenticated first paint SSR-capable when the page requires real initial data.
 - Keep current panel and page state stable after refresh.
+- Keep modal, drawer, and tab content stable on first open after refresh.
 - Use cache as a secondary accelerator, not the primary truth source.
 - Revalidate in background without breaking already-visible UI.
 
@@ -29,6 +32,8 @@ If a hard refresh flashes fallback UI, the root problem is usually one of these:
 2. The page renders URL params or local defaults before real backend data resolves.
 3. Avatar or media uses a client-only `blob -> dataURL` path as the primary render path.
 4. Empty state or default form values render before loading state is resolved.
+5. Critical data lives inside modal, drawer, or tab content and is fetched only after `isOpen` or `activeTab` changes.
+6. The parent layout is `use client`, so there is no server prefetch path for authenticated first paint.
 
 ## Architecture Rule
 Use this priority order for first paint:
@@ -55,10 +60,26 @@ Do not use this order:
    - page header/profile
    - settings initial values
    - first-screen list data
-3. Pass that data into the client component as initial state.
+   - modal, drawer, or tab content that the user is likely to open immediately after refresh
+3. If the consumer currently lives in a client-only layout, split it:
+   - server `layout.tsx` or server `page.tsx` fetches critical data
+   - client wrapper receives `initialData`
+   - interactive child or modal consumes that initial data
 4. Hydrate on the client without replacing visible data with defaults.
 5. Revalidate silently in the background and merge only successful updates.
 6. Use local cache only as a fallback when the server path is unavailable.
+
+## Modal And Layout Rules
+- Treat first-open modal content as first-paint content if users commonly open it right after refresh.
+- Do not rely on `useEffect(() => fetch..., [isOpen])` as the primary data path for important modal or tab content.
+- If a modal is mounted from a layout, prefer:
+  - server layout fetch
+  - client layout shell
+  - modal receives `initialData` props
+- If the parent layout is `use client`, split it into a server layout plus a client wrapper before trying to remove flicker.
+- When initial modal data already exists, opening the modal should do silent refresh only. It should not show `Loading...` or `正在加载...`.
+- If SSR data is temporarily unavailable, hydrate from a validated local cache before showing fallback copy.
+- Keep cached modal content entity-scoped and version-aware when possible.
 
 ## Avatar And Media Rules
 - Do not make `blob -> dataURL` the primary first-render path for persisted avatars.
@@ -76,14 +97,21 @@ Do not use this order:
   - token also synced to cookie
   - SSR path can read auth token
   - `401` clears both stores
+  - verify legacy sessions are not missing the cookie after refresh
 - SSR initial data:
   - server component or route handler fetches critical first-screen data
   - client component receives `initialData`
   - client does silent refresh instead of full fallback reset
+- Layout-mounted modal data:
+  - if modal lives under a client layout, split into server layout plus client shell
+  - fetch modal-critical data in the server layout or parent server page
+  - modal receives `initialData` props instead of fetch-on-open only
+  - opening the modal triggers silent refresh, not visible loading copy
 - Cache-first fallback:
-  - key format: `scripts_library_profile_cache_v1:{library_id}`
+  - key format can be entity-scoped, such as `scripts_library_profile_cache_v1:{library_id}` or `provider_models_cache_v1`
   - safe read with type guards
   - write cache after successful fetch/save/upload
+  - use cache immediately for modal or tab first-open stability
   - cache is fallback, not sole source of truth
 - Avatar display:
   - stable URL or proxy route for persisted avatar
@@ -106,6 +134,7 @@ Do not use this order:
 - Do not reset panel to default during refresh if query has valid panel.
 - Avoid blocking already-available cached content with full-page loading masks.
 - Avoid rendering incorrect data just to avoid showing a skeleton.
+- Do not treat modal content as exempt from first-paint quality just because it opens after a click.
 - If the page is authenticated and commercially important, raise the technical bar: solve the data path, not only the symptom.
 
 ## Future Optimization Playbook
@@ -113,13 +142,29 @@ When building new pages, check these questions before coding:
 1. On hard refresh, what exact data must be correct on first paint?
 2. Can the server fetch it with current auth design?
 3. If not, should auth move to cookie or server session?
-4. Are images or files rendered through stable URLs, or through client-only blobs?
-5. Does the page show skeletons before data is resolved, or fake defaults?
-6. Can the page do stale-while-revalidate instead of full teardown-and-repaint?
+4. Is any important data hidden behind a modal, drawer, popup, or tab that still needs to feel instant on first open?
+5. Is the current parent layout client-only, and therefore blocking server prefetch?
+6. Are images or files rendered through stable URLs, or through client-only blobs?
+7. Does the page show skeletons before data is resolved, or fake defaults?
+8. Can the page do stale-while-revalidate instead of full teardown-and-repaint?
+
+## Reference Pattern
+Use these patterns as the default mental model:
+- Route-level first paint:
+  - server page fetches initial data
+  - client page renders immediately from `initialData`
+  - client revalidates silently
+- Layout-mounted settings modal:
+  - server layout fetches modal-critical data
+  - client layout wrapper receives and passes it through
+  - modal opens from already-hydrated data
+  - background refresh updates quietly
 
 ## Review Heuristics
 Flag the implementation if you see:
 - `useEffect(() => fetch..., [])` followed by visible fallback content in the first render.
+- `useEffect(() => fetch..., [isOpen])` or `if (!isOpen || activeTab !== '...') return;` as the only path for important modal data.
+- A settings modal mounted inside a `use client` layout with no server wrapper feeding it initial data.
 - Page header uses URL params while backend data arrives later.
 - Avatar first paint depends on `getBlob()` or `URL.createObjectURL()` for persisted assets.
 - Token exists only in `localStorage` on a page that clearly needs SSR-first data.

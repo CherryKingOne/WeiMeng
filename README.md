@@ -285,8 +285,9 @@ SMTP_PORT=587
 SMTP_USER=user@example.com
 SMTP_PASSWORD=secret
 
-# AI Services
-OPENAI_API_KEY=your-openai-key
+# Model Provider Keys
+# Configure provider API keys via backend API `/api/v1/providers`.
+# Keys are encrypted at rest in PostgreSQL.
 ```
 
 ### Frontend Environment Variables

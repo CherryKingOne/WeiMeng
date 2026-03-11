@@ -22,7 +22,6 @@ from src.modules.providers.application.dto.system_model_config_dto import (
 from src.modules.providers.application.dto.provider_config_dto import (
     ProviderModelsResponse,
     SupportedProvidersResponse,
-    SupportedTypesResponse,
 )
 from src.modules.providers.application.services.model_generation_service import (
     ModelGenerationService,
@@ -186,13 +185,6 @@ async def get_system_model_config(
     system_model_config_service: SystemModelConfigService = Depends(get_system_model_config_service),
 ):
     return await system_model_config_service.get()
-
-
-@router.get("/types", response_model=SupportedTypesResponse)
-async def get_supported_types(
-    generation_service: ModelGenerationService = Depends(get_model_generation_service),
-):
-    return generation_service.get_supported_types()
 
 
 @router.get("/providers", response_model=SupportedProvidersResponse)

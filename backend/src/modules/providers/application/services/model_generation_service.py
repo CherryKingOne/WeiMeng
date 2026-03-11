@@ -7,7 +7,6 @@ from src.modules.providers.application.dto.provider_config_dto import (
     ProviderModelItem,
     ProviderModelsResponse,
     SupportedProvidersResponse,
-    SupportedTypesResponse,
 )
 from src.modules.providers.domain.exceptions import (
     ModelGenerationFailedException,
@@ -68,9 +67,6 @@ class ModelGenerationService:
             model_name=model_name,
             reply=reply,
         )
-
-    def get_supported_types(self) -> SupportedTypesResponse:
-        return SupportedTypesResponse(types=ModelProviderFactory.list_supported_model_types())
 
     def get_supported_providers(self) -> SupportedProvidersResponse:
         configured_providers = set(self._provider_config_repository.list_configured_providers())

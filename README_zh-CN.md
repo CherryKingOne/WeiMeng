@@ -285,8 +285,9 @@ SMTP_PORT=587
 SMTP_USER=user@example.com
 SMTP_PASSWORD=secret
 
-# AI 服务
-OPENAI_API_KEY=your-openai-key
+# 模型供应商密钥
+# 通过后端 API `/api/v1/providers` 配置供应商 API Key。
+# Key 会加密存储在 PostgreSQL 中。
 ```
 
 ### 前端环境变量

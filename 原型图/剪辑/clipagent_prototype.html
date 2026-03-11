@@ -1,0 +1,1540 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ClipAgent Studio · 原型</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            accent: {
+              50: '#ecfeff',
+              100: '#cffafe',
+              200: '#a5f3fc',
+              300: '#67e8f9',
+              400: '#22d3ee',
+              500: '#06b6d4',
+              600: '#0891b2',
+              700: '#0e7490',
+              800: '#155e75',
+              900: '#164e63'
+            }
+          },
+          boxShadow: {
+            panel: '0 10px 35px rgba(0,0,0,.35)',
+            menu: '0 24px 56px rgba(0,0,0,.45)',
+            glow: '0 0 0 1px rgba(34,211,238,.14), 0 18px 50px rgba(34,211,238,.10)'
+          },
+          animation: {
+            'fade-in': 'fadeIn .18s ease-out',
+            'toast-in': 'toastIn .24s ease-out'
+          },
+          keyframes: {
+            fadeIn: {
+              '0%': { opacity: '0', transform: 'translateY(8px) scale(.98)' },
+              '100%': { opacity: '1', transform: 'translateY(0) scale(1)' }
+            },
+            toastIn: {
+              '0%': { opacity: '0', transform: 'translateY(14px)' },
+              '100%': { opacity: '1', transform: 'translateY(0)' }
+            }
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    :root {
+      color-scheme: dark;
+      --grid-color: rgba(255,255,255,.06);
+    }
+
+    html, body {
+      height: 100%;
+      margin: 0;
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: #09090b;
+    }
+
+    body {
+      overflow: hidden;
+    }
+
+    .panel-grid {
+      background-image:
+        linear-gradient(to right, rgba(255,255,255,.02) 1px, transparent 1px),
+        linear-gradient(to bottom, rgba(255,255,255,.02) 1px, transparent 1px);
+      background-size: 24px 24px;
+    }
+
+    .noise-overlay::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      background-image: radial-gradient(rgba(255,255,255,.06) .6px, transparent .6px);
+      background-size: 10px 10px;
+      opacity: .16;
+      mix-blend-mode: overlay;
+    }
+
+    .glass {
+      background: rgba(24,24,27,.78);
+      backdrop-filter: blur(14px);
+      -webkit-backdrop-filter: blur(14px);
+    }
+
+    .thin-scrollbar {
+      scrollbar-width: thin;
+      scrollbar-color: rgba(161,161,170,.45) transparent;
+    }
+
+    .thin-scrollbar::-webkit-scrollbar {
+      width: 8px;
+      height: 8px;
+    }
+
+    .thin-scrollbar::-webkit-scrollbar-thumb {
+      background: rgba(161,161,170,.35);
+      border-radius: 999px;
+    }
+
+    .thin-scrollbar::-webkit-scrollbar-track {
+      background: transparent;
+    }
+
+    .preview-shadow {
+      box-shadow:
+        0 0 0 1px rgba(255,255,255,.08),
+        0 24px 60px rgba(0,0,0,.5),
+        inset 0 1px 0 rgba(255,255,255,.04);
+    }
+
+    .asset-thumb {
+      background:
+        radial-gradient(circle at 20% 20%, rgba(34,211,238,.26), transparent 38%),
+        radial-gradient(circle at 82% 28%, rgba(129,140,248,.16), transparent 30%),
+        linear-gradient(135deg, rgba(39,39,42,.98), rgba(24,24,27,.92));
+    }
+
+    .selected-outline {
+      box-shadow: 0 0 0 1px rgba(34,211,238,.46), 0 0 0 4px rgba(34,211,238,.10);
+    }
+
+    .timeline-ruler {
+      background-image: linear-gradient(to right, rgba(255,255,255,.07) 1px, transparent 1px);
+      background-size: 60px 100%;
+    }
+
+    .timeline-playhead::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 2px;
+      height: 100%;
+      background: linear-gradient(to bottom, rgba(34,211,238,.95), rgba(6,182,212,.4));
+      box-shadow: 0 0 22px rgba(34,211,238,.25);
+    }
+
+    .timeline-playhead::after {
+      content: '';
+      position: absolute;
+      top: -6px;
+      left: -6px;
+      width: 14px;
+      height: 14px;
+      border-radius: 999px;
+      background: #22d3ee;
+      box-shadow: 0 0 0 4px rgba(34,211,238,.18);
+    }
+
+    .menu-item:hover .menu-item-badge {
+      border-color: rgba(34,211,238,.35);
+      color: #a5f3fc;
+    }
+
+    .badge-dot::before {
+      content: '';
+      width: 6px;
+      height: 6px;
+      border-radius: 999px;
+      background: currentColor;
+      display: inline-block;
+      margin-right: 6px;
+      opacity: .86;
+    }
+
+    .editor-border {
+      border-color: rgba(255,255,255,.08);
+    }
+
+    .library-card:hover {
+      transform: translateY(-1px);
+    }
+
+    .clip-handle {
+      position: absolute;
+      top: 4px;
+      bottom: 4px;
+      width: 4px;
+      border-radius: 999px;
+      background: rgba(255,255,255,.45);
+      opacity: .35;
+    }
+
+    .clip-handle.left { left: 4px; }
+    .clip-handle.right { right: 4px; }
+
+    .hidden-soft {
+      opacity: 0;
+      pointer-events: none;
+      transform: translateY(10px);
+      transition: opacity .18s ease, transform .18s ease;
+    }
+
+    .visible-soft {
+      opacity: 1;
+      pointer-events: auto;
+      transform: translateY(0);
+    }
+  </style>
+</head>
+<body class="dark bg-zinc-950 text-zinc-100">
+  <div id="app" class="h-screen flex flex-col">
+    <header class="h-14 border-b editor-border glass px-4 flex items-center justify-between">
+      <div class="flex items-center gap-3 min-w-0">
+        <div class="h-9 w-9 rounded-2xl bg-gradient-to-br from-accent-400 via-cyan-500 to-indigo-500 flex items-center justify-center shadow-glow">
+          <svg viewBox="0 0 24 24" class="w-5 h-5 text-white" fill="none" stroke="currentColor" stroke-width="1.8">
+            <path d="M6 6h12v12H6z" opacity=".35"></path>
+            <path d="M8 8h8v8H8z"></path>
+            <path d="M16 8l3-3"></path>
+            <path d="M8 16l-3 3"></path>
+          </svg>
+        </div>
+        <div class="min-w-0">
+          <div class="text-sm font-semibold tracking-wide">ClipAgent Studio</div>
+          <div class="text-[11px] text-zinc-400 truncate">研究导向原型 · 参考剪映 / CapCut 类产品的信息架构与 Agent 工作流</div>
+        </div>
+      </div>
+
+      <div class="hidden xl:flex items-center gap-1.5">
+        <button class="top-menu-btn px-3 h-9 rounded-xl text-sm text-zinc-300 hover:text-white hover:bg-white/5 transition" data-menu="file">文件</button>
+        <button class="top-menu-btn px-3 h-9 rounded-xl text-sm text-zinc-300 hover:text-white hover:bg-white/5 transition" data-menu="edit">编辑</button>
+        <button class="top-menu-btn px-3 h-9 rounded-xl text-sm text-zinc-300 hover:text-white hover:bg-white/5 transition" data-menu="view">视图</button>
+        <button class="top-menu-btn px-3 h-9 rounded-xl text-sm text-zinc-300 hover:text-white hover:bg-white/5 transition" data-menu="agent">AI 工作流</button>
+        <button class="top-menu-btn px-3 h-9 rounded-xl text-sm text-zinc-300 hover:text-white hover:bg-white/5 transition" data-menu="publish">发布</button>
+      </div>
+
+      <div class="flex items-center gap-2">
+        <button id="commandButton" class="hidden md:flex items-center gap-2 h-9 px-3 rounded-xl bg-zinc-900/90 border editor-border text-sm text-zinc-300 hover:bg-zinc-800/90 transition">
+          <svg viewBox="0 0 24 24" class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="11" cy="11" r="6"></circle><path d="M20 20l-3.5-3.5"></path></svg>
+          搜索命令
+          <span class="text-[11px] px-1.5 py-0.5 rounded-md border border-white/10 bg-white/5 text-zinc-500">⌘K</span>
+        </button>
+        <button class="h-9 px-3 rounded-xl border editor-border bg-zinc-900/80 text-sm text-zinc-200 hover:bg-zinc-800 transition">分享</button>
+        <button id="exportButton" class="h-9 px-3 rounded-xl bg-cyan-400 text-zinc-950 font-medium hover:bg-cyan-300 transition shadow-glow">导出</button>
+        <div class="h-9 w-9 rounded-full bg-gradient-to-br from-zinc-700 to-zinc-900 border border-white/10 flex items-center justify-center text-sm font-medium">L</div>
+      </div>
+    </header>
+
+    <div class="h-11 border-b editor-border px-4 flex items-center justify-between bg-zinc-950/90">
+      <div class="flex items-center gap-2 min-w-0 overflow-auto thin-scrollbar">
+        <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-accent-500/10 text-accent-200 text-xs whitespace-nowrap"><span class="badge-dot">草稿已同步</span></span>
+        <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-white/5 text-zinc-300 text-xs whitespace-nowrap">项目：<strong class="font-medium text-white">品牌口播样片 V3</strong></span>
+        <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-white/5 text-zinc-400 text-xs whitespace-nowrap">团队空间：市场部</span>
+        <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-white/5 text-zinc-400 text-xs whitespace-nowrap">多时间线：3</span>
+        <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-white/5 text-zinc-400 text-xs whitespace-nowrap">Agent 已挂载：脚本 / 素材 / 字幕 / 发布</span>
+      </div>
+      <div class="hidden lg:flex items-center gap-2 text-xs text-zinc-500">
+        <span>上次自动保存 12 秒前</span>
+      </div>
+    </div>
+
+    <main class="flex-1 min-h-0 flex">
+      <aside class="w-20 border-r editor-border bg-zinc-950/90 flex flex-col items-center py-4 gap-2" id="leftRail">
+        <button class="module-btn group w-14 h-14 rounded-2xl text-zinc-300 hover:text-white hover:bg-white/5 transition" data-module="media"></button>
+        <button class="module-btn group w-14 h-14 rounded-2xl text-zinc-300 hover:text-white hover:bg-white/5 transition" data-module="templates"></button>
+        <button class="module-btn group w-14 h-14 rounded-2xl text-zinc-300 hover:text-white hover:bg-white/5 transition" data-module="text"></button>
+        <button class="module-btn group w-14 h-14 rounded-2xl text-zinc-300 hover:text-white hover:bg-white/5 transition" data-module="audio"></button>
+        <button class="module-btn group w-14 h-14 rounded-2xl text-zinc-300 hover:text-white hover:bg-white/5 transition" data-module="effects"></button>
+        <button class="module-btn group w-14 h-14 rounded-2xl text-zinc-300 hover:text-white hover:bg-white/5 transition" data-module="captions"></button>
+        <button class="module-btn group w-14 h-14 rounded-2xl text-zinc-300 hover:text-white hover:bg-white/5 transition" data-module="brand"></button>
+        <div class="flex-1"></div>
+        <button class="module-btn group w-14 h-14 rounded-2xl text-zinc-300 hover:text-white hover:bg-white/5 transition" data-module="ai"></button>
+      </aside>
+
+      <section class="flex-1 min-w-0 flex flex-col">
+        <div class="flex-1 min-h-0 flex">
+          <aside id="libraryPanel" class="w-[340px] border-r editor-border bg-zinc-950/80 flex flex-col"></aside>
+
+          <section class="flex-1 min-w-0 flex flex-col bg-zinc-950">
+            <div class="h-12 border-b editor-border px-4 flex items-center justify-between bg-zinc-950/80">
+              <div class="flex items-center gap-2 overflow-auto thin-scrollbar">
+                <button class="aspect-btn h-8 px-3 rounded-lg text-sm border editor-border bg-white/5 text-zinc-200" data-aspect="16:9">16:9</button>
+                <button class="aspect-btn h-8 px-3 rounded-lg text-sm border editor-border bg-transparent text-zinc-400 hover:text-white" data-aspect="9:16">9:16</button>
+                <button class="aspect-btn h-8 px-3 rounded-lg text-sm border editor-border bg-transparent text-zinc-400 hover:text-white" data-aspect="1:1">1:1</button>
+                <button class="aspect-btn h-8 px-3 rounded-lg text-sm border editor-border bg-transparent text-zinc-400 hover:text-white" data-aspect="auto">智能适配</button>
+                <div class="mx-2 h-4 w-px bg-white/10"></div>
+                <button class="h-8 px-3 rounded-lg text-sm border editor-border text-zinc-300 hover:bg-white/5">安全框</button>
+                <button class="h-8 px-3 rounded-lg text-sm border editor-border text-zinc-300 hover:bg-white/5">参考线</button>
+                <button class="h-8 px-3 rounded-lg text-sm border editor-border text-zinc-300 hover:bg-white/5">双屏对比</button>
+              </div>
+              <div class="flex items-center gap-2 text-xs text-zinc-500">
+                <span>代理预览：良好</span>
+                <span class="inline-flex items-center gap-1 rounded-full px-2 py-1 bg-white/5 text-zinc-400">1080p</span>
+              </div>
+            </div>
+
+            <div class="flex-1 min-h-0 relative overflow-hidden panel-grid">
+              <div class="absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(8,145,178,.10),transparent_35%),radial-gradient(circle_at_bottom_right,rgba(99,102,241,.12),transparent_32%)]"></div>
+              <div class="absolute inset-0 flex items-center justify-center p-10">
+                <div class="w-full h-full flex items-center justify-center relative">
+                  <div class="preview-shadow relative rounded-[28px] overflow-hidden noise-overlay transition-all duration-300" id="previewSurface">
+                    <div class="absolute inset-0 bg-[linear-gradient(135deg,#27272a,#111827_50%,#0f172a)]"></div>
+                    <div class="absolute inset-0 opacity-90" id="previewArtwork"></div>
+                    <div class="absolute left-4 top-4 flex items-center gap-2">
+                      <div class="px-2 py-1 rounded-full bg-black/40 border border-white/10 text-xs text-zinc-200">实时预览</div>
+                      <div class="px-2 py-1 rounded-full bg-cyan-400/15 border border-cyan-400/20 text-xs text-cyan-200">已选中片段</div>
+                    </div>
+                    <div class="absolute right-4 top-4 px-2 py-1 rounded-full bg-black/40 border border-white/10 text-xs text-zinc-300" id="selectedClipBadge">V1 · 开场主镜头</div>
+                    <div class="absolute inset-x-0 top-1/2 -translate-y-1/2 flex justify-center pointer-events-none">
+                      <div class="w-[68%] h-[34%] rounded-2xl border border-cyan-300/70 shadow-glow bg-cyan-400/5"></div>
+                    </div>
+                    <div class="absolute inset-x-6 bottom-6 flex items-end justify-between gap-6">
+                      <div>
+                        <div class="text-xs uppercase tracking-[0.24em] text-zinc-400 mb-2">Scene 03</div>
+                        <div class="text-3xl font-semibold tracking-tight">让剪辑更像协作，而不是重复劳动</div>
+                        <div class="mt-2 max-w-xl text-sm text-zinc-300/85">右侧 Agent 能读取脚本、时间线、字幕和素材上下文，并把建议直接转成工程动作。</div>
+                      </div>
+                      <div class="rounded-2xl border border-white/10 bg-black/35 px-4 py-3 text-right">
+                        <div class="text-xs text-zinc-400">当前播放头</div>
+                        <div class="mt-1 text-xl font-semibold" id="previewTimecode">00:00:06.12</div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <aside id="inspectorPanel" class="w-[318px] border-l editor-border bg-zinc-950/90 flex flex-col"></aside>
+        </div>
+
+        <section class="h-[296px] border-t editor-border bg-zinc-950/95 flex flex-col">
+          <div class="h-11 border-b editor-border px-4 flex items-center justify-between bg-zinc-950/90">
+            <div class="flex items-center gap-2 overflow-auto thin-scrollbar">
+              <button class="timeline-tab h-8 px-3 rounded-lg text-sm border editor-border bg-cyan-400 text-zinc-950 font-medium" data-timeline="main">主时间线</button>
+              <button class="timeline-tab h-8 px-3 rounded-lg text-sm border editor-border bg-transparent text-zinc-400 hover:text-white" data-timeline="vertical15">15 秒竖版</button>
+              <button class="timeline-tab h-8 px-3 rounded-lg text-sm border editor-border bg-transparent text-zinc-400 hover:text-white" data-timeline="broll">B-roll cut</button>
+              <button class="h-8 w-8 rounded-lg border editor-border text-zinc-300 hover:bg-white/5">+</button>
+              <div class="mx-2 h-4 w-px bg-white/10"></div>
+              <button class="h-8 px-3 rounded-lg border editor-border text-zinc-300 hover:bg-white/5">分割</button>
+              <button class="h-8 px-3 rounded-lg border editor-border text-zinc-300 hover:bg-white/5">吸附</button>
+              <button class="h-8 px-3 rounded-lg border editor-border text-zinc-300 hover:bg-white/5">波形</button>
+            </div>
+            <div class="flex items-center gap-2">
+              <button class="h-8 w-8 rounded-lg border editor-border text-zinc-300 hover:bg-white/5">−</button>
+              <div class="w-28 h-2 rounded-full bg-white/10 overflow-hidden"><div class="h-full w-2/3 bg-cyan-400/80"></div></div>
+              <button class="h-8 w-8 rounded-lg border editor-border text-zinc-300 hover:bg-white/5">+</button>
+            </div>
+          </div>
+
+          <div class="flex-1 min-h-0 flex">
+            <div class="w-24 border-r editor-border bg-zinc-950/90 shrink-0">
+              <div class="h-8 border-b editor-border"></div>
+              <div class="h-[68px] border-b editor-border px-3 flex flex-col justify-center">
+                <div class="text-xs text-zinc-400">V1</div>
+                <div class="text-sm font-medium">主视频</div>
+              </div>
+              <div class="h-[68px] border-b editor-border px-3 flex flex-col justify-center">
+                <div class="text-xs text-zinc-400">V2</div>
+                <div class="text-sm font-medium">字幕 / 贴图</div>
+              </div>
+              <div class="h-[68px] border-b editor-border px-3 flex flex-col justify-center">
+                <div class="text-xs text-zinc-400">A1</div>
+                <div class="text-sm font-medium">配音</div>
+              </div>
+            </div>
+            <div class="flex-1 min-w-0 relative overflow-auto thin-scrollbar" id="timelineScroller">
+              <div class="relative min-w-[1160px] h-full" id="timelineCanvas">
+                <div class="absolute inset-x-0 top-0 h-8 border-b editor-border timeline-ruler" id="timelineRuler"></div>
+                <div class="absolute inset-x-0 top-8 h-[68px] border-b editor-border"></div>
+                <div class="absolute inset-x-0 top-[76px] h-[68px] border-b editor-border bg-white/[0.012]"></div>
+                <div class="absolute inset-x-0 top-[144px] h-[68px] border-b editor-border"></div>
+                <div id="clipLayer" class="absolute inset-0"></div>
+                <div id="playhead" class="timeline-playhead absolute top-0 bottom-0" style="left: 320px;"></div>
+              </div>
+            </div>
+          </div>
+        </section>
+      </section>
+
+      <aside id="agentPanel" class="w-[368px] border-l editor-border bg-zinc-950/95 flex flex-col transition-all duration-300">
+        <div class="h-12 border-b editor-border px-4 flex items-center justify-between bg-zinc-950/80">
+          <div>
+            <div class="text-sm font-semibold">Agent Copilot</div>
+            <div class="text-[11px] text-zinc-500">已读取：脚本、时间线、所选片段、发布目标</div>
+          </div>
+          <div class="flex items-center gap-2">
+            <span class="inline-flex items-center gap-1 rounded-full px-2 py-1 bg-emerald-400/10 text-emerald-300 text-[11px] border border-emerald-400/15"><span class="badge-dot">在线</span></span>
+            <button id="collapseAgent" class="h-8 w-8 rounded-lg border editor-border text-zinc-300 hover:bg-white/5">→</button>
+          </div>
+        </div>
+
+        <div class="px-4 py-3 border-b editor-border bg-white/[0.02]">
+          <div class="flex flex-wrap gap-2">
+            <span class="inline-flex items-center gap-1.5 rounded-full bg-white/5 border border-white/10 px-2.5 py-1 text-xs text-zinc-300">当前目标：发布抖音竖版</span>
+            <span class="inline-flex items-center gap-1.5 rounded-full bg-white/5 border border-white/10 px-2.5 py-1 text-xs text-zinc-300">所选片段：开场主镜头</span>
+            <span class="inline-flex items-center gap-1.5 rounded-full bg-white/5 border border-white/10 px-2.5 py-1 text-xs text-zinc-300">字幕：未最终确认</span>
+          </div>
+        </div>
+
+        <div id="chatList" class="flex-1 min-h-0 overflow-auto thin-scrollbar px-4 py-4 space-y-3 bg-[radial-gradient(circle_at_top,rgba(6,182,212,.08),transparent_28%)]"></div>
+
+        <div class="px-4 py-3 border-t editor-border bg-zinc-950/90 space-y-3">
+          <div class="flex flex-wrap gap-2" id="quickPrompts"></div>
+          <div class="rounded-2xl border editor-border bg-zinc-900/80 overflow-hidden shadow-panel">
+            <textarea id="chatInput" class="w-full h-24 resize-none bg-transparent p-3 text-sm text-zinc-100 placeholder:text-zinc-500 outline-none" placeholder="例如：帮我做成 15 秒竖版，去掉口癖，自动生成双语字幕，再给一个更像剪映的快节奏开场。"></textarea>
+            <div class="px-3 py-2 border-t editor-border flex items-center justify-between">
+              <div class="text-[11px] text-zinc-500">支持读取工程上下文、执行前预览、应用后可撤销</div>
+              <button id="sendChat" class="h-9 px-3 rounded-xl bg-cyan-400 text-zinc-950 font-medium hover:bg-cyan-300 transition">发送</button>
+            </div>
+          </div>
+        </div>
+      </aside>
+
+      <div id="agentCollapsed" class="hidden w-14 border-l editor-border bg-zinc-950/95 items-center justify-center">
+        <button id="expandAgent" class="w-10 h-40 rounded-2xl border editor-border bg-white/5 hover:bg-white/10 text-zinc-200 text-xs tracking-[0.2em] [writing-mode:vertical-rl]">Agent</button>
+      </div>
+    </main>
+  </div>
+
+  <div id="overlayLayer" class="fixed inset-0 pointer-events-none z-40"></div>
+  <div id="modalLayer" class="fixed inset-0 z-50 hidden"></div>
+  <div id="toastRack" class="fixed right-4 bottom-4 z-[60] space-y-2"></div>
+
+  <script>
+    const topMenus = {
+      file: [
+        { label: '新建项目', desc: '从模板、空白时间线或脚本成片开始', badge: '⌘N' },
+        { label: '打开草稿', desc: '查看本地与云空间中的最近工程', badge: 'O' },
+        { label: '导入素材', desc: '本地文件、网盘、团队素材库', badge: 'I' },
+        { label: '保存到云', desc: '同步草稿、版本和评论', badge: '云' },
+        { label: '项目设置', desc: '分辨率、比例、帧率、代理媒体', badge: '⚙' }
+      ],
+      edit: [
+        { label: '撤销 / 重做', desc: '保留 Agent 执行动作的撤销链', badge: '⌘Z' },
+        { label: '分割片段', desc: '按播放头切分并保持吸附', badge: 'B' },
+        { label: '批量清理停顿', desc: '删除空白、口癖和重复句', badge: 'AI' },
+        { label: '自动字幕', desc: '识别说话人并按段落生成样式', badge: 'CC' },
+        { label: '智能包装', desc: '快速补 B-roll、标题和转场', badge: 'FX' }
+      ],
+      view: [
+        { label: '双屏预览', desc: '对比原视频与编辑后效果', badge: '2x' },
+        { label: '文字脚本视图', desc: '在转录文本中直接编辑镜头', badge: 'TXT' },
+        { label: '多时间线布局', desc: '横向或纵向排列多个 cut', badge: 'TL' },
+        { label: '显示波形', desc: '辅助对齐节奏与停顿', badge: 'W' },
+        { label: '显示安全框', desc: '适配多平台裁切范围', badge: 'SAFE' }
+      ],
+      agent: [
+        { label: '脚本成片', desc: '从想法、提纲或文案直接生成首稿', badge: 'Gen' },
+        { label: '一键多比例', desc: '横版改竖版并保留主体', badge: '9:16' },
+        { label: '拆条生成', desc: '自动拆解长视频为多个短视频', badge: 'Cut' },
+        { label: '口播优化', desc: '去口癖、加字幕、补 B-roll、提节奏', badge: 'Talk' },
+        { label: '发布建议', desc: '为渠道生成标题、封面和标签', badge: 'Post' }
+      ],
+      publish: [
+        { label: '导出 MP4', desc: '自定义分辨率、码率、字幕选项', badge: 'MP4' },
+        { label: '发布到抖音', desc: '同步封面、标题和标签建议', badge: 'DY' },
+        { label: '发布到 TikTok', desc: '适配英文字幕和封面留白', badge: 'TT' },
+        { label: '生成审校链接', desc: '供团队评论与版本对比', badge: 'Link' },
+        { label: '导出工程包', desc: '打包媒体、字幕和脚本', badge: 'ZIP' }
+      ]
+    };
+
+    const moduleMeta = {
+      media: { icon: '▣', label: '媒体' },
+      templates: { icon: '◫', label: '模板' },
+      text: { icon: 'T', label: '文本' },
+      audio: { icon: '♪', label: '音频' },
+      effects: { icon: '✦', label: '特效' },
+      captions: { icon: 'CC', label: '字幕' },
+      brand: { icon: 'BK', label: '品牌' },
+      ai: { icon: 'AI', label: 'Agent' }
+    };
+
+    const moduleLibrary = {
+      media: {
+        title: '媒体',
+        subtitle: '本地素材、云空间和团队资产统一入口',
+        primary: '导入素材',
+        secondary: '连接云空间',
+        sections: [
+          {
+            title: '快速导入',
+            type: 'dropzone',
+            desc: '拖入视频 / 图片 / 音频，也可接入素材库或网盘。'
+          },
+          {
+            title: '最近素材',
+            type: 'cards',
+            items: [
+              { id: 'asset-cam', name: '采访主镜头', meta: '4K · 02:31 · 人像', tag: 'A Cam', clipType: 'video' },
+              { id: 'asset-street', name: '街景 B-roll', meta: '4K · 00:18 · 城市', tag: 'B-roll', clipType: 'video' },
+              { id: 'asset-logo', name: '品牌 Logo 动效', meta: 'MOV Alpha · 00:04', tag: 'Overlay', clipType: 'overlay' },
+              { id: 'asset-screen', name: '产品界面录屏', meta: '1080p · 00:24', tag: 'Screen', clipType: 'video' }
+            ]
+          }
+        ]
+      },
+      templates: {
+        title: '模板',
+        subtitle: '适合社媒、口播、营销推广的快节奏结构',
+        primary: '应用模板',
+        secondary: '保存为团队模板',
+        sections: [
+          {
+            title: '推荐结构',
+            type: 'cards',
+            items: [
+              { id: 'tpl-1', name: '3 秒抓人开场', meta: '标题 + 镜头推进 + 节奏点', tag: '热度高', clipType: 'template' },
+              { id: 'tpl-2', name: '口播高密字幕', meta: '适合解释型内容', tag: '字幕', clipType: 'template' },
+              { id: 'tpl-3', name: '品牌广告竖版', meta: '适合 15 秒种草视频', tag: '竖版', clipType: 'template' }
+            ]
+          }
+        ]
+      },
+      text: {
+        title: '文本',
+        subtitle: '标题、花字、下三分之一和片尾卡',
+        primary: '新建标题',
+        secondary: '导入脚本',
+        sections: [
+          {
+            title: '文字样式',
+            type: 'cards',
+            items: [
+              { id: 'txt-1', name: '大字快节奏标题', meta: '粗体 + 描边 + 轻微动效', tag: '推荐', clipType: 'text' },
+              { id: 'txt-2', name: '访谈姓名条', meta: '姓名 + 职位 + 轻玻璃感', tag: 'Lower 3rd', clipType: 'text' },
+              { id: 'txt-3', name: '结果数字卡', meta: '适合数据或卖点强调', tag: 'Data', clipType: 'text' }
+            ]
+          }
+        ]
+      },
+      audio: {
+        title: '音频',
+        subtitle: '背景音乐、人声增强、AI 配音与音效',
+        primary: '添加配音',
+        secondary: '人声增强',
+        sections: [
+          {
+            title: '音频推荐',
+            type: 'cards',
+            items: [
+              { id: 'aud-1', name: 'Urban Pulse', meta: '120 BPM · 快节奏开场', tag: 'BGM', clipType: 'audio' },
+              { id: 'aud-2', name: 'Whoosh Pack', meta: '10 个转场音效', tag: 'SFX', clipType: 'audio' },
+              { id: 'aud-3', name: 'AI 女声旁白', meta: '中文普通话 · 自然', tag: 'TTS', clipType: 'audio' }
+            ]
+          }
+        ]
+      },
+      effects: {
+        title: '特效 / 转场',
+        subtitle: '保留黑色主舞台，重点用小面积高亮动效提节奏',
+        primary: '添加特效',
+        secondary: '收藏常用',
+        sections: [
+          {
+            title: '节奏型效果',
+            type: 'cards',
+            items: [
+              { id: 'fx-1', name: 'Push Zoom', meta: '适合开场 3 秒强化', tag: 'Hot', clipType: 'effect' },
+              { id: 'fx-2', name: 'RGB Flash', meta: '适合 beat cut', tag: 'Beat', clipType: 'effect' },
+              { id: 'fx-3', name: 'Soft Blur', meta: '用于镜头衔接更柔和', tag: 'Clean', clipType: 'effect' }
+            ]
+          }
+        ]
+      },
+      captions: {
+        title: '字幕 / Transcript',
+        subtitle: '支持自动字幕、说话人区分、文本剪辑和翻译',
+        primary: '生成字幕',
+        secondary: '创建 Transcript 视图',
+        sections: [
+          {
+            title: '智能字幕动作',
+            type: 'list',
+            items: [
+              { action: 'caption-auto', title: '自动字幕', meta: '识别中文并生成逐句卡点字幕' },
+              { action: 'caption-bilingual', title: '双语字幕', meta: '适合海外渠道与 TikTok 发布' },
+              { action: 'caption-speaker', title: '说话人分离', meta: '采访、播客、多角色对话' }
+            ]
+          }
+        ]
+      },
+      brand: {
+        title: '品牌资产',
+        subtitle: '品牌色、字体、Logo 与团队可复用组件',
+        primary: '应用品牌包',
+        secondary: '新建团队规范',
+        sections: [
+          {
+            title: '当前品牌包',
+            type: 'swatches',
+            items: [
+              { name: 'Primary', color: '#22d3ee', meta: '亮青色主强调' },
+              { name: 'Accent', color: '#818cf8', meta: '次级强调' },
+              { name: 'Surface', color: '#18181b', meta: '深色画布' }
+            ]
+          },
+          {
+            title: '可复用组件',
+            type: 'cards',
+            items: [
+              { id: 'brand-1', name: '品牌片尾卡', meta: 'Logo + CTA + 二维码区域', tag: 'Outro', clipType: 'overlay' },
+              { id: 'brand-2', name: '封面标题组件', meta: '两行标题 + 亮色标签', tag: 'Cover', clipType: 'text' }
+            ]
+          }
+        ]
+      },
+      ai: {
+        title: 'Agent 工具箱',
+        subtitle: '先出方案，再一键落工程；不是聊天，而是能执行的协作',
+        primary: '生成方案',
+        secondary: '运行到工程',
+        sections: [
+          {
+            title: '建议工作流',
+            type: 'list',
+            items: [
+              { action: 'ai-script', title: '脚本成片', meta: '从提示词到首版分镜、字幕、BGM' },
+              { action: 'ai-reframe', title: '横改竖', meta: '保留主体，重排字幕和留白' },
+              { action: 'ai-clips', title: '拆条成多条短视频', meta: '自动抽关键句，分镜后导出多个 cut' },
+              { action: 'ai-package', title: '智能包装', meta: '补标题、B-roll、过渡和结尾 CTA' }
+            ]
+          },
+          {
+            title: '为什么这样放',
+            type: 'tip',
+            desc: '此面板仿照剪映/CapCut 的左侧一级导航，但把 Agent 做成可执行工具箱；右侧则保留 chat，以便持续对话和确认。'
+          }
+        ]
+      }
+    };
+
+    const clips = [
+      { id: 'clip-1', timeline: 'main', track: 'V1', label: '开场主镜头', left: 44, width: 210, type: 'video', accent: 'from-cyan-500/80 to-sky-500/80', meta: '视频 00:05.2' },
+      { id: 'clip-2', timeline: 'main', track: 'V1', label: '产品界面录屏', left: 278, width: 180, type: 'video', accent: 'from-indigo-500/80 to-violet-500/80', meta: '录屏 00:04.8' },
+      { id: 'clip-3', timeline: 'main', track: 'V1', label: '街景 B-roll', left: 480, width: 156, type: 'video', accent: 'from-emerald-500/80 to-cyan-500/80', meta: 'B-roll 00:03.2' },
+      { id: 'clip-4', timeline: 'main', track: 'V2', label: '主标题字幕', left: 62, width: 160, type: 'text', accent: 'from-fuchsia-500/80 to-pink-500/80', meta: '文本层' },
+      { id: 'clip-5', timeline: 'main', track: 'A1', label: '口播配音', left: 44, width: 592, type: 'audio', accent: 'from-orange-500/80 to-amber-500/80', meta: '音频轨' },
+
+      { id: 'clip-v1', timeline: 'vertical15', track: 'V1', label: '竖版重构镜头', left: 62, width: 220, type: 'video', accent: 'from-cyan-500/80 to-blue-500/80', meta: '9:16' },
+      { id: 'clip-v2', timeline: 'vertical15', track: 'V2', label: '大字字幕', left: 72, width: 206, type: 'text', accent: 'from-pink-500/80 to-fuchsia-500/80', meta: '自动字幕' },
+      { id: 'clip-v3', timeline: 'vertical15', track: 'A1', label: '音乐 + 旁白', left: 62, width: 312, type: 'audio', accent: 'from-amber-500/80 to-orange-500/80', meta: '混音' },
+
+      { id: 'clip-b1', timeline: 'broll', track: 'V1', label: '节奏卡点合集', left: 52, width: 320, type: 'video', accent: 'from-emerald-500/80 to-teal-500/80', meta: '拆条草案' },
+      { id: 'clip-b2', timeline: 'broll', track: 'V2', label: '提示词标题', left: 80, width: 126, type: 'text', accent: 'from-violet-500/80 to-purple-500/80', meta: '文本' },
+      { id: 'clip-b3', timeline: 'broll', track: 'A1', label: '节奏鼓点', left: 52, width: 290, type: 'audio', accent: 'from-orange-500/80 to-red-500/80', meta: 'BGM' }
+    ];
+
+    const trackOffsets = { V1: 44, V2: 112, A1: 180 };
+
+    const quickPrompts = [
+      '帮我做成 15 秒竖版',
+      '去掉口癖并加双语字幕',
+      '给开场加更像剪映的快节奏包装',
+      '从这条长视频拆 3 条短视频'
+    ];
+
+    const state = {
+      activeModule: 'media',
+      activeAspect: '16:9',
+      selectedClipId: 'clip-1',
+      activeInspectorTab: 'basic',
+      activeTimeline: 'main',
+      playheadX: 320,
+      dropdown: null,
+      contextMenu: null,
+      chat: [
+        {
+          role: 'assistant',
+          html: `
+            <div class="space-y-2">
+              <div class="font-medium text-zinc-100">我已经读取当前工程。</div>
+              <div class="text-sm text-zinc-300 leading-6">当前是一个横版口播项目，主时间线里有开场主镜头、界面录屏、街景 B-roll 和一条完整旁白。你可以直接让我：改 9:16、去口癖、做字幕、补 B-roll、做封面、拆条发布。</div>
+            </div>
+          `
+        },
+        {
+          role: 'user',
+          text: '先给我一个 15 秒竖版方案，保留主旨，节奏更快一些。'
+        },
+        {
+          role: 'assistant',
+          html: `
+            <div class="space-y-3">
+              <div class="text-sm text-zinc-300 leading-6">可以。我建议把开头压缩到 3 秒，保留一句最强观点，在第 4-10 秒插入产品界面和街景 B-roll，并把字幕改成更大的双行快节奏样式。</div>
+              <div class="rounded-2xl border border-cyan-400/20 bg-cyan-400/8 p-3 space-y-2">
+                <div class="text-xs uppercase tracking-[0.16em] text-cyan-200">执行计划</div>
+                <div class="flex items-start gap-2 text-sm text-zinc-200"><span class="mt-1 h-2 w-2 rounded-full bg-cyan-300"></span><span>主镜头裁成 3 秒钩子，自动重构为 9:16 安全框</span></div>
+                <div class="flex items-start gap-2 text-sm text-zinc-200"><span class="mt-1 h-2 w-2 rounded-full bg-cyan-300"></span><span>把产品录屏切进中段，覆盖核心卖点字幕</span></div>
+                <div class="flex items-start gap-2 text-sm text-zinc-200"><span class="mt-1 h-2 w-2 rounded-full bg-cyan-300"></span><span>末尾增加 CTA 封面式结尾，适配短视频平台停留逻辑</span></div>
+                <div class="flex flex-wrap gap-2 pt-1">
+                  <button class="agent-action h-8 px-3 rounded-xl bg-cyan-400 text-zinc-950 text-sm font-medium" data-action="apply-vertical">应用到工程</button>
+                  <button class="agent-action h-8 px-3 rounded-xl border border-white/10 bg-white/5 text-zinc-200 text-sm" data-action="preview-vertical">仅预览方案</button>
+                </div>
+              </div>
+            </div>
+          `
+        }
+      ]
+    };
+
+    const libraryPanel = document.getElementById('libraryPanel');
+    const inspectorPanel = document.getElementById('inspectorPanel');
+    const chatList = document.getElementById('chatList');
+    const quickPromptsWrap = document.getElementById('quickPrompts');
+    const overlayLayer = document.getElementById('overlayLayer');
+    const modalLayer = document.getElementById('modalLayer');
+    const toastRack = document.getElementById('toastRack');
+    const previewSurface = document.getElementById('previewSurface');
+    const previewArtwork = document.getElementById('previewArtwork');
+    const selectedClipBadge = document.getElementById('selectedClipBadge');
+    const previewTimecode = document.getElementById('previewTimecode');
+    const playhead = document.getElementById('playhead');
+    const clipLayer = document.getElementById('clipLayer');
+    const timelineCanvas = document.getElementById('timelineCanvas');
+
+    function getSelectedClip() {
+      return clips.find(clip => clip.id === state.selectedClipId) || clips[0];
+    }
+
+    function renderLeftRail() {
+      document.querySelectorAll('.module-btn').forEach(btn => {
+        const key = btn.dataset.module;
+        const meta = moduleMeta[key];
+        const active = state.activeModule === key;
+        btn.className = `module-btn group w-14 h-14 rounded-2xl transition flex flex-col items-center justify-center gap-1 ${active ? 'bg-cyan-400 text-zinc-950 shadow-glow' : 'text-zinc-300 hover:text-white hover:bg-white/5'}`;
+        btn.innerHTML = `
+          <div class="text-[13px] font-semibold tracking-wide">${meta.icon}</div>
+          <div class="text-[10px] leading-none">${meta.label}</div>
+        `;
+      });
+    }
+
+    function assetCard(item) {
+      return `
+        <div class="library-card group rounded-2xl border editor-border bg-white/[0.03] hover:bg-white/[0.05] transition p-3 shadow-panel">
+          <div class="asset-thumb rounded-xl h-28 border border-white/5 mb-3 relative overflow-hidden">
+            <div class="absolute left-3 top-3 text-[11px] text-zinc-300 bg-black/35 rounded-full px-2 py-1 border border-white/10">${item.tag || '素材'}</div>
+            <div class="absolute inset-x-3 bottom-3 text-sm font-medium text-white/90">${item.name}</div>
+          </div>
+          <div class="text-xs text-zinc-400 mb-3 leading-5">${item.meta}</div>
+          <div class="flex items-center justify-between gap-2">
+            <button class="h-8 px-3 rounded-xl border editor-border bg-white/5 text-sm text-zinc-200 hover:bg-white/10" data-preview-asset="${item.name}">预览</button>
+            <button class="h-8 px-3 rounded-xl bg-cyan-400 text-zinc-950 text-sm font-medium hover:bg-cyan-300" data-add-clip="${item.name}" data-clip-type="${item.clipType || 'video'}">加入时间线</button>
+          </div>
+        </div>
+      `;
+    }
+
+    function listItem(item) {
+      return `
+        <button class="w-full text-left rounded-2xl border editor-border bg-white/[0.03] hover:bg-white/[0.05] transition px-4 py-3" data-list-action="${item.action || ''}">
+          <div class="flex items-center justify-between gap-3">
+            <div>
+              <div class="text-sm font-medium text-zinc-100">${item.title}</div>
+              <div class="mt-1 text-xs text-zinc-400 leading-5">${item.meta}</div>
+            </div>
+            <div class="text-zinc-500">→</div>
+          </div>
+        </button>
+      `;
+    }
+
+    function renderLibrary() {
+      const data = moduleLibrary[state.activeModule];
+      let html = `
+        <div class="px-4 py-4 border-b editor-border bg-zinc-950/90">
+          <div class="flex items-start justify-between gap-3">
+            <div>
+              <div class="text-lg font-semibold">${data.title}</div>
+              <div class="mt-1 text-sm text-zinc-400 leading-6">${data.subtitle}</div>
+            </div>
+            <button class="h-9 w-9 rounded-xl border editor-border text-zinc-300 hover:bg-white/5">⋯</button>
+          </div>
+          <div class="mt-4 flex items-center gap-2">
+            <button class="h-9 px-3 rounded-xl bg-cyan-400 text-zinc-950 text-sm font-medium hover:bg-cyan-300">${data.primary}</button>
+            <button class="h-9 px-3 rounded-xl border editor-border bg-white/5 text-sm text-zinc-200 hover:bg-white/10">${data.secondary}</button>
+          </div>
+          <div class="mt-4 rounded-2xl border editor-border bg-zinc-900/80 px-3 py-2 flex items-center gap-2 text-sm text-zinc-400">
+            <svg viewBox="0 0 24 24" class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="11" cy="11" r="6"></circle><path d="M20 20l-3.5-3.5"></path></svg>
+            搜索 ${data.title} 资源
+          </div>
+        </div>
+        <div class="flex-1 min-h-0 overflow-auto thin-scrollbar px-4 py-4 space-y-5">
+      `;
+
+      data.sections.forEach(section => {
+        html += `<section class="space-y-3"><div><div class="text-sm font-medium text-zinc-100">${section.title}</div>${section.desc ? `<div class="mt-1 text-xs text-zinc-500 leading-5">${section.desc}</div>` : ''}</div>`;
+        if (section.type === 'dropzone') {
+          html += `
+            <div class="rounded-3xl border border-dashed border-white/10 bg-white/[0.03] p-5 text-center">
+              <div class="mx-auto h-12 w-12 rounded-2xl bg-cyan-400/10 border border-cyan-400/15 flex items-center justify-center text-cyan-200 mb-3">⇪</div>
+              <div class="text-sm font-medium text-zinc-100">拖拽素材到这里</div>
+              <div class="mt-1 text-xs text-zinc-500">支持视频、图片、音频、字幕文件和品牌资产</div>
+              <div class="mt-4 flex justify-center gap-2">
+                <button class="h-8 px-3 rounded-xl bg-cyan-400 text-zinc-950 text-sm font-medium">选择文件</button>
+                <button class="h-8 px-3 rounded-xl border editor-border bg-white/5 text-sm text-zinc-200">导入团队空间</button>
+              </div>
+            </div>
+          `;
+        }
+        if (section.type === 'cards') {
+          html += `<div class="grid grid-cols-1 gap-3">${section.items.map(assetCard).join('')}</div>`;
+        }
+        if (section.type === 'list') {
+          html += `<div class="space-y-2">${section.items.map(listItem).join('')}</div>`;
+        }
+        if (section.type === 'swatches') {
+          html += `<div class="space-y-3">${section.items.map(item => `
+            <div class="rounded-2xl border editor-border bg-white/[0.03] px-4 py-3 flex items-center justify-between gap-3">
+              <div class="flex items-center gap-3">
+                <div class="h-10 w-10 rounded-2xl border border-white/10" style="background:${item.color}"></div>
+                <div>
+                  <div class="text-sm font-medium text-zinc-100">${item.name}</div>
+                  <div class="text-xs text-zinc-500">${item.meta}</div>
+                </div>
+              </div>
+              <button class="h-8 px-3 rounded-xl border editor-border text-sm text-zinc-200 hover:bg-white/5">应用</button>
+            </div>
+          `).join('')}</div>`;
+        }
+        if (section.type === 'tip') {
+          html += `
+            <div class="rounded-2xl border border-cyan-400/20 bg-cyan-400/8 p-4 text-sm text-zinc-300 leading-6">
+              ${section.desc}
+            </div>
+          `;
+        }
+        html += `</section>`;
+      });
+
+      html += '</div>';
+      libraryPanel.innerHTML = html;
+    }
+
+    function renderInspector() {
+      const clip = getSelectedClip();
+      const tabs = [
+        { key: 'basic', label: '基础' },
+        { key: 'motion', label: '动画' },
+        { key: 'audio', label: '音频' },
+        { key: 'agent', label: 'Agent' }
+      ];
+
+      function slider(label, value, suffix = '') {
+        return `
+          <div class="space-y-2">
+            <div class="flex items-center justify-between text-sm"><span class="text-zinc-300">${label}</span><span class="text-zinc-500">${value}${suffix}</span></div>
+            <div class="h-2 rounded-full bg-white/10 overflow-hidden"><div class="h-full bg-cyan-400/80" style="width:${value}%"></div></div>
+          </div>
+        `;
+      }
+
+      let body = '';
+      if (state.activeInspectorTab === 'basic') {
+        body = `
+          <div class="space-y-4">
+            <div class="rounded-2xl border editor-border bg-white/[0.03] px-4 py-3">
+              <div class="text-xs text-zinc-500">当前对象</div>
+              <div class="mt-1 text-base font-semibold">${clip.label}</div>
+              <div class="mt-1 text-xs text-zinc-400">${clip.meta} · 已绑定 Agent 建议</div>
+            </div>
+            ${slider('缩放', 82, '%')}
+            ${slider('位置 X', 56, '%')}
+            ${slider('位置 Y', 48, '%')}
+            ${slider('不透明度', 100, '%')}
+            <div class="grid grid-cols-2 gap-2">
+              <button class="h-10 rounded-xl border editor-border bg-white/5 text-sm text-zinc-200 hover:bg-white/10">裁切</button>
+              <button class="h-10 rounded-xl border editor-border bg-white/5 text-sm text-zinc-200 hover:bg-white/10">蒙版</button>
+              <button class="h-10 rounded-xl border editor-border bg-white/5 text-sm text-zinc-200 hover:bg-white/10">关键帧</button>
+              <button class="h-10 rounded-xl border editor-border bg-white/5 text-sm text-zinc-200 hover:bg-white/10">智能构图</button>
+            </div>
+          </div>
+        `;
+      }
+
+      if (state.activeInspectorTab === 'motion') {
+        body = `
+          <div class="space-y-4">
+            ${slider('入场速度', 38, '%')}
+            ${slider('出场速度', 64, '%')}
+            ${slider('曲线强度', 52, '%')}
+            <div class="grid grid-cols-2 gap-2">
+              <button class="h-10 rounded-xl border editor-border bg-white/5 text-sm text-zinc-200 hover:bg-white/10">淡入</button>
+              <button class="h-10 rounded-xl border editor-border bg-white/5 text-sm text-zinc-200 hover:bg-white/10">推近</button>
+              <button class="h-10 rounded-xl border editor-border bg-white/5 text-sm text-zinc-200 hover:bg-white/10">摇摆</button>
+              <button class="h-10 rounded-xl border editor-border bg-white/5 text-sm text-zinc-200 hover:bg-white/10">节奏卡点</button>
+            </div>
+            <div class="rounded-2xl border border-cyan-400/20 bg-cyan-400/8 p-4 text-sm text-zinc-300 leading-6">建议：如果目标是短视频平台，开场标题更适合在 8 帧内进入，并在第一个重音前完成停留。</div>
+          </div>
+        `;
+      }
+
+      if (state.activeInspectorTab === 'audio') {
+        body = `
+          <div class="space-y-4">
+            ${slider('主音量', 72, '%')}
+            ${slider('降噪', 46, '%')}
+            ${slider('人声增强', 66, '%')}
+            ${slider('背景音乐压低', 58, '%')}
+            <div class="grid grid-cols-2 gap-2">
+              <button class="h-10 rounded-xl border editor-border bg-white/5 text-sm text-zinc-200 hover:bg-white/10">去口癖</button>
+              <button class="h-10 rounded-xl border editor-border bg-white/5 text-sm text-zinc-200 hover:bg-white/10">切除静音</button>
+              <button class="h-10 rounded-xl border editor-border bg-white/5 text-sm text-zinc-200 hover:bg-white/10">匹配节拍</button>
+              <button class="h-10 rounded-xl border editor-border bg-white/5 text-sm text-zinc-200 hover:bg-white/10">转文字稿</button>
+            </div>
+          </div>
+        `;
+      }
+
+      if (state.activeInspectorTab === 'agent') {
+        body = `
+          <div class="space-y-3">
+            <div class="rounded-2xl border editor-border bg-white/[0.03] p-4">
+              <div class="text-sm font-medium">对当前片段的建议</div>
+              <div class="mt-2 text-sm text-zinc-300 leading-6">这段镜头适合做为开场钩子。建议保留“让剪辑更像协作”的关键词，并把镜头长度从 5.2 秒压到 3 秒以内。</div>
+            </div>
+            <button class="w-full h-10 rounded-xl bg-cyan-400 text-zinc-950 font-medium hover:bg-cyan-300 agent-action" data-action="apply-fast-opening">应用快节奏开场</button>
+            <button class="w-full h-10 rounded-xl border editor-border bg-white/5 text-zinc-200 hover:bg-white/10 agent-action" data-action="apply-caption-style">应用大字字幕样式</button>
+            <button class="w-full h-10 rounded-xl border editor-border bg-white/5 text-zinc-200 hover:bg-white/10 agent-action" data-action="apply-broll-pack">补充 B-roll 和转场</button>
+          </div>
+        `;
+      }
+
+      inspectorPanel.innerHTML = `
+        <div class="px-4 py-4 border-b editor-border bg-zinc-950/90">
+          <div class="text-lg font-semibold">属性 / 建议</div>
+          <div class="mt-1 text-sm text-zinc-500">根据所选片段和 Agent 上下文动态切换</div>
+          <div class="mt-4 grid grid-cols-4 gap-2">
+            ${tabs.map(tab => `
+              <button class="inspector-tab h-9 rounded-xl text-sm transition ${state.activeInspectorTab === tab.key ? 'bg-cyan-400 text-zinc-950 font-medium' : 'border editor-border bg-white/5 text-zinc-200 hover:bg-white/10'}" data-tab="${tab.key}">${tab.label}</button>
+            `).join('')}
+          </div>
+        </div>
+        <div class="flex-1 min-h-0 overflow-auto thin-scrollbar px-4 py-4 space-y-4">
+          ${body}
+          <div class="rounded-2xl border editor-border bg-zinc-900/70 p-4">
+            <div class="text-xs uppercase tracking-[0.16em] text-zinc-500">样式策略</div>
+            <div class="mt-2 text-sm text-zinc-300 leading-6">延续剪映/CapCut 类产品的深色画布和高对比操作区，把强信息层集中在左侧资源、中央预览、底部时间线和右侧属性中，减少视线往返。</div>
+          </div>
+        </div>
+      `;
+    }
+
+    function renderQuickPrompts() {
+      quickPromptsWrap.innerHTML = quickPrompts.map(prompt => `
+        <button class="quick-prompt rounded-full border editor-border bg-white/5 px-3 py-1.5 text-xs text-zinc-300 hover:bg-white/10" data-prompt="${prompt}">${prompt}</button>
+      `).join('');
+    }
+
+    function renderChat() {
+      chatList.innerHTML = state.chat.map((msg, index) => {
+        const isUser = msg.role === 'user';
+        return `
+          <div class="flex ${isUser ? 'justify-end' : 'justify-start'}">
+            <div class="max-w-[92%] ${isUser ? 'bg-cyan-400 text-zinc-950' : 'bg-white/[0.04] border editor-border text-zinc-100'} rounded-3xl px-4 py-3 shadow-panel animate-fade-in">
+              ${msg.html ? msg.html : `<div class="text-sm leading-6">${msg.text}</div>`}
+            </div>
+          </div>
+        `;
+      }).join('');
+      chatList.scrollTop = chatList.scrollHeight;
+    }
+
+    function renderTimelineRuler() {
+      const ruler = document.getElementById('timelineRuler');
+      let marks = '';
+      for (let i = 0; i <= 18; i++) {
+        marks += `<div class="absolute top-1 text-[10px] text-zinc-500" style="left:${i * 60 + 6}px;">00:${String(i).padStart(2, '0')}</div>`;
+      }
+      ruler.innerHTML = marks;
+    }
+
+    function renderTimeline() {
+      const visible = clips.filter(clip => clip.timeline === state.activeTimeline);
+      clipLayer.innerHTML = visible.map(clip => {
+        const active = clip.id === state.selectedClipId;
+        return `
+          <button class="timeline-clip absolute rounded-2xl border border-white/10 bg-gradient-to-r ${clip.accent} text-left px-4 py-3 shadow-panel transition ${active ? 'selected-outline' : ''}" data-clip-id="${clip.id}" style="left:${clip.left}px; top:${trackOffsets[clip.track]}px; width:${clip.width}px; height:54px;">
+            <span class="clip-handle left"></span>
+            <span class="clip-handle right"></span>
+            <div class="text-xs uppercase tracking-[0.14em] text-white/70">${clip.track}</div>
+            <div class="mt-1 text-sm font-medium text-white truncate">${clip.label}</div>
+          </button>
+        `;
+      }).join('');
+      playhead.style.left = `${state.playheadX}px`;
+    }
+
+    function renderPreview() {
+      const clip = getSelectedClip();
+      const sizeMap = {
+        '16:9': { w: 760, h: 428 },
+        '9:16': { w: 330, h: 586 },
+        '1:1': { w: 430, h: 430 },
+        'auto': { w: 600, h: 520 }
+      };
+      const size = sizeMap[state.activeAspect];
+      previewSurface.style.width = `${size.w}px`;
+      previewSurface.style.height = `${size.h}px`;
+      selectedClipBadge.textContent = `${clip.track} · ${clip.label}`;
+      previewArtwork.className = 'absolute inset-0 opacity-95';
+      if (clip.type === 'video') {
+        previewArtwork.style.background = 'linear-gradient(135deg, rgba(34,211,238,.35), rgba(56,189,248,.10) 35%, rgba(15,23,42,.25) 70%), radial-gradient(circle at 25% 30%, rgba(255,255,255,.14), transparent 24%), radial-gradient(circle at 78% 24%, rgba(129,140,248,.24), transparent 22%), linear-gradient(180deg, rgba(255,255,255,.02), rgba(0,0,0,.25));';
+      } else if (clip.type === 'text') {
+        previewArtwork.style.background = 'linear-gradient(180deg, rgba(15,23,42,.2), rgba(15,23,42,.45)), radial-gradient(circle at 50% 18%, rgba(236,72,153,.26), transparent 30%), linear-gradient(135deg, rgba(39,39,42,.92), rgba(24,24,27,.96));';
+      } else {
+        previewArtwork.style.background = 'linear-gradient(135deg, rgba(251,146,60,.22), rgba(245,158,11,.08) 45%, rgba(24,24,27,.92));';
+      }
+      previewTimecode.textContent = state.activeTimeline === 'vertical15' ? '00:00:08.03' : '00:00:06.12';
+      document.querySelectorAll('.aspect-btn').forEach(btn => {
+        const active = btn.dataset.aspect === state.activeAspect;
+        btn.className = `aspect-btn h-8 px-3 rounded-lg text-sm border transition ${active ? 'border-transparent bg-white text-zinc-950 font-medium' : 'border editor-border bg-transparent text-zinc-400 hover:text-white'}`;
+      });
+    }
+
+    function showToast(text, tone = 'default') {
+      const palette = {
+        default: 'bg-zinc-900/95 border-white/10 text-zinc-100',
+        success: 'bg-emerald-500/12 border-emerald-400/20 text-emerald-200',
+        info: 'bg-cyan-400/12 border-cyan-400/20 text-cyan-100'
+      };
+      const el = document.createElement('div');
+      el.className = `animate-toast-in rounded-2xl border px-4 py-3 shadow-menu ${palette[tone] || palette.default}`;
+      el.textContent = text;
+      toastRack.appendChild(el);
+      setTimeout(() => {
+        el.remove();
+      }, 2800);
+    }
+
+    function closeFloating() {
+      overlayLayer.innerHTML = '';
+      overlayLayer.className = 'fixed inset-0 pointer-events-none z-40';
+      state.dropdown = null;
+      state.contextMenu = null;
+    }
+
+    function showDropdown(menuKey, anchorEl) {
+      closeFloating();
+      const items = topMenus[menuKey];
+      const rect = anchorEl.getBoundingClientRect();
+      const menu = document.createElement('div');
+      menu.className = 'absolute min-w-[320px] rounded-3xl border editor-border bg-zinc-950/95 backdrop-blur-xl shadow-menu p-2 animate-fade-in pointer-events-auto';
+      menu.style.left = `${Math.min(rect.left, window.innerWidth - 344)}px`;
+      menu.style.top = `${rect.bottom + 8}px`;
+      menu.innerHTML = items.map(item => `
+        <button class="menu-item w-full rounded-2xl px-4 py-3 text-left hover:bg-white/[0.04] transition flex items-start justify-between gap-4">
+          <div>
+            <div class="text-sm font-medium text-zinc-100">${item.label}</div>
+            <div class="mt-1 text-xs text-zinc-500 leading-5">${item.desc}</div>
+          </div>
+          <div class="menu-item-badge rounded-lg border border-white/10 bg-white/5 px-2 py-1 text-[11px] text-zinc-500 transition">${item.badge}</div>
+        </button>
+      `).join('');
+      overlayLayer.appendChild(menu);
+      overlayLayer.className = 'fixed inset-0 pointer-events-auto z-40';
+      state.dropdown = menuKey;
+    }
+
+    function showContextMenu(x, y, clipId) {
+      closeFloating();
+      const menu = document.createElement('div');
+      menu.className = 'absolute min-w-[220px] rounded-2xl border editor-border bg-zinc-950/95 backdrop-blur-xl shadow-menu p-2 animate-fade-in pointer-events-auto';
+      menu.style.left = `${Math.min(x, window.innerWidth - 244)}px`;
+      menu.style.top = `${Math.min(y, window.innerHeight - 220)}px`;
+      menu.innerHTML = [
+        { label: '复制片段', action: 'duplicate' },
+        { label: '按播放头分割', action: 'split' },
+        { label: '自动生成字幕', action: 'caption' },
+        { label: '转为 B-roll 包装', action: 'broll' },
+        { label: '删除', action: 'delete' }
+      ].map(item => `
+        <button class="context-action w-full rounded-xl px-3 py-2.5 text-left text-sm text-zinc-200 hover:bg-white/[0.05]" data-action="${item.action}" data-id="${clipId}">${item.label}</button>
+      `).join('');
+      overlayLayer.appendChild(menu);
+      overlayLayer.className = 'fixed inset-0 pointer-events-auto z-40';
+      state.contextMenu = clipId;
+    }
+
+    function openExportModal() {
+      modalLayer.className = 'fixed inset-0 z-50';
+      modalLayer.innerHTML = `
+        <div class="absolute inset-0 bg-black/55 backdrop-blur-sm"></div>
+        <div class="absolute inset-0 flex items-center justify-center p-6">
+          <div class="w-full max-w-[720px] rounded-[28px] border editor-border bg-zinc-950/95 shadow-menu animate-fade-in overflow-hidden">
+            <div class="px-6 py-5 border-b editor-border flex items-center justify-between">
+              <div>
+                <div class="text-xl font-semibold">导出与发布</div>
+                <div class="mt-1 text-sm text-zinc-500">把 Agent 的包装结果和工程参数一起确认</div>
+              </div>
+              <button id="closeModal" class="h-10 w-10 rounded-xl border editor-border bg-white/5 text-zinc-200 hover:bg-white/10">×</button>
+            </div>
+            <div class="grid md:grid-cols-[1.2fr_.8fr] gap-0">
+              <div class="p-6 space-y-5 border-b md:border-b-0 md:border-r editor-border">
+                <div>
+                  <div class="text-sm text-zinc-400 mb-2">文件名</div>
+                  <div class="h-11 rounded-xl border editor-border bg-white/[0.03] px-4 flex items-center text-zinc-100">品牌口播样片_V3_竖版_cut02.mp4</div>
+                </div>
+                <div class="grid grid-cols-2 gap-4">
+                  <div>
+                    <div class="text-sm text-zinc-400 mb-2">比例</div>
+                    <div class="h-11 rounded-xl border editor-border bg-white/[0.03] px-4 flex items-center text-zinc-100">9:16</div>
+                  </div>
+                  <div>
+                    <div class="text-sm text-zinc-400 mb-2">分辨率</div>
+                    <div class="h-11 rounded-xl border editor-border bg-white/[0.03] px-4 flex items-center text-zinc-100">1080 × 1920</div>
+                  </div>
+                  <div>
+                    <div class="text-sm text-zinc-400 mb-2">帧率</div>
+                    <div class="h-11 rounded-xl border editor-border bg-white/[0.03] px-4 flex items-center text-zinc-100">30 fps</div>
+                  </div>
+                  <div>
+                    <div class="text-sm text-zinc-400 mb-2">编码</div>
+                    <div class="h-11 rounded-xl border editor-border bg-white/[0.03] px-4 flex items-center text-zinc-100">H.264</div>
+                  </div>
+                </div>
+                <div class="space-y-3">
+                  <label class="flex items-center justify-between rounded-2xl border editor-border bg-white/[0.03] px-4 py-3 text-sm"><span>导出烧录字幕</span><input type="checkbox" checked></label>
+                  <label class="flex items-center justify-between rounded-2xl border editor-border bg-white/[0.03] px-4 py-3 text-sm"><span>同时发布到草稿箱</span><input type="checkbox" checked></label>
+                  <label class="flex items-center justify-between rounded-2xl border editor-border bg-white/[0.03] px-4 py-3 text-sm"><span>保留 Agent 可回溯参数</span><input type="checkbox" checked></label>
+                </div>
+              </div>
+              <div class="p-6 space-y-4 bg-white/[0.02]">
+                <div class="rounded-2xl border border-cyan-400/20 bg-cyan-400/8 p-4">
+                  <div class="text-xs uppercase tracking-[0.16em] text-cyan-200">Agent 检查通过</div>
+                  <div class="mt-2 text-sm text-zinc-200 leading-6">已检测到竖版安全区、字幕未超出边界、封面标题留白充足。</div>
+                </div>
+                <div class="rounded-2xl border editor-border bg-white/[0.03] p-4">
+                  <div class="text-sm font-medium">发布建议</div>
+                  <div class="mt-2 text-sm text-zinc-300 leading-6">标题可突出“像协作而不是重复劳动”，标签建议保留 #AI剪辑 #剪映风格 #内容创作效率。</div>
+                </div>
+                <button id="confirmExport" class="w-full h-11 rounded-xl bg-cyan-400 text-zinc-950 font-medium hover:bg-cyan-300">确认导出</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      `;
+    }
+
+    function openCommandPalette() {
+      modalLayer.className = 'fixed inset-0 z-50';
+      modalLayer.innerHTML = `
+        <div class="absolute inset-0 bg-black/50 backdrop-blur-sm"></div>
+        <div class="absolute inset-0 flex items-start justify-center pt-[10vh] px-4">
+          <div class="w-full max-w-[700px] rounded-[28px] border editor-border bg-zinc-950/95 shadow-menu animate-fade-in overflow-hidden">
+            <div class="p-4 border-b editor-border">
+              <div class="h-12 rounded-2xl border editor-border bg-white/[0.03] px-4 flex items-center gap-3 text-zinc-400">
+                <svg viewBox="0 0 24 24" class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="11" cy="11" r="6"></circle><path d="M20 20l-3.5-3.5"></path></svg>
+                输入动作、素材、模板或 Agent 命令
+              </div>
+            </div>
+            <div class="p-3 space-y-1">
+              ${[
+                ['切到 9:16 并重排字幕', 'Agent 动作'],
+                ['为当前片段生成双语字幕', '字幕'],
+                ['从主时间线拆成 3 条短视频', '工作流'],
+                ['应用品牌封面组件', '品牌资产'],
+                ['打开 Transcript 文本视图', '视图']
+              ].map(item => `
+                <button class="w-full rounded-2xl px-4 py-3 text-left hover:bg-white/[0.04] transition flex items-center justify-between">
+                  <div>
+                    <div class="text-sm font-medium text-zinc-100">${item[0]}</div>
+                    <div class="mt-1 text-xs text-zinc-500">${item[1]}</div>
+                  </div>
+                  <div class="text-zinc-500">↵</div>
+                </button>
+              `).join('')}
+            </div>
+          </div>
+        </div>
+      `;
+    }
+
+    function closeModal() {
+      modalLayer.className = 'fixed inset-0 z-50 hidden';
+      modalLayer.innerHTML = '';
+    }
+
+    function applyAgentAction(action) {
+      if (action === 'apply-vertical' || action === 'preview-vertical') {
+        state.activeTimeline = 'vertical15';
+        state.activeAspect = '9:16';
+        state.selectedClipId = 'clip-v1';
+        renderAll();
+        showToast(action === 'apply-vertical' ? '已将方案应用到「15 秒竖版」时间线。' : '已切换为竖版预览方案。', 'success');
+      }
+      if (action === 'apply-fast-opening') {
+        showToast('已为当前片段应用快节奏开场建议。', 'info');
+      }
+      if (action === 'apply-caption-style') {
+        state.activeModule = 'captions';
+        renderAll();
+        showToast('已切换到字幕模块并高亮推荐样式。', 'info');
+      }
+      if (action === 'apply-broll-pack') {
+        showToast('Agent 已推荐 B-roll 与转场组合，可继续在右侧确认。', 'info');
+      }
+    }
+
+    function appendChat(role, payload) {
+      state.chat.push({ role, ...payload });
+      renderChat();
+    }
+
+    function generateAgentReply(text) {
+      const normalized = text.trim();
+      const lower = normalized.toLowerCase();
+
+      if (!normalized) return;
+
+      appendChat('user', { text: normalized });
+
+      setTimeout(() => {
+        if (/字幕|caption|双语/.test(normalized)) {
+          appendChat('assistant', {
+            html: `
+              <div class="space-y-3">
+                <div class="text-sm text-zinc-300 leading-6">我建议使用双行大字字幕，并在重点词上加亮青色强调。若发布到海外渠道，可同时生成中英双语版本。</div>
+                <div class="flex flex-wrap gap-2">
+                  <button class="agent-action h-8 px-3 rounded-xl bg-cyan-400 text-zinc-950 text-sm font-medium" data-action="apply-caption-style">应用字幕样式</button>
+                  <button class="agent-action h-8 px-3 rounded-xl border border-white/10 bg-white/5 text-zinc-200 text-sm" data-action="preview-vertical">先预览</button>
+                </div>
+              </div>
+            `
+          });
+          showToast('Agent 已生成字幕策略。', 'success');
+          return;
+        }
+
+        if (/口癖|停顿|静音|filler/.test(normalized)) {
+          appendChat('assistant', {
+            html: `
+              <div class="space-y-2">
+                <div class="text-sm text-zinc-300 leading-6">可以。我会优先清理“嗯、就是、然后”等口癖，并压缩无效停顿，同时保留自然呼吸感，避免过度机械。</div>
+                <div class="rounded-2xl border border-emerald-400/20 bg-emerald-400/8 px-3 py-2 text-sm text-emerald-100">预计可减少约 12% 的时长，并提升口播节奏。</div>
+              </div>
+            `
+          });
+          showToast('已生成去口癖与静音清理建议。', 'success');
+          return;
+        }
+
+        if (/15|竖版|9:16|shorts|reel/.test(lower)) {
+          appendChat('assistant', {
+            html: `
+              <div class="space-y-3">
+                <div class="text-sm text-zinc-300 leading-6">适合。当前工程会更适合做成 15 秒竖版。建议把钩子前置、字幕放大、画面主体保持中轴，并把 CTA 固定在最后 2 秒。</div>
+                <div class="flex flex-wrap gap-2">
+                  <button class="agent-action h-8 px-3 rounded-xl bg-cyan-400 text-zinc-950 text-sm font-medium" data-action="apply-vertical">应用到工程</button>
+                  <button class="agent-action h-8 px-3 rounded-xl border border-white/10 bg-white/5 text-zinc-200 text-sm" data-action="preview-vertical">查看 15 秒预览</button>
+                </div>
+              </div>
+            `
+          });
+          return;
+        }
+
+        if (/封面|标题|cover/.test(normalized)) {
+          appendChat('assistant', {
+            html: `
+              <div class="space-y-2">
+                <div class="text-sm text-zinc-300 leading-6">封面建议只保留一条强句和一个亮色标签，避免像传统 PPT 一样堆太多信息。当前品牌包里已有可复用的封面组件。</div>
+              </div>
+            `
+          });
+          state.activeModule = 'brand';
+          renderAll();
+          showToast('已切换到品牌资产模块。', 'info');
+          return;
+        }
+
+        if (/拆|短视频|clips/.test(normalized)) {
+          appendChat('assistant', {
+            html: `
+              <div class="space-y-2">
+                <div class="text-sm text-zinc-300 leading-6">我会按“问题钩子 / 方案亮点 / 操作演示”拆出三条短视频，并分别生成标题和结尾 CTA。你可以在下方时间线标签里切换查看。</div>
+              </div>
+            `
+          });
+          state.activeTimeline = 'broll';
+          renderAll();
+          showToast('已切换到拆条草案时间线。', 'success');
+          return;
+        }
+
+        appendChat('assistant', {
+          html: `
+            <div class="text-sm text-zinc-300 leading-6">已收到。我建议先保留当前剪映/CapCut 风格的深色专业舞台，再通过 Agent 进行“先提方案、后执行”的交互。你也可以让我直接处理字幕、节奏、拆条、封面或发布。</div>
+          `
+        });
+      }, 520);
+    }
+
+    function addClipFromLibrary(name, clipType = 'video') {
+      const id = `new-${Date.now()}`;
+      const track = clipType === 'audio' ? 'A1' : clipType === 'text' ? 'V2' : 'V1';
+      const accent = clipType === 'audio' ? 'from-orange-500/80 to-amber-500/80' : clipType === 'text' ? 'from-pink-500/80 to-fuchsia-500/80' : 'from-cyan-500/80 to-sky-500/80';
+      clips.push({
+        id,
+        timeline: state.activeTimeline,
+        track,
+        label: name,
+        left: 680 + Math.floor(Math.random() * 120),
+        width: 150 + Math.floor(Math.random() * 80),
+        type: clipType === 'overlay' ? 'text' : clipType,
+        accent,
+        meta: '新加入素材'
+      });
+      state.selectedClipId = id;
+      renderAll();
+      showToast(`已将「${name}」加入 ${state.activeTimeline === 'main' ? '主时间线' : '当前时间线'}。`, 'success');
+    }
+
+    function handleContextAction(action, clipId) {
+      const clip = clips.find(c => c.id === clipId);
+      if (!clip) return;
+      if (action === 'duplicate') {
+        clips.push({ ...clip, id: `dup-${Date.now()}`, left: clip.left + 28, label: `${clip.label} 副本` });
+        showToast('已复制片段。', 'success');
+      }
+      if (action === 'split') {
+        clip.width = Math.max(84, Math.floor(clip.width * 0.55));
+        clips.push({ ...clip, id: `split-${Date.now()}`, left: clip.left + clip.width + 8, label: `${clip.label} (后段)` });
+        showToast('已按播放头分割片段。', 'success');
+      }
+      if (action === 'caption') {
+        clips.push({ id: `cap-${Date.now()}`, timeline: state.activeTimeline, track: 'V2', label: '自动字幕', left: clip.left + 10, width: Math.max(120, clip.width - 18), type: 'text', accent: 'from-fuchsia-500/80 to-pink-500/80', meta: '字幕层' });
+        showToast('已生成字幕层。', 'success');
+      }
+      if (action === 'broll') {
+        showToast('Agent 已为该片段匹配 B-roll 包装。', 'info');
+      }
+      if (action === 'delete') {
+        const idx = clips.findIndex(c => c.id === clipId);
+        if (idx > -1) clips.splice(idx, 1);
+        state.selectedClipId = clips.find(c => c.timeline === state.activeTimeline)?.id || state.selectedClipId;
+        showToast('已删除片段。', 'success');
+      }
+      closeFloating();
+      renderAll();
+    }
+
+    function renderAll() {
+      renderLeftRail();
+      renderLibrary();
+      renderInspector();
+      renderQuickPrompts();
+      renderChat();
+      renderTimelineRuler();
+      renderTimeline();
+      renderPreview();
+
+      document.querySelectorAll('.timeline-tab').forEach(btn => {
+        const active = btn.dataset.timeline === state.activeTimeline;
+        btn.className = `timeline-tab h-8 px-3 rounded-lg text-sm border transition ${active ? 'border-transparent bg-cyan-400 text-zinc-950 font-medium' : 'border editor-border bg-transparent text-zinc-400 hover:text-white'}`;
+      });
+    }
+
+    document.addEventListener('click', event => {
+      const menuBtn = event.target.closest('.top-menu-btn');
+      if (menuBtn) {
+        const same = state.dropdown === menuBtn.dataset.menu;
+        if (same) {
+          closeFloating();
+        } else {
+          showDropdown(menuBtn.dataset.menu, menuBtn);
+        }
+        return;
+      }
+
+      const moduleBtn = event.target.closest('.module-btn');
+      if (moduleBtn) {
+        state.activeModule = moduleBtn.dataset.module;
+        renderAll();
+      }
+
+      const aspectBtn = event.target.closest('.aspect-btn');
+      if (aspectBtn) {
+        state.activeAspect = aspectBtn.dataset.aspect;
+        renderPreview();
+      }
+
+      const tabBtn = event.target.closest('.inspector-tab');
+      if (tabBtn) {
+        state.activeInspectorTab = tabBtn.dataset.tab;
+        renderInspector();
+      }
+
+      const timelineTab = event.target.closest('.timeline-tab');
+      if (timelineTab) {
+        state.activeTimeline = timelineTab.dataset.timeline;
+        state.selectedClipId = clips.find(c => c.timeline === state.activeTimeline)?.id || state.selectedClipId;
+        renderAll();
+      }
+
+      const timelineClip = event.target.closest('.timeline-clip');
+      if (timelineClip) {
+        state.selectedClipId = timelineClip.dataset.clipId;
+        renderInspector();
+        renderTimeline();
+        renderPreview();
+      }
+
+      const addClipBtn = event.target.closest('[data-add-clip]');
+      if (addClipBtn) {
+        addClipFromLibrary(addClipBtn.dataset.addClip, addClipBtn.dataset.clipType);
+      }
+
+      const previewAssetBtn = event.target.closest('[data-preview-asset]');
+      if (previewAssetBtn) {
+        showToast(`正在预览「${previewAssetBtn.dataset.previewAsset}」。`, 'info');
+      }
+
+      const listActionBtn = event.target.closest('[data-list-action]');
+      if (listActionBtn) {
+        const action = listActionBtn.dataset.listAction;
+        if (action === 'caption-auto' || action === 'caption-bilingual' || action === 'caption-speaker') {
+          state.activeInspectorTab = 'agent';
+          renderInspector();
+          showToast('已把字幕动作同步到右侧建议面板。', 'info');
+        } else if (action) {
+          showToast(`已准备执行：${listActionBtn.innerText.trim()}`, 'info');
+        }
+      }
+
+      const agentAction = event.target.closest('.agent-action');
+      if (agentAction) {
+        applyAgentAction(agentAction.dataset.action);
+      }
+
+      const quickPrompt = event.target.closest('.quick-prompt');
+      if (quickPrompt) {
+        document.getElementById('chatInput').value = quickPrompt.dataset.prompt;
+        generateAgentReply(quickPrompt.dataset.prompt);
+        document.getElementById('chatInput').value = '';
+      }
+
+      const sendChat = event.target.closest('#sendChat');
+      if (sendChat) {
+        const input = document.getElementById('chatInput');
+        const text = input.value.trim();
+        if (text) {
+          generateAgentReply(text);
+          input.value = '';
+        }
+      }
+
+      const exportBtn = event.target.closest('#exportButton');
+      if (exportBtn) {
+        openExportModal();
+      }
+
+      const commandBtn = event.target.closest('#commandButton');
+      if (commandBtn) {
+        openCommandPalette();
+      }
+
+      const collapseAgent = event.target.closest('#collapseAgent');
+      if (collapseAgent) {
+        document.getElementById('agentPanel').classList.add('hidden');
+        document.getElementById('agentCollapsed').classList.remove('hidden');
+        document.getElementById('agentCollapsed').classList.add('flex');
+        showToast('Agent 侧栏已收起。', 'info');
+      }
+
+      const expandAgent = event.target.closest('#expandAgent');
+      if (expandAgent) {
+        document.getElementById('agentPanel').classList.remove('hidden');
+        document.getElementById('agentCollapsed').classList.add('hidden');
+        document.getElementById('agentCollapsed').classList.remove('flex');
+      }
+
+      const closeModalBtn = event.target.closest('#closeModal');
+      if (closeModalBtn) {
+        closeModal();
+      }
+
+      const confirmExport = event.target.closest('#confirmExport');
+      if (confirmExport) {
+        closeModal();
+        showToast('已开始导出，并同步生成发布草稿。', 'success');
+      }
+
+      const contextAction = event.target.closest('.context-action');
+      if (contextAction) {
+        handleContextAction(contextAction.dataset.action, contextAction.dataset.id);
+      }
+
+      if (event.target === overlayLayer) {
+        closeFloating();
+      }
+
+      if (event.target === modalLayer || event.target.matches('#modalLayer > div')) {
+        closeModal();
+      }
+    });
+
+    clipLayer.addEventListener('contextmenu', event => {
+      const clipEl = event.target.closest('.timeline-clip');
+      if (!clipEl) return;
+      event.preventDefault();
+      showContextMenu(event.clientX, event.clientY, clipEl.dataset.clipId);
+    });
+
+    timelineCanvas.addEventListener('click', event => {
+      const clipEl = event.target.closest('.timeline-clip');
+      if (clipEl) return;
+      const rect = timelineCanvas.getBoundingClientRect();
+      state.playheadX = Math.max(12, Math.min(event.clientX - rect.left, rect.width - 12));
+      renderTimeline();
+      previewTimecode.textContent = `00:00:${String(Math.floor(state.playheadX / 60)).padStart(2, '0')}.12`;
+    });
+
+    document.getElementById('chatInput').addEventListener('keydown', event => {
+      if ((event.metaKey || event.ctrlKey) && event.key === 'Enter') {
+        const text = event.currentTarget.value.trim();
+        if (text) {
+          generateAgentReply(text);
+          event.currentTarget.value = '';
+        }
+      }
+    });
+
+    document.addEventListener('keydown', event => {
+      if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 'k') {
+        event.preventDefault();
+        openCommandPalette();
+      }
+      if (event.key === 'Escape') {
+        closeFloating();
+        closeModal();
+      }
+    });
+
+    window.addEventListener('resize', () => {
+      closeFloating();
+    });
+
+    renderAll();
+  </script>
+</body>
+</html>
