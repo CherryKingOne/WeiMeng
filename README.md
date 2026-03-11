@@ -44,18 +44,38 @@ WeiMeng is an intelligent multi-agent collaboration system powered by Large Lang
 
 ### Docker Deployment
 
-The easiest way to start the WeiMeng server is through Docker Compose. Before running WeiMeng with the following commands, make sure that Docker and Docker Compose are installed on your machine:
+WeiMeng provides two Docker deployment modes. Use matching `.env` and compose files, and do not mix them.
+
+**Mode A: MinIO (default)**
 
 ```bash
 # Clone the repository
 git clone https://github.com/CherryKingOne/WeiMeng.git
 cd WeiMeng
 cd docker
+
+# MinIO mode
 cp .env.example .env
-docker compose up -d
+docker compose -f docker-compose.yaml up -d
 
 # View logs
-docker compose logs -f
+docker compose -f docker-compose.yaml logs -f
+```
+
+**Mode B: RustFS (non-MinIO)**
+
+```bash
+# Clone the repository
+git clone https://github.com/CherryKingOne/WeiMeng.git
+cd WeiMeng
+cd docker
+
+# RustFS mode
+cp .env.example.rustfs .env
+docker compose -f docker-compose-rustfs.yaml up -d
+
+# View logs
+docker compose -f docker-compose-rustfs.yaml logs -f
 ```
 
 After services start:
@@ -191,7 +211,9 @@ WeiMeng/
 │
 ├── docker/                     # Docker configuration
 │   ├── docker-compose.yaml     # Container orchestration
-│   └── .env.example            # Environment template
+│   ├── docker-compose-rustfs.yaml  # RustFS deployment orchestration
+│   ├── .env.example            # MinIO environment template
+│   └── .env.example.rustfs     # RustFS environment template
 │
 ├── docs/                       # Documentation
 │   └── image/                  # Image resources

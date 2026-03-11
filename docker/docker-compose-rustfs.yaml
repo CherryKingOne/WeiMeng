@@ -9,14 +9,14 @@ services:
       - POSTGRESQL_PORT=5432
       - REDIS_HOST=redis
       - REDIS_PORT=6379
-      - MINIO_ENDPOINT=minio:9000
+      - MINIO_ENDPOINT=rustfs:9000
       - ELASTICSEARCH_URL=http://elasticsearch:9200/
     env_file:
       - .env
     depends_on:
       - postgres
       - redis
-      - minio
+      - rustfs
       - elasticsearch
     networks:
       - weimeng-network
@@ -64,18 +64,20 @@ services:
     networks:
       - weimeng-network
 
-  minio:
-    image: ${MINIO_IMAGE:-vmengs/minio:latest}
+  rustfs:
+    image: ${RUSTFS_IMAGE:-vmengs/rustfs:latest}
     restart: unless-stopped
-    command: server /data --console-address ":7056"
+    command: --address :9000 --console-enable --server-domains ${RUSTFS_SERVER_DOMAINS:-0.0.0.0} --access-key ${RUSTFS_ACCESS_KEY:-weimengrustfs} --secret-key ${RUSTFS_SECRET_KEY:-weimengrustfs} /data
     environment:
-      - MINIO_ROOT_USER=${MINIO_ACCESS_KEY:-weimengminio}
-      - MINIO_ROOT_PASSWORD=${MINIO_SECRET_KEY:-weimengminio}
+      - RUSTFS_ACCESS_KEY=${RUSTFS_ACCESS_KEY:-weimengrustfs}
+      - RUSTFS_SECRET_KEY=${RUSTFS_SECRET_KEY:-weimengrustfs}
+      - RUSTFS_CONSOLE_ENABLE=${RUSTFS_CONSOLE_ENABLE:-true}
+      - RUSTFS_SERVER_DOMAINS=${RUSTFS_SERVER_DOMAINS:-0.0.0.0}
     ports:
       - "127.0.0.1:${MINIO_EXPOSE_PORT:-5726}:9000"
-      - "127.0.0.1:${MINIO_CONSOLE_EXPOSE_PORT:-7056}:7056"
+      - "127.0.0.1:${MINIO_CONSOLE_EXPOSE_PORT:-7056}:9001"
     volumes:
-      - ./minio/data:/data
+      - ./rustfs/data:/data
     networks:
       - weimeng-network
 
