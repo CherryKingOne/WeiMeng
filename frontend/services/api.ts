@@ -2,7 +2,7 @@ import axios, { AxiosError, InternalAxiosRequestConfig } from 'axios';
 import { getLocaleFromPath, withLocale } from '@/constants';
 import { clearAuthToken, getStorageItem, syncAuthTokenCookie } from '@/utils';
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://0.0.0.0:5607/api/v1';
+const API_URL = process.env.NEXT_PUBLIC_API_URL || '/api/v1';
 
 export const api = axios.create({
   baseURL: API_URL,

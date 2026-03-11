@@ -77,7 +77,7 @@ export default function LoginPage() {
     }
 
     try {
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://0.0.0.0:5607/api/v1";
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || "/api/v1";
       const response = await fetch(`${apiUrl}/auth/login`, {
         method: "POST",
         headers: {

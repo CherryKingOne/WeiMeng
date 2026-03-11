@@ -125,7 +125,7 @@ export default function ForgotPasswordPage() {
 
     setIsLoading(true);
     try {
-      const response = await fetch("http://localhost:5607/api/v1/auth/reset-password", {
+      const response = await fetch("/api/v1/auth/reset-password", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -181,7 +181,7 @@ export default function ForgotPasswordPage() {
     e.preventDefault();
     setIsLoading(true);
     try {
-      const response = await fetch("http://localhost:5607/api/v1/captcha/email/forgot-password", {
+      const response = await fetch("/api/v1/captcha/email/forgot-password", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -240,7 +240,7 @@ export default function ForgotPasswordPage() {
 
     setIsLoading(true);
     try {
-      const response = await fetch("http://localhost:5607/api/v1/captcha/email/forgot-password", {
+      const response = await fetch("/api/v1/captcha/email/forgot-password", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

@@ -84,7 +84,7 @@ export default function SignupPage() {
 
     setIsSending(true);
     try {
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://0.0.0.0:5607/api/v1";
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || "/api/v1";
       const res = await fetch(`${apiUrl}/captcha/email/send`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -159,7 +159,7 @@ export default function SignupPage() {
     setLoading(true);
 
     try {
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://0.0.0.0:5607/api/v1";
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || "/api/v1";
       const res = await fetch(`${apiUrl}/auth/register`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },

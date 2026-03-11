@@ -7,6 +7,14 @@ function normalizeApiBaseUrl(value: string): string {
   return value.replace('://0.0.0.0', '://127.0.0.1').replace(/\/$/, '');
 }
 
+function resolveServerApiUrl(value: string): string {
+  if (!value || value.startsWith('/')) {
+    return DEFAULT_SERVER_API_URL;
+  }
+
+  return value;
+}
+
 function buildHostDockerInternalFallback(urlValue: string): string | null {
   try {
     const parsed = new URL(urlValue);
@@ -22,7 +30,9 @@ function buildHostDockerInternalFallback(urlValue: string): string | null {
 }
 
 function getServerApiBaseUrl(): { primary: string; fallback: string | null } {
-  const configuredUrl = process.env.SERVER_API_URL || process.env.NEXT_PUBLIC_API_URL || DEFAULT_SERVER_API_URL;
+  const configuredUrl = resolveServerApiUrl(
+    process.env.SERVER_API_URL || process.env.NEXT_PUBLIC_API_URL || DEFAULT_SERVER_API_URL,
+  );
   const primary = normalizeApiBaseUrl(configuredUrl);
 
   // If SERVER_API_URL is explicitly set, trust it and skip implicit fallback routing.
