@@ -8,7 +8,8 @@ function normalizeApiBaseUrl(value: string): string {
 }
 
 function getServerApiBaseUrl(): string {
-  return normalizeApiBaseUrl(process.env.NEXT_PUBLIC_API_URL || DEFAULT_SERVER_API_URL);
+  const configuredUrl = process.env.SERVER_API_URL || process.env.NEXT_PUBLIC_API_URL || DEFAULT_SERVER_API_URL;
+  return normalizeApiBaseUrl(configuredUrl);
 }
 
 export async function getServerAccessToken(): Promise<string | null> {
@@ -31,21 +32,38 @@ export async function fetchServerApi(
     headers.set('Content-Type', 'application/json');
   }
 
-  return fetch(`${getServerApiBaseUrl()}${path}`, {
-    ...init,
-    headers,
-    cache: 'no-store',
-  });
+  try {
+    return await fetch(`${getServerApiBaseUrl()}${path}`, {
+      ...init,
+      headers,
+      cache: 'no-store',
+    });
+  } catch {
+    // Keep SSR resilient when backend is unavailable (e.g. frontend-only container startup).
+    return new Response(
+      JSON.stringify({ detail: 'Upstream API unavailable' }),
+      {
+        status: 503,
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      },
+    );
+  }
 }
 
 export async function fetchServerJson<T>(
   path: string,
   init: RequestInit = {},
 ): Promise<T | null> {
-  const response = await fetchServerApi(path, init);
-  if (!response.ok) {
+  try {
+    const response = await fetchServerApi(path, init);
+    if (!response.ok) {
+      return null;
+    }
+
+    return response.json() as Promise<T>;
+  } catch {
     return null;
   }
-
-  return response.json() as Promise<T>;
 }
