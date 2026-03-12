@@ -1,0 +1,121 @@
+
+
+
+为了在现有的剧本库（`scripts`）模块中引入基于 LangChain + LangGraph 的多 Agent 工作流（目前首发角色为“剧本拆解 Agent”），建议在现有基于领域驱动设计（DDD）/ 整洁架构的目录结构上，新增一个专门的 `agents` 聚合目录，并在 `api` 和 `application` 层进行打通。
+
+以下是规划后的目录结构及详细说明（**重点标明了 `[新增]` 和 `[修改]`**）：
+
+### 一、 目录结构规划
+
+```text
+src/modules/scripts/
+|-- agents/                                  # [新增] Agent 多智能体工作流引擎目录
+|   |-- prompts/                             # [新增] 提示词目录 (按要求存放 txt 格式文件)
+|   |   `-- script_breakdown_prompt.txt      # [新增] 剧本拆解提示词 (当前唯一的Agent提示词)
+|   |-- nodes/                               # [新增] LangGraph 节点(Agent角色)目录
+|   |   |-- __init__.py
+|   |   `-- script_breakdown_node.py         # [新增] 剧本拆解Agent节点逻辑 (加载txt并调用LLM)
+|   |-- state.py                             # [新增] LangGraph 状态(State)定义 (定义 TypedDict/BaseModel)
+|   |-- tools.py                             # [新增] (可选) Agent所需工具，如检索ES切片、存入数据库等
+|   `-- graph.py                             # [新增] LangGraph 状态图编排 (定义图节点、边和路由条件)
+|-- api/
+|   |-- dependencies.py                      # [修改] 注入 AgentService 以及所需依赖
+|   `-- router.py                            #[修改] 新增 Agent 触发/流式输出接口 (如 POST /libraries/{id}/breakdown)
+|-- application/
+|   |-- dto/
+|   |   |-- agent_dto.py                     # [新增] Agent 请求参数、响应状态的 DTO
+|   |   |-- script_chunk_dto.py            
+|   |   `-- script_dto.py                  
+|   `-- services/
+|       |-- script_agent_service.py          # [新增] Agent 应用服务 (封装图的调用与会话管理)
+|       `-- script_app_service.py          
+|-- domain/
+|   |-- entities/
+|   |   `-- ...
+|   |-- exceptions.py                        # [修改] 新增 Agent 相关的异常类 (如 AgentTimeoutError)
+|   `-- repositories.py                      
+`-- infrastructure/
+    |-- mappers/
+    |-- models/
+    |-- repositories/
+    `-- services/
+        |-- llm_provider.py                  # [新增] LangChain LLM 实例初始化工厂 (若全局已有可忽略)
+        |-- elasticsearch_chunk_store.py   
+        |-- file_text_extractor.py         
+        `-- script_chunker.py              
+```
+
+---
+
+### 二、 核心新增文件职责说明
+
+#### 1. Agent 核心层 (`agents/`)
+这是 LangGraph 运行的核心，专门用于处理多智能体的状态流转和逻辑执行。
+
+*   **`agents/state.py` (图状态)**
+    定义 LangGraph 的上下文状态。多 Agent 架构下，所有 Agent 都需要通过这个 State 进行信息传递。
+    ```python
+    from typing import Annotated, TypedDict, List
+    from langgraph.graph.message import add_messages
+
+    class ScriptGraphState(TypedDict):
+        messages: Annotated[List[dict], add_messages] # 对话历史与调用消息
+        script_id: str                                # 当前处理的剧本ID
+        breakdown_result: dict                        # 剧本拆解结果暂存
+        # 未来可无限扩展多Agent的共享状态
+    ```
+
+*   **`agents/prompts/script_breakdown_prompt.txt` (提示词)**
+    纯文本文件，方便非研发人员（如 Prompt Engineer）直接调试和修改。
+    内容示例：
+    ```text
+    你是一个专业的剧本拆解专家。
+    请根据以下剧本文本，拆解出其中的：1.主要人物 2.核心冲突 3.场景列表。
+    剧本内容如下：
+    {script_content}
+    ...
+    ```
+
+*   **`agents/nodes/script_breakdown_node.py` (拆解 Agent 节点)**
+    LangGraph 中的一个 Node。负责：
+    1. 读取 `script_breakdown_prompt.txt`；
+    2. 从 `State` 中获取当前剧本内容（可以通过注入的工具从数据库或切片库里拿）；
+    3. 调用 LangChain 的 LLM 接口；
+    4. 将拆解结果写回 `State`。
+
+*   **`agents/graph.py` (工作流编排)**
+    组装 LangGraph，预留多 Agent 扩展能力。
+    ```python
+    from langgraph.graph import StateGraph, END
+    from .state import ScriptGraphState
+    from .nodes.script_breakdown_node import script_breakdown_agent
+
+    def build_script_graph():
+        workflow = StateGraph(ScriptGraphState)
+        
+        # 注册当前仅有的一个节点：剧本拆解Agent
+        workflow.add_node("breakdown_agent", script_breakdown_agent)
+        
+        # 设置入口和出口
+        workflow.set_entry_point("breakdown_agent")
+        workflow.add_edge("breakdown_agent", END)
+        
+        # 编译图
+        return workflow.compile()
+    ```
+
+#### 2. 应用与 API 层
+*   **`application/services/script_agent_service.py`**
+    作为防腐层，隔离 API 层和 LangGraph 的底层实现。
+    负责初始化 Graph，传入剧本 ID，并执行 `graph.invoke()` 或 `graph.astream()`（流式输出）。
+*   **`api/router.py`**
+    新增路由，例如：
+    *   `POST /api/v1/scripts/libraries/{library_id}/files/{script_id}/breakdown` (触发拆解Agent任务)
+
+---
+
+### 三、 为什么这样设计（LangGraph 多 Agent 考量）
+
+1.  **为多 Agent 铺路**：虽然目前只有 **“剧本拆解 Agent”**，但在影视/剧本行业，后续极易扩展出 **“人物画像 Agent”**、**“剧本评审 Agent”**、**“场景润色 Agent”** 等。只需在 `nodes/` 目录下新增节点文件，并在 `graph.py` 中通过 `add_node` 和 条件边（`add_conditional_edges`）将它们连接起来，即可实现复杂的多智能体协同（如：拆解完成后，自动流转到评审Agent）。
+2.  **提示词外置（`.txt`）**：将提示词从代码中剥离到 `prompts/` 目录，不仅符合您的要求，还解耦了业务逻辑和 LLM 调优，未来可以方便地对接动态提示词配置中心。
+3.  **状态统一管理**：利用 `state.py` 定义数据结构，保证无论以后增加多少个 Agent 角色，剧本的元数据、大模型的上下文（Messages）都能一致传递，不会发生数据割裂。
