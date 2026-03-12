@@ -35,3 +35,21 @@ class ProviderModelNotSupportedException(DomainException):
             code=422,
             detail=f"Model '{model}' is not supported by provider '{provider}'",
         )
+
+
+class OpenAICompatibleModelAlreadyExistsException(DomainException):
+    def __init__(self, model: str):
+        super().__init__(
+            message="OpenAI compatible model already exists",
+            code=409,
+            detail=f"Model '{model}' is already configured for provider 'openai-compatible'",
+        )
+
+
+class OpenAICompatibleModelNotFoundException(DomainException):
+    def __init__(self, model: str):
+        super().__init__(
+            message="OpenAI compatible model not found",
+            code=404,
+            detail=f"Model '{model}' is not configured for provider 'openai-compatible'",
+        )

@@ -17,12 +17,23 @@ from src.modules.providers.domain.repositories import IProviderConfigRepository
 from src.modules.providers.domain.value_objects.model_type import ModelType
 from src.modules.providers.domain.value_objects.provider_name import ProviderName
 from src.modules.providers.infrastructure.factories import ModelProviderFactory
+from src.modules.providers.infrastructure.providers.openai.llm_adapter import OpenAILLMAdapter
+from src.modules.providers.infrastructure.repositories.provider_persistence_repository import (
+    ProviderPersistenceRepository,
+)
 from src.shared.domain.exceptions import DomainException
 
 
 class ModelGenerationService:
-    def __init__(self, provider_config_repository: IProviderConfigRepository):
+    def __init__(
+        self,
+        provider_config_repository: IProviderConfigRepository,
+        provider_persistence_repository: ProviderPersistenceRepository | None = None,
+        user_id: str | None = None,
+    ):
         self._provider_config_repository = provider_config_repository
+        self._provider_persistence_repository = provider_persistence_repository
+        self._user_id = user_id
 
     async def generate_llm_text(self, request: GenerateTextRequest) -> GenerateTextResponse:
         provider_config = self._provider_config_repository.get_provider_config(request.provider)
@@ -83,7 +94,7 @@ class ModelGenerationService:
 
         return SupportedProvidersResponse(providers=providers)
 
-    def get_provider_models(
+    async def get_provider_models(
         self,
         provider: ProviderName | None = None,
         model: str | None = None,
@@ -94,6 +105,8 @@ class ModelGenerationService:
 
         if provider is None:
             catalogs = self._provider_config_repository.list_provider_catalog()
+        elif provider == ProviderName.OPENAI_COMPATIBLE:
+            catalogs = []
         else:
             catalog = self._provider_config_repository.get_provider_catalog(
                 provider,
@@ -115,4 +128,51 @@ class ModelGenerationService:
                 )
             )
 
+        if provider is None or provider == ProviderName.OPENAI_COMPATIBLE:
+            openai_compatible_item = await self._build_openai_compatible_provider_item(
+                selected_model=selected_model if provider == ProviderName.OPENAI_COMPATIBLE else None
+            )
+            if openai_compatible_item is not None:
+                items.append(openai_compatible_item)
+
         return ProviderModelsResponse(providers=items)
+
+    async def _build_openai_compatible_provider_item(
+        self,
+        selected_model: str | None = None,
+    ) -> ProviderModelItem | None:
+        if self._provider_persistence_repository is None or self._user_id is None:
+            return None
+
+        records = await self._provider_persistence_repository.list_openai_compatible_configs(
+            user_id=self._user_id
+        )
+        normalized_models = [record.payload.model.strip() for record in records if record.payload.model.strip()]
+        models = sorted(set(normalized_models), key=str.lower)
+        records_by_model = {record.payload.model.strip().lower(): record for record in records}
+        selected_model_detail = None
+        if selected_model:
+            selected_record = records_by_model.get(selected_model.lower())
+            if selected_record is None:
+                selected_model_detail = {
+                    "id": selected_model,
+                    "error": "model_detail_unavailable",
+                }
+            else:
+                selected_model_detail = {
+                    "id": selected_record.payload.model,
+                    "base_url": selected_record.payload.base_url,
+                    "max_token": selected_record.payload.max_token,
+                    "temperature": selected_record.payload.temperature,
+                }
+
+        return ProviderModelItem(
+            provider=ProviderName.OPENAI_COMPATIBLE,
+            configured=bool(records),
+            model_types=[ModelType.LLM],
+            conversation_template=OpenAILLMAdapter.DEFAULT_CONVERSATION_TEMPLATE,
+            default_model=models[0] if models else "",
+            models=models,
+            selected_model=selected_model,
+            selected_model_detail=selected_model_detail,
+        )

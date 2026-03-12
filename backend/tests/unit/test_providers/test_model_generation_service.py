@@ -1,5 +1,7 @@
 import asyncio
 from collections.abc import AsyncIterator
+from datetime import UTC, datetime
+import uuid
 
 import pytest
 
@@ -16,6 +18,11 @@ from src.modules.providers.domain.repositories import IProviderConfigRepository
 from src.modules.providers.domain.value_objects.model_type import ModelType
 from src.modules.providers.domain.value_objects.provider_name import ProviderName
 from src.modules.providers.infrastructure.factories import ModelProviderFactory
+from src.modules.providers.infrastructure.providers.openai_compatible import (
+    OPENAI_COMPATIBLE_PROVIDER,
+    OpenAICompatibleConfigPayload,
+    OpenAICompatibleConfigRecord,
+)
 
 
 class FakeProviderConfigRepository(IProviderConfigRepository):
@@ -68,6 +75,14 @@ class FakeLLMProvider(ILLMProvider):
 
     async def stream_generate_text(self, prompt: str, model: str, **kwargs) -> AsyncIterator[str]:
         yield prompt
+
+
+class FakeProviderPersistenceRepository:
+    def __init__(self, records: list[OpenAICompatibleConfigRecord] | None = None):
+        self._records = records or []
+
+    async def list_openai_compatible_configs(self, user_id: str) -> list[OpenAICompatibleConfigRecord]:
+        return list(self._records)
 
 
 def test_generate_llm_text_uses_default_model_when_missing_model_name():
@@ -166,7 +181,7 @@ def test_get_provider_models_returns_catalog_and_configuration_state():
     )
     service = ModelGenerationService(provider_config_repository=repo)
 
-    response = service.get_provider_models()
+    response = asyncio.run(service.get_provider_models())
 
     assert len(response.providers) == 1
     assert response.providers[0].provider == ProviderName.OPENAI
@@ -204,7 +219,7 @@ def test_get_provider_models_filters_by_provider():
     )
     service = ModelGenerationService(provider_config_repository=repo)
 
-    response = service.get_provider_models(provider=ProviderName.QWEN)
+    response = asyncio.run(service.get_provider_models(provider=ProviderName.QWEN))
 
     assert len(response.providers) == 1
     assert response.providers[0].provider == ProviderName.QWEN
@@ -234,7 +249,7 @@ def test_get_provider_models_returns_selected_model_detail():
     )
     service = ModelGenerationService(provider_config_repository=repo)
 
-    response = service.get_provider_models(provider=ProviderName.QWEN, model="qwen-max")
+    response = asyncio.run(service.get_provider_models(provider=ProviderName.QWEN, model="qwen-max"))
 
     assert len(response.providers) == 1
     assert response.providers[0].provider == ProviderName.QWEN
@@ -242,6 +257,104 @@ def test_get_provider_models_returns_selected_model_detail():
     assert response.providers[0].selected_model_detail == {
         "id": "qwen-max",
         "object": "model",
+    }
+
+
+def test_get_provider_models_includes_openai_compatible_provider():
+    openai_catalog = ProviderCatalog(
+        provider=ProviderName.OPENAI,
+        base_url="https://api.openai.com/v1",
+        conversation_template="openai",
+        default_model="gpt-4o-mini",
+        models=("gpt-4o-mini",),
+    )
+    openai_compatible_records = [
+        OpenAICompatibleConfigRecord(
+            id=uuid.uuid4(),
+            provider_key=f"{OPENAI_COMPATIBLE_PROVIDER}:deepseek-chat",
+            payload=OpenAICompatibleConfigPayload(
+                provider=OPENAI_COMPATIBLE_PROVIDER,
+                base_url="https://example-compat-provider.com/v1",
+                api_key="secret-a",
+                model="deepseek-chat",
+                max_token=8192,
+                temperature=0.7,
+            ),
+            created_at=datetime.now(UTC),
+            updated_at=datetime.now(UTC),
+        ),
+        OpenAICompatibleConfigRecord(
+            id=uuid.uuid4(),
+            provider_key=f"{OPENAI_COMPATIBLE_PROVIDER}:qwen-max",
+            payload=OpenAICompatibleConfigPayload(
+                provider=OPENAI_COMPATIBLE_PROVIDER,
+                base_url="https://example-compat-provider.com/v1",
+                api_key="secret-b",
+                model="qwen-max",
+                max_token=16384,
+                temperature=0.2,
+            ),
+            created_at=datetime.now(UTC),
+            updated_at=datetime.now(UTC),
+        ),
+    ]
+    service = ModelGenerationService(
+        provider_config_repository=FakeProviderConfigRepository(
+            config=None,
+            catalogs=[openai_catalog],
+        ),
+        provider_persistence_repository=FakeProviderPersistenceRepository(records=openai_compatible_records),  # type: ignore[arg-type]
+        user_id=str(uuid.uuid4()),
+    )
+
+    response = asyncio.run(service.get_provider_models())
+
+    assert len(response.providers) == 2
+    openai_compatible_item = next(
+        item for item in response.providers if item.provider == ProviderName.OPENAI_COMPATIBLE
+    )
+    assert openai_compatible_item.configured is True
+    assert openai_compatible_item.model_types == [ModelType.LLM]
+    assert openai_compatible_item.default_model == "deepseek-chat"
+    assert openai_compatible_item.models == ["deepseek-chat", "qwen-max"]
+
+
+def test_get_provider_models_filters_openai_compatible_provider():
+    openai_compatible_records = [
+        OpenAICompatibleConfigRecord(
+            id=uuid.uuid4(),
+            provider_key=f"{OPENAI_COMPATIBLE_PROVIDER}:deepseek-chat",
+            payload=OpenAICompatibleConfigPayload(
+                provider=OPENAI_COMPATIBLE_PROVIDER,
+                base_url="https://example-compat-provider.com/v1",
+                api_key="secret-a",
+                model="deepseek-chat",
+                max_token=8192,
+                temperature=0.7,
+            ),
+            created_at=datetime.now(UTC),
+            updated_at=datetime.now(UTC),
+        )
+    ]
+    service = ModelGenerationService(
+        provider_config_repository=FakeProviderConfigRepository(config=None, catalogs=[]),
+        provider_persistence_repository=FakeProviderPersistenceRepository(records=openai_compatible_records),  # type: ignore[arg-type]
+        user_id=str(uuid.uuid4()),
+    )
+
+    response = asyncio.run(
+        service.get_provider_models(provider=ProviderName.OPENAI_COMPATIBLE, model="deepseek-chat")
+    )
+
+    assert len(response.providers) == 1
+    provider_item = response.providers[0]
+    assert provider_item.provider == ProviderName.OPENAI_COMPATIBLE
+    assert provider_item.selected_model == "deepseek-chat"
+    assert provider_item.selected_model_detail == {
+        "id": "deepseek-chat",
+        "base_url": "https://example-compat-provider.com/v1",
+        "max_token": 8192,
+        "temperature": 0.7,
     }
 
 

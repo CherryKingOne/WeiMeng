@@ -6,10 +6,17 @@ from fastapi.responses import StreamingResponse
 from src.modules.providers.api.dependencies import (
     get_chat_service,
     get_model_generation_service,
+    get_openai_compatible_config_management_service,
     get_provider_config_management_service,
     get_system_model_config_service,
 )
 from src.modules.providers.application.dto.chat_dto import ChatRequest, ChatResponse
+from src.modules.providers.application.dto.openai_compatible_manage_dto import (
+    DeleteOpenAICompatibleConfigResponse,
+    ListOpenAICompatibleModelsResponse,
+    UpsertOpenAICompatibleConfigRequest,
+    UpsertOpenAICompatibleConfigResponse,
+)
 from src.modules.providers.application.dto.provider_manage_dto import (
     UpsertProviderConfigRequest,
     UpsertProviderConfigResponse,
@@ -25,6 +32,9 @@ from src.modules.providers.application.dto.provider_config_dto import (
 )
 from src.modules.providers.application.services.model_generation_service import (
     ModelGenerationService,
+)
+from src.modules.providers.application.services.openai_compatible_config_management_service import (
+    OpenAICompatibleConfigManagementService,
 )
 from src.modules.providers.application.services.provider_config_management_service import (
     ProviderConfigManagementService,
@@ -62,7 +72,7 @@ async def get_provider_models(
             status_code=422,
             detail="Query parameter 'provider' is required when 'model' is provided.",
         )
-    return generation_service.get_provider_models(provider=provider, model=model)
+    return await generation_service.get_provider_models(provider=provider, model=model)
 
 
 @router.post("/chat", response_model=ChatResponse, response_model_exclude_none=True)
@@ -172,6 +182,62 @@ async def create_provider_config(
     return await config_management_service.upsert_provider_config(request)
 
 
+@router.post(
+    "/providers/openai-compatible",
+    response_model=UpsertOpenAICompatibleConfigResponse,
+)
+async def create_openai_compatible_config(
+    request: UpsertOpenAICompatibleConfigRequest,
+    service: OpenAICompatibleConfigManagementService = Depends(
+        get_openai_compatible_config_management_service
+    ),
+):
+    return await service.create_config(request)
+
+
+@router.get(
+    "/providers/openai-compatible",
+    response_model=ListOpenAICompatibleModelsResponse,
+)
+async def list_openai_compatible_configs(
+    service: OpenAICompatibleConfigManagementService = Depends(
+        get_openai_compatible_config_management_service
+    ),
+):
+    return await service.list_configs()
+
+
+@router.put(
+    "/providers/openai-compatible",
+    response_model=UpsertOpenAICompatibleConfigResponse,
+)
+async def update_openai_compatible_config(
+    request: UpsertOpenAICompatibleConfigRequest,
+    service: OpenAICompatibleConfigManagementService = Depends(
+        get_openai_compatible_config_management_service
+    ),
+):
+    return await service.update_config(request)
+
+
+@router.delete(
+    "/providers/openai-compatible",
+    response_model=DeleteOpenAICompatibleConfigResponse,
+)
+async def delete_openai_compatible_config(
+    model: str = Query(
+        ...,
+        min_length=1,
+        max_length=128,
+        description="要删除的 openai-compatible 模型名称",
+    ),
+    service: OpenAICompatibleConfigManagementService = Depends(
+        get_openai_compatible_config_management_service
+    ),
+):
+    return await service.delete_config(model=model)
+
+
 @router.post("/system", response_model=UpsertSystemModelConfigResponse)
 async def upsert_system_model_config(
     request: UpsertSystemModelConfigRequest,
@@ -203,4 +269,4 @@ async def get_provider_model_detail(
     ),
     generation_service: ModelGenerationService = Depends(get_model_generation_service),
 ):
-    return generation_service.get_provider_models(provider=provider, model=model_id)
+    return await generation_service.get_provider_models(provider=provider, model=model_id)

@@ -1,10 +1,10 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 import { useSettingsStore } from '@/stores';
 import { getLocaleFromPath, type Locale, withLocale } from '@/constants';
-import { providerService, type ProviderModelItem } from '@/services/provider.service';
+import { providerService, type OpenAICompatibleModelItem, type ProviderModelItem } from '@/services/provider.service';
 
 interface SettingsModalProps {
   isOpen: boolean;
@@ -48,6 +48,7 @@ interface CompatibleEditorState {
   providerId: string;
   modelType: ModelType;
   modelId: string;
+  originalModelName: string;
   modelName: string;
   apiKey: string;
   baseUrl: string;
@@ -65,6 +66,127 @@ interface ProviderConfigEditorState {
   providerId: string;
   providerName: string;
   apiKey: string;
+}
+
+interface SystemModelFormData {
+  providerId: string;
+  modelName: string;
+  note: string;
+}
+
+interface SystemModelSelectionData {
+  providerId: string;
+  modelName: string;
+}
+
+type SystemModelSelectionCache = Record<ModelType, SystemModelSelectionData>;
+
+interface SystemModelSelectOption {
+  value: string;
+  label: string;
+}
+
+interface SystemModelSelectProps {
+  value: string;
+  placeholder: string;
+  ariaLabel: string;
+  options: SystemModelSelectOption[];
+  onChange: (value: string) => void;
+}
+
+function SystemModelSelect({
+  value,
+  placeholder,
+  ariaLabel,
+  options,
+  onChange,
+}: SystemModelSelectProps) {
+  const [isOpen, setIsOpen] = useState(false);
+  const rootRef = useRef<HTMLDivElement | null>(null);
+  const selectedOption = options.find((option) => option.value === value);
+
+  useEffect(() => {
+    if (!isOpen) return;
+
+    const handleOutsideClick = (event: MouseEvent) => {
+      if (!rootRef.current?.contains(event.target as Node)) {
+        setIsOpen(false);
+      }
+    };
+
+    window.addEventListener('mousedown', handleOutsideClick);
+    return () => {
+      window.removeEventListener('mousedown', handleOutsideClick);
+    };
+  }, [isOpen]);
+
+  return (
+    <div className="relative mt-1" ref={rootRef}>
+      <button
+        type="button"
+        aria-label={ariaLabel}
+        aria-haspopup="listbox"
+        aria-expanded={isOpen}
+        onClick={() => setIsOpen((prev) => !prev)}
+        className={`flex h-10 w-full items-center justify-between rounded-xl border bg-white px-3 text-sm transition-colors focus:outline-none ${
+          isOpen
+            ? 'border-gray-900 text-gray-900'
+            : 'border-gray-200 text-gray-900 hover:border-gray-300'
+        }`}
+      >
+        <span
+          className={selectedOption ? 'text-gray-900' : 'text-gray-400'}
+          title={selectedOption?.label || placeholder}
+        >
+          {selectedOption?.label || placeholder}
+        </span>
+        <svg
+          className={`h-4 w-4 text-gray-500 transition-transform ${isOpen ? 'rotate-180' : ''}`}
+          fill="none"
+          stroke="currentColor"
+          viewBox="0 0 24 24"
+        >
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M6 9l6 6 6-6" />
+        </svg>
+      </button>
+
+      {isOpen ? (
+        <div
+          role="listbox"
+          className="absolute z-30 mt-2 max-h-64 w-full overflow-y-auto rounded-xl border border-gray-200 bg-white p-1 shadow-[0_12px_28px_rgba(15,23,42,0.14)]"
+        >
+          {options.map((option) => {
+            const isSelected = option.value === value;
+            const optionTone = isSelected
+              ? 'bg-gray-900 text-white hover:bg-gray-900'
+              : option.value === ''
+                ? 'text-gray-400 hover:bg-gray-100'
+                : 'text-gray-700 hover:bg-gray-100';
+
+            return (
+              <button
+                key={`${ariaLabel}-${option.value || 'empty'}`}
+                type="button"
+                title={option.label}
+                onClick={() => {
+                  onChange(option.value);
+                  setIsOpen(false);
+                }}
+                className={`flex w-full items-center justify-between rounded-lg px-3 py-2 text-left text-sm transition-colors ${optionTone}`}
+              >
+                <span className="truncate">{option.label}</span>
+                {isSelected ? (
+                  <svg className="h-4 w-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                  </svg>
+                ) : null}
+              </button>
+            );
+          })}
+        </div>
+      ) : null}
+    </div>
+  );
 }
 
 const initialProviderCards: ProviderCardData[] = [
@@ -141,12 +263,18 @@ const initialProviderCards: ProviderCardData[] = [
 const providerLogoFallbackClasses = ['bg-slate-700', 'bg-emerald-600', 'bg-sky-600', 'bg-indigo-600', 'bg-rose-600'];
 const PROVIDER_MODELS_CACHE_TTL_MS = 5 * 60 * 1000;
 const PROVIDER_MODELS_STORAGE_KEY = 'provider_models_cache_v1';
+const SYSTEM_MODEL_SELECTION_STORAGE_KEY = 'system_model_selection_cache_v1';
 
 let providerModelsCache: ProviderModelItem[] | null = null;
 let providerModelsCachedAt = 0;
 
 type ProviderModelsCacheSnapshot = {
   providers: ProviderModelItem[];
+  cachedAt: number;
+};
+
+type SystemModelSelectionCacheSnapshot = {
+  selections: SystemModelSelectionCache;
   cachedAt: number;
 };
 
@@ -244,6 +372,12 @@ const providerMetaMap: Record<
   }
 > = {
   openai: { nameZh: 'OpenAI', nameEn: 'OpenAI', logoBgClass: 'bg-slate-900', logoText: 'O' },
+  'openai-compatible': {
+    nameZh: 'OpenAI Compatible',
+    nameEn: 'OpenAI Compatible',
+    logoBgClass: 'bg-slate-700',
+    logoText: 'O',
+  },
   qwen: { nameZh: '通义千问', nameEn: 'Qwen', logoBgClass: 'bg-green-600', logoText: 'Q' },
   volcengine: { nameZh: '火山引擎 Ark', nameEn: 'Volcengine Ark', logoBgClass: 'bg-orange-500', logoText: 'A' },
   grok: { nameZh: 'Grok', nameEn: 'Grok', logoBgClass: 'bg-zinc-900', logoText: 'G' },
@@ -253,6 +387,51 @@ const providerMetaMap: Record<
   glm: { nameZh: '智谱 GLM', nameEn: 'GLM', logoBgClass: 'bg-violet-600', logoText: 'G' },
   minimax: { nameZh: 'MiniMax', nameEn: 'MiniMax', logoBgClass: 'bg-pink-600', logoText: 'M' },
   deepseek: { nameZh: 'DeepSeek', nameEn: 'DeepSeek', logoBgClass: 'bg-indigo-700', logoText: 'D' },
+};
+
+const isCompatibleProviderId = (providerId: string): boolean =>
+  providerId === 'compatible' || providerId === 'openai-compatible';
+
+const normalizeSystemProviderId = (provider: string): string =>
+  provider.trim().toLowerCase() === 'compatible' ? 'openai-compatible' : provider.trim().toLowerCase();
+
+const stripMaskedApiKey = (value?: string): string => {
+  const candidate = value?.trim() || '';
+  if (!candidate) return '';
+  return candidate.includes('•') ? '' : candidate;
+};
+
+const extractRequestErrorMessage = (error: unknown): string | null => {
+  if (typeof error !== 'object' || error === null) {
+    return null;
+  }
+
+  const candidate = error as {
+    response?: {
+      data?: {
+        detail?: unknown;
+      };
+    };
+    message?: unknown;
+  };
+
+  const detail = candidate.response?.data?.detail;
+  if (typeof detail === 'string' && detail.trim()) {
+    return detail.trim();
+  }
+
+  if (Array.isArray(detail) && detail.length > 0) {
+    const first = detail[0] as { msg?: unknown } | undefined;
+    if (typeof first?.msg === 'string' && first.msg.trim()) {
+      return first.msg.trim();
+    }
+  }
+
+  if (typeof candidate.message === 'string' && candidate.message.trim()) {
+    return candidate.message.trim();
+  }
+
+  return null;
 };
 
 const backendModelTypeToUiType = (backendType: string): ModelType | null => {
@@ -270,9 +449,115 @@ const createEmptyModels = (): Record<ModelType, ProviderModel[]> => ({
   video: [],
 });
 
+const createEmptySystemModelForms = (): Record<ModelType, SystemModelFormData> => ({
+  text: { providerId: '', modelName: '', note: '' },
+  image: { providerId: '', modelName: '', note: '' },
+  video: { providerId: '', modelName: '', note: '' },
+});
+
+const createEmptySystemModelSelections = (): SystemModelSelectionCache => ({
+  text: { providerId: '', modelName: '' },
+  image: { providerId: '', modelName: '' },
+  video: { providerId: '', modelName: '' },
+});
+
+function readPersistedSystemModelSelectionCache(): SystemModelSelectionCacheSnapshot | null {
+  if (typeof window === 'undefined') {
+    return null;
+  }
+
+  try {
+    const raw = localStorage.getItem(SYSTEM_MODEL_SELECTION_STORAGE_KEY);
+    if (!raw) {
+      return null;
+    }
+
+    const parsed = JSON.parse(raw) as Partial<SystemModelSelectionCacheSnapshot>;
+    if (!parsed || typeof parsed !== 'object' || !parsed.selections || typeof parsed.selections !== 'object') {
+      return null;
+    }
+
+    const nextSelections = createEmptySystemModelSelections();
+    (['text', 'image', 'video'] as ModelType[]).forEach((type) => {
+      const candidate = (parsed.selections as Partial<SystemModelSelectionCache>)[type];
+      if (!candidate || typeof candidate !== 'object') return;
+
+      nextSelections[type] = {
+        providerId: typeof candidate.providerId === 'string' ? candidate.providerId : '',
+        modelName: typeof candidate.modelName === 'string' ? candidate.modelName : '',
+      };
+    });
+
+    return {
+      selections: nextSelections,
+      cachedAt: typeof parsed.cachedAt === 'number' && Number.isFinite(parsed.cachedAt) ? parsed.cachedAt : 0,
+    };
+  } catch {
+    return null;
+  }
+}
+
+function writePersistedSystemModelSelectionCache(selections: SystemModelSelectionCache, cachedAt: number): void {
+  if (typeof window === 'undefined') {
+    return;
+  }
+
+  try {
+    localStorage.setItem(SYSTEM_MODEL_SELECTION_STORAGE_KEY, JSON.stringify({ selections, cachedAt }));
+  } catch {
+    // Ignore storage write failures.
+  }
+}
+
+const applySelectionsToSystemModelForms = (
+  forms: Record<ModelType, SystemModelFormData>,
+  selections: SystemModelSelectionCache,
+): Record<ModelType, SystemModelFormData> => {
+  const nextForms: Record<ModelType, SystemModelFormData> = {
+    text: { ...forms.text },
+    image: { ...forms.image },
+    video: { ...forms.video },
+  };
+
+  (['text', 'image', 'video'] as ModelType[]).forEach((type) => {
+    const selection = selections[type];
+    if (!selection.providerId.trim() || !selection.modelName.trim()) {
+      return;
+    }
+
+    nextForms[type] = {
+      ...nextForms[type],
+      providerId: selection.providerId.trim(),
+      modelName: selection.modelName.trim(),
+    };
+  });
+
+  return nextForms;
+};
+
+const buildSystemModelFormsFromProviders = (
+  providers: ProviderCardData[],
+): Record<ModelType, SystemModelFormData> => {
+  const forms = createEmptySystemModelForms();
+
+  (['text', 'image', 'video'] as ModelType[]).forEach((type) => {
+    const configuredProviders = providers.filter((provider) => provider.connected && provider.models[type].length > 0);
+    const anyProviders = providers.filter((provider) => provider.models[type].length > 0);
+    const selectedProvider = configuredProviders[0] || anyProviders[0];
+
+    if (!selectedProvider) return;
+
+    forms[type].providerId = selectedProvider.id;
+    forms[type].modelName = selectedProvider.models[type][0]?.modelId || selectedProvider.models[type][0]?.name || '';
+  });
+
+  return forms;
+};
+
 const mapProviderModelsToCards = (
   providers: ProviderModelItem[],
   isEn: boolean,
+  openAICompatibleModels: OpenAICompatibleModelItem[] = [],
 ): ProviderCardData[] =>
   providers.map((provider, index) => {
     const meta = providerMetaMap[provider.provider];
@@ -291,17 +576,40 @@ const mapProviderModelsToCards = (
       activeTypeSet.add(uiType);
     });
 
-    const modelNames = (provider.models || []).filter((modelName) => modelName.trim().length > 0);
+    const compatibleModelsById = isCompatibleProviderId(providerKey)
+      ? new Map(openAICompatibleModels.map((item) => [item.model.trim().toLowerCase(), item]))
+      : null;
+    const fallbackModelNames = compatibleModelsById ? openAICompatibleModels.map((item) => item.model) : [];
+    const modelNames = ((provider.models && provider.models.length > 0) ? provider.models : fallbackModelNames)
+      .filter((modelName) => modelName.trim().length > 0);
     const targetType = Array.from(activeTypeSet)[0] || 'text';
 
     if (modelNames.length > 0) {
-      models[targetType] = modelNames.map((modelName, modelIndex) => ({
-        id: `${providerKey}-${targetType}-${modelIndex}-${modelName.toLowerCase().replace(/[^a-z0-9]+/g, '-')}`,
-        name: modelName,
-        pricing: isEn ? 'Official model' : '官方模型',
-        modelId: modelName,
-        enabled: provider.configured,
-      }));
+      models[targetType] = modelNames.map((modelName, modelIndex) => {
+        const normalizedModelName = modelName.trim().toLowerCase();
+        const compatibleDetail = compatibleModelsById?.get(normalizedModelName);
+        const compatibleMaxToken = compatibleDetail?.max_token;
+
+        return {
+          id: `${providerKey}-${targetType}-${modelIndex}-${modelName.toLowerCase().replace(/[^a-z0-9]+/g, '-')}`,
+          name: modelName,
+          pricing:
+            compatibleDetail
+              ? compatibleMaxToken
+                ? `Max Tokens ${compatibleMaxToken}`
+                : (isEn ? 'Compatible model' : '兼容模型')
+              : (isEn ? 'Official model' : '官方模型'),
+          modelId: modelName,
+          enabled: provider.configured,
+          compatibleConfig: compatibleDetail
+            ? {
+                apiKey: '',
+                baseUrl: compatibleDetail.base_url || '',
+                maxTokens: compatibleDetail.max_token ? String(compatibleDetail.max_token) : '',
+              }
+            : undefined,
+        };
+      });
     } else {
       provider.model_types.forEach((backendType) => {
         const uiType = backendModelTypeToUiType(backendType);
@@ -319,6 +627,8 @@ const mapProviderModelsToCards = (
     const activeTypes = Array.from(activeTypeSet);
     const activeType = activeTypes[0] || 'text';
 
+    const firstCompatibleModel = compatibleModelsById ? openAICompatibleModels[0] : undefined;
+
     return {
       id: providerKey,
       name: isEn ? meta?.nameEn || providerLabel : meta?.nameZh || providerLabel,
@@ -326,9 +636,12 @@ const mapProviderModelsToCards = (
       key: provider.configured ? '••••••••' : '',
       statusText: provider.configured ? (isEn ? 'Connected' : '已连接') : (isEn ? 'Not configured' : '未配置'),
       activeType,
-      allowModelManagement: false,
+      allowModelManagement: isCompatibleProviderId(providerKey),
       logoBgClass: meta?.logoBgClass || providerLogoFallbackClasses[index % providerLogoFallbackClasses.length],
       logoText: meta?.logoText || provider.provider.charAt(0).toUpperCase() || 'P',
+      baseUrl: firstCompatibleModel?.base_url || undefined,
+      modelName: firstCompatibleModel?.model || undefined,
+      maxTokens: firstCompatibleModel?.max_token ? String(firstCompatibleModel.max_token) : undefined,
       models,
     };
   });
@@ -361,11 +674,24 @@ export function SettingsModal({
   });
   const [editingCompatible, setEditingCompatible] = useState<CompatibleEditorState | null>(null);
   const [compatError, setCompatError] = useState('');
+  const [savingCompatible, setSavingCompatible] = useState(false);
+  const [deletingCompatible, setDeletingCompatible] = useState(false);
   const [deletingModel, setDeletingModel] = useState<DeleteConfirmState | null>(null);
   const [editingProviderConfig, setEditingProviderConfig] = useState<ProviderConfigEditorState | null>(null);
   const [providerConfigError, setProviderConfigError] = useState('');
   const [savingProviderConfig, setSavingProviderConfig] = useState(false);
   const [showProviderApiKey, setShowProviderApiKey] = useState(false);
+  const [showCompatibleApiKey, setShowCompatibleApiKey] = useState(false);
+  const [showSystemModelConfigModal, setShowSystemModelConfigModal] = useState(false);
+  const [systemModelForms, setSystemModelForms] = useState<Record<ModelType, SystemModelFormData>>(
+    createEmptySystemModelForms,
+  );
+  const [systemModelFormError, setSystemModelFormError] = useState('');
+  const [savingSystemModel, setSavingSystemModel] = useState(false);
+  const [systemModelSelections, setSystemModelSelections] = useState<SystemModelSelectionCache>(() => {
+    const persisted = readPersistedSystemModelSelectionCache();
+    return persisted?.selections || createEmptySystemModelSelections();
+  });
   const [expandedProviders, setExpandedProviders] = useState<Record<string, boolean>>({});
   const [loadingProviders, setLoadingProviders] = useState(false);
   const [providerLoadError, setProviderLoadError] = useState('');
@@ -376,6 +702,15 @@ export function SettingsModal({
 
     return Boolean(getProviderModelsCacheSnapshot());
   });
+
+  const loadOpenAICompatibleConfigs = async (): Promise<OpenAICompatibleModelItem[]> => {
+    try {
+      const response = await providerService.listOpenAICompatibleConfigs();
+      return response.models || [];
+    } catch {
+      return [];
+    }
+  };
 
   useEffect(() => {
     if (!hasInitialProviderModels) {
@@ -424,24 +759,48 @@ export function SettingsModal({
     if (!provider) return;
 
     setCompatError('');
+    setShowCompatibleApiKey(false);
+    const resolvedModelApiKey = stripMaskedApiKey(model.compatibleConfig?.apiKey);
+    const resolvedProviderApiKey = stripMaskedApiKey(provider.key);
     setEditingCompatible({
       providerId,
       modelType,
       modelId: model.id,
+      originalModelName: model.modelId || model.name,
       modelName: model.name,
-      apiKey: model.compatibleConfig?.apiKey || provider.key || '',
+      apiKey: resolvedModelApiKey || resolvedProviderApiKey,
       baseUrl: model.compatibleConfig?.baseUrl || provider.baseUrl || '',
       maxTokens: model.compatibleConfig?.maxTokens || provider.maxTokens || '',
     });
   };
 
-  const closeCompatibleEditor = () => {
-    setEditingCompatible(null);
+  const openCreateCompatibleEditor = (providerId: string, modelType: ModelType) => {
+    const provider = providerCards.find((p) => p.id === providerId);
+    if (!provider) return;
+
     setCompatError('');
+    setShowCompatibleApiKey(false);
+    setEditingCompatible({
+      providerId,
+      modelType,
+      modelId: '',
+      originalModelName: '',
+      modelName: '',
+      apiKey: stripMaskedApiKey(provider.key),
+      baseUrl: provider.baseUrl || '',
+      maxTokens: provider.maxTokens || '',
+    });
   };
 
-  const saveCompatibleEditor = () => {
-    if (!editingCompatible) return;
+  const closeCompatibleEditor = () => {
+    if (savingCompatible) return;
+    setEditingCompatible(null);
+    setCompatError('');
+    setShowCompatibleApiKey(false);
+  };
+
+  const saveCompatibleEditor = async () => {
+    if (!editingCompatible || savingCompatible) return;
 
     const modelName = editingCompatible.modelName.trim();
     const apiKey = editingCompatible.apiKey.trim();
@@ -453,43 +812,53 @@ export function SettingsModal({
       return;
     }
 
-    setProviderCards((prev) =>
-      prev.map((provider) => {
-        if (provider.id !== editingCompatible.providerId) return provider;
+    const parsedMaxToken = maxTokens ? Number(maxTokens) : undefined;
+    if (typeof parsedMaxToken === 'number' && (!Number.isFinite(parsedMaxToken) || parsedMaxToken <= 0)) {
+      setCompatError(isEn ? 'Max Tokens must be a positive number' : 'Max Tokens 必须为正整数');
+      return;
+    }
 
-        const nextModels = {
-          ...provider.models,
-          [editingCompatible.modelType]: provider.models[editingCompatible.modelType].map((model) =>
-            model.id === editingCompatible.modelId
-              ? {
-                  ...model,
-                  name: modelName,
-                  modelId: modelName,
-                  pricing: maxTokens ? `Max Tokens ${maxTokens}` : providerText.compatiblePricingFallback,
-                  compatibleConfig: {
-                    apiKey,
-                    baseUrl,
-                    maxTokens: maxTokens || undefined,
-                  },
-                }
-              : model,
-          ),
-        };
+    setSavingCompatible(true);
+    setCompatError('');
 
-        return {
-          ...provider,
-          connected: true,
-          statusText: '已连接',
-          key: apiKey,
-          baseUrl,
-          modelName,
-          maxTokens,
-          models: nextModels,
-        };
-      }),
-    );
+    const payload = {
+      provider: 'openai-compatible' as const,
+      base_url: baseUrl,
+      api_key: apiKey,
+      model: modelName,
+      max_token: parsedMaxToken ? Math.floor(parsedMaxToken) : undefined,
+      temperature: 0.7,
+    };
 
-    closeCompatibleEditor();
+    try {
+      const isCreating = editingCompatible.modelId === '';
+      const originalModelName = editingCompatible.originalModelName.trim();
+
+      if (isCreating) {
+        await providerService.createOpenAICompatibleConfig(payload);
+      } else if (originalModelName && originalModelName !== modelName) {
+        await providerService.createOpenAICompatibleConfig(payload);
+        await providerService.deleteOpenAICompatibleConfig(originalModelName);
+      } else {
+        await providerService.updateOpenAICompatibleConfig(payload);
+      }
+
+      const [response, compatibleResponse] = await Promise.all([
+        providerService.getProviderModels(),
+        providerService.listOpenAICompatibleConfigs().catch(() => ({ models: [] })),
+      ]);
+      const nextProviders = response.providers || [];
+      const compatibleModels = compatibleResponse.models || [];
+      primeProviderModelsCache(nextProviders);
+      setProviderCards(mapProviderModelsToCards(nextProviders, isEn, compatibleModels));
+      setHasResolvedProviders(true);
+      closeCompatibleEditor();
+    } catch (error) {
+      const message = extractRequestErrorMessage(error);
+      setCompatError(message || (isEn ? 'Failed to save compatible model config' : '保存兼容模型配置失败'));
+    } finally {
+      setSavingCompatible(false);
+    }
   };
 
   const openDeleteConfirm = (providerId: string, modelType: ModelType, model: ProviderModel) => {
@@ -505,24 +874,50 @@ export function SettingsModal({
     setDeletingModel(null);
   };
 
-  const confirmDeleteModel = () => {
-    if (!deletingModel) return;
+  const confirmDeleteModel = async () => {
+    if (!deletingModel || deletingCompatible) return;
 
-    setProviderCards((prev) =>
-      prev.map((provider) => {
-        if (provider.id !== deletingModel.providerId) return provider;
+    const providerCard = providerCards.find((provider) => provider.id === deletingModel.providerId);
+    const deletingTarget = providerCard?.models[deletingModel.modelType].find((model) => model.id === deletingModel.modelId);
 
-        return {
-          ...provider,
-          models: {
-            ...provider.models,
-            [deletingModel.modelType]: provider.models[deletingModel.modelType].filter(
-              (model) => model.id !== deletingModel.modelId,
-            ),
-          },
-        };
-      }),
-    );
+    if (providerCard && isCompatibleProviderId(providerCard.id) && deletingTarget?.modelId) {
+      setDeletingCompatible(true);
+      setCompatError('');
+      try {
+        await providerService.deleteOpenAICompatibleConfig(deletingTarget.modelId);
+        const [response, compatibleResponse] = await Promise.all([
+          providerService.getProviderModels(),
+          providerService.listOpenAICompatibleConfigs().catch(() => ({ models: [] })),
+        ]);
+        const nextProviders = response.providers || [];
+        const compatibleModels = compatibleResponse.models || [];
+        primeProviderModelsCache(nextProviders);
+        setProviderCards(mapProviderModelsToCards(nextProviders, isEn, compatibleModels));
+        setHasResolvedProviders(true);
+      } catch (error) {
+        const message = extractRequestErrorMessage(error);
+        setCompatError(message || (isEn ? 'Failed to delete compatible model' : '删除兼容模型失败'));
+        return;
+      } finally {
+        setDeletingCompatible(false);
+      }
+    } else {
+      setProviderCards((prev) =>
+        prev.map((provider) => {
+          if (provider.id !== deletingModel.providerId) return provider;
+
+          return {
+            ...provider,
+            models: {
+              ...provider.models,
+              [deletingModel.modelType]: provider.models[deletingModel.modelType].filter(
+                (model) => model.id !== deletingModel.modelId,
+              ),
+            },
+          };
+        }),
+      );
+    }
 
     setEditingCompatible((prev) => {
       if (!prev) return prev;
@@ -535,7 +930,6 @@ export function SettingsModal({
       }
       return prev;
     });
-    setCompatError('');
     closeDeleteConfirm();
   };
 
@@ -544,6 +938,158 @@ export function SettingsModal({
       ...prev,
       [providerId]: !prev[providerId],
     }));
+  };
+
+  const refreshSystemModelSelectionsFromServer = useCallback(async () => {
+    try {
+      const systemConfig = await providerService.getSystemModelConfig();
+      if (!systemConfig.configured || !systemConfig.provider || !systemConfig.model_name) {
+        return;
+      }
+
+      const normalizedType = systemConfig.type === 'image' || systemConfig.type === 'video'
+        ? systemConfig.type
+        : 'text';
+      const normalizedProviderId = normalizeSystemProviderId(systemConfig.provider);
+      const modelName = systemConfig.model_name.trim();
+      if (!normalizedProviderId || !modelName) {
+        return;
+      }
+
+      setSystemModelSelections((prev) => {
+        const nextSelections: SystemModelSelectionCache = {
+          text: { ...prev.text },
+          image: { ...prev.image },
+          video: { ...prev.video },
+          [normalizedType]: {
+            providerId: normalizedProviderId,
+            modelName,
+          },
+        };
+        writePersistedSystemModelSelectionCache(nextSelections, Date.now());
+        return nextSelections;
+      });
+    } catch {
+      // Keep cache-first selections when remote config fetch fails.
+    }
+  }, []);
+
+  const openSystemModelConfigModal = () => {
+    setSystemModelFormError('');
+    const formsFromProviders = buildSystemModelFormsFromProviders(providerCards);
+    setSystemModelForms(applySelectionsToSystemModelForms(formsFromProviders, systemModelSelections));
+    setShowSystemModelConfigModal(true);
+    void refreshSystemModelSelectionsFromServer();
+  };
+
+  const closeSystemModelConfigModal = () => {
+    if (savingSystemModel) return;
+    setShowSystemModelConfigModal(false);
+    setSystemModelFormError('');
+  };
+
+  const updateSystemModelForm = (
+    type: ModelType,
+    patch: Partial<SystemModelFormData>,
+  ) => {
+    setSystemModelForms((prev) => ({
+      ...prev,
+      [type]: {
+        ...prev[type],
+        ...patch,
+      },
+    }));
+  };
+
+  const handleSystemModelProviderChange = (type: ModelType, providerId: string) => {
+    const provider = providerCards.find((card) => card.id === providerId);
+    const firstModelName = provider?.models[type][0]?.modelId || provider?.models[type][0]?.name || '';
+
+    updateSystemModelForm(type, {
+      providerId,
+      modelName: firstModelName,
+    });
+  };
+
+  const saveSystemModelForms = async () => {
+    if (savingSystemModel) return;
+
+    const allTypes: ModelType[] = ['text', 'image', 'video'];
+    const partialType = allTypes.find((type) => {
+      const form = systemModelForms[type];
+      const hasProvider = Boolean(form.providerId.trim());
+      const hasModel = Boolean(form.modelName.trim());
+      return (hasProvider && !hasModel) || (!hasProvider && hasModel);
+    });
+
+    if (partialType) {
+      setSystemModelFormError(
+        isEn
+          ? 'For each type, provider and model should be both filled or both empty.'
+          : '每个类型下，供应商和模型需要同时填写或同时留空。',
+      );
+      return;
+    }
+
+    const completedTypes = allTypes.filter((type) => {
+      const form = systemModelForms[type];
+      return Boolean(form.providerId.trim()) && Boolean(form.modelName.trim());
+    });
+
+    if (completedTypes.length === 0) {
+      setSystemModelFormError(
+        isEn
+          ? 'Please complete at least one type before saving.'
+          : '请至少填写一个类型后再保存。',
+      );
+      return;
+    }
+
+    setSavingSystemModel(true);
+    setSystemModelFormError('');
+    try {
+      await Promise.all(
+        completedTypes.map((type) => {
+          const form = systemModelForms[type];
+          const providerId = form.providerId.trim();
+          const provider = (providerId === 'compatible' || providerId === 'openai-compatible')
+            ? 'openai-compatible'
+            : providerId;
+
+          return providerService.upsertSystemModelConfig({
+            type,
+            provider,
+            model_name: form.modelName.trim(),
+          });
+        }),
+      );
+      setSystemModelSelections((prev) => {
+        const nextSelections: SystemModelSelectionCache = {
+          text: { ...prev.text },
+          image: { ...prev.image },
+          video: { ...prev.video },
+        };
+
+        completedTypes.forEach((type) => {
+          const form = systemModelForms[type];
+          nextSelections[type] = {
+            providerId: normalizeSystemProviderId(form.providerId),
+            modelName: form.modelName.trim(),
+          };
+        });
+        writePersistedSystemModelSelectionCache(nextSelections, Date.now());
+        return nextSelections;
+      });
+      setShowSystemModelConfigModal(false);
+      setSystemModelFormError('');
+    } catch (error) {
+      const message = extractRequestErrorMessage(error);
+      setSystemModelFormError(
+        message || (isEn ? 'Failed to save system model config.' : '保存系统模型配置失败。'),
+      );
+    } finally {
+      setSavingSystemModel(false);
+    }
   };
 
   const openProviderConfigEditor = (providerId: string) => {
@@ -605,10 +1151,14 @@ export function SettingsModal({
       }
 
       try {
-        const response = await providerService.getProviderModels();
+        const [response, compatibleResponse] = await Promise.all([
+          providerService.getProviderModels(),
+          providerService.listOpenAICompatibleConfigs().catch(() => ({ models: [] })),
+        ]);
         const nextProviders = response.providers || [];
+        const compatibleModels = compatibleResponse.models || [];
         primeProviderModelsCache(nextProviders);
-        setProviderCards(mapProviderModelsToCards(nextProviders, isEn));
+        setProviderCards(mapProviderModelsToCards(nextProviders, isEn, compatibleModels));
       } catch {
         if (providerModelsCache) {
           writePersistedProviderModelsCache(providerModelsCache, Date.now());
@@ -648,6 +1198,12 @@ export function SettingsModal({
       }
 
       if (isCacheFresh) {
+        if (snapshot) {
+          const compatibleModels = await loadOpenAICompatibleConfigs();
+          if (!disposed) {
+            setProviderCards(mapProviderModelsToCards(snapshot.providers, isEn, compatibleModels));
+          }
+        }
         setLoadingProviders(false);
         setProviderLoadError('');
         setHasResolvedProviders(true);
@@ -659,11 +1215,15 @@ export function SettingsModal({
       }
       setProviderLoadError('');
       try {
-        const response = await providerService.getProviderModels();
+        const [response, compatibleResponse] = await Promise.all([
+          providerService.getProviderModels(),
+          providerService.listOpenAICompatibleConfigs().catch(() => ({ models: [] })),
+        ]);
         if (disposed) return;
         const nextProviders = response.providers || [];
+        const compatibleModels = compatibleResponse.models || [];
         primeProviderModelsCache(nextProviders);
-        setProviderCards(mapProviderModelsToCards(nextProviders, isEn));
+        setProviderCards(mapProviderModelsToCards(nextProviders, isEn, compatibleModels));
       } catch {
         if (disposed) return;
         if (!hasCache) {
@@ -687,6 +1247,11 @@ export function SettingsModal({
     };
   }, [activeTab, hasInitialProviderModels, initialProviderModels, isEn, isOpen]);
 
+  useEffect(() => {
+    if (!isOpen || activeTab !== 'model-provider') return;
+    void refreshSystemModelSelectionsFromServer();
+  }, [activeTab, isOpen, refreshSystemModelSelectionsFromServer]);
+
   const handleLanguageChange = (nextLanguage: Locale) => {
     setLanguage(nextLanguage);
     if (nextLanguage !== currentLocale) {
@@ -703,6 +1268,7 @@ export function SettingsModal({
     configured: isEn ? 'Configured' : '已配置',
     configure: isEn ? 'Configure' : '去配置',
     add: isEn ? '+ Add' : '+ 添加',
+    addModel: isEn ? 'Add model' : '添加模型',
     officialModelHint: isEn ? 'Official models only, custom add/edit/delete is disabled' : '官方模型，不支持自定义增删改',
     noModels: isEn ? 'No models' : '暂无模型',
     noProviders: isEn ? 'No providers available' : '暂无供应商',
@@ -875,7 +1441,11 @@ export function SettingsModal({
                     <h3 className="text-base font-semibold text-gray-900">{isEn ? 'Provider Pool' : '厂商资源池'}</h3>
                     <p className="mt-1 text-sm text-gray-500">{isEn ? 'Manage provider connections and model availability.' : '参考原型图的供应商管理视图，支持连接状态与模型启停。'}</p>
                   </div>
-                  <button className="shrink-0 whitespace-nowrap rounded-full bg-black px-4 py-2 text-xs font-semibold text-white hover:bg-gray-800 transition-colors">
+                  <button
+                    type="button"
+                    onClick={openSystemModelConfigModal}
+                    className="shrink-0 whitespace-nowrap rounded-full bg-black px-4 py-2 text-xs font-semibold text-white hover:bg-gray-800 transition-colors"
+                  >
                     {isEn ? 'Configure System Model' : '配置系统模型'}
                   </button>
                 </div>
@@ -900,9 +1470,12 @@ export function SettingsModal({
                   )}
 
                   {providerCards.map((provider) => {
+                    const isCompatibleProvider = isCompatibleProviderId(provider.id);
+                    const compatibleModelCount = provider.models.text.length + provider.models.image.length + provider.models.video.length;
                     const hasKey = provider.connected || Boolean(provider.key?.trim());
                     const hasCompatibleDetails =
-                      provider.id !== 'compatible' ||
+                      !isCompatibleProvider ||
+                      compatibleModelCount > 0 ||
                       (Boolean(provider.baseUrl?.trim()) && Boolean(provider.modelName?.trim()));
                     const providerReady = provider.connected && hasKey && hasCompatibleDetails;
                     const currentModels = provider.models[provider.activeType];
@@ -923,7 +1496,18 @@ export function SettingsModal({
                           <button className="text-xs text-gray-500 hover:text-gray-700 transition-colors">{providerText.setupGuide}</button>
                         </header>
 
-                        {provider.id !== 'compatible' && (
+                        {isCompatibleProvider ? (
+                          <div className="mt-3 flex items-center justify-between rounded-xl border border-gray-200 bg-gray-50 px-3 py-2.5">
+                            <span className="text-xs font-medium text-gray-600">{providerText.addModel}</span>
+                            <button
+                              type="button"
+                              onClick={() => openCreateCompatibleEditor(provider.id, provider.activeType)}
+                              className="rounded-full bg-black px-2.5 py-1 text-[11px] font-semibold text-white hover:bg-gray-800 transition-colors"
+                            >
+                              {providerText.add}
+                            </button>
+                          </div>
+                        ) : (
                           <div className="mt-3 flex items-center justify-between rounded-xl border border-gray-200 bg-gray-50 px-3 py-2.5">
                             <span className="text-xs font-medium text-gray-600">API Key</span>
                             {providerReady ? (
@@ -1000,7 +1584,13 @@ export function SettingsModal({
                                       </span>
                                     </div>
                                     {provider.allowModelManagement ? (
-                                      <button className="text-xs font-semibold text-gray-600 hover:text-gray-800 transition-colors">{providerText.add}</button>
+                                      <button
+                                        type="button"
+                                        onClick={() => openCreateCompatibleEditor(provider.id, provider.activeType)}
+                                        className="text-xs font-semibold text-gray-600 hover:text-gray-800 transition-colors"
+                                      >
+                                        {providerText.add}
+                                      </button>
                                     ) : (
                                       <span className="text-[11px] text-gray-500">{providerText.officialModelHint}</span>
                                     )}
@@ -1081,6 +1671,145 @@ export function SettingsModal({
         </div>
 
       </div>
+
+      {showSystemModelConfigModal && (
+        <div
+          className="fixed inset-0 z-[56] flex items-center justify-center bg-black/35 p-4"
+          onClick={(e) => {
+            if (e.target === e.currentTarget) {
+              closeSystemModelConfigModal();
+            }
+          }}
+        >
+          <div className="w-full max-w-6xl rounded-2xl border border-gray-200 bg-white p-6 shadow-2xl">
+            <div className="mb-5 flex items-start justify-between gap-3">
+              <div>
+                <h3 className="text-base font-semibold text-gray-900">{isEn ? 'Configure System Model' : '配置系统模型'}</h3>
+                <p className="mt-1 text-xs text-gray-500">
+                  {isEn
+                    ? 'Configure defaults for text, image, and video generation.'
+                    : '为文本、图像、视频三类能力分别配置默认模型。'}
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={closeSystemModelConfigModal}
+                className="rounded-full p-1.5 text-gray-400 hover:bg-gray-100 hover:text-gray-700 transition-colors"
+                aria-label={providerText.close}
+              >
+                <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+
+            <div className="grid gap-4 md:grid-cols-3">
+              {(['text', 'image', 'video'] as ModelType[]).map((type) => {
+                const form = systemModelForms[type];
+                const providersForType = providerCards.filter((provider) => provider.models[type].length > 0);
+                const selectedProvider = providersForType.find((provider) => provider.id === form.providerId);
+                const modelsForType = selectedProvider?.models[type] || [];
+
+                return (
+                  <section key={type} className="rounded-2xl border border-gray-200 bg-gray-50 p-4">
+                    <div className="mb-3 flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <span className="inline-flex h-7 w-7 items-center justify-center rounded-full bg-white text-gray-700 shadow-sm">
+                          <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.7} d={typeMeta[type].iconPath} />
+                          </svg>
+                        </span>
+                        <span className="text-sm font-semibold text-gray-900">{typeMeta[type].label}</span>
+                      </div>
+                    </div>
+
+                    <div className="space-y-3">
+                      <div>
+                        <label className="block text-xs font-medium text-gray-700">{isEn ? 'Provider' : '供应商'}</label>
+                        <SystemModelSelect
+                          value={form.providerId}
+                          placeholder={isEn ? 'Select provider' : '选择供应商'}
+                          ariaLabel={`${type}-${isEn ? 'provider' : '供应商'}`}
+                          options={[
+                            { value: '', label: isEn ? 'Select provider' : '选择供应商' },
+                            ...providersForType.map((provider) => ({
+                              value: provider.id,
+                              label: provider.name,
+                            })),
+                          ]}
+                          onChange={(value) => handleSystemModelProviderChange(type, value)}
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-xs font-medium text-gray-700">{isEn ? 'Model' : '模型'}</label>
+                        {modelsForType.length > 0 ? (
+                          <SystemModelSelect
+                            value={form.modelName}
+                            placeholder={isEn ? 'Select model' : '选择模型'}
+                            ariaLabel={`${type}-${isEn ? 'model' : '模型'}`}
+                            options={[
+                              { value: '', label: isEn ? 'Select model' : '选择模型' },
+                              ...modelsForType.map((model) => ({
+                                value: model.modelId || model.name,
+                                label: model.name,
+                              })),
+                            ]}
+                            onChange={(value) => updateSystemModelForm(type, { modelName: value })}
+                          />
+                        ) : (
+                          <input
+                            value={form.modelName}
+                            onChange={(e) => updateSystemModelForm(type, { modelName: e.target.value })}
+                            placeholder={isEn ? 'Enter model name' : '输入模型名称'}
+                            className="mt-1 h-10 w-full rounded-xl border border-gray-200 bg-white px-3 text-sm text-gray-900 placeholder:text-gray-400 focus:border-gray-900 focus:outline-none"
+                          />
+                        )}
+                      </div>
+
+                      <div>
+                        <label className="block text-xs font-medium text-gray-700">{isEn ? 'Notes (Optional)' : '备注（可选）'}</label>
+                        <textarea
+                          rows={3}
+                          value={form.note}
+                          onChange={(e) => updateSystemModelForm(type, { note: e.target.value })}
+                          placeholder={isEn ? 'Scenario, quality target, or constraints.' : '填写场景、质量目标或约束。'}
+                          className="mt-1 w-full rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm text-gray-900 placeholder:text-gray-400 focus:border-gray-900 focus:outline-none"
+                        />
+                      </div>
+                    </div>
+                  </section>
+                );
+              })}
+            </div>
+
+            {systemModelFormError && (
+              <p className="mt-4 text-xs text-red-500">{systemModelFormError}</p>
+            )}
+
+            <div className="mt-6 flex items-center justify-end gap-2">
+              <button
+                type="button"
+                onClick={closeSystemModelConfigModal}
+                disabled={savingSystemModel}
+                className="rounded-xl border border-gray-200 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                {providerText.cancel}
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  void saveSystemModelForms();
+                }}
+                disabled={savingSystemModel}
+                className="rounded-xl bg-black px-4 py-2 text-sm font-medium text-white hover:bg-gray-800 transition-colors disabled:cursor-not-allowed disabled:opacity-70"
+              >
+                {savingSystemModel ? (isEn ? 'Saving...' : '保存中...') : providerText.save}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {editingProviderConfig && (
         <div
@@ -1167,7 +1896,7 @@ export function SettingsModal({
         </div>
       )}
 
-      {editingCompatible && (
+        {editingCompatible && (
         <div
           className="fixed inset-0 z-[60] flex items-center justify-center bg-black/35 p-4"
           onClick={(e) => {
@@ -1191,7 +1920,7 @@ export function SettingsModal({
               </button>
             </div>
 
-            <div className="space-y-3">
+              <div className="space-y-3">
               <div>
                 <label className="block text-sm font-medium text-gray-700">{providerText.modelName} <span className="text-red-500">*</span></label>
                 <input
@@ -1200,15 +1929,35 @@ export function SettingsModal({
                   className="mt-1 h-11 w-full rounded-xl border border-gray-200 bg-white px-4 text-sm text-gray-900 placeholder:text-gray-400 focus:border-gray-900 focus:outline-none"
                 />
               </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700">Key <span className="text-red-500">*</span></label>
-                <input
-                  type="password"
-                  value={editingCompatible.apiKey}
-                  onChange={(e) => setEditingCompatible((prev) => (prev ? { ...prev, apiKey: e.target.value } : prev))}
-                  className="mt-1 h-11 w-full rounded-xl border border-gray-200 bg-white px-4 text-sm text-gray-900 placeholder:text-gray-400 focus:border-gray-900 focus:outline-none"
-                />
-              </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">Key <span className="text-red-500">*</span></label>
+                  <div className="relative mt-1">
+                    <input
+                      type={showCompatibleApiKey ? 'text' : 'password'}
+                      value={editingCompatible.apiKey}
+                      onChange={(e) => setEditingCompatible((prev) => (prev ? { ...prev, apiKey: e.target.value } : prev))}
+                      className="h-11 w-full rounded-xl border border-gray-200 bg-white px-4 pr-11 text-sm text-gray-900 placeholder:text-gray-400 focus:border-gray-900 focus:outline-none"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowCompatibleApiKey((prev) => !prev)}
+                      className="absolute right-2.5 top-1/2 -translate-y-1/2 rounded-full p-1 text-gray-400 hover:bg-gray-100 hover:text-gray-700 transition-colors"
+                      aria-label={showCompatibleApiKey ? providerText.hideApiKey : providerText.showApiKey}
+                      title={showCompatibleApiKey ? providerText.hideApiKey : providerText.showApiKey}
+                    >
+                      {showCompatibleApiKey ? (
+                        <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.875 18.825A10.05 10.05 0 0112 19c-5 0-9-3-11-7 1.057-2.113 2.607-3.78 4.4-4.96M9.9 4.24A9.75 9.75 0 0112 4c5 0 9 3 11 7a11.18 11.18 0 01-4.25 4.79M15 12a3 3 0 00-4.08-2.8M3 3l18 18" />
+                        </svg>
+                      ) : (
+                        <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.27 2.943 9.542 7-1.272 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                        </svg>
+                      )}
+                    </button>
+                  </div>
+                </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700">URL <span className="text-red-500">*</span></label>
                 <input
@@ -1234,16 +1983,20 @@ export function SettingsModal({
               <button
                 type="button"
                 onClick={closeCompatibleEditor}
-                className="rounded-xl border border-gray-200 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors"
+                disabled={savingCompatible}
+                className="rounded-xl border border-gray-200 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors disabled:cursor-not-allowed disabled:opacity-60"
               >
                 {providerText.cancel}
               </button>
               <button
                 type="button"
-                onClick={saveCompatibleEditor}
-                className="rounded-xl bg-black px-4 py-2 text-sm font-medium text-white hover:bg-gray-800 transition-colors"
+                onClick={() => {
+                  void saveCompatibleEditor();
+                }}
+                disabled={savingCompatible}
+                className="rounded-xl bg-black px-4 py-2 text-sm font-medium text-white hover:bg-gray-800 transition-colors disabled:cursor-not-allowed disabled:opacity-70"
               >
-                {providerText.save}
+                {savingCompatible ? (isEn ? 'Saving...' : '保存中...') : providerText.save}
               </button>
             </div>
           </div>
@@ -1271,16 +2024,20 @@ export function SettingsModal({
               <button
                 type="button"
                 onClick={closeDeleteConfirm}
-                className="rounded-xl border border-gray-200 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors"
+                disabled={deletingCompatible}
+                className="rounded-xl border border-gray-200 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors disabled:cursor-not-allowed disabled:opacity-60"
               >
                 {providerText.cancel}
               </button>
               <button
                 type="button"
-                onClick={confirmDeleteModel}
-                className="rounded-xl bg-red-600 px-4 py-2 text-sm font-medium text-white hover:bg-red-700 transition-colors"
+                onClick={() => {
+                  void confirmDeleteModel();
+                }}
+                disabled={deletingCompatible}
+                className="rounded-xl bg-red-600 px-4 py-2 text-sm font-medium text-white hover:bg-red-700 transition-colors disabled:cursor-not-allowed disabled:opacity-70"
               >
-                {providerText.confirmDeleteButton}
+                {deletingCompatible ? (isEn ? 'Deleting...' : '删除中...') : providerText.confirmDeleteButton}
               </button>
             </div>
           </div>

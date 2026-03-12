@@ -5,6 +5,9 @@ from src.modules.providers.application.services.chat_service import ChatService
 from src.modules.providers.application.services.model_generation_service import (
     ModelGenerationService,
 )
+from src.modules.providers.application.services.openai_compatible_config_management_service import (
+    OpenAICompatibleConfigManagementService,
+)
 from src.modules.providers.application.services.provider_config_management_service import (
     ProviderConfigManagementService,
 )
@@ -31,16 +34,24 @@ def get_provider_config_repository(
     return EnvironmentProviderConfigRepository(user_id=current_user_id)
 
 
-def get_model_generation_service(
-    provider_config_repository: IProviderConfigRepository = Depends(get_provider_config_repository),
-) -> ModelGenerationService:
-    return ModelGenerationService(provider_config_repository=provider_config_repository)
-
-
 async def get_provider_persistence_repository(
     db: AsyncSession = Depends(get_db),
 ) -> ProviderPersistenceRepository:
     return ProviderPersistenceRepository(db)
+
+
+async def get_model_generation_service(
+    current_user_id: str = Depends(get_current_user_id),
+    provider_config_repository: IProviderConfigRepository = Depends(get_provider_config_repository),
+    provider_persistence_repository: ProviderPersistenceRepository = Depends(
+        get_provider_persistence_repository
+    ),
+) -> ModelGenerationService:
+    return ModelGenerationService(
+        provider_config_repository=provider_config_repository,
+        provider_persistence_repository=provider_persistence_repository,
+        user_id=current_user_id,
+    )
 
 
 async def get_provider_config_management_service(
@@ -55,6 +66,18 @@ async def get_provider_config_management_service(
     )
 
 
+async def get_openai_compatible_config_management_service(
+    current_user_id: str = Depends(get_current_user_id),
+    provider_persistence_repository: ProviderPersistenceRepository = Depends(
+        get_provider_persistence_repository
+    ),
+) -> OpenAICompatibleConfigManagementService:
+    return OpenAICompatibleConfigManagementService(
+        provider_persistence_repository=provider_persistence_repository,
+        user_id=current_user_id,
+    )
+
+
 async def get_system_model_config_repository(
     db: AsyncSession = Depends(get_db),
 ) -> SystemModelConfigRepository:
@@ -64,6 +87,9 @@ async def get_system_model_config_repository(
 async def get_chat_service(
     current_user_id: str = Depends(get_current_user_id),
     provider_config_repository: IProviderConfigRepository = Depends(get_provider_config_repository),
+    provider_persistence_repository: ProviderPersistenceRepository = Depends(
+        get_provider_persistence_repository
+    ),
     system_model_config_repository: SystemModelConfigRepository = Depends(
         get_system_model_config_repository
     ),
@@ -71,6 +97,7 @@ async def get_chat_service(
     return ChatService(
         user_id=current_user_id,
         provider_config_repository=provider_config_repository,
+        provider_persistence_repository=provider_persistence_repository,
         system_model_config_repository=system_model_config_repository,
     )
 
@@ -78,6 +105,9 @@ async def get_chat_service(
 async def get_system_model_config_service(
     current_user_id: str = Depends(get_current_user_id),
     provider_config_repository: IProviderConfigRepository = Depends(get_provider_config_repository),
+    provider_persistence_repository: ProviderPersistenceRepository = Depends(
+        get_provider_persistence_repository
+    ),
     system_model_config_repository: SystemModelConfigRepository = Depends(
         get_system_model_config_repository
     ),
@@ -85,5 +115,6 @@ async def get_system_model_config_service(
     return SystemModelConfigService(
         user_id=current_user_id,
         provider_config_repository=provider_config_repository,
+        provider_persistence_repository=provider_persistence_repository,
         system_model_config_repository=system_model_config_repository,
     )

@@ -10,7 +10,9 @@ from src.shared.infrastructure.database import Base
 
 class SystemModelConfigModel(Base):
     __tablename__ = "system_model_configs"
-    __table_args__ = (UniqueConstraint("user_id", name="system_model_configs_user_id_key"),)
+    __table_args__ = (
+        UniqueConstraint("user_id", "model_type", name="system_model_configs_user_id_model_type_key"),
+    )
 
     id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True),
@@ -24,6 +26,7 @@ class SystemModelConfigModel(Base):
         nullable=False,
         index=True,
     )
+    model_type: Mapped[str] = mapped_column(String(16), nullable=False)
     provider: Mapped[str] = mapped_column(String(50), nullable=False)
     model_name: Mapped[str] = mapped_column(String(128), nullable=False)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
@@ -36,5 +39,5 @@ class SystemModelConfigModel(Base):
     def __repr__(self) -> str:
         return (
             f"<SystemModelConfigModel(id={self.id}, user_id={self.user_id}, "
-            f"provider='{self.provider}', model_name='{self.model_name}')>"
+            f"model_type='{self.model_type}', provider='{self.provider}', model_name='{self.model_name}')>"
         )

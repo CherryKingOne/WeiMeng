@@ -1,4 +1,5 @@
 from collections.abc import AsyncIterator
+import re
 
 from src.modules.providers.application.dto.chat_dto import ChatRequest, ChatResponse
 from src.modules.providers.domain.exceptions import (
@@ -9,11 +10,20 @@ from src.modules.providers.domain.exceptions import (
 from src.modules.providers.domain.repositories import IProviderConfigRepository
 from src.modules.providers.domain.value_objects.model_type import ModelType
 from src.modules.providers.domain.value_objects.provider_name import ProviderName
+from src.modules.providers.domain.value_objects.system_model_type import SystemModelType
 from src.modules.providers.infrastructure.factories import ModelProviderFactory
 from src.modules.providers.infrastructure.providers.deepseek.llm_adapter import DeepSeekLLMAdapter
+from src.modules.providers.infrastructure.providers.openai.llm_adapter import OpenAILLMAdapter
+from src.modules.providers.infrastructure.providers.openai_compatible import (
+    OPENAI_COMPATIBLE_PROVIDER,
+    OpenAICompatibleConfigRecord,
+)
 from src.modules.providers.infrastructure.providers.qwen.llm_adapter import QwenLLMAdapter
 from src.modules.providers.infrastructure.providers.volcengine.llm_adapter import (
     VolcengineLLMAdapter,
+)
+from src.modules.providers.infrastructure.repositories.provider_persistence_repository import (
+    ProviderPersistenceRepository,
 )
 from src.modules.providers.infrastructure.repositories.system_model_config_repository import (
     SystemModelConfigRepository,
@@ -27,10 +37,12 @@ class ChatService:
         user_id: str,
         provider_config_repository: IProviderConfigRepository,
         system_model_config_repository: SystemModelConfigRepository,
+        provider_persistence_repository: ProviderPersistenceRepository | None = None,
     ):
         self._user_id = user_id
         self._provider_config_repository = provider_config_repository
         self._system_model_config_repository = system_model_config_repository
+        self._provider_persistence_repository = provider_persistence_repository
 
     async def chat(self, request: ChatRequest) -> ChatResponse:
         (
@@ -49,7 +61,26 @@ class ChatService:
         except DomainException:
             raise
         except Exception as exc:
-            raise ModelGenerationFailedException(detail=str(exc)) from exc
+            if resolved_provider == ProviderName.OPENAI_COMPATIBLE:
+                retry_max_tokens = self._extract_retryable_max_tokens_from_error(exc)
+                if retry_max_tokens is not None:
+                    retry_kwargs = dict(generation_kwargs)
+                    retry_kwargs["max_tokens"] = retry_max_tokens
+                    try:
+                        reply = await llm_provider.generate_text(
+                            prompt=request.message.strip(),
+                            model=resolved_model,
+                            **retry_kwargs,
+                        )
+                        generation_kwargs = retry_kwargs
+                    except DomainException:
+                        raise
+                    except Exception as retry_exc:
+                        raise ModelGenerationFailedException(detail=str(retry_exc)) from retry_exc
+                else:
+                    raise ModelGenerationFailedException(detail=str(exc)) from exc
+            else:
+                raise ModelGenerationFailedException(detail=str(exc)) from exc
 
         qwen_thinking_enabled = (
             resolved_provider == ProviderName.QWEN
@@ -105,6 +136,7 @@ class ChatService:
         ) = await self._prepare_chat_context(request)
 
         async def _stream() -> AsyncIterator[str]:
+            emitted = False
             try:
                 async for chunk in llm_provider.stream_generate_text(
                     prompt=request.message.strip(),
@@ -112,10 +144,33 @@ class ChatService:
                     **generation_kwargs,
                 ):
                     if chunk:
+                        emitted = True
                         yield chunk
             except DomainException:
                 raise
             except Exception as exc:
+                if (
+                    not emitted
+                    and resolved_provider == ProviderName.OPENAI_COMPATIBLE
+                    and "max_tokens" in generation_kwargs
+                ):
+                    retry_max_tokens = self._extract_retryable_max_tokens_from_error(exc)
+                    if retry_max_tokens is not None:
+                        retry_kwargs = dict(generation_kwargs)
+                        retry_kwargs["max_tokens"] = retry_max_tokens
+                        try:
+                            async for chunk in llm_provider.stream_generate_text(
+                                prompt=request.message.strip(),
+                                model=resolved_model,
+                                **retry_kwargs,
+                            ):
+                                if chunk:
+                                    yield chunk
+                            return
+                        except DomainException:
+                            raise
+                        except Exception as retry_exc:
+                            raise ModelGenerationFailedException(detail=str(retry_exc)) from retry_exc
                 raise ModelGenerationFailedException(detail=str(exc)) from exc
 
         return resolved_provider, resolved_model, _stream()
@@ -125,31 +180,53 @@ class ChatService:
         request: ChatRequest,
     ) -> tuple[ProviderName, str, object, dict[str, float | int | bool | str]]:
         resolved_provider, resolved_model = await self._resolve_provider_and_model(request)
-
-        provider_config = self._provider_config_repository.get_provider_config(resolved_provider)
-        if provider_config is None:
-            raise ProviderConfigNotFoundException(resolved_provider.value)
-
-        if resolved_model not in provider_config.supported_models:
-            raise ProviderModelNotSupportedException(
-                provider=resolved_provider.value,
-                model=resolved_model,
-            )
-
-        llm_provider = ModelProviderFactory.create(
-            provider=resolved_provider,
-            model_type=ModelType.LLM,
-            api_key=provider_config.api_key,
-            base_url=provider_config.base_url,
-            conversation_template=request.conversation_template
-            or provider_config.conversation_template,
-        )
-
         generation_kwargs: dict[str, float | int | bool | str] = {}
-        if request.temperature is not None:
-            generation_kwargs["temperature"] = request.temperature
-        if request.max_tokens is not None:
-            generation_kwargs["max_tokens"] = request.max_tokens
+        if resolved_provider == ProviderName.OPENAI_COMPATIBLE:
+            openai_compatible_record = await self._get_openai_compatible_config_by_model(resolved_model)
+            llm_provider = OpenAILLMAdapter(
+                api_key=openai_compatible_record.payload.api_key,
+                base_url=openai_compatible_record.payload.base_url,
+                conversation_template=request.conversation_template
+                or OpenAILLMAdapter.DEFAULT_CONVERSATION_TEMPLATE,
+            )
+            temperature = (
+                request.temperature
+                if request.temperature is not None
+                else openai_compatible_record.payload.temperature
+            )
+            max_tokens = (
+                request.max_tokens
+                if request.max_tokens is not None
+                else openai_compatible_record.payload.max_token
+            )
+            if temperature is not None:
+                generation_kwargs["temperature"] = temperature
+            if max_tokens is not None:
+                generation_kwargs["max_tokens"] = max_tokens
+        else:
+            provider_config = self._provider_config_repository.get_provider_config(resolved_provider)
+            if provider_config is None:
+                raise ProviderConfigNotFoundException(resolved_provider.value)
+
+            if resolved_model not in provider_config.supported_models:
+                raise ProviderModelNotSupportedException(
+                    provider=resolved_provider.value,
+                    model=resolved_model,
+                )
+
+            llm_provider = ModelProviderFactory.create(
+                provider=resolved_provider,
+                model_type=ModelType.LLM,
+                api_key=provider_config.api_key,
+                base_url=provider_config.base_url,
+                conversation_template=request.conversation_template
+                or provider_config.conversation_template,
+            )
+            if request.temperature is not None:
+                generation_kwargs["temperature"] = request.temperature
+            if request.max_tokens is not None:
+                generation_kwargs["max_tokens"] = request.max_tokens
+
         if request.enable_thinking is not None:
             if resolved_provider != ProviderName.QWEN:
                 raise ValidationException(
@@ -209,16 +286,28 @@ class ChatService:
             return request.provider, request.model_name.strip()
 
         if request.provider and not request.model_name:
+            if request.provider == ProviderName.OPENAI_COMPATIBLE:
+                if self._provider_persistence_repository is None:
+                    raise ProviderConfigNotFoundException(OPENAI_COMPATIBLE_PROVIDER)
+                records = await self._provider_persistence_repository.list_openai_compatible_configs(
+                    user_id=self._user_id
+                )
+                if not records:
+                    raise ProviderConfigNotFoundException(OPENAI_COMPATIBLE_PROVIDER)
+                return request.provider, records[0].payload.model
             provider_config = self._provider_config_repository.get_provider_config(request.provider)
             if provider_config is None:
                 raise ProviderConfigNotFoundException(request.provider.value)
             return request.provider, provider_config.default_model
 
-        system_model_config = await self._system_model_config_repository.get_by_user_id(self._user_id)
+        system_model_config = await self._system_model_config_repository.get_by_user_id_and_type(
+            user_id=self._user_id,
+            model_type=SystemModelType.TEXT,
+        )
         if system_model_config is None:
             raise ValidationException(
                 message="System model config not found",
-                detail="Provide provider/model_name or configure /api/v1/models/system first.",
+                detail="Provide provider/model_name or configure text model via /api/v1/models/system first.",
             )
 
         try:
@@ -226,7 +315,46 @@ class ChatService:
         except ValueError as exc:
             raise ValidationException(
                 message="System model config invalid",
-                detail="Configured provider is invalid, please reconfigure /api/v1/models/system.",
+                detail="Configured provider is invalid, please reconfigure text model via /api/v1/models/system.",
             ) from exc
 
         return provider, system_model_config.model_name
+
+    async def _get_openai_compatible_config_by_model(self, model_name: str) -> OpenAICompatibleConfigRecord:
+        if self._provider_persistence_repository is None:
+            raise ProviderConfigNotFoundException(OPENAI_COMPATIBLE_PROVIDER)
+
+        record = await self._provider_persistence_repository.get_openai_compatible_config_by_model(
+            user_id=self._user_id,
+            model=model_name,
+        )
+        if record is not None:
+            return record
+
+        records = await self._provider_persistence_repository.list_openai_compatible_configs(
+            user_id=self._user_id
+        )
+        if not records:
+            raise ProviderConfigNotFoundException(OPENAI_COMPATIBLE_PROVIDER)
+
+        raise ProviderModelNotSupportedException(
+            provider=OPENAI_COMPATIBLE_PROVIDER,
+            model=model_name.strip(),
+        )
+
+    @staticmethod
+    def _extract_retryable_max_tokens_from_error(exc: Exception) -> int | None:
+        message = str(exc)
+        if "max_tokens" not in message:
+            return None
+
+        matched = re.search(r"valid range of max_tokens is \[(\d+),\s*(\d+)\]", message)
+        if matched is None:
+            return None
+        try:
+            upper_bound = int(matched.group(2))
+        except ValueError:
+            return None
+        if upper_bound <= 0:
+            return None
+        return upper_bound

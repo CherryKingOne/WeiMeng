@@ -1,5 +1,7 @@
 import asyncio
 from collections.abc import AsyncIterator
+from datetime import datetime, timezone
+import uuid
 
 import pytest
 
@@ -9,6 +11,7 @@ from src.modules.providers.application.dto.chat_dto import (
     VolcengineReasoningEffort,
     VolcengineThinkingType,
 )
+from src.modules.providers.application.services import chat_service as chat_service_module
 from src.modules.providers.application.services.chat_service import ChatService
 from src.modules.providers.domain.entities.provider_catalog import ProviderCatalog
 from src.modules.providers.domain.entities.provider_config import ProviderConfig
@@ -21,6 +24,11 @@ from src.modules.providers.domain.repositories import IProviderConfigRepository
 from src.modules.providers.domain.value_objects.model_type import ModelType
 from src.modules.providers.domain.value_objects.provider_name import ProviderName
 from src.modules.providers.infrastructure.factories import ModelProviderFactory
+from src.modules.providers.infrastructure.providers.openai_compatible import (
+    OPENAI_COMPATIBLE_PROVIDER,
+    OpenAICompatibleConfigPayload,
+    OpenAICompatibleConfigRecord,
+)
 from src.shared.domain.exceptions import ValidationException
 
 
@@ -79,9 +87,31 @@ class _FakeSystemModelConfigRepository:
         self._model = model
         self.last_user_id: str | None = None
 
-    async def get_by_user_id(self, user_id: str):
+    async def get_by_user_id_and_type(self, user_id: str, model_type):
         self.last_user_id = user_id
+        _ = model_type
         return self._model
+
+
+class _FakeOpenAICompatiblePersistenceRepository:
+    def __init__(self, records: list[OpenAICompatibleConfigRecord]):
+        self._records = records
+
+    async def list_openai_compatible_configs(self, user_id: str) -> list[OpenAICompatibleConfigRecord]:
+        _ = user_id
+        return self._records
+
+    async def get_openai_compatible_config_by_model(
+        self,
+        user_id: str,
+        model: str,
+    ) -> OpenAICompatibleConfigRecord | None:
+        _ = user_id
+        normalized = model.strip().lower()
+        for record in self._records:
+            if record.payload.model.strip().lower() == normalized:
+                return record
+        return None
 
 
 class _FakeLLMProvider(ILLMProvider):
@@ -100,6 +130,41 @@ class _FakeLLMProvider(ILLMProvider):
     async def stream_generate_text(self, prompt: str, model: str, **kwargs) -> AsyncIterator[str]:
         _ = model
         self.__class__.last_stream_kwargs = dict(kwargs)
+        yield prompt
+
+
+class _FakeOpenAICompatibleLLMProvider(_FakeLLMProvider):
+    DEFAULT_CONVERSATION_TEMPLATE = "openai"
+
+
+class _FakeOpenAICompatibleRetryLLMProvider(ILLMProvider):
+    DEFAULT_CONVERSATION_TEMPLATE = "openai"
+    last_generate_kwargs: dict | None = None
+
+    def __init__(self, api_key: str, base_url: str | None = None, conversation_template: str | None = None):
+        _ = api_key
+        _ = base_url
+        _ = conversation_template
+
+    async def generate_text(self, prompt: str, model: str, **kwargs) -> str:
+        self.__class__.last_generate_kwargs = dict(kwargs)
+        max_tokens = kwargs.get("max_tokens")
+        if isinstance(max_tokens, int) and max_tokens > 8192:
+            raise Exception(
+                "Error code: 400 - {'error': {'message': 'Invalid max_tokens value, "
+                "the valid range of max_tokens is [1, 8192]'}}"
+            )
+        return f"{model}:{prompt}"
+
+    async def stream_generate_text(self, prompt: str, model: str, **kwargs) -> AsyncIterator[str]:
+        _ = model
+        self.__class__.last_generate_kwargs = dict(kwargs)
+        max_tokens = kwargs.get("max_tokens")
+        if isinstance(max_tokens, int) and max_tokens > 8192:
+            raise Exception(
+                "Error code: 400 - {'error': {'message': 'Invalid max_tokens value, "
+                "the valid range of max_tokens is [1, 8192]'}}"
+            )
         yield prompt
 
 
@@ -247,6 +312,101 @@ def test_chat_uses_system_model_when_provider_and_model_missing():
     assert response.model_name == "qwen3.5-plus"
     assert response.think is None
     assert response.answer == "qwen3.5-plus:测试系统模型"
+
+
+def test_chat_uses_openai_compatible_system_model(monkeypatch):
+    now = datetime.now(timezone.utc)
+    persistence_repository = _FakeOpenAICompatiblePersistenceRepository(
+        records=[
+            OpenAICompatibleConfigRecord(
+                id=uuid.uuid4(),
+                provider_key=f"{OPENAI_COMPATIBLE_PROVIDER}:deepseek-chat",
+                payload=OpenAICompatibleConfigPayload(
+                    provider=OPENAI_COMPATIBLE_PROVIDER,
+                    base_url="https://third-party.example.com/v1",
+                    api_key="third-party-key",
+                    model="deepseek-chat",
+                    max_token=128000,
+                    temperature=0.7,
+                ),
+                created_at=now,
+                updated_at=now,
+            )
+        ]
+    )
+    _FakeOpenAICompatibleLLMProvider.last_generate_kwargs = None
+    monkeypatch.setattr(
+        chat_service_module,
+        "OpenAILLMAdapter",
+        _FakeOpenAICompatibleLLMProvider,
+    )
+    service = ChatService(
+        user_id="00000000-0000-0000-0000-000000000045",
+        provider_config_repository=_FakeProviderConfigRepository(None),
+        provider_persistence_repository=persistence_repository,
+        system_model_config_repository=_FakeSystemModelConfigRepository(
+            _FakeSystemModelConfigEntity(
+                provider=ProviderName.OPENAI_COMPATIBLE.value,
+                model_name="deepseek-chat",
+            )
+        ),
+    )
+
+    response = asyncio.run(service.chat(ChatRequest(message="openai-compatible 测试")))
+
+    assert response.provider == ProviderName.OPENAI_COMPATIBLE
+    assert response.model_name == "deepseek-chat"
+    assert response.answer == "deepseek-chat:openai-compatible 测试"
+    assert _FakeOpenAICompatibleLLMProvider.last_generate_kwargs is not None
+    assert _FakeOpenAICompatibleLLMProvider.last_generate_kwargs.get("temperature") == 0.7
+    assert _FakeOpenAICompatibleLLMProvider.last_generate_kwargs.get("max_tokens") == 128000
+
+
+def test_chat_openai_compatible_retries_with_provider_max_tokens_limit(monkeypatch):
+    now = datetime.now(timezone.utc)
+    persistence_repository = _FakeOpenAICompatiblePersistenceRepository(
+        records=[
+            OpenAICompatibleConfigRecord(
+                id=uuid.uuid4(),
+                provider_key=f"{OPENAI_COMPATIBLE_PROVIDER}:deepseek-chat",
+                payload=OpenAICompatibleConfigPayload(
+                    provider=OPENAI_COMPATIBLE_PROVIDER,
+                    base_url="https://third-party.example.com/v1",
+                    api_key="third-party-key",
+                    model="deepseek-chat",
+                    max_token=128000,
+                    temperature=0.7,
+                ),
+                created_at=now,
+                updated_at=now,
+            )
+        ]
+    )
+    _FakeOpenAICompatibleRetryLLMProvider.last_generate_kwargs = None
+    monkeypatch.setattr(
+        chat_service_module,
+        "OpenAILLMAdapter",
+        _FakeOpenAICompatibleRetryLLMProvider,
+    )
+    service = ChatService(
+        user_id="00000000-0000-0000-0000-000000000046",
+        provider_config_repository=_FakeProviderConfigRepository(None),
+        provider_persistence_repository=persistence_repository,
+        system_model_config_repository=_FakeSystemModelConfigRepository(
+            _FakeSystemModelConfigEntity(
+                provider=ProviderName.OPENAI_COMPATIBLE.value,
+                model_name="deepseek-chat",
+            )
+        ),
+    )
+
+    response = asyncio.run(service.chat(ChatRequest(message="重试测试")))
+
+    assert response.provider == ProviderName.OPENAI_COMPATIBLE
+    assert response.model_name == "deepseek-chat"
+    assert response.answer == "deepseek-chat:重试测试"
+    assert _FakeOpenAICompatibleRetryLLMProvider.last_generate_kwargs is not None
+    assert _FakeOpenAICompatibleRetryLLMProvider.last_generate_kwargs.get("max_tokens") == 8192
 
 
 def test_chat_raises_when_system_model_not_configured():

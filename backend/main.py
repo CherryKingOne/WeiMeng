@@ -257,6 +257,71 @@ BEGIN
 END $$;
 """
 
+SYSTEM_MODEL_CONFIG_SCHEMA_MIGRATION_SQL = """
+DO $$
+DECLARE
+    user_only_unique_name TEXT;
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1
+        FROM information_schema.tables
+        WHERE table_schema = 'public'
+          AND table_name = 'system_model_configs'
+    ) THEN
+        RETURN;
+    END IF;
+
+    IF NOT EXISTS (
+        SELECT 1
+        FROM information_schema.columns
+        WHERE table_schema = 'public'
+          AND table_name = 'system_model_configs'
+          AND column_name = 'model_type'
+    ) THEN
+        ALTER TABLE public.system_model_configs
+            ADD COLUMN model_type VARCHAR(16);
+    END IF;
+
+    UPDATE public.system_model_configs
+    SET model_type = 'text'
+    WHERE model_type IS NULL OR BTRIM(model_type) = '';
+
+    ALTER TABLE public.system_model_configs
+        ALTER COLUMN model_type SET NOT NULL;
+
+    SELECT c.conname
+    INTO user_only_unique_name
+    FROM pg_constraint c
+    WHERE c.conrelid = 'public.system_model_configs'::regclass
+      AND c.contype = 'u'
+      AND (
+            SELECT array_agg((a.attname)::text ORDER BY k.ordinality)
+            FROM unnest(c.conkey) WITH ORDINALITY AS k(attnum, ordinality)
+            JOIN pg_attribute a
+              ON a.attrelid = c.conrelid
+             AND a.attnum = k.attnum
+      ) = ARRAY['user_id']::TEXT[]
+    LIMIT 1;
+
+    IF user_only_unique_name IS NOT NULL THEN
+        EXECUTE format(
+            'ALTER TABLE public.system_model_configs DROP CONSTRAINT %I',
+            user_only_unique_name
+        );
+    END IF;
+
+    IF NOT EXISTS (
+        SELECT 1
+        FROM pg_constraint
+        WHERE conrelid = 'public.system_model_configs'::regclass
+          AND conname = 'system_model_configs_user_id_model_type_key'
+    ) THEN
+        ALTER TABLE public.system_model_configs
+            ADD CONSTRAINT system_model_configs_user_id_model_type_key UNIQUE (user_id, model_type);
+    END IF;
+END $$;
+"""
+
 
 async def _load_provider_api_keys_from_database() -> None:
     try:
@@ -283,6 +348,7 @@ async def lifespan(app: FastAPI):
         await conn.execute(text(SCRIPT_CHUNK_REFERENCE_SCHEMA_MIGRATION_SQL))
         await conn.execute(text(SCRIPT_LIBRARY_AVATAR_SCHEMA_MIGRATION_SQL))
         await conn.execute(text(PROVIDER_USER_SCHEMA_MIGRATION_SQL))
+        await conn.execute(text(SYSTEM_MODEL_CONFIG_SCHEMA_MIGRATION_SQL))
         await conn.run_sync(Base.metadata.create_all)
     await _load_provider_api_keys_from_database()
     yield
