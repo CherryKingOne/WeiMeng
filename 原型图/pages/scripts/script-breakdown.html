@@ -1,0 +1,820 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>剧本拆解与资产提取 - WeiMeng</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- 使用系统字体，与 frontend 保持一致，无需外部字体引入 -->
+    <style>
+        /* =========================================
+         * WeiMeng Design System - 原型图样式规范
+         * 与 frontend 保持一致的字体和配色
+         * ========================================= */
+
+        /* CSS 变量定义 - 与 frontend/config/theme.ts 同步 */
+        :root {
+            /* 主色调 - 黑白灰 */
+            --color-primary-900: #0a0a0a;
+            --color-primary-800: #171717;
+            --color-primary-700: #262626;
+            --color-primary-600: #404040;
+            --color-primary-500: #525252;
+
+            /* 灰色系 - Tailwind gray */
+            --color-gray-50: #F9FAFB;
+            --color-gray-100: #F3F4F6;
+            --color-gray-200: #E5E7EB;
+            --color-gray-300: #D1D5DB;
+            --color-gray-400: #9CA3AF;
+            --color-gray-500: #6B7280;
+            --color-gray-600: #4B5563;
+            --color-gray-700: #374151;
+            --color-gray-800: #1F2937;
+            --color-gray-900: #111827;
+
+            /* 字体 - 与 frontend/app/globals.css 同步 */
+            --font-sans: ui-sans-serif, system-ui, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
+            --font-mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
+            --font-serif: ui-serif, Georgia, Cambria, "Times New Roman", Times, serif;
+
+            /* 圆角 - 与 frontend/config/theme.ts 同步 */
+            --radius-sm: 0.375rem;
+            --radius-md: 0.5rem;
+            --radius-lg: 0.75rem;
+            --radius-xl: 1rem;
+            --radius-2xl: 1.5rem;
+
+            /* 阴影 - 与 frontend/config/theme.ts 同步 */
+            --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+            --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1);
+            --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1);
+            --shadow-xl: 0 20px 25px -5px rgb(0 0 0 / 0.1);
+            --shadow-panel: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px -1px rgba(0, 0, 0, 0.1);
+            --shadow-float: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
+        }
+
+        * {
+            font-family: var(--font-sans);
+        }
+
+        body {
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+            background-color: var(--color-gray-50);
+            color: var(--color-gray-900);
+        }
+
+        /* 自定义滚动条 */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: var(--color-gray-200);
+            border-radius: 3px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: var(--color-gray-300);
+        }
+
+        /* 角色标签颜色线 */
+        .character-tag {
+            position: relative;
+            padding-left: 12px;
+            font-weight: 600;
+            color: var(--color-gray-800);
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .character-tag::before {
+            content: '';
+            position: absolute;
+            left: 0;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 3px;
+            height: 16px;
+            border-radius: 2px;
+        }
+
+        .character-tag.purple::before {
+            background-color: #DDD6FE;
+        }
+
+        .character-tag.green::before {
+            background-color: #BBF7D0;
+        }
+
+        .character-tag.blue::before {
+            background-color: #BFDBFE;
+        }
+
+        .character-tag.orange::before {
+            background-color: #FED7AA;
+        }
+
+        .character-tag:hover {
+            color: #000000;
+        }
+
+        /* 角色高亮状态 */
+        .character-tag.highlighted {
+            background-color: rgba(243, 244, 246, 0.8);
+            border-radius: var(--radius-sm);
+            padding: 2px 8px 2px 12px;
+            margin: -2px -8px;
+        }
+
+        /* 片段标题样式 - 使用 Card 组件风格 */
+        .scene-heading {
+            background-color: var(--color-gray-100);
+            border-radius: var(--radius-lg);
+            padding: 12px 16px;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            color: var(--color-gray-700);
+            font-weight: 500;
+            font-size: 14px;
+        }
+
+        /* 动作/旁白样式 */
+        .action-text {
+            font-family: var(--font-serif);
+            font-style: italic;
+            color: var(--color-gray-500);
+            line-height: 1.8;
+            padding-left: 24px;
+            border-left: 2px solid var(--color-gray-100);
+        }
+
+        /* 对话样式 */
+        .dialogue-text {
+            color: var(--color-gray-900);
+            line-height: 1.8;
+            font-size: 15px;
+            font-weight: 400;
+        }
+
+        /* 资产卡片 - 与 frontend/components/ui/Card 同步 */
+        .asset-card {
+            transition: all 0.2s ease;
+        }
+
+        .asset-card:hover {
+            transform: translateY(-4px);
+            box-shadow: var(--shadow-lg);
+        }
+
+        .asset-card.highlighted {
+            transform: translateY(-4px);
+            box-shadow: var(--shadow-xl);
+            outline: 1px solid rgba(0, 0, 0, 0.1);
+        }
+
+        /* 资产卡片操作按钮 */
+        .asset-card .card-actions {
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.2s ease;
+        }
+
+        .asset-card:hover .card-actions {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        /* 播放按钮 */
+        .play-btn {
+            background: rgba(255, 255, 255, 0.9);
+            backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
+            transition: all 0.2s ease;
+        }
+
+        .play-btn:hover {
+            background: rgba(255, 255, 255, 1);
+            transform: scale(1.1);
+        }
+
+        /* 底部悬浮按钮 - 与 frontend/components/ui/Button 同步 */
+        .floating-cta {
+            transition: all 0.2s ease;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+        }
+
+        .floating-cta:hover {
+            background-color: var(--color-primary-700);
+            box-shadow: var(--shadow-lg);
+        }
+
+        /* Tab 样式 */
+        .filter-tab {
+            color: var(--color-gray-400);
+            transition: all 0.2s ease;
+            cursor: pointer;
+        }
+
+        .filter-tab:hover {
+            color: var(--color-gray-500);
+        }
+
+        .filter-tab.active {
+            color: var(--color-gray-900);
+            font-weight: 600;
+        }
+
+        /* 步骤导航 */
+        .step-item {
+            color: var(--color-gray-400);
+            transition: all 0.2s ease;
+            position: relative;
+        }
+
+        .step-item.active {
+            color: var(--color-gray-900);
+            font-weight: 600;
+        }
+
+        .step-item.active::after {
+            content: '';
+            position: absolute;
+            bottom: -6px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 4px;
+            height: 4px;
+            background-color: var(--color-gray-900);
+            border-radius: 50%;
+        }
+
+        /* 淡入动画 */
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .animate-fade-in {
+            animation: fadeIn 0.5s ease forwards;
+        }
+
+        /* 剧本内容区域 */
+        .script-content p {
+            margin-bottom: 1rem;
+        }
+
+        .script-content p:last-child {
+            margin-bottom: 0;
+        }
+
+        /* 片段容器样式 - 与 Card 组件同步 */
+        .script-segment {
+            border: 1px solid var(--color-gray-100);
+            border-radius: var(--radius-2xl);
+            padding: 24px;
+            background: #FFFFFF;
+            transition: all 0.2s ease;
+        }
+
+        .script-segment:hover {
+            border-color: var(--color-gray-200);
+            box-shadow: var(--shadow-lg);
+        }
+    </style>
+</head>
+<body class="min-h-screen">
+    <!-- 顶部工作流导航 -->
+    <div class="fixed top-6 left-1/2 -translate-x-1/2 z-50">
+        <div class="bg-white rounded-full px-8 py-3 shadow-[0_1px_3px_0_rgba(0,0,0,0.1),0_1px_2px_-1px_rgba(0,0,0,0.1)] flex items-center gap-8">
+            <span class="step-item text-sm">故事</span>
+            <svg class="w-4 h-4 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 5l7 7-7 7"/>
+            </svg>
+            <span class="step-item active text-sm">剧本</span>
+            <svg class="w-4 h-4 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 5l7 7-7 7"/>
+            </svg>
+            <span class="step-item text-sm">分镜</span>
+            <svg class="w-4 h-4 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 5l7 7-7 7"/>
+            </svg>
+            <span class="step-item text-sm">成片</span>
+        </div>
+    </div>
+
+    <!-- 主内容区 -->
+    <div class="pt-24 pb-32 px-8">
+        <div class="max-w-[1600px] mx-auto">
+            <div class="flex gap-8">
+                <!-- 左侧：剧本阅读与解析区 (60%) -->
+                <div class="w-[60%] animate-fade-in">
+                    <div class="bg-white rounded-2xl border border-gray-100 p-10 shadow-[0_1px_3px_0_rgba(0,0,0,0.1),0_1px_2px_-1px_rgba(0,0,0,0.1)]">
+                        <!-- 头部信息 -->
+                        <div class="flex items-center justify-between mb-8">
+                            <h1 class="text-xl font-bold text-gray-900">剧本拆解</h1>
+                            <span class="text-sm text-gray-400">已拆分 5 个片段</span>
+                        </div>
+
+                        <!-- 剧本内容 -->
+                        <div class="script-content space-y-6">
+                            <!-- 片段 1 -->
+                            <div class="script-segment" data-segment="1">
+                                <div class="scene-heading mb-6">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M7 4v16M17 4v16M3 8h4m10 0h4M3 12h18M3 16h4m10 0h4M4 20h16a1 1 0 001-1V5a1 1 0 00-1-1H4a1 1 0 00-1 1v14a1 1 0 001 1z"/>
+                                    </svg>
+                                    <span>片段 1 - 开场 · 清晨的公园</span>
+                                </div>
+
+                                <div class="space-y-4">
+                                    <p class="action-text">
+                                        晨光熹微，薄雾笼罩着古老的公园。远处传来悠扬的太极音乐，几位老人正在晨练。
+                                    </p>
+
+                                    <div class="pl-6 space-y-3">
+                                        <div class="flex items-baseline gap-3">
+                                            <span class="character-tag purple" data-character="李师傅">李师傅</span>
+                                        </div>
+                                        <p class="dialogue-text pl-6">
+                                            小友，看你站在这里很久了。可是对太极感兴趣？
+                                        </p>
+                                    </div>
+
+                                    <div class="pl-6 space-y-3">
+                                        <div class="flex items-baseline gap-3">
+                                            <span class="character-tag green" data-character="张明">张明</span>
+                                        </div>
+                                        <p class="dialogue-text pl-6">
+                                            是的，李师傅。我听说您练了四十年的太极拳，想请教一下，这八段锦和太极拳有什么渊源？
+                                        </p>
+                                    </div>
+
+                                    <p class="action-text">
+                                        李师傅微微一笑，缓缓摆出一个起手势。
+                                    </p>
+                                </div>
+                            </div>
+
+                            <!-- 片段 2 -->
+                            <div class="script-segment" data-segment="2">
+                                <div class="scene-heading mb-6">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M7 4v16M17 4v16M3 8h4m10 0h4M3 12h18M3 16h4m10 0h4M4 20h16a1 1 0 001-1V5a1 1 0 00-1-1H4a1 1 0 00-1 1v14a1 1 0 001 1z"/>
+                                    </svg>
+                                    <span>片段 2 - 传承 · 竹林深处</span>
+                                </div>
+
+                                <div class="space-y-4">
+                                    <p class="action-text">
+                                        两人移步至竹林深处，阳光透过竹叶洒下斑驳光影。李师傅从怀中取出一本泛黄的古籍。
+                                    </p>
+
+                                    <div class="pl-6 space-y-3">
+                                        <div class="flex items-baseline gap-3">
+                                            <span class="character-tag purple" data-character="李师傅">李师傅</span>
+                                        </div>
+                                        <p class="dialogue-text pl-6">
+                                            这八段锦，相传起源于北宋，距今已有八百余年。古人把这套动作比喻为精美的锦缎，故曰"八段锦"。
+                                        </p>
+                                    </div>
+
+                                    <div class="pl-6 space-y-3">
+                                        <div class="flex items-baseline gap-3">
+                                            <span class="character-tag blue" data-character="旁白">旁白</span>
+                                        </div>
+                                        <p class="dialogue-text pl-6 italic text-gray-500">
+                                            八段锦，由八节动作组成，每段一个动作，柔和缓慢，圆活连贯。它不需器械，不受场地限制，简单易学，效果显著。
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- 片段 3 -->
+                            <div class="script-segment" data-segment="3">
+                                <div class="scene-heading mb-6">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M7 4v16M17 4v16M3 8h4m10 0h4M3 12h18M3 16h4m10 0h4M4 20h16a1 1 0 001-1V5a1 1 0 00-1-1H4a1 1 0 00-1 1v14a1 1 0 001 1z"/>
+                                    </svg>
+                                    <span>片段 3 - 演示 · 湖边平台</span>
+                                </div>
+
+                                <div class="space-y-4">
+                                    <p class="action-text">
+                                        湖边平台上，李师傅开始演示第一式"两手托天理三焦"。动作舒展大方，如行云流水。
+                                    </p>
+
+                                    <div class="pl-6 space-y-3">
+                                        <div class="flex items-baseline gap-3">
+                                            <span class="character-tag purple" data-character="李师傅">李师傅</span>
+                                        </div>
+                                        <p class="dialogue-text pl-6">
+                                            第一式，两手托天理三焦。上托时吸气，下落时呼气。动作要慢，要体会气息在体内的流动。
+                                        </p>
+                                    </div>
+
+                                    <p class="action-text">
+                                        张明认真模仿，虽然动作略显生涩，但眼神专注。
+                                    </p>
+
+                                    <div class="pl-6 space-y-3">
+                                        <div class="flex items-baseline gap-3">
+                                            <span class="character-tag orange" data-character="王医生">王医生</span>
+                                        </div>
+                                        <p class="dialogue-text pl-6">
+                                            李师傅说得对。我是市医院的王医生，我们医院现在也把八段锦推荐给慢性病患者作为康复运动。
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- 片段 4 -->
+                            <div class="script-segment" data-segment="4">
+                                <div class="scene-heading mb-6">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M7 4v16M17 4v16M3 8h4m10 0h4M3 12h18M3 16h4m10 0h4M4 20h16a1 1 0 001-1V5a1 1 0 00-1-1H4a1 1 0 00-1 1v14a1 1 0 001 1z"/>
+                                    </svg>
+                                    <span>片段 4 - 交流 · 茶亭小憩</span>
+                                </div>
+
+                                <div class="space-y-4">
+                                    <p class="action-text">
+                                        三人来到茶亭，石桌上摆着一套古朴的紫砂壶。
+                                    </p>
+
+                                    <div class="pl-6 space-y-3">
+                                        <div class="flex items-baseline gap-3">
+                                            <span class="character-tag green" data-character="张明">张明</span>
+                                        </div>
+                                        <p class="dialogue-text pl-6">
+                                            我听说八段锦还有口诀？
+                                        </p>
+                                    </div>
+
+                                    <div class="pl-6 space-y-3">
+                                        <div class="flex items-baseline gap-3">
+                                            <span class="character-tag purple" data-character="李师傅">李师傅</span>
+                                        </div>
+                                        <p class="dialogue-text pl-6">
+                                            不错。双手托天理三焦，左右开弓似射雕。调理脾胃须单举，五劳七伤往后瞧。
+                                        </p>
+                                    </div>
+
+                                    <p class="action-text">
+                                        李师傅一边吟诵，一边用手轻轻打着节拍，眼中闪烁着对传统文化的热爱。
+                                    </p>
+                                </div>
+                            </div>
+
+                            <!-- 片段 5 -->
+                            <div class="script-segment" data-segment="5">
+                                <div class="scene-heading mb-6">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M7 4v16M17 4v16M3 8h4m10 0h4M3 12h18M3 16h4m10 0h4M4 20h16a1 1 0 001-1V5a1 1 0 00-1-1H4a1 1 0 00-1 1v14a1 1 0 001 1z"/>
+                                    </svg>
+                                    <span>片段 5 - 尾声 · 夕阳西下</span>
+                                </div>
+
+                                <div class="space-y-4">
+                                    <p class="action-text">
+                                        夕阳西下，金色的余晖洒在湖面上。三人站在湖边，身影被拉得很长。
+                                    </p>
+
+                                    <div class="pl-6 space-y-3">
+                                        <div class="flex items-baseline gap-3">
+                                            <span class="character-tag purple" data-character="李师傅">李师傅</span>
+                                        </div>
+                                        <p class="dialogue-text pl-6">
+                                            小友，记住，练八段锦不在形，而在神。形随意动，意随心动。持之以恒，必有所成。
+                                        </p>
+                                    </div>
+
+                                    <div class="pl-6 space-y-3">
+                                        <div class="flex items-baseline gap-3">
+                                            <span class="character-tag green" data-character="张明">张明</span>
+                                        </div>
+                                        <p class="dialogue-text pl-6">
+                                            谢谢李师傅指点。我一定坚持练习，把这宝贵的传统文化传承下去。
+                                        </p>
+                                    </div>
+
+                                    <p class="action-text">
+                                        画面渐渐拉远，三人的身影融入金色的夕阳中，太极音乐缓缓响起...
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 右侧：提取的数字资产区 (40%) -->
+                <div class="w-[40%] animate-fade-in" style="animation-delay: 0.1s;">
+                    <div class="sticky top-24">
+                        <!-- 头部过滤 -->
+                        <div class="flex items-center gap-6 mb-6">
+                            <span class="filter-tab active text-sm" data-filter="all">全部片段</span>
+                            <span class="filter-tab text-sm" data-filter="1">片段1</span>
+                            <span class="filter-tab text-sm" data-filter="2">片段2</span>
+                            <span class="filter-tab text-sm" data-filter="3">片段3</span>
+                        </div>
+
+                        <!-- 出场角色 -->
+                        <div class="mb-8">
+                            <h3 class="text-sm text-gray-500 mb-4">出场角色 (4)</h3>
+                            <div class="grid grid-cols-2 gap-4">
+                                <!-- 角色卡片 1 -->
+                                <div class="asset-card bg-white rounded-2xl border border-gray-100 overflow-hidden cursor-pointer" data-character="李师傅">
+                                    <div class="relative aspect-square bg-gradient-to-br from-gray-100 to-gray-200">
+                                        <img src="https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=400&h=400&fit=crop&crop=face" alt="李师傅" class="w-full h-full object-cover">
+                                        <!-- 播放按钮 -->
+                                        <div class="card-actions absolute inset-0 flex items-center justify-center">
+                                            <button class="play-btn w-12 h-12 rounded-full flex items-center justify-center shadow-lg">
+                                                <svg class="w-5 h-5 text-gray-800 ml-0.5" fill="currentColor" viewBox="0 0 24 24">
+                                                    <path d="M8 5v14l11-7z"/>
+                                                </svg>
+                                            </button>
+                                        </div>
+                                        <!-- 编辑按钮 -->
+                                        <div class="card-actions absolute top-3 right-3">
+                                            <button class="w-8 h-8 rounded-full bg-white/90 backdrop-blur flex items-center justify-center shadow-sm hover:bg-white transition-colors">
+                                                <svg class="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.25 2.25 0 113.182 3.182L6.75 20.25H3v-3.75L16.732 3.732z"/>
+                                                </svg>
+                                            </button>
+                                        </div>
+                                    </div>
+                                    <div class="p-4 text-center">
+                                        <h4 class="font-semibold text-gray-900 mb-1">李师傅</h4>
+                                        <p class="text-xs text-gray-400">初始形象</p>
+                                    </div>
+                                </div>
+
+                                <!-- 角色卡片 2 -->
+                                <div class="asset-card bg-white rounded-2xl border border-gray-100 overflow-hidden cursor-pointer" data-character="张明">
+                                    <div class="relative aspect-square bg-gradient-to-br from-gray-100 to-gray-200">
+                                        <img src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=400&h=400&fit=crop&crop=face" alt="张明" class="w-full h-full object-cover">
+                                        <div class="card-actions absolute inset-0 flex items-center justify-center">
+                                            <button class="play-btn w-12 h-12 rounded-full flex items-center justify-center shadow-lg">
+                                                <svg class="w-5 h-5 text-gray-800 ml-0.5" fill="currentColor" viewBox="0 0 24 24">
+                                                    <path d="M8 5v14l11-7z"/>
+                                                </svg>
+                                            </button>
+                                        </div>
+                                        <div class="card-actions absolute top-3 right-3">
+                                            <button class="w-8 h-8 rounded-full bg-white/90 backdrop-blur flex items-center justify-center shadow-sm hover:bg-white transition-colors">
+                                                <svg class="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.25 2.25 0 113.182 3.182L6.75 20.25H3v-3.75L16.732 3.732z"/>
+                                                </svg>
+                                            </button>
+                                        </div>
+                                    </div>
+                                    <div class="p-4 text-center">
+                                        <h4 class="font-semibold text-gray-900 mb-1">张明</h4>
+                                        <p class="text-xs text-gray-400">初始形象</p>
+                                    </div>
+                                </div>
+
+                                <!-- 角色卡片 3 -->
+                                <div class="asset-card bg-white rounded-2xl border border-gray-100 overflow-hidden cursor-pointer" data-character="王医生">
+                                    <div class="relative aspect-square bg-gradient-to-br from-gray-100 to-gray-200">
+                                        <img src="https://images.unsplash.com/photo-1559839734-2b71ea197ec2?w=400&h=400&fit=crop&crop=face" alt="王医生" class="w-full h-full object-cover">
+                                        <div class="card-actions absolute inset-0 flex items-center justify-center">
+                                            <button class="play-btn w-12 h-12 rounded-full flex items-center justify-center shadow-lg">
+                                                <svg class="w-5 h-5 text-gray-800 ml-0.5" fill="currentColor" viewBox="0 0 24 24">
+                                                    <path d="M8 5v14l11-7z"/>
+                                                </svg>
+                                            </button>
+                                        </div>
+                                        <div class="card-actions absolute top-3 right-3">
+                                            <button class="w-8 h-8 rounded-full bg-white/90 backdrop-blur flex items-center justify-center shadow-sm hover:bg-white transition-colors">
+                                                <svg class="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.25 2.25 0 113.182 3.182L6.75 20.25H3v-3.75L16.732 3.732z"/>
+                                                </svg>
+                                            </button>
+                                        </div>
+                                    </div>
+                                    <div class="p-4 text-center">
+                                        <h4 class="font-semibold text-gray-900 mb-1">王医生</h4>
+                                        <p class="text-xs text-gray-400">初始形象</p>
+                                    </div>
+                                </div>
+
+                                <!-- 角色卡片 4 -->
+                                <div class="asset-card bg-white rounded-2xl border border-gray-100 overflow-hidden cursor-pointer" data-character="旁白">
+                                    <div class="relative aspect-square bg-gradient-to-br from-gray-100 to-gray-200 flex items-center justify-center">
+                                        <div class="w-20 h-20 rounded-full bg-gray-200 flex items-center justify-center">
+                                            <svg class="w-10 h-10 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z"/>
+                                            </svg>
+                                        </div>
+                                        <div class="card-actions absolute inset-0 flex items-center justify-center">
+                                            <button class="play-btn w-12 h-12 rounded-full flex items-center justify-center shadow-lg">
+                                                <svg class="w-5 h-5 text-gray-800 ml-0.5" fill="currentColor" viewBox="0 0 24 24">
+                                                    <path d="M8 5v14l11-7z"/>
+                                                </svg>
+                                            </button>
+                                        </div>
+                                        <div class="card-actions absolute top-3 right-3">
+                                            <button class="w-8 h-8 rounded-full bg-white/90 backdrop-blur flex items-center justify-center shadow-sm hover:bg-white transition-colors">
+                                                <svg class="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.25 2.25 0 113.182 3.182L6.75 20.25H3v-3.75L16.732 3.732z"/>
+                                                </svg>
+                                            </button>
+                                        </div>
+                                    </div>
+                                    <div class="p-4 text-center">
+                                        <h4 class="font-semibold text-gray-900 mb-1">旁白</h4>
+                                        <p class="text-xs text-gray-400">AI 配音</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 场景资产 -->
+                        <div class="mb-8">
+                            <h3 class="text-sm text-gray-500 mb-4">场景资产 (5)</h3>
+                            <div class="space-y-3">
+                                <div class="asset-card bg-white rounded-2xl border border-gray-100 overflow-hidden flex">
+                                    <div class="w-24 h-24 bg-gray-100 flex-shrink-0">
+                                        <img src="https://images.unsplash.com/photo-1513622470522-26c3c8a854bc?w=200&h=200&fit=crop" alt="清晨公园" class="w-full h-full object-cover">
+                                    </div>
+                                    <div class="flex-1 p-4 flex flex-col justify-center">
+                                        <h4 class="font-medium text-gray-900 text-sm">清晨公园</h4>
+                                        <p class="text-xs text-gray-400 mt-1">片段 1 · 主场景</p>
+                                    </div>
+                                </div>
+
+                                <div class="asset-card bg-white rounded-2xl border border-gray-100 overflow-hidden flex">
+                                    <div class="w-24 h-24 bg-gray-100 flex-shrink-0">
+                                        <img src="https://images.unsplash.com/photo-1517330357046-3ab5a5dd42a1?w=200&h=200&fit=crop" alt="竹林深处" class="w-full h-full object-cover">
+                                    </div>
+                                    <div class="flex-1 p-4 flex flex-col justify-center">
+                                        <h4 class="font-medium text-gray-900 text-sm">竹林深处</h4>
+                                        <p class="text-xs text-gray-400 mt-1">片段 2 · 主场景</p>
+                                    </div>
+                                </div>
+
+                                <div class="asset-card bg-white rounded-2xl border border-gray-100 overflow-hidden flex">
+                                    <div class="w-24 h-24 bg-gray-100 flex-shrink-0">
+                                        <img src="https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=200&h=200&fit=crop" alt="湖边平台" class="w-full h-full object-cover">
+                                    </div>
+                                    <div class="flex-1 p-4 flex flex-col justify-center">
+                                        <h4 class="font-medium text-gray-900 text-sm">湖边平台</h4>
+                                        <p class="text-xs text-gray-400 mt-1">片段 3 · 主场景</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 道具资产 -->
+                        <div>
+                            <h3 class="text-sm text-gray-500 mb-4">道具资产 (3)</h3>
+                            <div class="grid grid-cols-3 gap-3">
+                                <div class="asset-card bg-white rounded-xl border border-gray-100 overflow-hidden">
+                                    <div class="aspect-square bg-gray-100">
+                                        <img src="https://images.unsplash.com/photo-1544787219-7f47ccb76574?w=200&h=200&fit=crop" alt="古籍" class="w-full h-full object-cover">
+                                    </div>
+                                    <div class="p-2 text-center">
+                                        <p class="text-xs text-gray-700">八段锦古籍</p>
+                                    </div>
+                                </div>
+                                <div class="asset-card bg-white rounded-xl border border-gray-100 overflow-hidden">
+                                    <div class="aspect-square bg-gray-100">
+                                        <img src="https://images.unsplash.com/photo-1563822249366-3efb23b8e0c9?w=200&h=200&fit=crop" alt="紫砂壶" class="w-full h-full object-cover">
+                                    </div>
+                                    <div class="p-2 text-center">
+                                        <p class="text-xs text-gray-700">紫砂壶</p>
+                                    </div>
+                                </div>
+                                <div class="asset-card bg-white rounded-xl border border-gray-100 overflow-hidden">
+                                    <div class="aspect-square bg-gray-100">
+                                        <img src="https://images.unsplash.com/photo-1515003197210-e0cd71810b5f?w=200&h=200&fit=crop" alt="茶亭" class="w-full h-full object-cover">
+                                    </div>
+                                    <div class="p-2 text-center">
+                                        <p class="text-xs text-gray-700">茶亭</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 底部悬浮操作台 - 与 Button 组件同步 -->
+    <div class="fixed bottom-8 right-8 z-50">
+        <button class="floating-cta bg-black text-white px-8 py-4 rounded-xl flex items-center gap-3 font-medium text-sm shadow-lg shadow-black/10">
+            <span>确认并生成分镜</span>
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M13 10V3L4 14h7v7l9-11h-7z"/>
+            </svg>
+        </button>
+    </div>
+
+    <script>
+        // 角色与卡片联动高亮
+        const characterTags = document.querySelectorAll('.character-tag');
+        const assetCards = document.querySelectorAll('.asset-card[data-character]');
+
+        // 左侧角色悬停 -> 右侧卡片高亮
+        characterTags.forEach(tag => {
+            tag.addEventListener('mouseenter', () => {
+                const characterName = tag.dataset.character;
+                const targetCard = document.querySelector(`.asset-card[data-character="${characterName}"]`);
+                if (targetCard) {
+                    targetCard.classList.add('highlighted');
+                    targetCard.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+                }
+            });
+
+            tag.addEventListener('mouseleave', () => {
+                const characterName = tag.dataset.character;
+                const targetCard = document.querySelector(`.asset-card[data-character="${characterName}"]`);
+                if (targetCard) {
+                    targetCard.classList.remove('highlighted');
+                }
+            });
+        });
+
+        // 右侧卡片悬停 -> 左侧角色高亮
+        assetCards.forEach(card => {
+            card.addEventListener('mouseenter', () => {
+                const characterName = card.dataset.character;
+                const targetTags = document.querySelectorAll(`.character-tag[data-character="${characterName}"]`);
+                targetTags.forEach(tag => {
+                    tag.classList.add('highlighted');
+                });
+            });
+
+            card.addEventListener('mouseleave', () => {
+                const characterName = card.dataset.character;
+                const targetTags = document.querySelectorAll(`.character-tag[data-character="${characterName}"]`);
+                targetTags.forEach(tag => {
+                    tag.classList.remove('highlighted');
+                });
+            });
+        });
+
+        // Tab 过滤功能
+        const filterTabs = document.querySelectorAll('.filter-tab');
+        const scriptSegments = document.querySelectorAll('.script-segment');
+
+        filterTabs.forEach(tab => {
+            tab.addEventListener('click', () => {
+                // 更新 Tab 状态
+                filterTabs.forEach(t => t.classList.remove('active'));
+                tab.classList.add('active');
+
+                const filter = tab.dataset.filter;
+
+                // 显示/隐藏片段
+                scriptSegments.forEach(segment => {
+                    if (filter === 'all' || segment.dataset.segment === filter) {
+                        segment.style.display = 'block';
+                    } else {
+                        segment.style.display = 'none';
+                    }
+                });
+            });
+        });
+
+        // 播放按钮点击效果
+        document.querySelectorAll('.play-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                // 这里可以添加实际的播放逻辑
+                console.log('播放音频');
+            });
+        });
+
+        // 编辑按钮点击效果
+        document.querySelectorAll('.card-actions button:last-child').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                // 这里可以添加实际的编辑逻辑
+                console.log('编辑角色');
+            });
+        });
+
+        // 底部 CTA 按钮点击
+        document.querySelector('.floating-cta').addEventListener('click', () => {
+            console.log('确认并生成分镜');
+            // 这里可以添加页面跳转或 API 调用
+        });
+    </script>
+</body>
+</html>

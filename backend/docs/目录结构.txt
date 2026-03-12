@@ -17,6 +17,10 @@ WeiMeng/backend
 |   |-- redis.py                           # Redis 配置
 |   `-- settings.py                        # 全局设置
 |-- docker-compose.yml                     # 后端本地编排
+|-- docs/                                  # 后端实现说明文档
+|   |-- 剧本库.txt                         # scripts 模块实现说明
+|   |-- 模型供应商.txt                     # providers 模块实现说明
+|   `-- 目录结构.txt                       # 本文件
 |-- es使用.txt                             # Elasticsearch 使用说明
 |-- main.py                                # FastAPI 应用入口
 |-- pyproject.toml                         # Python 项目与依赖定义
@@ -37,41 +41,24 @@ WeiMeng/backend
 |   |   |   |   |-- dependencies.py
 |   |   |   |   `-- router.py
 |   |   |   |-- application/
-|   |   |   |   |-- __init__.py
 |   |   |   |   |-- dto/
-|   |   |   |   |   |-- __init__.py
 |   |   |   |   |   |-- login_dto.py
 |   |   |   |   |   |-- register_dto.py
 |   |   |   |   |   `-- reset_password_dto.py
 |   |   |   |   `-- services/
-|   |   |   |       |-- __init__.py
 |   |   |   |       |-- login_service.py
 |   |   |   |       |-- register_service.py
 |   |   |   |       `-- reset_password_service.py
 |   |   |   |-- domain/
-|   |   |   |   |-- __init__.py
-|   |   |   |   |-- entities/
-|   |   |   |   |   |-- __init__.py
-|   |   |   |   |   `-- user.py
+|   |   |   |   |-- entities/user.py
 |   |   |   |   |-- exceptions.py
 |   |   |   |   |-- repositories.py
-|   |   |   |   |-- services/
-|   |   |   |   |   |-- __init__.py
-|   |   |   |   |   `-- authentication_service.py
-|   |   |   |   `-- value_objects/
-|   |   |   |       |-- __init__.py
-|   |   |   |       `-- token.py
+|   |   |   |   |-- services/authentication_service.py
+|   |   |   |   `-- value_objects/token.py
 |   |   |   `-- infrastructure/
-|   |   |       |-- __init__.py
-|   |   |       |-- mappers/
-|   |   |       |   |-- __init__.py
-|   |   |       |   `-- user_mapper.py
-|   |   |       |-- models/
-|   |   |       |   |-- __init__.py
-|   |   |       |   `-- user_model.py
-|   |   |       `-- repositories/
-|   |   |           |-- __init__.py
-|   |   |           `-- user_repository.py
+|   |   |       |-- mappers/user_mapper.py
+|   |   |       |-- models/user_model.py
+|   |   |       `-- repositories/user_repository.py
 |   |   |-- captcha/
 |   |   |   |-- __init__.py
 |   |   |   |-- api/
@@ -79,28 +66,71 @@ WeiMeng/backend
 |   |   |   |   |-- dependencies.py
 |   |   |   |   `-- router.py
 |   |   |   |-- application/
-|   |   |   |   |-- __init__.py
-|   |   |   |   |-- dto/
-|   |   |   |   |   |-- __init__.py
-|   |   |   |   |   `-- captcha_dto.py
-|   |   |   |   `-- services/
-|   |   |   |       |-- __init__.py
-|   |   |   |       `-- email_captcha_service.py
+|   |   |   |   |-- dto/captcha_dto.py
+|   |   |   |   `-- services/email_captcha_service.py
 |   |   |   |-- domain/
-|   |   |   |   |-- __init__.py
-|   |   |   |   |-- entities/
-|   |   |   |   |   |-- __init__.py
-|   |   |   |   |   `-- captcha.py
+|   |   |   |   |-- entities/captcha.py
 |   |   |   |   |-- exceptions.py
 |   |   |   |   |-- repositories.py
+|   |   |   |   `-- services/captcha_service.py
+|   |   |   `-- infrastructure/repositories/captcha_repository.py
+|   |   |-- providers/
+|   |   |   |-- __init__.py
+|   |   |   |-- api/
+|   |   |   |   |-- __init__.py
+|   |   |   |   |-- dependencies.py
+|   |   |   |   `-- router.py
+|   |   |   |-- application/
+|   |   |   |   |-- dto/
+|   |   |   |   |   |-- chat_dto.py
+|   |   |   |   |   |-- generate_request_dto.py
+|   |   |   |   |   |-- openai_compatible_manage_dto.py
+|   |   |   |   |   |-- provider_config_dto.py
+|   |   |   |   |   |-- provider_manage_dto.py
+|   |   |   |   |   `-- system_model_config_dto.py
 |   |   |   |   `-- services/
-|   |   |   |       |-- __init__.py
-|   |   |   |       `-- captcha_service.py
+|   |   |   |       |-- chat_service.py
+|   |   |   |       |-- model_generation_service.py
+|   |   |   |       |-- openai_compatible_config_management_service.py
+|   |   |   |       |-- provider_config_management_service.py
+|   |   |   |       `-- system_model_config_service.py
+|   |   |   |-- domain/
+|   |   |   |   |-- entities/
+|   |   |   |   |   |-- provider_catalog.py
+|   |   |   |   |   `-- provider_config.py
+|   |   |   |   |-- exceptions.py
+|   |   |   |   |-- interfaces/
+|   |   |   |   |   |-- image_provider.py
+|   |   |   |   |   |-- llm_provider.py
+|   |   |   |   |   `-- video_provider.py
+|   |   |   |   |-- repositories.py
+|   |   |   |   `-- value_objects/
+|   |   |   |       |-- model_type.py
+|   |   |   |       |-- provider_name.py
+|   |   |   |       `-- system_model_type.py
 |   |   |   `-- infrastructure/
-|   |   |       |-- __init__.py
-|   |   |       `-- repositories/
-|   |   |           |-- __init__.py
-|   |   |           `-- captcha_repository.py
+|   |   |       |-- factories.py
+|   |   |       |-- models/
+|   |   |       |   |-- provider_model.py
+|   |   |       |   `-- system_model_config_model.py
+|   |   |       |-- providers/
+|   |   |       |   |-- anthropic/{llm_adapter.py,model_catalog.py}
+|   |   |       |   |-- deepseek/{llm_adapter.py,model_catalog.py}
+|   |   |       |   |-- fastchat/{llm_adapter.py,model_catalog.py}
+|   |   |       |   |-- gemini/{llm_adapter.py,model_catalog.py}
+|   |   |       |   |-- glm/{llm_adapter.py,model_catalog.py}
+|   |   |       |   |-- grok/{llm_adapter.py,model_catalog.py}
+|   |   |       |   |-- kimi/{llm_adapter.py,model_catalog.py}
+|   |   |       |   |-- minimax/{llm_adapter.py,model_catalog.py}
+|   |   |       |   |-- openai/{llm_adapter.py,model_catalog.py}
+|   |   |       |   |-- openai_compatible/config_payload.py
+|   |   |       |   |-- qwen/{llm_adapter.py,model_catalog.py}
+|   |   |       |   `-- volcengine/{llm_adapter.py,model_catalog.py}
+|   |   |       |-- repositories/
+|   |   |       |   |-- provider_config_repository.py
+|   |   |       |   |-- provider_persistence_repository.py
+|   |   |       |   `-- system_model_config_repository.py
+|   |   |       `-- runtime/provider_key_store.py
 |   |   `-- scripts/
 |   |       |-- __init__.py
 |   |       |-- api/
@@ -108,113 +138,91 @@ WeiMeng/backend
 |   |       |   |-- dependencies.py
 |   |       |   `-- router.py
 |   |       |-- application/
-|   |       |   |-- __init__.py
 |   |       |   |-- dto/
-|   |       |   |   |-- __init__.py
 |   |       |   |   |-- script_chunk_dto.py
 |   |       |   |   `-- script_dto.py
-|   |       |   `-- services/
-|   |       |       |-- __init__.py
-|   |       |       `-- script_app_service.py
+|   |       |   `-- services/script_app_service.py
 |   |       |-- domain/
-|   |       |   |-- __init__.py
 |   |       |   |-- entities/
-|   |       |   |   |-- __init__.py
 |   |       |   |   |-- script_chunk_entity.py
 |   |       |   |   |-- script_config_entity.py
 |   |       |   |   |-- script_entity.py
 |   |       |   |   `-- script_library_entity.py
 |   |       |   |-- exceptions.py
 |   |       |   |-- repositories.py
-|   |       |   `-- value_objects/
-|   |       |       |-- __init__.py
-|   |       |       `-- file_format.py
+|   |       |   `-- value_objects/file_format.py
 |   |       `-- infrastructure/
-|   |           |-- __init__.py
 |   |           |-- mappers/
-|   |           |   |-- __init__.py
 |   |           |   |-- script_chunk_mapper.py
 |   |           |   |-- script_config_mapper.py
 |   |           |   |-- script_library_mapper.py
 |   |           |   `-- script_mapper.py
 |   |           |-- models/
-|   |           |   |-- __init__.py
 |   |           |   |-- script_chunk_model.py
 |   |           |   |-- script_config_model.py
 |   |           |   |-- script_library_model.py
 |   |           |   |-- script_library_script_model.py
 |   |           |   `-- script_model.py
-|   |           |-- repositories/
-|   |           |   |-- __init__.py
-|   |           |   `-- script_repository.py
+|   |           |-- repositories/script_repository.py
 |   |           `-- services/
-|   |               |-- __init__.py
 |   |               |-- elasticsearch_chunk_store.py
 |   |               |-- file_text_extractor.py
 |   |               `-- script_chunker.py
 |   `-- shared/
 |       |-- __init__.py
 |       |-- common/
-|       |   |-- __init__.py
 |       |   |-- dependencies.py
 |       |   |-- response.py
 |       |   `-- utils.py
 |       |-- domain/
-|       |   |-- __init__.py
 |       |   |-- base_entity.py
 |       |   |-- base_value_object.py
 |       |   `-- exceptions.py
 |       |-- extensions/
-|       |   |-- __init__.py
 |       |   |-- email/
-|       |   |   |-- __init__.py
 |       |   |   |-- sender.py
-|       |   |   `-- templates/
-|       |   |       |-- __init__.py
-|       |   |       |-- base.html
-|       |   |       `-- captcha.html
+|       |   |   `-- templates/{base.html,captcha.html}
 |       |   `-- storage/
-|       |       |-- __init__.py
 |       |       |-- base.py
 |       |       `-- minio_provider.py
 |       |-- infrastructure/
-|       |   |-- __init__.py
 |       |   |-- database.py
 |       |   |-- redis.py
 |       |   `-- unit_of_work.py
 |       |-- middleware/
-|       |   |-- __init__.py
 |       |   |-- error_handler.py
 |       |   |-- logging.py
 |       |   `-- request_context.py
 |       `-- security/
-|           |-- __init__.py
 |           |-- jwt_handler.py
 |           `-- password_hasher.py
 |-- tests/
 |   |-- __init__.py
 |   |-- conftest.py
-|   |-- fixtures/
-|   |   `-- __init__.py
-|   |-- integration/
-|   |   |-- __init__.py
-|   |   `-- test_api/
-|   |       `-- __init__.py
+|   |-- fixtures/__init__.py
+|   |-- integration/test_api/__init__.py
 |   `-- unit/
-|       |-- __init__.py
-|       |-- test_auth/
-|       |   |-- __init__.py
-|       |   `-- test_captcha_purpose_usage.py
+|       |-- test_auth/test_captcha_purpose_usage.py
 |       |-- test_captcha/
-|       |   |-- __init__.py
 |       |   |-- test_captcha_key.py
 |       |   `-- test_email_captcha_service.py
+|       |-- test_providers/
+|       |   |-- test_chat_service.py
+|       |   |-- test_deepseek_llm_adapter.py
+|       |   |-- test_model_generation_service.py
+|       |   |-- test_openai_compatible_config_management_service.py
+|       |   |-- test_provider_config_management_service.py
+|       |   |-- test_provider_config_repository.py
+|       |   |-- test_provider_key_cipher.py
+|       |   |-- test_provider_persistence_repository.py
+|       |   |-- test_provider_persistence_repository_openai_compatible.py
+|       |   |-- test_qwen_llm_adapter.py
+|       |   |-- test_system_model_config_service.py
+|       |   `-- test_volcengine_llm_adapter.py
 |       `-- test_scripts/
-|           |-- __init__.py
 |           |-- test_file_format.py
 |           |-- test_script_app_service.py
 |           `-- test_script_chunker.py
 |-- uv.lock                                # 依赖锁定文件
-|-- 剧本库.txt                             # scripts 模块实现说明
 |-- 构建docker镜像.md                      # Docker 镜像构建说明
-`-- 目录结构.txt                           # 本文件
+`-- 模型供应商思考字段及控制.txt            # providers 思考字段说明

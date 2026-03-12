@@ -1,108 +1,79 @@
 WeiMeng/backend 模型供应商（providers）实现说明
 
-更新时间：2026-03-11
-状态：已初始化，采用 FastChat 定义风格 + 统一工厂注册
+更新时间：2026-03-12
+状态：已落地，支持多供应商 + openai-compatible 扩展配置
 
 一、模块定位
 - 模块路径：`src/modules/providers`
-- 目标：统一管理多供应商大模型接入，当前聚焦 LLM 聊天能力。
-- 当前支持供应商：`openai`、`qwen`、`volcengine`、`grok`、`gemini`、`anthropic`、`kimi`、`glm`、`minimax`、`deepseek`。
+- 目标：统一管理模型供应商配置、模型列表查询、系统模型配置与聊天调用。
+- 当前供应商枚举：`openai`、`openai-compatible`、`qwen`、`volcengine`、`grok`、`gemini`、`anthropic`、`kimi`、`glm`、`minimax`、`deepseek`。
+- 鉴权：`/api/v1/models/**` 全路由统一挂载 `Security(get_current_user_id)`。
 
-二、关键约束（按你的要求）
-1. 供应商 URL 在代码中硬编码
-- 每个供应商适配器内部定义默认 `DEFAULT_BASE_URL`。
-- 运行时不再从 `.env` 读取 `BASE_URL`。
+二、关键实现约束
+1. Base URL 与默认模型
+- 标准供应商适配器在代码内定义 `DEFAULT_BASE_URL` 与 `DEFAULT_MODEL`。
+- 标准供应商不通过 `.env` 注入 `BASE_URL`。
 
-2. 模型供应商 API Key 不从 `.env` 读取
-- 供应商 key 统一通过接口写入 PostgreSQL `providers` 表。
-- `providers` 表使用 `user_id` 与用户关联，配置按用户隔离（同一供应商可由不同用户分别配置）。
-- 服务启动时从数据库加载到运行时密钥仓。
-- `providers` 表中的 `api_key` 会加密存储（非明文）；读取时在服务内存中解密使用。
+2. API Key 与配置来源
+- 标准供应商 key 通过 `POST /api/v1/models/providers` 写入 `providers` 表。
+- key 与 `user_id` 绑定，按用户隔离。
+- `api_key` 使用加密存储，读取时解密到运行时内存（`provider_key_store`）。
 
-3. 默认模型由代码配置
-- 每个供应商适配器定义 `DEFAULT_MODEL`。
-- 各供应商都优先从自身 `.../models` 动态拉取模型列表；当上游不可用时回退到该供应商本地 `SUPPORTED_MODELS` 或默认模型。
-- 每个供应商都在自身目录提供 `model_catalog.py`（如 `openai/model_catalog.py`、`qwen/model_catalog.py`）。  
-  目录内类负责调用各自 `.../models` 并回退到本地默认列表；`qwen` 使用 `https://dashscope.aliyuncs.com/compatible-mode/v1/models`。
-- 当 `POST /api/v1/models/chat` 未传 `model_name` 时自动回落到该供应商默认模型。
+3. openai-compatible 专项
+- 通过 `/api/v1/models/providers/openai-compatible` 系列接口管理（增删改查）。
+- 使用同一 `providers` 表存储，但采用合成 provider key（`openai-compatible:<hash>`）按模型隔离。
+- 每条配置包含：`base_url`、`api_key`、`model`、`max_token`、`temperature`。
 
-三、API
-路由文件：`src/modules/providers/api/router.py`
+4. 系统模型配置
+- 接口：`POST /api/v1/models/system`、`GET /api/v1/models/system`。
+- 写入时要求 `type`（`text|image|video`）+ `provider` + `model_name`。
+- 当前读取接口返回的是 `type=text` 的系统模型配置。
 
+三、API（`src/modules/providers/api/router.py`）
 统一前缀：`/api/v1/models`
+
 - `GET /api/v1/models`
-  - 返回每个供应商支持的模型类型、模型列表、默认模型、是否已配置 key。
-  - 返回 `conversation_template`，用于区分各供应商会话模板（例如 `openai`、`qwen`、`volcengine`、`grok`、`gemini`、`claude`、`kimi`、`glm`、`minimax`、`deepseek`）。
-  - `qwen` 的模型列表为动态获取结果。
-  - 支持可选查询参数 `provider`（如 `qwen`）按供应商筛选。
-  - 支持可选查询参数 `model`（如 `qwen-max`）查询指定模型基础信息；使用时必须同时传 `provider`。
-  - 当传 `provider=qwen&model=qwen-max` 时，会请求 `https://dashscope.aliyuncs.com/compatible-mode/v1/models/qwen-max`，认证使用数据库中已配置的 qwen key。
+  - 查询供应商模型列表，支持 `provider` / `model` 参数。
+  - 当传 `model` 时必须同时传 `provider`，否则 422。
+  - `provider=openai-compatible` 时返回该用户配置的兼容模型列表。
 - `GET /api/v1/models/{model_id}`
-  - 通过路径参数查询指定模型详情（例如 `/api/v1/models/qwen-max?provider=qwen`）。
-  - 等价于 `GET /api/v1/models?provider=qwen&model=qwen-max`。
+  - 模型详情查询，必须带 `provider` 查询参数。
 - `POST /api/v1/models/chat`
-  - 按供应商执行 LLM 对话调用（Chat）。
-  - 推荐请求体：`{"provider":"qwen","model_name":"qwen3.5-plus","message":"你好","stream":false}`
-  - qwen 专属支持 `enable_thinking` 与 `thinking_budget`，会透传为 `extra_body={"enable_thinking": true, "thinking_budget": N}`。
-  - `thinking_budget` 默认值是 `65536`（64K），最大值也是 `65536`（64K）。
-  - volcengine/deepseek 专属支持 `thinking` 对象（按 provider 分别解释）。
-  - 当 `provider=volcengine` 时，透传为：
-    - `extra_body={"thinking":{"type":"enabled|disabled|auto"},"reasoning":{"effort":"minimal|low|medium|high"}}`
-  - volcengine 思考长度控制规则：
-    - `thinking.type=enabled` 时支持 `reasoning.effort=minimal|low|medium|high`
-    - `thinking.type=disabled` 时仅允许 `reasoning.effort=minimal`
-    - `reasoning.effort=medium` 为默认值；`minimal` 表示直接回答不输出思考链
-  - 未传 `thinking` 时，系统默认下发 `thinking.type=enabled` 且 `reasoning.effort=minimal`（默认关闭思考链输出）。
-  - 当 `provider=deepseek` 时：
-    - `thinking.type=enabled` 会透传 `extra_body={"thinking":{"type":"enabled"}}`
-    - `thinking.type=disabled` 会透传 `extra_body={"thinking":{"type":"disabled"}}`
-    - `thinking.type=auto` 不支持（请求会 422）
-    - `reasoning_effort` 不支持（请求会 422）
-    - 若模型为 `deepseek-reasoner` 且未显式 `thinking.type=disabled`，默认按思考模式处理并返回 `think`
-  - `message` 为必填字段。
-  - 若不传 `provider/model_name`，会自动回退到当前用户已配置的系统模型（`/api/v1/models/system`）。
-  - 当 `stream=true` 时返回 `text/event-stream`（SSE），按 `start/delta/done` 事件分片输出。
-  - 当 `provider=qwen` 启用思考模式，或 `provider=volcengine` 且 `thinking.type=enabled` 且 `reasoning_effort!=minimal`，或 `provider=deepseek` 且开启思考模式时，流式事件类型会细分为 `think_delta`（思考过程）与 `answer_delta`（答案内容）。
-  - 当 `stream=false` 时返回标准 JSON：`{provider, model_name, think, answer}`。
-  - 当 `provider=qwen` 且 `enable_thinking=true`，或 `provider=volcengine` 且 `thinking.type=enabled` 且 `reasoning_effort!=minimal`，或 `provider=deepseek` 且开启思考模式时，`<think>...</think>` 解析到 `think`，`<answer>...</answer>` 解析到 `answer`。
-  - `think` 字段为动态返回：仅在开启思考模式时出现在 JSON 中；未开启思考模式时不返回 `think` 字段。
+  - 聊天调用入口；`message` 必填。
+  - `provider`、`model_name` 可选：不传时回落到系统文本模型。
+  - `stream=true` 返回 SSE（`text/event-stream`）。
+  - qwen 支持：`enable_thinking`、`thinking_budget`。
+  - volcengine/deepseek 支持：`thinking` 对象（深度思考参数规则按 provider 校验）。
 - `POST /api/v1/models/providers`
-  - 创建或更新模型供应商配置（请求示例：`{"provider":"gemini","api_key":"xxx"}`）。
-  - 接口根据登录态自动绑定当前用户 `user_id`，配置会持久化到 PostgreSQL `providers` 表，并立即生效。
+  - 标准供应商 key 配置（不接受 `provider=openai-compatible`）。
+- `POST /api/v1/models/providers/openai-compatible`
+  - 新增一条兼容模型配置。
+- `GET /api/v1/models/providers/openai-compatible`
+  - 列表查询兼容模型配置。
+- `PUT /api/v1/models/providers/openai-compatible`
+  - 按 `model` 更新兼容模型配置。
+- `DELETE /api/v1/models/providers/openai-compatible?model=...`
+  - 删除兼容模型配置。
 - `POST /api/v1/models/system`
-  - 配置当前用户的系统模型（请求示例：`{"provider":"qwen","model_name":"qwen-max"}`）。
-  - 仅允许配置当前用户已设置 key 的供应商，并校验模型必须在该供应商支持列表内。
+  - 配置系统模型，请求体示例：`{"type":"text","provider":"qwen","model_name":"qwen-max"}`。
 - `GET /api/v1/models/system`
-  - 获取当前用户的系统模型配置状态。
+  - 获取当前用户系统文本模型配置状态。
 - `GET /api/v1/models/providers`
-  - 返回供应商能力与配置状态（兼容旧接口）。
+  - 返回标准供应商能力与配置状态（该接口不返回 openai-compatible 的细分模型项）。
 
-`GET /api/v1/models` 返回字段补充：
-- `conversation_template`: 供应商默认会话模板
-- `selected_model`: 本次查询的模型 ID（仅传 `model` 时返回）
-- `selected_model_detail`: 上游 `v1/models/{model}` 返回的模型详情对象（仅传 `model` 时返回）
-  - 当无 key 或上游不可用时，会返回 `error` 字段说明原因（例如 `provider_api_key_not_configured`、`model_detail_unavailable`）
-
-四、调用参数（POST /api/v1/models/chat）
-- `provider`（可选）: 供应商（枚举）；不传时走系统模型配置
-- `model_name`（可选）: 模型名；不传时使用 `provider` 默认模型或系统模型中已配置模型
-- `message`（必填）: 输入文本
-- `stream`（可选）: 是否启用流式输出，默认 `false`
-- `enable_thinking`（可选）: qwen 专属思考模式开关，仅 `provider=qwen` 时允许设置
-- `thinking_budget`（可选）: qwen 专属思考长度预算，默认 `65536`（64K），最大 `65536`（64K）
-- `thinking`（可选）: volcengine/deepseek 专属思考配置对象
-  - `type`: `enabled` / `disabled` / `auto`
-  - `reasoning_effort`: `minimal` / `low` / `medium` / `high`（仅 volcengine 支持）
-  - `provider=volcengine`：
-    - `reasoning_effort` 可选，不传时 `type=enabled` 默认为 `medium`，`type=disabled` 自动补 `minimal`
-    - `type=disabled` 时仅允许 `reasoning_effort=minimal`
-  - `provider=deepseek`：
-    - 仅支持 `type=enabled|disabled`
-    - 不支持 `type=auto`
-    - 不支持 `reasoning_effort`
-- `conversation_template`（可选）: 覆盖默认 FastChat 模板
-- `temperature`（可选）
-- `max_tokens`（可选）
+四、聊天参数（`POST /api/v1/models/chat`）
+- `provider`（可选）：不传则走系统模型；可传 `openai-compatible`。
+- `model_name`（可选）：不传则使用供应商默认模型或兼容配置的首个模型。
+- `message`（必填）：对话输入。
+- `stream`（可选）：默认 `false`。
+- `conversation_template`（可选）：覆盖默认模板。
+- `temperature`、`max_tokens`（可选）。
+- qwen 专属：
+  - `enable_thinking`（可选）
+  - `thinking_budget`（可选，`1~65536`）
+- volcengine/deepseek 专属：
+  - `thinking.type`：`enabled|disabled|auto`（deepseek 不支持 `auto`）
+  - `thinking.reasoning_effort`：仅 volcengine 支持
 
 五、目录结构（节选）
 ```text
@@ -112,45 +83,53 @@ src/modules/providers/
 |   `-- router.py
 |-- application/
 |   |-- dto/
+|   |   |-- chat_dto.py
 |   |   |-- generate_request_dto.py
-|   |   `-- provider_config_dto.py
+|   |   |-- openai_compatible_manage_dto.py
+|   |   |-- provider_config_dto.py
+|   |   |-- provider_manage_dto.py
+|   |   `-- system_model_config_dto.py
 |   `-- services/
-|       `-- model_generation_service.py
+|       |-- chat_service.py
+|       |-- model_generation_service.py
+|       |-- openai_compatible_config_management_service.py
+|       |-- provider_config_management_service.py
+|       `-- system_model_config_service.py
 |-- domain/
 |   |-- entities/
 |   |   |-- provider_catalog.py
 |   |   `-- provider_config.py
 |   |-- interfaces/
-|   |   `-- llm_provider.py
+|   |   |-- image_provider.py
+|   |   |-- llm_provider.py
+|   |   `-- video_provider.py
 |   |-- repositories.py
 |   `-- value_objects/
 |       |-- model_type.py
-|       `-- provider_name.py
+|       |-- provider_name.py
+|       `-- system_model_type.py
 `-- infrastructure/
     |-- factories.py
+    |-- models/
+    |   |-- provider_model.py
+    |   `-- system_model_config_model.py
     |-- repositories/
-    |   `-- provider_config_repository.py
+    |   |-- provider_config_repository.py
+    |   |-- provider_persistence_repository.py
+    |   `-- system_model_config_repository.py
+    |-- runtime/
+    |   `-- provider_key_store.py
     `-- providers/
-        |-- fastchat/llm_adapter.py
-        |-- fastchat/model_catalog.py
-        |-- openai/llm_adapter.py
-        |-- openai/model_catalog.py
-        |-- qwen/llm_adapter.py
-        |-- qwen/model_catalog.py
-        |-- volcengine/llm_adapter.py
-        |-- volcengine/model_catalog.py
-        |-- grok/llm_adapter.py
-        |-- grok/model_catalog.py
-        |-- gemini/llm_adapter.py
-        |-- gemini/model_catalog.py
-        |-- anthropic/llm_adapter.py
-        |-- anthropic/model_catalog.py
-        |-- kimi/llm_adapter.py
-        |-- kimi/model_catalog.py
-        |-- glm/llm_adapter.py
-        |-- glm/model_catalog.py
-        |-- minimax/llm_adapter.py
-        |-- minimax/model_catalog.py
-        |-- deepseek/llm_adapter.py
-        `-- deepseek/model_catalog.py
+        |-- anthropic/{llm_adapter.py,model_catalog.py}
+        |-- deepseek/{llm_adapter.py,model_catalog.py}
+        |-- fastchat/{llm_adapter.py,model_catalog.py}
+        |-- gemini/{llm_adapter.py,model_catalog.py}
+        |-- glm/{llm_adapter.py,model_catalog.py}
+        |-- grok/{llm_adapter.py,model_catalog.py}
+        |-- kimi/{llm_adapter.py,model_catalog.py}
+        |-- minimax/{llm_adapter.py,model_catalog.py}
+        |-- openai/{llm_adapter.py,model_catalog.py}
+        |-- openai_compatible/config_payload.py
+        |-- qwen/{llm_adapter.py,model_catalog.py}
+        `-- volcengine/{llm_adapter.py,model_catalog.py}
 ```

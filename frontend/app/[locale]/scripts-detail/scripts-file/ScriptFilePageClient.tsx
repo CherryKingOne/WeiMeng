@@ -672,6 +672,7 @@ export default function ScriptFilePageClient({ initialData }: ScriptFilePageClie
   const text = {
     backToLibrary: isEn ? 'Back to Script Library' : '返回剧本库',
     fileList: isEn ? 'File List' : '文件列表',
+    scriptAnalysis: isEn ? 'Script Analysis' : '剧本拆解',
     scenes: isEn ? 'Scenes' : '场景',
     roles: isEn ? 'Roles' : '角色',
     storyboard: isEn ? 'Storyboard' : '分镜',
@@ -1215,7 +1216,7 @@ export default function ScriptFilePageClient({ initialData }: ScriptFilePageClie
               </svg>
               <span>{text.fileList}</span>
             </button>
-            {[text.scenes, text.roles, text.storyboard, text.logs].map((navText) => (
+            {[text.scriptAnalysis, text.scenes, text.roles, text.storyboard, text.logs].map((navText) => (
               <button
                 key={navText}
                 type="button"

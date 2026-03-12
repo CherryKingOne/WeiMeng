@@ -1,6 +1,6 @@
 WeiMeng/backend 剧本库模块（scripts）当前实现说明
 
-更新时间：2026-03-11
+更新时间：2026-03-12
 状态：已落地（非设计稿）
 
 一、模块定位
@@ -145,4 +145,4 @@ src/modules/scripts/
 - 对象存储抽象：`src/shared/extensions/storage/base.py`
 - MinIO 实现：`src/shared/extensions/storage/minio_provider.py`
 - 单测：`tests/unit/test_scripts/`（覆盖格式校验、应用服务、切片器）
-
+- 文档位置：`backend/docs/剧本库.txt`
