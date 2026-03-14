@@ -26,25 +26,41 @@ src/modules/agent/
     |-- __init__.py
     |-- adapters/
     |   |-- __init__.py
-    |   `-- thinking_adapter.py    # ⭐️ 模型供应商“思考”开关适配层
+    |   `-- thinking_adapter.py    # ⭐️ 模型供应商"思考"开关适配层
     |-- contexts/                  # 上下文引擎文件夹（处理 RAG 或会话外挂上下文）
     |   |-- __init__.py
     |   `-- context_manager.py     
     |-- graph/
     |   |-- __init__.py
     |   `-- react_agent.py         # 基于 LangGraph 的 ReAct Agent 核心图定义
-    |-- memory/                    # 记忆文件夹（LangGraph Checkpointer）
+    |-- loading/                   # ⭐️ 动态加载器文件夹（负责加载 skills 和 tools）
     |   |-- __init__.py
-    |   `-- sqlite_saver.py        # 基于 SQLite/Redis 的持久化记忆
-    |-- skills/                    # 技能文件夹（复杂的业务逻辑封装）
+    |   `-- skills_loader.py       # 技能加载器（按需加载机制）
+    |-- observation/               # langfuse 观测 
     |   |-- __init__.py
-    |   `-- search_skill.py        
+    |   `-- langfuse_observer.py   # Langfuse 观测集成
+    |-- memory/                    # 记忆文件夹（基于 PostgreSQL 的持久化记忆）
+    |   |-- __init__.py
+    |   `-- postgres_saver.py      # ⭐️ 基于 langgraph-checkpoint-postgres 的持久化记忆
+    |-- skills/                    # ⭐️ 技能定义文件夹（存放技能包，每个技能一个目录）
+    |   |-- __init__.py
+    |   |-- search_skill/          # 搜索技能包
+    |   |   |-- SKILL.md          # 技能描述文件（必需）
+    |   |   |-- tools.py          # 技能专属工具定义
+    |   |   `-- prompts.py        # 技能专属提示词
+    |   |-- database_skill/        # 数据库技能包
+    |   |   |-- SKILL.md
+    |   |   |-- tools.py
+    |   |   `-- prompts.py
+    |   `-- analysis_skill/       # 分析技能包
+    |       |-- SKILL.md
+    |       |-- tools.py
+    |       `-- prompts.py
     |-- tools/                     # LangChain 工具文件夹（被 Agent 调用的 Tools）
     |   |-- __init__.py
     |   `-- registry.py            # 工具注册表，组装 skills 为 tools
     `-- workspace/                 # 提示词和工作区配置（禁止 YAML，纯 Python）
-        |-- __init__.py
-        `-- prompts.py             # 存放 System Prompt
+        `-- SYSTEM.py             # 存放 System Prompt
 ```
 
 ---
@@ -150,85 +166,401 @@ AGENT_SYSTEM_PROMPT = """你是一个智能且专业的 AI 助手。
 """
 ```
 
-#### 5. 工具与技能注册 (`src/modules/agent/infrastructure/tools/registry.py`)
+#### 5. ⭐️ PostgreSQL 持久化记忆 (`src/modules/agent/infrastructure/memory/postgres_saver.py`)
+
+```python
+from psycopg import AsyncConnection
+from langgraph.checkpoint.postgres import PostgresSaver
+
+class PostgresSaverManager:
+    """
+    PostgreSQL Checkpointer 管理器
+    基于 langgraph-checkpoint-postgres 实现跨运行的持久化和历史回溯
+    """
+    
+    @staticmethod
+    async def create_and_setup(db_uri: str) -> PostgresSaver:
+        """
+        创建并初始化 PostgreSQL Checkpointer
+        
+        Args:
+            db_uri: PostgreSQL 连接字符串，例如：postgresql://user:password@localhost:5432/my_database
+            
+        Returns:
+            已初始化的 PostgresSaver 实例
+        """
+        # 使用 AsyncConnection 来管理连接池
+        conn = await AsyncConnection.connect(db_uri)
+        
+        # 初始化 PostgresSaver
+        checkpointer = PostgresSaver(conn)
+        
+        # 确保数据库表已创建（必须步骤）
+        await checkpointer.setup()
+        
+        return checkpointer
+
+# 使用示例：
+# uri = "postgresql://user:password@localhost:5432/my_database"
+# checkpointer = await PostgresSaverManager.create_and_setup(uri)
+# graph = ...  # 定义你的图
+# app = graph.compile(checkpointer=checkpointer)
+# 
+# # 执行时传入 thread_id 以进行状态追踪
+# await app.ainvoke({"messages": [...]}, config={"configurable": {"thread_id": "1"}})
+```
+
+#### 6. ⭐️ 技能加载器 (`src/modules/agent/infrastructure/loading/skills_loader.py`)
+
+```python
+import importlib
+from pathlib import Path
+from typing import List, Dict, Any, Optional
+from langchain_core.tools import BaseTool, tool
+from langchain.agents import create_agent
+
+class SkillsLoader:
+    """
+    LangChain Skills 加载器
+    实现"按需加载"（Progressive Disclosure）机制
+    
+    核心理念：
+    - 智能体不预先加载所有技能
+    - 通过专门的 load_skill 工具在需要时动态获取
+    - 支持层级化技能和动态工具注册
+    """
+    
+    def __init__(self, skills_dir: str = None):
+        """
+        初始化技能加载器
+        
+        Args:
+            skills_dir: skills 文件夹路径，默认为当前模块的 skills 目录
+        """
+        if skills_dir is None:
+            # 默认指向 infrastructure/skills 目录
+            self.skills_dir = Path(__file__).parent.parent / "skills"
+        else:
+            self.skills_dir = Path(skills_dir)
+        
+        self._loaded_skills: Dict[str, Dict[str, Any]] = {}
+        self._available_skills: List[str] = []
+        self._scan_available_skills()
+    
+    def _scan_available_skills(self) -> List[str]:
+        """
+        扫描 skills 文件夹中所有可用的技能包
+        
+        Returns:
+            技能包名称列表
+        """
+        self._available_skills = []
+        for skill_folder in self.skills_dir.iterdir():
+            if skill_folder.is_dir() and not skill_folder.name.startswith('_'):
+                # 检查是否包含 SKILL.md 文件
+                if (skill_folder / "SKILL.md").exists():
+                    self._available_skills.append(skill_folder.name)
+        return self._available_skills
+    
+    def get_available_skills_list(self) -> str:
+        """
+        获取可用技能列表的描述字符串
+        
+        Returns:
+            格式化后的技能列表描述
+        """
+        if not self._available_skills:
+            return "暂无可用技能"
+        
+        skills_desc = "可用技能列表:\n"
+        for skill_name in self._available_skills:
+            skills_desc += f"- {skill_name}\n"
+        return skills_desc
+    
+    def load_skill(self, skill_name: str) -> Dict[str, Any]:
+        """
+        按需加载指定技能包
+        
+        Args:
+            skill_name: 技能包名称（如 'search_skill'）
+            
+        Returns:
+            包含技能信息的字典：
+            {
+                'name': str,          # 技能名称
+                'description': str,   # 技能描述（来自 SKILL.md）
+                'tools': List[BaseTool],  # 技能专属工具列表
+                'prompts': Dict[str, str] # 技能专属提示词
+            }
+        """
+        # 检查是否已加载
+        if skill_name in self._loaded_skills:
+            return self._loaded_skills[skill_name]
+        
+        skill_path = self.skills_dir / skill_name
+        
+        # 验证技能包是否存在
+        if not skill_path.exists():
+            raise ValueError(f"技能包 '{skill_name}' 不存在")
+        
+        if not (skill_path / "SKILL.md").exists():
+            raise ValueError(f"技能包 '{skill_name}' 缺少 SKILL.md 文件")
+        
+        # 读取 SKILL.md 文件
+        skill_description = (skill_path / "SKILL.md").read_text(encoding='utf-8')
+        
+        # 动态加载 tools.py
+        tools = []
+        try:
+            tools_module = importlib.import_module(
+                f"src.modules.agent.infrastructure.skills.{skill_name}.tools"
+            )
+            # 提取模块中所有的 BaseTool 实例
+            for name in dir(tools_module):
+                obj = getattr(tools_module, name)
+                if isinstance(obj, BaseTool):
+                    tools.append(obj)
+        except ImportError:
+            print(f"⚠️  技能包 '{skill_name}' 未定义 tools.py")
+        
+        # 动态加载 prompts.py
+        prompts = {}
+        try:
+            prompts_module = importlib.import_module(
+                f"src.modules.agent.infrastructure.skills.{skill_name}.prompts"
+            )
+            # 提取模块中所有的字符串变量
+            for name in dir(prompts_module):
+                if not name.startswith('_'):
+                    obj = getattr(prompts_module, name)
+                    if isinstance(obj, str):
+                        prompts[name] = obj
+        except ImportError:
+            print(f"⚠️  技能包 '{skill_name}' 未定义 prompts.py")
+        
+        # 缓存已加载的技能
+        skill_data = {
+            'name': skill_name,
+            'description': skill_description,
+            'tools': tools,
+            'prompts': prompts
+        }
+        
+        self._loaded_skills[skill_name] = skill_data
+        print(f"✅ 已加载技能：{skill_name} (包含 {len(tools)} 个工具)")
+        
+        return skill_data
+    
+    def create_load_skill_tool(self) -> BaseTool:
+        """
+        创建 load_skill 工具，供 Agent 按需调用
+        
+        Returns:
+            LangChain 工具对象
+        """
+        @tool
+        def load_skill(skill_name: str) -> str:
+            """
+            按需加载专业技能的 prompt 和上下文。
+            
+            当需要特定领域的帮助时使用此工具。
+            参数 skill_name 必须是可用技能列表中的名称。
+            
+            返回的内容会被注入到后续对话上下文中。
+            """
+            try:
+                skill_data = self.load_skill(skill_name)
+                
+                # 构建技能加载成功的响应
+                response = f"已加载技能：{skill_data['name']}\n\n"
+                response += f"描述:\n{skill_data['description']}\n\n"
+                
+                if skill_data['tools']:
+                    tool_names = [t.name for t in skill_data['tools']]
+                    response += f"可用工具：{', '.join(tool_names)}\n"
+                
+                return response
+            except Exception as e:
+                return f"加载技能失败：{e}"
+        
+        return load_skill
+    
+    def load_all_skills_eagerly(self) -> List[BaseTool]:
+        """
+        【可选】预加载所有技能并返回所有工具
+        适用于启动时初始化场景
+        
+        Returns:
+            所有技能的完整工具列表
+        """
+        all_tools = []
+        for skill_name in self._available_skills:
+            try:
+                skill_data = self.load_skill(skill_name)
+                all_tools.extend(skill_data['tools'])
+            except Exception as e:
+                print(f"❌ 加载技能失败 {skill_name}: {e}")
+        
+        return all_tools
+
+# ==========================================
+# 使用示例
+# ==========================================
+
+# 方式 1：按需加载（推荐）
+loader = SkillsLoader()
+load_skill_tool = loader.create_load_skill_tool()
+
+# 将 load_skill_tool 注入到 Agent 的工具列表中
+# agent = create_agent(
+#     model="gpt-4",
+#     tools=[load_skill_tool],
+#     system_prompt=(
+#         "你是一个通用助手。如果你需要特定领域的帮助，请使用 load_skill 工具。\n"
+#         f"{loader.get_available_skills_list()}"
+#     ),
+# )
+
+# 方式 2：启动时预加载所有工具
+# all_tools = loader.load_all_skills_eagerly()
+```
+
+#### 7. 工具与技能注册 (`src/modules/agent/infrastructure/tools/registry.py`)
 
 ```python
 from langchain_core.tools import tool
+from ..loading.skills_loader import SkillsLoader
 
-# 这里可以引入 skills 文件夹下的复杂业务逻辑
-# from ..skills.search_skill import perform_search
+# ==========================================
+# 方式 1：按需加载技能（推荐 - LangChain Skills 架构）
+# ==========================================
 
-@tool
-def get_system_time() -> str:
-    """获取当前的系统时间"""
-    from datetime import datetime
-    return datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+def create_skill_aware_tools() -> list:
+    """
+    创建支持按需加载的工具列表
+    
+    核心理念：
+    - Agent 启动时只加载基础工具
+    - 通过 load_skill 工具在需要时动态加载专业技能
+    - 减少启动时间和内存占用
+    """
+    # 初始化 Skills Loader
+    skills_loader = SkillsLoader()
+    
+    # 创建 load_skill 工具（这是访问所有技能的入口）
+    load_skill_tool = skills_loader.create_load_skill_tool()
+    
+    # 基础工具（始终可用）
+    basic_tools = [
+        load_skill_tool,  # ⭐️ 关键：用于按需加载其他技能
+    ]
+    
+    # 打印可用技能信息
+    print(f"📦 已注册 {len(basic_tools)} 个基础工具")
+    print(f"📚 可用技能：{', '.join(skills_loader.get_available_skills_list())}")
+    
+    return basic_tools
 
-@tool
-def get_skill_usage_guide() -> str:
-    """介绍如何使用系统中的技能"""
-    return "技能使用指南：您可以通过与我对话，让我调用内部工具（如时间查询、数据库检索等）来协助您。"
+# ==========================================
+# 方式 2：预加载所有技能（适用于小型应用）
+# ==========================================
 
-# 注册 Agent 可用的所有工具
-AGENT_TOOLS = [get_system_time, get_skill_usage_guide]
+def create_eager_loaded_tools() -> list:
+    """
+    启动时加载所有技能的所有工具
+    
+    优点：
+    - 响应速度快（无需运行时加载）
+    - 适合技能数量少的场景
+    
+    缺点：
+    - 启动时间长
+    - 内存占用大
+    """
+    skills_loader = SkillsLoader()
+    all_tools = skills_loader.load_all_skills_eagerly()
+    
+    print(f"📦 预加载了 {len(all_tools)} 个工具")
+    return all_tools
+
+# ==========================================
+# 导出最终的工具列表
+# ==========================================
+
+# 推荐使用按需加载方式
+AGENT_TOOLS = create_skill_aware_tools()
+
+# 如果技能很少且固定，可以使用预加载方式
+# AGENT_TOOLS = create_eager_loaded_tools()
 ```
 
-#### 6. LangGraph ReAct Agent 定义 (`src/modules/agent/infrastructure/graph/react_agent.py`)
+#### 8. LangGraph ReAct Agent 定义 (`src/modules/agent/infrastructure/graph/react_agent.py`)
 
 ```python
-from langgraph.prebuilt import create_react_agent
-from langgraph.checkpoint.memory import MemorySaver
+from langchain.agents import create_agent
 from langchain_core.language_models.chat_models import BaseChatModel
 from ..tools.registry import AGENT_TOOLS
 from ..workspace.prompts import AGENT_SYSTEM_PROMPT
 
-def build_react_agent(llm: BaseChatModel, memory_saver: MemorySaver):
+def build_react_agent(llm: BaseChatModel, checkpointer):
     """
-    构建并返回一个 LangGraph ReAct Agent 执行器
+    构建并返回一个 LangChain 1.0 ReAct Agent 执行器
+    使用新的 create_agent API（已取代 langgraph.prebuilt.create_react_agent）
     """
     # 动态组装 Prompt
-    tool_desc = ", ".join([t.name for t in AGENT_TOOLS])
+    tool_desc = ", ".join([f"{t.name}: {t.description}" for t in AGENT_TOOLS])
     system_message = AGENT_SYSTEM_PROMPT.format(tool_descriptions=tool_desc)
     
-    # 使用 LangGraph 内置的 ReAct 范式创建 Agent
-    agent_executor = create_react_agent(
+    # 使用 LangChain 1.0 的新 API 创建 Agent
+    # 注意：参数从 prompt 改为 system_prompt，支持中间件系统
+    agent_executor = create_agent(
         model=llm,
         tools=AGENT_TOOLS,
-        checkpointer=memory_saver, # 接入 memory 文件夹中的记忆管理
-        state_modifier=system_message
+        system_prompt=system_message,
+        checkpointer=checkpointer, # 接入 PostgreSQL 持久化记忆
     )
     
     return agent_executor
 ```
 
-#### 7. App Service 应用服务 (`src/modules/agent/application/services/agent_app_service.py`)
+#### 9. App Service 应用服务 (`src/modules/agent/application/services/agent_app_service.py`)
 
 ```python
 import json
 from typing import AsyncGenerator
-from langgraph.checkpoint.memory import MemorySaver
 from langchain_core.messages import HumanMessage
 
 from ..dto.agent_chat_dto import AgentChatRequest
 from ...infrastructure.adapters.thinking_adapter import ThinkingAdapter
 from ...infrastructure.graph.react_agent import build_react_agent
+from ...infrastructure.memory.postgres_saver import PostgresSaverManager
 # 假设你现有的 providers 模块有获取模型实例的方法
 # from src.modules.providers.application.services.chat_service import get_langchain_llm
 
 class AgentAppService:
-    def __init__(self):
-        # 实际项目中，这里应该使用依赖注入的 RedisSaver 或 SQLiteSaver 存放至 memory 文件夹
-        self.memory = MemorySaver() 
+    def __init__(self, db_uri: str):
+        # 初始化 PostgreSQL 连接管理器
+        self.db_uri = db_uri
+        self.checkpointer = None
+
+    async def _get_checkpointer(self):
+        """懒加载获取 PostgreSQL Checkpointer"""
+        if self.checkpointer is None:
+            self.checkpointer = await PostgresSaverManager.create_and_setup(self.db_uri)
+        return self.checkpointer
 
     async def _prepare_agent(self, request: AgentChatRequest):
         """准备和初始化 Agent 执行器"""
         
-        # 1. 调用现有的 providers 模块获取底层的 Langchain ChatModel 实例
-        # 伪代码： llm = await get_langchain_llm(request.provider, request.model_name)
+        # 1. 获取 PostgreSQL Checkpointer
+        checkpointer = await self._get_checkpointer()
+        
+        # 2. 调用现有的 providers 模块获取底层的 Langchain ChatModel 实例
+        # 伪代码：llm = await get_langchain_llm(request.provider, request.model_name)
         from langchain_openai import ChatOpenAI # 仅作占位示意
         base_llm = ChatOpenAI(model=request.model_name) 
         
-        # 2. 注入 Thinking 思考适配层（核心！）
+        # 3. 注入 Thinking 思考适配层（核心！）
         llm_with_thinking = ThinkingAdapter.apply_thinking(
             llm=base_llm,
             provider=request.provider,
@@ -236,8 +568,8 @@ class AgentAppService:
             thinking=request.thinking
         )
         
-        # 3. 构建 LangGraph ReAct Agent
-        agent = build_react_agent(llm_with_thinking, self.memory)
+        # 4. 构建 LangChain 1.0 ReAct Agent（传入 PostgreSQL Checkpointer）
+        agent = build_react_agent(llm_with_thinking, checkpointer)
         return agent
 
     async def chat_sync(self, request: AgentChatRequest) -> str:
@@ -257,7 +589,7 @@ class AgentAppService:
         config = {"configurable": {"thread_id": request.session_id}}
         inputs = {"messages": [HumanMessage(content=request.message)]}
         
-        # 使用 LangGraph 的 astream_events 来精细捕获流式输出（支持工具调用和模型思考过程输出）
+        # 使用 LangChain 1.0 的 astream_events 来精细捕获流式输出（支持工具调用和模型思考过程输出）
         async for event in agent.astream_events(inputs, config=config, version="v2"):
             kind = event["event"]
             
@@ -278,22 +610,219 @@ class AgentAppService:
             # 捕获工具调用开始
             elif kind == "on_tool_start":
                 tool_name = event["name"]
-                yield f"data: {json.dumps({'type': 'tool_call', 'content': f'正在使用工具: {tool_name} ...'})}\n\n"
+                yield f"data: {json.dumps({'type': 'tool_call', 'content': f'正在使用工具：{tool_name} ...'})}\n\n"
                 
         yield "data: [DONE]\n\n"
 ```
 
 ### 三、 集成与注册说明
 
-1. **注册路由**：
+1. **安装依赖**：
+   
+   在 `backend/pyproject.toml` 或 `requirements.txt` 中添加以下依赖：
+   
+   ```bash
+   # LangChain 1.0 核心库
+   pip install langchain>=1.0.0 langchain-core>=1.0.0
+   
+   # PostgreSQL 持久化支持
+   pip install langgraph-checkpoint-postgres psycopg
+   
+   # 模型供应商 SDK（根据需要使用）
+   pip install langchain-openai langchain-anthropic
+   ```
+   
+   或者在 `pyproject.toml` 中：
+   ```toml
+   [project]
+   dependencies = [
+       # ... 其他依赖
+       "langchain>=1.0.0",
+       "langchain-core>=1.0.0",
+       "langgraph-checkpoint-postgres>=0.0.1",
+       "psycopg>=3.1.0",
+   ]
+   ```
+
+2. **配置 PostgreSQL 连接**：
+   
+   在 `backend/.env` 或 `backend/config/settings.py` 中添加 PostgreSQL 连接字符串：
+   
+   ```python
+   # PostgreSQL 连接配置
+   LANGGRAPH_DB_URI = "postgresql://user:password@localhost:5432/my_database"
+   # 或者使用环境变量
+   # LANGGRAPH_DB_URI = os.getenv("LANGGRAPH_DB_URI")
+   ```
+
+3. **注册路由**：
    在现有的 `src/api/v1/router.py` 文件中，导入并注册新模块的路由：
    ```python
    from src.modules.agent.api.router import router as agent_router
    api_v1_router.include_router(agent_router, prefix="/agent")
    ```
 
-2. **对接已有的 `providers` 模块**：
+4. **对接已有的 `providers` 模块**：
    在 `AgentAppService._prepare_agent` 方法中，你需要对接现有系统 `providers` 目录里的 `ChatService` 或 `Factories`。现有的 `providers` 既然已经封装好了，只需让它返回一个满足 `BaseChatModel`（Langchain 标准）的实例，然后交给 `ThinkingAdapter` 加工即可。
 
-3. **Thinking 字段的灵活控制**：
+5. **Thinking 字段的灵活控制**：
    你的要求被完美实现在了 `ThinkingAdapter` 中。无论外部请求怎样传入 `thinking: true`，Adapter 都会将它翻译为当前 `provider` 对应的特殊参数（如改模型名为 `deepseek-reasoner`，或增加 `reasoning_effort="high"` 参数）。这使得前端和 API 调用方完全解耦。
+
+### 四、 Skills 技能包结构说明
+
+每个技能包都是一个独立的文件夹，包含以下标准文件：
+
+#### 示例：`search_skill/` 搜索技能包
+
+```
+src/modules/agent/infrastructure/skills/search_skill/
+├── SKILL.md          # ⭐️ 必需：技能描述文件
+├── tools.py         # ⭐️ 可选：技能专属工具定义
+└── prompts.py       # ⭐️ 可选：技能专属提示词
+```
+
+#### 1. **SKILL.md** - 技能描述文件（必需）
+
+```markdown
+# Search Skill - 专业搜索技能
+
+## 描述
+这是一个专业的网络搜索和信息检索技能，能够帮助用户查找最新的行业资讯、技术文档和学术资料。
+
+## 能力范围
+- 实时网络搜索
+- 技术文档检索
+- 学术论文查询
+- 多语言信息检索
+
+## 使用场景
+当用户需要查找最新信息、验证事实或获取专业资料时使用此技能。
+
+## 限制
+- 无法访问付费墙后的内容
+- 搜索结果可能受地域限制
+```
+
+#### 2. **tools.py** - 技能专属工具定义
+
+```python
+from langchain_core.tools import BaseTool, tool
+
+@tool
+def web_search(query: str, max_results: int = 5) -> list:
+    """
+    执行网络搜索并返回结果
+    
+    Args:
+        query: 搜索关键词
+        max_results: 最大返回结果数
+    
+    Returns:
+        搜索结果列表，每项包含 title, url, snippet
+    """
+    # 实现搜索逻辑
+    results = []
+    # ... 实际搜索代码 ...
+    return results
+
+@tool
+def find_similar_documents(content: str, limit: int = 3) -> list:
+    """
+    查找相似文档
+    
+    Args:
+        content: 参考内容
+        limit: 返回数量限制
+    
+    Returns:
+        相似文档列表
+    """
+    # 实现相似度搜索逻辑
+    return []
+
+# 所有工具导出列表
+SEARCH_SKILL_TOOLS = [web_search, find_similar_documents]
+```
+
+#### 3. **prompts.py** - 技能专属提示词
+
+```python
+# 搜索专家的系统提示词
+SEARCH_EXPERT_PROMPT = """你是一个专业的搜索助手。你的职责是：
+
+1. 理解用户的搜索意图，提取关键信息
+2. 使用 web_search 工具执行精确搜索
+3. 对搜索结果进行筛选和总结
+4. 以清晰的格式呈现给用户
+
+搜索时请遵循：
+- 优先使用权威来源
+- 标注信息来源
+- 提供多个视角的信息
+- 如有冲突信息，明确指出
+"""
+
+# 搜索结果格式化提示词
+FORMAT_SEARCH_RESULTS_PROMPT = """请将搜索结果按以下格式整理：
+
+## 搜索结果摘要
+
+### 1. [结果标题]
+- **来源**: [网站/机构名称]
+- **链接**: [URL]
+- **摘要**: [关键信息摘要]
+- **相关性**: [与问题的关联度说明]
+
+...
+
+## 综合分析
+[对多个结果的综合分析]
+
+## 建议后续搜索方向
+[基于当前结果的进一步搜索建议]
+"""
+```
+
+---
+
+### 五、 LangChain 1.0 迁移说明
+
+本文档基于 **LangChain 1.0** 编写，与旧版本的主要区别如下：
+
+#### 核心变化
+
+1. **导入路径变更**：
+   - ❌ 旧版：`from langgraph.prebuilt import create_react_agent`
+   - ✅ 新版：`from langchain.agents import create_agent`
+
+2. **参数名称变更**：
+   - ❌ 旧版：`state_modifier=prompt`
+   - ✅ 新版：`system_prompt=prompt`
+
+3. **更强大的中间件系统**：
+   - 旧版使用 Hook 进行前置/后置处理
+   - 新版通过 **middleware（中间件）** 实现，提供更灵活的自定义能力
+
+4. **工具描述增强**：
+   - 建议在 `tool_desc` 中包含工具的名称和描述，帮助模型更好理解工具用途
+   - 示例：`f"{t.name}: {t.description}"`
+
+#### 核心特性继承
+
+`create_agent` 依然构建在 **LangGraph** 之上，完整继承以下特性：
+- ✅ 持久化存储（PostgreSQL Checkpointer）
+- ✅ 检查点机制（Checkpointing）
+- ✅ 流式传输（Streaming）
+- ✅ 线程管理（Thread ID）
+- ✅ 历史回溯（History Navigation）
+
+#### 推荐实践
+
+1. **使用 `astream_events`**：捕获 Agent 执行过程中的所有事件（工具调用、思考过程、最终输出）
+2. **配置 `thread_id`**：通过 `config={"configurable": {"thread_id": "..."}}` 管理会话状态
+3. **启用 PostgreSQL**：生产环境务必使用 `PostgresSaver` 而非内存存储
+
+**相关文档：**
+- [LangChain v1 发布说明](https://docs.langchain.com/oss/python/releases/langchain-v1)
+- [LangChain v1 迁移指南](https://docs.langchain.com/oss/python/migrate/langchain-v1)
+- [create_agent API 参考](https://reference.langchain.com/python/latest/agents/#langchain.agents.create_agent)
