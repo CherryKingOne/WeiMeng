@@ -1,121 +1,299 @@
+为了在当前基于 DDD（领域驱动设计）架构的后端项目中新增使用 LangGraph + LangChain 的 ReAct Agent 功能，并满足你所有的定制化需求（特定的目录结构、禁止使用 YAML、Thinking 思考适配层、流式输出、统一接口等），我为你设计了以下的目录结构树以及核心代码实现。
 
+### 一、 新增的 Agent 目录结构树
 
-
-为了在现有的剧本库（`scripts`）模块中引入基于 LangChain + LangGraph 的多 Agent 工作流（目前首发角色为“剧本拆解 Agent”），建议在现有基于领域驱动设计（DDD）/ 整洁架构的目录结构上，新增一个专门的 `agents` 聚合目录，并在 `api` 和 `application` 层进行打通。
-
-以下是规划后的目录结构及详细说明（**重点标明了 `[新增]` 和 `[修改]`**）：
-
-### 一、 目录结构规划
+请在 `src/modules/` 目录下新增 `agent` 模块：
 
 ```text
-src/modules/scripts/
-|-- agents/                                  # [新增] Agent 多智能体工作流引擎目录
-|   |-- prompts/                             # [新增] 提示词目录 (按要求存放 txt 格式文件)
-|   |   `-- script_breakdown_prompt.txt      # [新增] 剧本拆解提示词 (当前唯一的Agent提示词)
-|   |-- nodes/                               # [新增] LangGraph 节点(Agent角色)目录
-|   |   |-- __init__.py
-|   |   `-- script_breakdown_node.py         # [新增] 剧本拆解Agent节点逻辑 (加载txt并调用LLM)
-|   |-- state.py                             # [新增] LangGraph 状态(State)定义 (定义 TypedDict/BaseModel)
-|   |-- tools.py                             # [新增] (可选) Agent所需工具，如检索ES切片、存入数据库等
-|   `-- graph.py                             # [新增] LangGraph 状态图编排 (定义图节点、边和路由条件)
+src/modules/agent/
+|-- __init__.py
 |-- api/
-|   |-- dependencies.py                      # [修改] 注入 AgentService 以及所需依赖
-|   `-- router.py                            #[修改] 新增 Agent 触发/流式输出接口 (如 POST /libraries/{id}/breakdown)
+|   |-- __init__.py
+|   |-- dependencies.py            # 依赖注入（如获取 AppService）
+|   `-- router.py                  # 定义 /api/v1/agent/chat 路由
 |-- application/
+|   |-- __init__.py
 |   |-- dto/
-|   |   |-- agent_dto.py                     # [新增] Agent 请求参数、响应状态的 DTO
-|   |   |-- script_chunk_dto.py            
-|   |   `-- script_dto.py                  
+|   |   |-- __init__.py
+|   |   `-- agent_chat_dto.py      # 定义请求字段
 |   `-- services/
-|       |-- script_agent_service.py          # [新增] Agent 应用服务 (封装图的调用与会话管理)
-|       `-- script_app_service.py          
+|       |-- __init__.py
+|       `-- agent_app_service.py   # 应用层服务，处理流式/非流式编排
 |-- domain/
-|   |-- entities/
-|   |   `-- ...
-|   |-- exceptions.py                        # [修改] 新增 Agent 相关的异常类 (如 AgentTimeoutError)
-|   `-- repositories.py                      
-`-- infrastructure/
-    |-- mappers/
-    |-- models/
-    |-- repositories/
-    `-- services/
-        |-- llm_provider.py                  # [新增] LangChain LLM 实例初始化工厂 (若全局已有可忽略)
-        |-- elasticsearch_chunk_store.py   
-        |-- file_text_extractor.py         
-        `-- script_chunker.py              
+|   |-- __init__.py
+|   `-- exceptions.py              # Agent 专属业务异常
+`-- infrastructure/                # 基础设施层：LangChain/LangGraph 具体实现
+    |-- __init__.py
+    |-- adapters/
+    |   |-- __init__.py
+    |   `-- thinking_adapter.py    # ⭐️ 模型供应商“思考”开关适配层
+    |-- contexts/                  # 上下文引擎文件夹（处理 RAG 或会话外挂上下文）
+    |   |-- __init__.py
+    |   `-- context_manager.py     
+    |-- graph/
+    |   |-- __init__.py
+    |   `-- react_agent.py         # 基于 LangGraph 的 ReAct Agent 核心图定义
+    |-- memory/                    # 记忆文件夹（LangGraph Checkpointer）
+    |   |-- __init__.py
+    |   `-- sqlite_saver.py        # 基于 SQLite/Redis 的持久化记忆
+    |-- skills/                    # 技能文件夹（复杂的业务逻辑封装）
+    |   |-- __init__.py
+    |   `-- search_skill.py        
+    |-- tools/                     # LangChain 工具文件夹（被 Agent 调用的 Tools）
+    |   |-- __init__.py
+    |   `-- registry.py            # 工具注册表，组装 skills 为 tools
+    `-- workspace/                 # 提示词和工作区配置（禁止 YAML，纯 Python）
+        |-- __init__.py
+        `-- prompts.py             # 存放 System Prompt
 ```
 
 ---
 
-### 二、 核心新增文件职责说明
+### 二、 核心代码实现
 
-#### 1. Agent 核心层 (`agents/`)
-这是 LangGraph 运行的核心，专门用于处理多智能体的状态流转和逻辑执行。
+#### 1. API 路由层 (`src/modules/agent/api/router.py`)
+确保最终挂载到 `v1/router.py` 中的前缀是 `/agent`。
 
-*   **`agents/state.py` (图状态)**
-    定义 LangGraph 的上下文状态。多 Agent 架构下，所有 Agent 都需要通过这个 State 进行信息传递。
-    ```python
-    from typing import Annotated, TypedDict, List
-    from langgraph.graph.message import add_messages
+```python
+from fastapi import APIRouter, Depends
+from fastapi.responses import StreamingResponse
+from ...shared.common.response import SuccessResponse
+from ..application.dto.agent_chat_dto import AgentChatRequest
+from ..application.services.agent_app_service import AgentAppService
+from .dependencies import get_agent_app_service
 
-    class ScriptGraphState(TypedDict):
-        messages: Annotated[List[dict], add_messages] # 对话历史与调用消息
-        script_id: str                                # 当前处理的剧本ID
-        breakdown_result: dict                        # 剧本拆解结果暂存
-        # 未来可无限扩展多Agent的共享状态
-    ```
+router = APIRouter(tags=["Agent"])
 
-*   **`agents/prompts/script_breakdown_prompt.txt` (提示词)**
-    纯文本文件，方便非研发人员（如 Prompt Engineer）直接调试和修改。
-    内容示例：
-    ```text
-    你是一个专业的剧本拆解专家。
-    请根据以下剧本文本，拆解出其中的：1.主要人物 2.核心冲突 3.场景列表。
-    剧本内容如下：
-    {script_content}
-    ...
-    ```
+@router.post("/chat", summary="Agent 会话接口")
+async def agent_chat(
+    request: AgentChatRequest,
+    agent_service: AgentAppService = Depends(get_agent_app_service)
+):
+    if request.stream:
+        # 流式输出
+        return StreamingResponse(
+            agent_service.chat_stream(request),
+            media_type="text/event-stream"
+        )
+    else:
+        # 非流式输出
+        result = await agent_service.chat_sync(request)
+        return SuccessResponse(data={"session_id": request.session_id, "reply": result})
+```
 
-*   **`agents/nodes/script_breakdown_node.py` (拆解 Agent 节点)**
-    LangGraph 中的一个 Node。负责：
-    1. 读取 `script_breakdown_prompt.txt`；
-    2. 从 `State` 中获取当前剧本内容（可以通过注入的工具从数据库或切片库里拿）；
-    3. 调用 LangChain 的 LLM 接口；
-    4. 将拆解结果写回 `State`。
+#### 2. DTO 定义 (`src/modules/agent/application/dto/agent_chat_dto.py`)
 
-*   **`agents/graph.py` (工作流编排)**
-    组装 LangGraph，预留多 Agent 扩展能力。
-    ```python
-    from langgraph.graph import StateGraph, END
-    from .state import ScriptGraphState
-    from .nodes.script_breakdown_node import script_breakdown_agent
+```python
+from pydantic import BaseModel, Field
+from typing import Optional
+import uuid
 
-    def build_script_graph():
-        workflow = StateGraph(ScriptGraphState)
+class AgentChatRequest(BaseModel):
+    session_id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    message: str = Field(..., description="用户输入的消息")
+    provider: str = Field(..., description="模型供应商 (例如: openai-compatible)")
+    model_name: str = Field(..., description="模型名称 (例如: deepseek-chat)")
+    stream: bool = Field(default=False, description="是否流式输出")
+    thinking: bool = Field(default=False, description="是否开启供应商思考机制")
+```
+
+#### 3. ⭐️ 思考机制适配层 (`src/modules/agent/infrastructure/adapters/thinking_adapter.py`)
+解决不同供应商“思考模式”调用差异的核心痛点。
+
+```python
+from langchain_core.language_models.chat_models import BaseChatModel
+
+class ThinkingAdapter:
+    """模型思考机制适配层"""
+    
+    @staticmethod
+    def apply_thinking(llm: BaseChatModel, provider: str, model_name: str, thinking: bool) -> BaseChatModel:
+        """
+        根据不同的 provider 和 thinking 开关，对 LangChain 的 LLM 实例进行动态调整。
+        """
+        if not thinking:
+            return llm
+
+        # --- 针对不同供应商开启思考模式 ---
+        if provider == "openai-compatible" or provider == "deepseek":
+            # DeepSeek 的思考模式通常是将模型切换为 reasoner
+            if "deepseek" in model_name.lower():
+                llm.model_name = "deepseek-reasoner"
+            # 兼容 OpenAI o1/o3 协议的推理力度参数
+            if hasattr(llm, "model_kwargs"):
+                llm.model_kwargs = {**llm.model_kwargs, "reasoning_effort": "high"}
+                
+        elif provider == "qwen":
+            # 假设 Qwen 开启思考需要特定的参数 qwen_thinking
+            if hasattr(llm, "model_kwargs"):
+                llm.model_kwargs = {**llm.model_kwargs, "enable_search": True, "reasoning": True}
+                
+        elif provider == "volcengine":
+            # 火山引擎适配
+            pass
+            
+        # 其他供应商按需扩展...
         
-        # 注册当前仅有的一个节点：剧本拆解Agent
-        workflow.add_node("breakdown_agent", script_breakdown_agent)
+        return llm
+```
+
+#### 4. 工作区与提示词 (`src/modules/agent/infrastructure/workspace/prompts.py`)
+坚决不使用 YAML，将 Prompt 置于 Python 变量中管理。
+
+```python
+# ReAct Agent 全局 System Prompt
+AGENT_SYSTEM_PROMPT = """你是一个智能且专业的 AI 助手。
+你可以使用提供的工具来辅助用户解决问题。
+在回答之前，请确保你已经充分理解了用户的意图。如果启用了思考模式，请先进行严密的逻辑推理。
+
+当前可用工具说明：{tool_descriptions}
+"""
+```
+
+#### 5. 工具与技能注册 (`src/modules/agent/infrastructure/tools/registry.py`)
+
+```python
+from langchain_core.tools import tool
+
+# 这里可以引入 skills 文件夹下的复杂业务逻辑
+# from ..skills.search_skill import perform_search
+
+@tool
+def get_system_time() -> str:
+    """获取当前的系统时间"""
+    from datetime import datetime
+    return datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+
+@tool
+def get_skill_usage_guide() -> str:
+    """介绍如何使用系统中的技能"""
+    return "技能使用指南：您可以通过与我对话，让我调用内部工具（如时间查询、数据库检索等）来协助您。"
+
+# 注册 Agent 可用的所有工具
+AGENT_TOOLS = [get_system_time, get_skill_usage_guide]
+```
+
+#### 6. LangGraph ReAct Agent 定义 (`src/modules/agent/infrastructure/graph/react_agent.py`)
+
+```python
+from langgraph.prebuilt import create_react_agent
+from langgraph.checkpoint.memory import MemorySaver
+from langchain_core.language_models.chat_models import BaseChatModel
+from ..tools.registry import AGENT_TOOLS
+from ..workspace.prompts import AGENT_SYSTEM_PROMPT
+
+def build_react_agent(llm: BaseChatModel, memory_saver: MemorySaver):
+    """
+    构建并返回一个 LangGraph ReAct Agent 执行器
+    """
+    # 动态组装 Prompt
+    tool_desc = ", ".join([t.name for t in AGENT_TOOLS])
+    system_message = AGENT_SYSTEM_PROMPT.format(tool_descriptions=tool_desc)
+    
+    # 使用 LangGraph 内置的 ReAct 范式创建 Agent
+    agent_executor = create_react_agent(
+        model=llm,
+        tools=AGENT_TOOLS,
+        checkpointer=memory_saver, # 接入 memory 文件夹中的记忆管理
+        state_modifier=system_message
+    )
+    
+    return agent_executor
+```
+
+#### 7. App Service 应用服务 (`src/modules/agent/application/services/agent_app_service.py`)
+
+```python
+import json
+from typing import AsyncGenerator
+from langgraph.checkpoint.memory import MemorySaver
+from langchain_core.messages import HumanMessage
+
+from ..dto.agent_chat_dto import AgentChatRequest
+from ...infrastructure.adapters.thinking_adapter import ThinkingAdapter
+from ...infrastructure.graph.react_agent import build_react_agent
+# 假设你现有的 providers 模块有获取模型实例的方法
+# from src.modules.providers.application.services.chat_service import get_langchain_llm
+
+class AgentAppService:
+    def __init__(self):
+        # 实际项目中，这里应该使用依赖注入的 RedisSaver 或 SQLiteSaver 存放至 memory 文件夹
+        self.memory = MemorySaver() 
+
+    async def _prepare_agent(self, request: AgentChatRequest):
+        """准备和初始化 Agent 执行器"""
         
-        # 设置入口和出口
-        workflow.set_entry_point("breakdown_agent")
-        workflow.add_edge("breakdown_agent", END)
+        # 1. 调用现有的 providers 模块获取底层的 Langchain ChatModel 实例
+        # 伪代码： llm = await get_langchain_llm(request.provider, request.model_name)
+        from langchain_openai import ChatOpenAI # 仅作占位示意
+        base_llm = ChatOpenAI(model=request.model_name) 
         
-        # 编译图
-        return workflow.compile()
-    ```
+        # 2. 注入 Thinking 思考适配层（核心！）
+        llm_with_thinking = ThinkingAdapter.apply_thinking(
+            llm=base_llm,
+            provider=request.provider,
+            model_name=request.model_name,
+            thinking=request.thinking
+        )
+        
+        # 3. 构建 LangGraph ReAct Agent
+        agent = build_react_agent(llm_with_thinking, self.memory)
+        return agent
 
-#### 2. 应用与 API 层
-*   **`application/services/script_agent_service.py`**
-    作为防腐层，隔离 API 层和 LangGraph 的底层实现。
-    负责初始化 Graph，传入剧本 ID，并执行 `graph.invoke()` 或 `graph.astream()`（流式输出）。
-*   **`api/router.py`**
-    新增路由，例如：
-    *   `POST /api/v1/scripts/libraries/{library_id}/files/{script_id}/breakdown` (触发拆解Agent任务)
+    async def chat_sync(self, request: AgentChatRequest) -> str:
+        """非流式对话"""
+        agent = await self._prepare_agent(request)
+        config = {"configurable": {"thread_id": request.session_id}}
+        
+        inputs = {"messages": [HumanMessage(content=request.message)]}
+        response = await agent.ainvoke(inputs, config=config)
+        
+        # 提取最后一条 AI 回复
+        return response["messages"][-1].content
 
----
+    async def chat_stream(self, request: AgentChatRequest) -> AsyncGenerator[str, None]:
+        """流式对话 (SSE 格式或 Chunk 格式)"""
+        agent = await self._prepare_agent(request)
+        config = {"configurable": {"thread_id": request.session_id}}
+        inputs = {"messages": [HumanMessage(content=request.message)]}
+        
+        # 使用 LangGraph 的 astream_events 来精细捕获流式输出（支持工具调用和模型思考过程输出）
+        async for event in agent.astream_events(inputs, config=config, version="v2"):
+            kind = event["event"]
+            
+            # 捕获大模型生成的文本块（含思考过程或最终回答）
+            if kind == "on_chat_model_stream":
+                chunk = event["data"]["chunk"]
+                
+                # 如果模型供应商返回了特殊的 reasoning_content (如 Deepseek)
+                if hasattr(chunk, "additional_kwargs") and "reasoning_content" in chunk.additional_kwargs:
+                    reasoning_text = chunk.additional_kwargs["reasoning_content"]
+                    if reasoning_text:
+                         yield f"data: {json.dumps({'type': 'thinking', 'content': reasoning_text})}\n\n"
+                
+                # 常规内容
+                if chunk.content:
+                    yield f"data: {json.dumps({'type': 'message', 'content': chunk.content})}\n\n"
+            
+            # 捕获工具调用开始
+            elif kind == "on_tool_start":
+                tool_name = event["name"]
+                yield f"data: {json.dumps({'type': 'tool_call', 'content': f'正在使用工具: {tool_name} ...'})}\n\n"
+                
+        yield "data: [DONE]\n\n"
+```
 
-### 三、 为什么这样设计（LangGraph 多 Agent 考量）
+### 三、 集成与注册说明
 
-1.  **为多 Agent 铺路**：虽然目前只有 **“剧本拆解 Agent”**，但在影视/剧本行业，后续极易扩展出 **“人物画像 Agent”**、**“剧本评审 Agent”**、**“场景润色 Agent”** 等。只需在 `nodes/` 目录下新增节点文件，并在 `graph.py` 中通过 `add_node` 和 条件边（`add_conditional_edges`）将它们连接起来，即可实现复杂的多智能体协同（如：拆解完成后，自动流转到评审Agent）。
-2.  **提示词外置（`.txt`）**：将提示词从代码中剥离到 `prompts/` 目录，不仅符合您的要求，还解耦了业务逻辑和 LLM 调优，未来可以方便地对接动态提示词配置中心。
-3.  **状态统一管理**：利用 `state.py` 定义数据结构，保证无论以后增加多少个 Agent 角色，剧本的元数据、大模型的上下文（Messages）都能一致传递，不会发生数据割裂。
+1. **注册路由**：
+   在现有的 `src/api/v1/router.py` 文件中，导入并注册新模块的路由：
+   ```python
+   from src.modules.agent.api.router import router as agent_router
+   api_v1_router.include_router(agent_router, prefix="/agent")
+   ```
+
+2. **对接已有的 `providers` 模块**：
+   在 `AgentAppService._prepare_agent` 方法中，你需要对接现有系统 `providers` 目录里的 `ChatService` 或 `Factories`。现有的 `providers` 既然已经封装好了，只需让它返回一个满足 `BaseChatModel`（Langchain 标准）的实例，然后交给 `ThinkingAdapter` 加工即可。
+
+3. **Thinking 字段的灵活控制**：
+   你的要求被完美实现在了 `ThinkingAdapter` 中。无论外部请求怎样传入 `thinking: true`，Adapter 都会将它翻译为当前 `provider` 对应的特殊参数（如改模型名为 `deepseek-reasoner`，或增加 `reasoning_effort="high"` 参数）。这使得前端和 API 调用方完全解耦。
